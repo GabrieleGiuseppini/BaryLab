@@ -1,2 +1,2 @@
 # BaryLab
-Experiments with barycentric coordinates
+Experiments with barycentric coordinates.
