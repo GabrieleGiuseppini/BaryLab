@@ -4,6 +4,7 @@
 #
 
 set  (SOURCES
+	AABB.h
 	BLabDebug.h
 	BLabException.h
 	BLabMath.h
@@ -16,6 +17,7 @@ set  (SOURCES
 	BLabTypes.cpp
 	BLabTypes.h
 	Buffer.h
+	CircularList.h
 	Colors.cpp
 	Colors.h
 	Controller_Interactions.cpp

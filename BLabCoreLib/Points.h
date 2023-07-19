@@ -5,6 +5,7 @@
 ***************************************************************************************/
 #pragma once
 
+#include "AABB.h"
 #include "BLabTypes.h"
 #include "Buffer.h"
 #include "ElementContainer.h"
@@ -119,6 +120,17 @@ public:
     void Add(
         vec2f const & position,
         vec3f const & color);
+
+    AABB GetAABB() const
+    {
+        AABB box;
+        for (ElementIndex pointIndex : *this)
+        {
+            box.ExtendTo(GetPosition(pointIndex));
+        }
+
+        return box;
+    }
 
     void Query(ElementIndex pointElementIndex) const;
 

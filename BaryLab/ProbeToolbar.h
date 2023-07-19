@@ -7,8 +7,7 @@
 
 #include "UIControls/ScalarTimeSeriesProbeControl.h"
 
-#include <SLabCoreLib/ISimulationEventHandler.h>
-#include <SLabCoreLib/RunningAverage.h>
+#include <BLabCoreLib/IEventHandler.h>
 
 #include <wx/sizer.h>
 #include <wx/textctrl.h>
@@ -20,7 +19,7 @@
 
 class ProbeToolbar final
     : public wxPanel
-    , public ISimulationEventHandler
+    , public IEventHandler
 {
 public:
 
@@ -28,7 +27,7 @@ public:
 
     virtual ~ProbeToolbar();
 
-    void UpdateSimulation();
+    void Update();
 
 public:
 
@@ -36,16 +35,11 @@ public:
     // Simulation event handlers
     //
 
-    virtual void OnSimulationReset(size_t numSprings) override;
+    void OnReset() override;
 
-    virtual void OnMeasurement(
-        float totalKineticEnergy,
-        float totalPotentialEnergy,
-        std::optional<float> bending,
-        std::chrono::nanoseconds lastSimulationDuration,
-        std::chrono::nanoseconds avgSimulationDuration) override;
+    void OnSubjectParticleBarycentricCoordinatesChanged(vec3f const & coordinates) override;
 
-    virtual void OnCustomProbe(
+    void OnCustomProbe(
         std::string const & name,
         float value) override;
 
@@ -66,15 +60,11 @@ private:
     // UI
     //
 
-    wxTextCtrl * mNumSpringsTextCtrl;
-    wxTextCtrl * mBendingTextCtrl;
-    wxTextCtrl * mLastSimulationDurationTextCtrl;
+    wxTextCtrl * mBarycentricCoordinateL1TextCtrl;
+    wxTextCtrl * mBarycentricCoordinateL2TextCtrl;
+    wxTextCtrl * mBarycentricCoordinateL3TextCtrl;    
 
-    wxBoxSizer * mProbesSizer;
-
-    std::unique_ptr<ScalarTimeSeriesProbeControl> mKineticEnergyProbe;
-    std::unique_ptr<ScalarTimeSeriesProbeControl> mPotentialEnergyProbe;
     std::unordered_map<std::string, std::unique_ptr<ScalarTimeSeriesProbeControl>> mCustomProbes;
 
-    RunningAverage<64> mSimulationDurationRunningAverage;
+    wxBoxSizer * mProbesSizer;
 };

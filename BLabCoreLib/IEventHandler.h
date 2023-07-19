@@ -6,6 +6,7 @@
 #pragma once
 
 #include "BLabTypes.h"
+#include "Vectors.h"
 
 #include <chrono>
 #include <optional>
@@ -20,7 +21,17 @@
 
 struct IEventHandler
 {
-    virtual void OnReset(size_t /*numSprings*/)
+    virtual void OnReset()
+    {
+        // Default-implemented
+    }
+
+    virtual void OnSubjectParticleBarycentricCoordinatesChanged(vec3f const & /*coordinates*/)
+    {
+        // Default implemented
+    }
+
+    virtual void OnTrajectoryToggled(bool /*isTrajectorySet*/)
     {
         // Default-implemented
     }

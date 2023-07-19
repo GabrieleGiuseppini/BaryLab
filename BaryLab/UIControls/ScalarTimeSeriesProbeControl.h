@@ -5,7 +5,7 @@
 ***************************************************************************************/
 #pragma once
 
-#include <SLabCoreLib/CircularList.h>
+#include <BLabCoreLib/CircularList.h>
 
 #include <wx/wx.h>
 
@@ -24,7 +24,7 @@ public:
 
     void RegisterSample(float value);
 
-    void UpdateSimulation();
+    void Update();
 
     void Reset();
 

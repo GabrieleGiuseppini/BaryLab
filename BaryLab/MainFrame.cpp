@@ -7,12 +7,11 @@
 
 #include "StandardSystemPaths.h"
 
-#include <SLabCoreLib/ImageFileTools.h>
-#include <SLabCoreLib/SLabException.h>
-#include <SLabCoreLib/SLabOpenGL.h>
-#include <SLabCoreLib/Log.h>
-#include <SLabCoreLib/Utils.h>
-#include <SLabCoreLib/Version.h>
+#include <BLabCoreLib/BLabException.h>
+#include <BLabCoreLib/BLabOpenGL.h>
+#include <BLabCoreLib/Log.h>
+#include <BLabCoreLib/Utils.h>
+#include <BLabCoreLib/Version.h>
 
 #include <wx/intl.h>
 #include <wx/msgdlg.h>
@@ -38,6 +37,7 @@
 
 long const ID_MAIN_CANVAS = wxNewId();
 
+// TODOHERE
 long const ID_LOAD_OBJECT_MENUITEM = wxNewId();
 long const ID_MAKE_OBJECT_MENUITEM = wxNewId();
 long const ID_RESET_MENUITEM = wxNewId();

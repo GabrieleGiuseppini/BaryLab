@@ -47,9 +47,9 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
 
             wxGridBagSizer * gridSizer = new wxGridBagSizer(0, 0);
 
-            // Num Springs
+            // L1
             {
-                auto label = new wxStaticText(this, wxID_ANY, _("Springs:"));
+                auto label = new wxStaticText(this, wxID_ANY, _("l1:"));
                 gridSizer->Add(
                     label,
                     wxGBPosition(0, 0),
@@ -57,58 +57,50 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                     wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
                     0);
 
-                mNumSpringsTextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
+                mBarycentricCoordinateL1TextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
                 gridSizer->Add(
-                    mNumSpringsTextCtrl,
+                    mBarycentricCoordinateL1TextCtrl,
                     wxGBPosition(0, 1),
                     wxGBSpan(1, 1),
                     wxEXPAND,
                     0);
             }
 
-            // Bending
+            // L2
             {
-                auto label = new wxStaticText(this, wxID_ANY, _("Bending:"));
+                auto label = new wxStaticText(this, wxID_ANY, _("l2:"));
                 gridSizer->Add(
                     label,
-                    wxGBPosition(1, 0),
+                    wxGBPosition(0, 0),
                     wxGBSpan(1, 1),
                     wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
                     0);
 
-                mBendingTextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
+                mBarycentricCoordinateL2TextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
                 gridSizer->Add(
-                    mBendingTextCtrl,
-                    wxGBPosition(1, 1),
+                    mBarycentricCoordinateL2TextCtrl,
+                    wxGBPosition(0, 1),
                     wxGBSpan(1, 1),
                     wxEXPAND,
                     0);
             }
 
-            // Update duration
+            // L3
             {
-                auto label1 = new wxStaticText(this, wxID_ANY, _("CPU time:"));
+                auto label = new wxStaticText(this, wxID_ANY, _("l3:"));
                 gridSizer->Add(
-                    label1,
-                    wxGBPosition(2, 0),
+                    label,
+                    wxGBPosition(0, 0),
                     wxGBSpan(1, 1),
                     wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
                     0);
 
-                mLastSimulationDurationTextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
+                mBarycentricCoordinateL3TextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
                 gridSizer->Add(
-                    mLastSimulationDurationTextCtrl,
-                    wxGBPosition(2, 1),
+                    mBarycentricCoordinateL3TextCtrl,
+                    wxGBPosition(0, 1),
                     wxGBSpan(1, 1),
                     wxEXPAND,
-                    0);
-
-                auto label2 = new wxStaticText(this, wxID_ANY, _("us"));
-                gridSizer->Add(
-                    label2,
-                    wxGBPosition(2, 2),
-                    wxGBSpan(1, 1),
-                    wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
                     0);
             }
 
@@ -122,9 +114,6 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
         // Probes
         {
             mProbesSizer = new wxBoxSizer(wxHORIZONTAL);
-
-            mKineticEnergyProbe = AddScalarTimeSeriesProbe("Kinetic Energy", 200);
-            mPotentialEnergyProbe = AddScalarTimeSeriesProbe("Potential Energy", 200);
 
             hSizer->Add(
                 mProbesSizer,
@@ -143,7 +132,7 @@ ProbeToolbar::~ProbeToolbar()
 {
 }
 
-void ProbeToolbar::UpdateSimulation()
+void ProbeToolbar::Update()
 {
     //
     // Update all probes
@@ -151,12 +140,9 @@ void ProbeToolbar::UpdateSimulation()
 
     if (IsActive())
     {
-        mKineticEnergyProbe->UpdateSimulation();
-        mPotentialEnergyProbe->UpdateSimulation();
-
         for (auto const & p : mCustomProbes)
         {
-            p.second->UpdateSimulation();
+            p.second->Update();
         }
     }
 }
@@ -182,62 +168,43 @@ std::unique_ptr<ScalarTimeSeriesProbeControl> ProbeToolbar::AddScalarTimeSeriesP
 
 ///////////////////////////////////////////////////////////////////////////////////////
 
-void ProbeToolbar::OnSimulationReset(size_t numSprings)
+void ProbeToolbar::OnReset()
 {
-    mNumSpringsTextCtrl->SetValue(std::to_string(numSprings));
-    mBendingTextCtrl->SetValue("");
-    mLastSimulationDurationTextCtrl->SetValue("");
-
-    mKineticEnergyProbe->Reset();
-    mPotentialEnergyProbe->Reset();
+    mBarycentricCoordinateL1TextCtrl->SetValue("");
+    mBarycentricCoordinateL2TextCtrl->SetValue("");
+    mBarycentricCoordinateL3TextCtrl->SetValue("");
 
     for (auto const & p : mCustomProbes)
     {
         p.second->Reset();
     }
-
-    mSimulationDurationRunningAverage.Reset(0.0f);
 }
 
-void ProbeToolbar::OnMeasurement(
-    float totalKineticEnergy,
-    float totalPotentialEnergy,
-    std::optional<float> bending,
-    std::chrono::nanoseconds lastSimulationDuration,
-    std::chrono::nanoseconds /*avgSimulationDuration*/)
+void ProbeToolbar::OnSubjectParticleBarycentricCoordinatesChanged(vec3f const & coordinates)
 {
-    // Bending
-    if (bending)
     {
         std::ostringstream ss;
         ss.fill('0');
-        ss << std::fixed << std::setprecision(2) << *bending;
+        ss << std::fixed << std::setprecision(2) << coordinates.x;
 
-        mBendingTextCtrl->SetValue(ss.str());
+        mBarycentricCoordinateL1TextCtrl->SetValue(ss.str());
     }
-    else
-    {
-        mBendingTextCtrl->SetValue("");
-    }
-    
-    // Simulation time
-    {
-        float const lastSimulationDurationMicroSeconds =
-            static_cast<float>(std::chrono::duration_cast<std::chrono::nanoseconds>(lastSimulationDuration).count())
-            / 1000.0f;
 
-        mSimulationDurationRunningAverage.Update(lastSimulationDurationMicroSeconds);
-
+    {
         std::ostringstream ss;
         ss.fill('0');
-        ss << std::fixed << std::setprecision(2) << mSimulationDurationRunningAverage.GetCurrentAverage();
+        ss << std::fixed << std::setprecision(2) << coordinates.y;
 
-        mLastSimulationDurationTextCtrl->SetValue(ss.str());
+        mBarycentricCoordinateL1TextCtrl->SetValue(ss.str());
     }
 
-    // Time series
-    mKineticEnergyProbe->RegisterSample(totalKineticEnergy);
-    mPotentialEnergyProbe->RegisterSample(totalPotentialEnergy);
+    {
+        std::ostringstream ss;
+        ss.fill('0');
+        ss << std::fixed << std::setprecision(2) << coordinates.z;
+
+        mBarycentricCoordinateL1TextCtrl->SetValue(ss.str());
+    }
 }
 
 void ProbeToolbar::OnCustomProbe(

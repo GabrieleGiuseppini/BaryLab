@@ -20,15 +20,31 @@ public:
 
 public:
 
-    virtual void OnReset(size_t numSprings) override
+    void OnReset() override
     {
         for (auto sink : mSinks)
         {
-            sink->OnReset(numSprings);
+            sink->OnReset();
         }
     }
 
-    virtual void OnCustomProbe(
+    void OnSubjectParticleBarycentricCoordinatesChanged(vec3f const & coordinates) override
+    {
+        for (auto sink : mSinks)
+        {
+            sink->OnSubjectParticleBarycentricCoordinatesChanged(coordinates);
+        }
+    }
+
+    void OnTrajectoryToggled(bool isTrajectorySet) override
+    {
+        for (auto sink : mSinks)
+        {
+            sink->OnTrajectoryToggled(isTrajectorySet);
+        }
+    }
+
+    void OnCustomProbe(
         std::string const & name,
         float value) override
     {

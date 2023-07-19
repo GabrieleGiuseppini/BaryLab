@@ -86,7 +86,7 @@ private:
     // Timers
     //
 
-    std::unique_ptr<wxTimer> mSimulationTimer;
+    std::unique_ptr<wxTimer> mTimer;
 
 private:
 
@@ -111,6 +111,7 @@ private:
     void OnMainGLCanvasCaptureMouseLost(wxMouseCaptureLostEvent & event);
 
     // Menu
+    // TODOHERE
     void OnLoadObjectMenuItemSelected(wxCommandEvent & event);
     void OnMakeObjectMenuItemSelected(wxCommandEvent & event);
     void OnResetMenuItemSelected(wxCommandEvent & event);
