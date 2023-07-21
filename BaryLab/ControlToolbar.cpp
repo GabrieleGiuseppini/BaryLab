@@ -159,6 +159,7 @@ ControlToolbar::ControlToolbar(wxWindow* parent)
                 [this](wxCommandEvent & /*event*/)
                 {
                     wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_SET_PARTICLE_GRAVITY);
+                    evt.SetInt(mSetParticleGravityButton->GetValue() ? 1 : 0);
                     ProcessEvent(evt);
                 });
 

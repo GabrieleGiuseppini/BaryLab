@@ -141,14 +141,16 @@ public:
                 // Engaged
                 //
 
-                mLabController->MoveParticleTo(
+                vec2f const stride = newPosition - mCurrentEngagementState->LastPosition;
+
+                mLabController->MoveParticleBy(
                     mCurrentEngagementState->ParticleIndex,
-                    newPosition,
+                    stride,
                     vec2f::zero());
 
-                // Update last stride
-                mCurrentEngagementState->LastStride = newPosition - mCurrentEngagementState->LastPosition;
+                // Update state
                 mCurrentEngagementState->LastPosition = newPosition;
+                mCurrentEngagementState->LastStride = stride;
             }
         }
         else
@@ -156,9 +158,9 @@ public:
             if (mCurrentEngagementState)
             {
                 // Impart intertia
-                mLabController->MoveParticleTo(
+                mLabController->MoveParticleBy(
                     mCurrentEngagementState->ParticleIndex,
-                    newPosition,
+                    vec2f::zero(),
                     mCurrentEngagementState->LastStride);
 
                 // Disengage
@@ -232,6 +234,8 @@ public:
     {
         bool const wasEngaged = !!mCurrentEngagementState;
 
+        vec2f const newPosition = inputState.MousePosition;
+
         if (inputState.IsLeftMouseDown)
         {
             if (!mCurrentEngagementState)
@@ -241,16 +245,14 @@ public:
                 // ...see if we're able to pick a point and thus start engagement
                 //
 
-                vec2f const mousePosition = inputState.MousePosition;
-
-                auto const vertexId = mLabController->TryPickVertex(mousePosition);
+                auto const vertexId = mLabController->TryPickVertex(newPosition);
                 if (vertexId.has_value())
                 {
                     //
                     // Engage!
                     //
 
-                    mCurrentEngagementState.emplace(*vertexId);
+                    mCurrentEngagementState.emplace(*vertexId, newPosition);
                 }
             }
             else
@@ -259,9 +261,14 @@ public:
                 // Engaged
                 //
 
-                mLabController->MoveVertexTo(
+                vec2f const stride = newPosition - mCurrentEngagementState->LastPosition;
+
+                mLabController->MoveVertexBy(
                     mCurrentEngagementState->VertexIndex,
-                    inputState.MousePosition);
+                    stride);
+
+                // Update state
+                mCurrentEngagementState->LastPosition = newPosition;
             }
         }
         else
@@ -289,9 +296,13 @@ private:
     struct EngagementState
     {
         ElementIndex VertexIndex;
+        vec2f LastPosition;
 
-        explicit EngagementState(ElementIndex vertexIndex)
+        explicit EngagementState(
+            ElementIndex vertexIndex,
+            vec2f const & currentPosition)
             : VertexIndex(vertexIndex)
+            , LastPosition(currentPosition)
         {}
     };
 

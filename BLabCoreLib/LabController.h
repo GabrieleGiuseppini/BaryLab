@@ -54,13 +54,13 @@ public:
 
     std::optional<ElementIndex> TryPickVertex(vec2f const & screenCoordinates) const;
 
-    void MoveVertexTo(ElementIndex vertexIndex, vec2f const & targetScreenCoordinates);
+    void MoveVertexBy(ElementIndex vertexIndex, vec2f const & screenOffset);
 
     bool TrySelectOriginTriangle(vec2f const & screenCoordinates);
 
     std::optional<ElementIndex> TryPickParticle(vec2f const & screenCoordinates) const;
 
-    void MoveParticleTo(ElementIndex particleIndex, vec2f const & targetScreenCoordinates, vec2f const & inertialStride);
+    void MoveParticleBy(ElementIndex particleIndex, vec2f const & screenOffset, vec2f const & inertialStride);
 
     void SetParticleTrajectory(ElementIndex particleIndex, vec2f const & targetScreenCoordinates);
 

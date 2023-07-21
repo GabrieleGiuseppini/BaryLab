@@ -180,13 +180,17 @@ std::optional<ElementIndex> LabController::TryPickVertex(vec2f const & screenCoo
         return std::nullopt;
 }
 
-void LabController::MoveVertexTo(ElementIndex vertexIndex, vec2f const & targetScreenCoordinates)
+void LabController::MoveVertexBy(
+    ElementIndex vertexIndex, 
+    vec2f const & screenOffset)
 {
     assert(!!mModel);
 
-    vec2f const worldCoordinates = ScreenToWorld(targetScreenCoordinates);
+    vec2f const worldOffset = ScreenOffsetToWorldOffset(screenOffset);
 
-    mModel->GetMesh().GetVertices().SetPosition(vertexIndex, worldCoordinates);
+    mModel->GetMesh().GetVertices().SetPosition(
+        vertexIndex,
+        mModel->GetMesh().GetVertices().GetPosition(vertexIndex) + worldOffset);
 }
 
 bool LabController::TrySelectOriginTriangle(vec2f const & screenCoordinates)
@@ -229,18 +233,23 @@ std::optional<ElementIndex> LabController::TryPickParticle(vec2f const & screenC
         return std::nullopt;
 }
 
-void LabController::MoveParticleTo(
+void LabController::MoveParticleBy(
     ElementIndex particleIndex, 
-    vec2f const & targetScreenCoordinates,
+    vec2f const & screenOffset,
     vec2f const & inertialStride)
 {
     assert(!!mModel);
 
-    vec2f const worldCoordinates = ScreenToWorld(targetScreenCoordinates);
+    vec2f const worldOffset = ScreenOffsetToWorldOffset(screenOffset);
     vec2f const worldStride = ScreenOffsetToWorldOffset(inertialStride);
 
-    mModel->GetParticles().SetPosition(particleIndex, worldCoordinates);
-    mModel->GetParticles().SetVelocity(particleIndex, worldStride / LabParameters::SimulationTimeStepDuration * 0.5f); // Magic adjustment
+    mModel->GetParticles().SetPosition(
+        particleIndex, 
+        mModel->GetParticles().GetPosition(particleIndex) + worldOffset);
+
+    mModel->GetParticles().SetVelocity(
+        particleIndex, 
+        worldStride / LabParameters::SimulationTimeStepDuration * 0.5f); // Magic adjustment
 }
 
 void LabController::SetParticleTrajectory(
@@ -265,8 +274,13 @@ void LabController::QueryNearestParticleAt(vec2f const & screenCoordinates) cons
 
 void LabController::SetParticleGravityEnabled(bool isEnabled)
 {
-    // TODOHERE
-    (void)isEnabled;
+    vec2f const gravity = isEnabled ? LabParameters::Gravity : vec2f::zero();
+
+    auto & particles = mModel->GetParticles();
+    for (auto p : particles)
+    {
+        particles.SetWorldForce(p, gravity);
+    }
 }
 
 ////////////////////////////////////////////////

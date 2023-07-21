@@ -30,6 +30,8 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
 
     SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE));
 
+    wxBoxSizer * vSizer = new wxBoxSizer(wxVERTICAL);
+
     //
     // Setup UI
     //
@@ -124,8 +126,14 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
 
         hSizer->AddSpacer(HMargin);
 
-        SetSizer(hSizer);
+        vSizer->Add(
+            hSizer,
+            1,
+            wxALL,
+            5);
     }
+
+    SetSizer(vSizer);
 }
 
 ProbeToolbar::~ProbeToolbar()
