@@ -18,8 +18,8 @@
 
 enum class ToolType
 {
-    MoveParticle = 0,
-    MoveVertex = 1,
+    MoveVertex = 0,
+    MoveParticle = 1,
     SetParticleTrajectory = 2,
     SetOriginTriangle = 3,
 };

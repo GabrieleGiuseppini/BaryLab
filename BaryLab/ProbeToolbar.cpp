@@ -71,7 +71,7 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                 auto label = new wxStaticText(this, wxID_ANY, _("l2:"));
                 gridSizer->Add(
                     label,
-                    wxGBPosition(0, 0),
+                    wxGBPosition(1, 0),
                     wxGBSpan(1, 1),
                     wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
                     0);
@@ -79,7 +79,7 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                 mBarycentricCoordinateL2TextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
                 gridSizer->Add(
                     mBarycentricCoordinateL2TextCtrl,
-                    wxGBPosition(0, 1),
+                    wxGBPosition(1, 1),
                     wxGBSpan(1, 1),
                     wxEXPAND,
                     0);
@@ -90,7 +90,7 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                 auto label = new wxStaticText(this, wxID_ANY, _("l3:"));
                 gridSizer->Add(
                     label,
-                    wxGBPosition(0, 0),
+                    wxGBPosition(2, 0),
                     wxGBSpan(1, 1),
                     wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
                     0);
@@ -98,7 +98,7 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                 mBarycentricCoordinateL3TextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
                 gridSizer->Add(
                     mBarycentricCoordinateL3TextCtrl,
-                    wxGBPosition(0, 1),
+                    wxGBPosition(2, 1),
                     wxGBSpan(1, 1),
                     wxEXPAND,
                     0);

@@ -6,25 +6,22 @@
 #define out varying
 
 // Inputs
-in vec4 inSpringAttributeGroup1; // Position, VertexSpacePosition
-in vec4 inSpringAttributeGroup2; // Color
-in float inSpringAttributeGroup3; // Highlight
+in vec4 inEdgeAttributeGroup1; // Position, VertexSpacePosition
+in vec4 inEdgeAttributeGroup2; // Color
 
 // Outputs        
 out vec2 vertexSpacePosition;
-out vec4 springColor;
-out float springHighlight;
+out vec4 edgeColor;
 
 // Params
 uniform mat4 paramOrthoMatrix;
 
 void main()
 {  
-    vertexSpacePosition = inSpringAttributeGroup1.zw;
-    springColor = inSpringAttributeGroup2;
-    springHighlight = inSpringAttributeGroup3;
+    vertexSpacePosition = inEdgeAttributeGroup1.zw;
+    edgeColor = inEdgeAttributeGroup2;
 
-    gl_Position = paramOrthoMatrix * vec4(inSpringAttributeGroup1.xy, -1.0, 1.0);
+    gl_Position = paramOrthoMatrix * vec4(inEdgeAttributeGroup1.xy, -1.0, 1.0);
 }
 
 ###FRAGMENT
@@ -35,8 +32,7 @@ void main()
 
 // Inputs from previous shader        
 in vec2 vertexSpacePosition; // [(-1.0, -1.0), (1.0, 1.0)]
-in vec4 springColor;
-in float springHighlight;
+in vec4 edgeColor;
 
 void main()
 {
@@ -62,8 +58,6 @@ void main()
     */
 
     gl_FragColor = vec4(
-        mix(springColor.xyz, 
-            vec3(.55, .0, .0),
-            springHighlight),
-        .1 * springColor.w);    
+        edgeColor.rgb,
+        .5 * edgeColor.a);    
 } 

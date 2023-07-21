@@ -54,8 +54,9 @@ ControlToolbar::ControlToolbar(wxWindow* parent)
                 this,
                 ID_MOVE_PARTICLE,
                 wxBitmap(
-                (ResourceLocator::GetResourcesFolderPath() / "move_particle.png").string(),
-                wxBITMAP_TYPE_PNG),
+                    // TODO
+                    (ResourceLocator::GetResourcesFolderPath() / "settings_icon.png").string(),
+                    wxBITMAP_TYPE_PNG),
                 wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 
             mMoveParticleButton->Bind(wxEVT_TOGGLEBUTTON, 
@@ -76,7 +77,7 @@ ControlToolbar::ControlToolbar(wxWindow* parent)
                 this,
                 ID_MOVE_PARTICLE,
                 wxBitmap(
-                (ResourceLocator::GetResourcesFolderPath() / "move_vertex.png").string(),
+                (ResourceLocator::GetResourcesFolderPath() / "move_vertex_icon.png").string(),
                 wxBITMAP_TYPE_PNG),
                 wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 
@@ -376,6 +377,24 @@ void ControlToolbar::OnSimulationControlStepButton()
 {
     // Fire event
     wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_SIMULATION_CONTROL_STEP);
+    ProcessEvent(evt);
+}
+
+void ControlToolbar::OnActionResetButton()
+{
+    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_ACTION_RESET);
+    ProcessEvent(evt);
+}
+
+void ControlToolbar::OnActionLoadMeshButton()
+{
+    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_ACTION_LOAD_MESH);
+    ProcessEvent(evt);
+}
+
+void ControlToolbar::OnActionSettingsButton()
+{
+    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_ACTION_SETTINGS);
     ProcessEvent(evt);
 }
 

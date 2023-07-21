@@ -7,8 +7,9 @@
 
 #include <cmath>
 
-float constexpr EdgeThicknessWorld = 0.1f;
-float constexpr ParticleRadiusWorld = 0.3f;
+float constexpr VertexRadiusWorld = 0.05f;
+float constexpr EdgeThicknessWorld = 0.03f;
+float constexpr ParticleRadiusWorld = 0.15f;
 
 RenderContext::RenderContext(
     int canvasWidth,
@@ -183,10 +184,10 @@ void RenderContext::UploadVertices(
     {
         vec2f const & vertexPosition = vertexPositions[v];
 
-        float const xLeft = vertexPosition.x - EdgeThicknessWorld / 2.0f;
-        float const xRight = vertexPosition.x + EdgeThicknessWorld / 2.0f;
-        float const yTop = vertexPosition.y + EdgeThicknessWorld / 2.0f;
-        float const yBottom = vertexPosition.y - EdgeThicknessWorld / 2.0f;
+        float const xLeft = vertexPosition.x - VertexRadiusWorld;
+        float const xRight = vertexPosition.x + VertexRadiusWorld;
+        float const yTop = vertexPosition.y + VertexRadiusWorld;
+        float const yBottom = vertexPosition.y - VertexRadiusWorld;
 
         // Left, bottom
         mVertexVertexBuffer.emplace_back(
@@ -319,10 +320,10 @@ void RenderContext::UploadParticle(
     vec2f const & particlePosition,
     rgbaColor const & particleColor)
 {
-    float const xLeft = particlePosition.x - ParticleRadiusWorld / 2.0f;
-    float const xRight = particlePosition.x + ParticleRadiusWorld / 2.0f;
-    float const yTop = particlePosition.y + ParticleRadiusWorld / 2.0f;
-    float const yBottom = particlePosition.y - ParticleRadiusWorld / 2.0f;
+    float const xLeft = particlePosition.x - ParticleRadiusWorld;
+    float const xRight = particlePosition.x + ParticleRadiusWorld;
+    float const yTop = particlePosition.y + ParticleRadiusWorld;
+    float const yBottom = particlePosition.y - ParticleRadiusWorld;
 
     vec4f const color = particleColor.toVec4f();
 

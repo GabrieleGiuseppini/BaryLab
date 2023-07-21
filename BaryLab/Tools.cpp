@@ -15,7 +15,7 @@ MoveVertexTool::MoveVertexTool(
         cursorWindow,
         std::move(labController))
     , mCurrentEngagementState(std::nullopt)
-    , mUpCursor(WxHelpers::MakeCursor("move_vertex_up", 13, 5))
-    , mDownCursor(WxHelpers::MakeCursor("move_vertex_down", 13, 5))
+    , mUpCursor(WxHelpers::MakeCursor("generic_cursor", 7, 8))
+    , mDownCursor(WxHelpers::MakeCursor("generic_cursor", 7, 8))
 {
 }
