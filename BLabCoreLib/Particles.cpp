@@ -13,7 +13,7 @@ void Particles::Add(
 {
     mPositionBuffer.emplace_back(position);
     mVelocityBuffer.emplace_back(vec2f::zero());
-    mAssignedForceBuffer.emplace_back(vec2f::zero());
+    mWorldForceBuffer.emplace_back(vec2f::zero());
 
     mRenderColorBuffer.emplace_back(color);
 }

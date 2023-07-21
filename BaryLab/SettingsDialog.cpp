@@ -90,6 +90,9 @@ SettingsDialog::SettingsDialog(
 
 
 
+    dialogVSizer->Add(notebook, 0, wxEXPAND);
+
+
     dialogVSizer->AddSpacer(20);
 
 
@@ -328,7 +331,7 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
 
                 mechanicsSizer->Add(
                     mMassAdjustmentSlider,
-                    wxGBPosition(0, 1),
+                    wxGBPosition(0, 0),
                     wxGBSpan(1, 1),
                     wxEXPAND | wxALL,
                     CellBorder);
@@ -354,7 +357,7 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
 
                 mechanicsSizer->Add(
                     mGravityAdjustmentSlider,
-                    wxGBPosition(0, 2),
+                    wxGBPosition(0, 1),
                     wxGBSpan(1, 1),
                     wxEXPAND | wxALL,
                     CellBorder);
@@ -368,7 +371,7 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
         gridSizer->Add(
             mechanicsBox,
             wxGBPosition(0, 0),
-            wxGBSpan(1, 3),
+            wxGBSpan(1, 2),
             wxEXPAND | wxALL | wxALIGN_CENTER_HORIZONTAL,
             CellBorder);
     }

@@ -31,8 +31,12 @@ struct LabParameters
     static size_t constexpr MaxTrianglesPerVertex = 8u;
 
     //
-    // Parameters
+    // Simulation
     //
+
+    static float constexpr SimulationTimeStepDuration = 1.0f / 64.0f;
+
+    static float constexpr ParticleMass = 68.95f; // Kg
 
     float MassAdjustment;
     static float constexpr MinMassAdjustment = 0.0001f;
@@ -42,9 +46,7 @@ struct LabParameters
     static float constexpr MinGravityAdjustment = 0.0f;
     static float constexpr MaxGravityAdjustment = 1000.0f;
 
-    //
-    // Interactions
-    //
-
-    static float constexpr SearchRadius = 0.07f;
+    static float constexpr VertexRadius = 0.05f;
+    static float constexpr EdgeThickness = 0.03f;
+    static float constexpr ParticleRadius = 0.15f;
 };

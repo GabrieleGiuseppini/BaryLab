@@ -25,6 +25,11 @@ ToolController::ToolController(
     //
 
     mAllTools.emplace_back(
+        std::make_unique<MoveParticleTool>(
+            mCursorWindow,
+            mLabController));
+
+    mAllTools.emplace_back(
         std::make_unique<MoveVertexTool>(
             mCursorWindow,
             mLabController));

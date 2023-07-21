@@ -60,7 +60,7 @@ public:
 
     std::optional<ElementIndex> TryPickParticle(vec2f const & screenCoordinates) const;
 
-    void MoveParticleTo(ElementIndex particleIndex, vec2f const & targetScreenCoordinates);
+    void MoveParticleTo(ElementIndex particleIndex, vec2f const & targetScreenCoordinates, vec2f const & inertialStride);
 
     void SetParticleTrajectory(ElementIndex particleIndex, vec2f const & targetScreenCoordinates);
 

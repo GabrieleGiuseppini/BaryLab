@@ -7,6 +7,19 @@
 
 #include "WxHelpers.h"
 
+MoveParticleTool::MoveParticleTool(
+    wxWindow * cursorWindow,
+    std::shared_ptr<LabController> labController)
+    : Tool(
+    ToolType::MoveParticle,
+    cursorWindow,
+    std::move(labController))
+    , mCurrentEngagementState(std::nullopt)
+    , mUpCursor(WxHelpers::MakeCursor("generic_cursor", 7, 8))
+    , mDownCursor(WxHelpers::MakeCursor("generic_cursor", 7, 8))
+{
+}
+
 MoveVertexTool::MoveVertexTool(
     wxWindow * cursorWindow,
     std::shared_ptr<LabController> labController)

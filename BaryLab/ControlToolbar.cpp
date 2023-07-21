@@ -64,6 +64,8 @@ ControlToolbar::ControlToolbar(wxWindow* parent)
                 { 
                     wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_MOVE_PARTICLE);
                     ProcessEvent(evt);
+
+                    ReconciliateUIWithTool(ToolType::MoveParticle);
                 });
 
             mMoveParticleButton->SetToolTip("Move a particle");
@@ -86,6 +88,8 @@ ControlToolbar::ControlToolbar(wxWindow* parent)
                 {
                     wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_MOVE_VERTEX);
                     ProcessEvent(evt);
+
+                    ReconciliateUIWithTool(ToolType::MoveVertex);
                 });
 
             mMoveVertexButton->SetToolTip("Move a mesh vertex");
@@ -108,6 +112,8 @@ ControlToolbar::ControlToolbar(wxWindow* parent)
                 {
                     wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_SET_PARTICLE_TRAJECTORY);
                     ProcessEvent(evt);
+
+                    ReconciliateUIWithTool(ToolType::SetParticleTrajectory);
                 });
 
             mSetParticleTrajectoryButton->SetToolTip("Set a trajectory for a particle");
@@ -130,6 +136,8 @@ ControlToolbar::ControlToolbar(wxWindow* parent)
                 {
                     wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_SET_ORIGIN_TRIANGLE);
                     ProcessEvent(evt);
+
+                    ReconciliateUIWithTool(ToolType::SetOriginTriangle);
                 });
 
             mSetOriginTriangleButton->SetToolTip("Set a triangle as origin of the barycentric coordinates");
@@ -341,7 +349,7 @@ ControlToolbar::ControlToolbar(wxWindow* parent)
     this->SetSizer(vSizer);
 }
 
-void ControlToolbar::SetTool(ToolType tool)
+void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
 {
     switch (tool)
     {

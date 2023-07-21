@@ -42,7 +42,7 @@ public:
 
     virtual ~ControlToolbar() = default;
 
-    void SetTool(ToolType tool);
+    void ReconciliateUIWithTool(ToolType tool);
 
     bool ProcessKeyDown(
         int keyCode,

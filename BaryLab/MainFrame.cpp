@@ -831,7 +831,7 @@ void MainFrame::FinishInitialization()
         throw BLabException("Error during initialization of tool controller: " + std::string(e.what()));
     }
 
-    mControlToolbar->SetTool(InitialToolType);
+    mControlToolbar->ReconciliateUIWithTool(InitialToolType);
 
     //
     // Register event handlers

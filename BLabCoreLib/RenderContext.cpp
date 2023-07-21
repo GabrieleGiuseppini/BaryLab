@@ -7,10 +7,6 @@
 
 #include <cmath>
 
-float constexpr VertexRadiusWorld = 0.05f;
-float constexpr EdgeThicknessWorld = 0.03f;
-float constexpr ParticleRadiusWorld = 0.15f;
-
 RenderContext::RenderContext(
     int canvasWidth,
     int canvasHeight)
@@ -184,10 +180,10 @@ void RenderContext::UploadVertices(
     {
         vec2f const & vertexPosition = vertexPositions[v];
 
-        float const xLeft = vertexPosition.x - VertexRadiusWorld;
-        float const xRight = vertexPosition.x + VertexRadiusWorld;
-        float const yTop = vertexPosition.y + VertexRadiusWorld;
-        float const yBottom = vertexPosition.y - VertexRadiusWorld;
+        float const xLeft = vertexPosition.x - LabParameters::VertexRadius;
+        float const xRight = vertexPosition.x + LabParameters::VertexRadius;
+        float const yTop = vertexPosition.y + LabParameters::VertexRadius;
+        float const yBottom = vertexPosition.y - LabParameters::VertexRadius;
 
         // Left, bottom
         mVertexVertexBuffer.emplace_back(
@@ -246,7 +242,7 @@ void RenderContext::UploadEdge(
     vec2f const & edgeEndpointBPosition)
 {
     vec2f const edgeVector = edgeEndpointBPosition - edgeEndpointAPosition;
-    vec2f const edgeNormal = edgeVector.to_perpendicular().normalise() * EdgeThicknessWorld / 2.0f;
+    vec2f const edgeNormal = edgeVector.to_perpendicular().normalise() * LabParameters::EdgeThickness / 2.0f;
 
     vec2f const bottomLeft = edgeEndpointAPosition - edgeNormal;
     vec2f const bottomRight = edgeEndpointAPosition + edgeNormal;
@@ -320,10 +316,10 @@ void RenderContext::UploadParticle(
     vec2f const & particlePosition,
     rgbaColor const & particleColor)
 {
-    float const xLeft = particlePosition.x - ParticleRadiusWorld;
-    float const xRight = particlePosition.x + ParticleRadiusWorld;
-    float const yTop = particlePosition.y + ParticleRadiusWorld;
-    float const yBottom = particlePosition.y - ParticleRadiusWorld;
+    float const xLeft = particlePosition.x - LabParameters::ParticleRadius;
+    float const xRight = particlePosition.x + LabParameters::ParticleRadius;
+    float const yTop = particlePosition.y + LabParameters::ParticleRadius;
+    float const yBottom = particlePosition.y - LabParameters::ParticleRadius;
 
     vec4f const color = particleColor.toVec4f();
 

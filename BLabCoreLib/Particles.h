@@ -29,7 +29,7 @@ public:
         // Physics
         , mPositionBuffer(mBufferElementCount, particleCount, vec2f::zero())
         , mVelocityBuffer(mBufferElementCount, particleCount, vec2f::zero())
-        , mAssignedForceBuffer(mBufferElementCount, particleCount, vec2f::zero())
+        , mWorldForceBuffer(mBufferElementCount, particleCount, vec2f::zero())
         // Render
         , mRenderColorBuffer(mBufferElementCount, particleCount, rgbaColor::zero())
     {
@@ -93,21 +93,21 @@ public:
         mVelocityBuffer[particleElementIndex] = value;
     }
 
-    vec2f const & GetAssignedForce(ElementIndex particleElementIndex) const noexcept
+    vec2f const & GetWorldForce(ElementIndex particleElementIndex) const noexcept
     {
-        return mAssignedForceBuffer[particleElementIndex];
+        return mWorldForceBuffer[particleElementIndex];
     }
 
-    vec2f * GetAssignedForceBuffer() noexcept
+    vec2f * GetWorldForceBuffer() noexcept
     {
-        return mAssignedForceBuffer.data();
+        return mWorldForceBuffer.data();
     }
 
-    void SetAssignedForce(
+    void SetWorldForce(
         ElementIndex particleElementIndex,
         vec2f const & value) noexcept
     {
-        mAssignedForceBuffer[particleElementIndex] = value;
+        mWorldForceBuffer[particleElementIndex] = value;
     }
 
     //
@@ -143,7 +143,7 @@ private:
 
     Buffer<vec2f> mPositionBuffer;
     Buffer<vec2f> mVelocityBuffer;
-    Buffer<vec2f> mAssignedForceBuffer;
+    Buffer<vec2f> mWorldForceBuffer;
 
     //
     // Render

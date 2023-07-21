@@ -18,8 +18,8 @@
 
 enum class ToolType
 {
-    MoveVertex = 0,
-    MoveParticle = 1,
+    MoveParticle = 0,
+    MoveVertex = 1,
     SetParticleTrajectory = 2,
     SetOriginTriangle = 3,
 };
@@ -82,6 +82,124 @@ private:
 //////////////////////////////////////////////////////////////////////////////////////////
 // Tools
 //////////////////////////////////////////////////////////////////////////////////////////
+
+class MoveParticleTool final : public Tool
+{
+public:
+
+    MoveParticleTool(
+        wxWindow * cursorWindow,
+        std::shared_ptr<LabController> labController);
+
+public:
+
+    virtual void Initialize(InputState const & /*inputState*/) override
+    {
+        mCurrentEngagementState.reset();
+
+        // Set cursor
+        SetCurrentCursor();
+    }
+
+    virtual void Deinitialize(InputState const & /*inputState*/) override
+    {
+    }
+
+    virtual void SetCurrentCursor() override
+    {
+        mCursorWindow->SetCursor(!!mCurrentEngagementState ? mDownCursor : mUpCursor);
+    }
+
+    virtual void Update(InputState const & inputState) override
+    {
+        bool const wasEngaged = !!mCurrentEngagementState;
+
+        vec2f const newPosition = inputState.MousePosition;
+
+        if (inputState.IsLeftMouseDown)
+        {
+            if (!mCurrentEngagementState)
+            {
+                //
+                // Not engaged...
+                // ...see if we're able to pick a particle and thus start engagement
+                //
+
+                auto const particleId = mLabController->TryPickParticle(newPosition);
+                if (particleId.has_value())
+                {
+                    //
+                    // Engage!
+                    //
+
+                    mCurrentEngagementState.emplace(*particleId, newPosition);
+                }
+            }
+            else
+            {
+                //
+                // Engaged
+                //
+
+                mLabController->MoveParticleTo(
+                    mCurrentEngagementState->ParticleIndex,
+                    newPosition,
+                    vec2f::zero());
+
+                // Update last stride
+                mCurrentEngagementState->LastStride = newPosition - mCurrentEngagementState->LastPosition;
+                mCurrentEngagementState->LastPosition = newPosition;
+            }
+        }
+        else
+        {
+            if (mCurrentEngagementState)
+            {
+                // Impart intertia
+                mLabController->MoveParticleTo(
+                    mCurrentEngagementState->ParticleIndex,
+                    newPosition,
+                    mCurrentEngagementState->LastStride);
+
+                // Disengage
+                mCurrentEngagementState.reset();
+            }
+        }
+
+        if (!!mCurrentEngagementState != wasEngaged)
+        {
+            // State change
+
+            // Update cursor
+            SetCurrentCursor();
+        }
+    }
+
+private:
+
+    // Our state
+
+    struct EngagementState
+    {
+        ElementIndex ParticleIndex;
+        vec2f LastPosition;
+        vec2f LastStride;
+
+        explicit EngagementState(
+            ElementIndex particleIndex,
+            vec2f const & currentPosition)
+            : ParticleIndex(particleIndex)
+            , LastPosition(currentPosition)
+            , LastStride(vec2f::zero())
+        {}
+    };
+
+    std::optional<EngagementState> mCurrentEngagementState; // When set, indicates it's engaged
+
+    // The cursors
+    wxCursor const mUpCursor;
+    wxCursor const mDownCursor;
+};
 
 class MoveVertexTool final : public Tool
 {

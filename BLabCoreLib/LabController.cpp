@@ -66,7 +66,29 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
 
 void LabController::UpdateSimulation()
 {
-    // TODOHERE
+    assert(mModel);
+
+    float const dt = LabParameters::SimulationTimeStepDuration;
+
+    //
+    // Particles
+    //
+
+    auto & particles = mModel->GetParticles();
+
+    float const particleMass = LabParameters::ParticleMass * mLabParameters.MassAdjustment;
+
+    for (auto const & p : particles)
+    {
+        vec2f const forces = particles.GetWorldForce(p) * mLabParameters.GravityAdjustment;
+
+        vec2f const deltaPos =
+            particles.GetVelocity(p) * dt
+            + forces / LabParameters::ParticleMass * dt * dt;
+
+        particles.SetPosition(p, particles.GetPosition(p) + deltaPos);
+        particles.SetVelocity(p, deltaPos / dt);
+    }
 }
 
 void LabController::Render()
@@ -135,7 +157,7 @@ std::optional<ElementIndex> LabController::TryPickVertex(vec2f const & screenCoo
 
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
-    float constexpr SquareSearchRadius = LabParameters::SearchRadius * LabParameters::SearchRadius;
+    float constexpr SquareSearchRadius = LabParameters::VertexRadius * LabParameters::VertexRadius;
 
     float bestSquareDistance = std::numeric_limits<float>::max();
     ElementIndex bestVertex = NoneElementIndex;
@@ -184,7 +206,7 @@ std::optional<ElementIndex> LabController::TryPickParticle(vec2f const & screenC
 
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
-    float constexpr SquareSearchRadius = LabParameters::SearchRadius * LabParameters::SearchRadius;
+    float constexpr SquareSearchRadius = LabParameters::ParticleRadius * LabParameters::ParticleRadius;
 
     float bestSquareDistance = std::numeric_limits<float>::max();
     ElementIndex bestParticle = NoneElementIndex;
@@ -207,14 +229,18 @@ std::optional<ElementIndex> LabController::TryPickParticle(vec2f const & screenC
         return std::nullopt;
 }
 
-void LabController::MoveParticleTo(ElementIndex particleIndex, vec2f const & targetScreenCoordinates)
+void LabController::MoveParticleTo(
+    ElementIndex particleIndex, 
+    vec2f const & targetScreenCoordinates,
+    vec2f const & inertialStride)
 {
     assert(!!mModel);
 
     vec2f const worldCoordinates = ScreenToWorld(targetScreenCoordinates);
+    vec2f const worldStride = ScreenOffsetToWorldOffset(inertialStride);
 
     mModel->GetParticles().SetPosition(particleIndex, worldCoordinates);
-    mModel->GetParticles().SetVelocity(particleIndex, vec2f::zero());
+    mModel->GetParticles().SetVelocity(particleIndex, worldStride / LabParameters::SimulationTimeStepDuration * 0.5f); // Magic adjustment
 }
 
 void LabController::SetParticleTrajectory(
