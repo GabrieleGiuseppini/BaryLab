@@ -7,7 +7,7 @@
 
 #include "Tools.h"
 
-#include <SLabCoreLib/SimulationController.h>
+#include <BLabCoreLib/LabController.h>
 
 #include <wx/frame.h>
 
@@ -22,7 +22,7 @@ public:
     ToolController(
         ToolType initialToolType,
         wxWindow * cursorWindow,
-        std::shared_ptr<SimulationController> simulationController);
+        std::shared_ptr<LabController> labController);
 
     void SetTool(ToolType toolType)
     {
@@ -101,5 +101,5 @@ private:
 
     wxWindow * const mCursorWindow;
     wxCursor mPanCursor;
-    std::shared_ptr<SimulationController> const mSimulationController;
+    std::shared_ptr<LabController> const mLabController;
 };

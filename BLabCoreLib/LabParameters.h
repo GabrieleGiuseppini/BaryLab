@@ -27,6 +27,24 @@ struct LabParameters
     // Structural constants
     //
 
-    static size_t constexpr MaxSpringsPerPoint = 8u + 1u; // 8 neighbours and 1 rope spring, when this is a rope endpoint
-    static size_t constexpr MaxTrianglesPerPoint = 8u;
+    static size_t constexpr MaxEdgesPerVertex = 8u;
+    static size_t constexpr MaxTrianglesPerVertex = 8u;
+
+    //
+    // Parameters
+    //
+
+    float MassAdjustment;
+    static float constexpr MinMassAdjustment = 0.0001f;
+    static float constexpr MaxMassAdjustment = 1000.0f;
+
+    float GravityAdjustment;
+    static float constexpr MinGravityAdjustment = 0.0f;
+    static float constexpr MaxGravityAdjustment = 1000.0f;
+
+    //
+    // Interactions
+    //
+
+    static float constexpr SearchRadius = 0.5f;
 };

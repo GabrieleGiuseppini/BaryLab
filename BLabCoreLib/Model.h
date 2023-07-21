@@ -7,6 +7,7 @@
 
 #include "EventDispatcher.h"
 #include "Mesh.h"
+#include "Particles.h"
 #include "Vectors.h"
 
 #include <memory>
@@ -18,9 +19,10 @@ public:
 
 	Model(		
 		std::unique_ptr<Mesh> mesh,
+		std::unique_ptr<Particles> particles,
 		EventDispatcher & eventDispatcher)
 		: mMesh(std::move(mesh))
-		, mSubjectParticle(vec2f::zero())
+		, mParticles(std::move(particles))
 		, mOriginTriangle()
 		, mTrajectoryDestination()
 		, mEventDispatcher(eventDispatcher)
@@ -31,9 +33,19 @@ public:
 		return *mMesh;
 	}
 
-	vec2f const & GetSubjectParticlePosition() const
+	Mesh & GetMesh()
 	{
-		return mSubjectParticle.Position;
+		return *mMesh;
+	}
+
+	Particles const & GetParticles() const
+	{
+		return *mParticles;
+	}
+
+	Particles & GetParticles()
+	{
+		return *mParticles;
 	}
 
 	void SetOriginTriangle(ElementIndex triangleIndex)
@@ -50,21 +62,12 @@ public:
 
 private:
 
-	struct Particle
-	{
-		vec2f Position;
-
-		Particle(vec2f const & position)
-			: Position(position)
-		{}
-	};
-
-private:
-
 	EventDispatcher & mEventDispatcher;
 
 	std::unique_ptr<Mesh> mMesh;
-	Particle mSubjectParticle;
+	std::unique_ptr<Particles> mParticles;
+	
+	// Simulation state
 	std::optional<ElementIndex> mOriginTriangle;
 	std::optional<vec2f> mTrajectoryDestination;
 };

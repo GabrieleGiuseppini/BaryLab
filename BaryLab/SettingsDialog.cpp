@@ -12,8 +12,6 @@
 #include "UIControls/IntegralLinearSliderCore.h"
 #include "UIControls/LinearSliderCore.h"
 
-#include <SLabCoreLib/Log.h>
-
 #include <wx/gbsizer.h>
 #include <wx/intl.h>
 #include <wx/notebook.h>
@@ -40,10 +38,10 @@ static int constexpr CellBorder = 8;
 SettingsDialog::SettingsDialog(
     wxWindow * parent,
     std::shared_ptr<SettingsManager> settingsManager,
-    std::shared_ptr<SimulationController> simulationController)
+    std::shared_ptr<LabController> labsimulationController)
     : mParent(parent)
     , mSettingsManager(std::move(settingsManager))
-	, mSimulationController(std::move(simulationController))
+	, mLabController(std::move(labsimulationController))
     // State
     , mLiveSettings(mSettingsManager->MakeSettings())
     , mCheckpointSettings(mSettingsManager->MakeSettings())
@@ -81,82 +79,14 @@ SettingsDialog::SettingsDialog(
 
 
     //
-    // Common
+    // Simulator
     //
 
-    wxPanel * commonSimulatorPanel = new wxPanel(notebook);
+    wxPanel * simulatorPanel = new wxPanel(notebook);
 
-    PopulateCommonSimulatorPanel(commonSimulatorPanel);
+    PopulateSimulatorPanel(simulatorPanel);
 
-    notebook->AddPage(commonSimulatorPanel, "All Simulators");
-
-
-    //
-    // Classic
-    //
-
-    wxPanel * classicSimulatorPanel = new wxPanel(notebook);
-
-    PopulateClassicSimulatorPanel(classicSimulatorPanel);
-
-    notebook->AddPage(classicSimulatorPanel, "Classic Simulator");
-
-
-    //
-    // FS
-    //
-
-    wxPanel * fsSimulatorPanel = new wxPanel(notebook);
-
-    PopulateFSSimulatorPanel(fsSimulatorPanel);
-
-    notebook->AddPage(fsSimulatorPanel, "FS Simulator");
-
-
-    //
-    // Fast MSS
-    //
-
-    wxPanel * fastMSSSimulatorPanel = new wxPanel(notebook);
-
-    PopulateFastMSSSimulatorPanel(fastMSSSimulatorPanel);
-
-    notebook->AddPage(fastMSSSimulatorPanel, "Fast MSS");
-
-
-    //
-    // Gauss-Seidel
-    //
-
-    wxPanel * gaussSeidelSimulatorPanel = new wxPanel(notebook);
-
-    PopulateGaussSeidelSimulatorPanel(gaussSeidelSimulatorPanel);
-
-    notebook->AddPage(gaussSeidelSimulatorPanel, "Gauss-Seidel");
-
-
-    //
-    // Position-Based
-    //
-
-    wxPanel * positionBasedSimulatorPanel = new wxPanel(notebook);
-
-    PopulatePositionBasedSimulatorPanel(positionBasedSimulatorPanel);
-
-    notebook->AddPage(positionBasedSimulatorPanel, "PB Simulator");
-
-
-    //
-    // Rendering
-    //
-
-    wxPanel * renderingPanel = new wxPanel(notebook);
-
-    PopulateRenderingPanel(renderingPanel);
-
-    notebook->AddPage(renderingPanel, "Rendering");
-
-    dialogVSizer->Add(notebook, 0, wxEXPAND);
+    notebook->AddPage(simulatorPanel, "Simulator");
 
 
 
@@ -257,12 +187,6 @@ void SettingsDialog::Open()
 }
 
 ////////////////////////////////////////////////////////////
-
-void SettingsDialog::OnDoRenderAssignedParticleForcesCheckBoxClick(wxCommandEvent & event)
-{
-    mLiveSettings.SetValue(SLabSettings::DoRenderAssignedParticleForces, event.IsChecked());
-    OnLiveSettingsChanged();
-}
 
 void SettingsDialog::OnRevertToDefaultsButton(wxCommandEvent& /*event*/)
 {
@@ -370,7 +294,7 @@ void SettingsDialog::DoClose()
     this->Hide();
 }
 
-void SettingsDialog::PopulateCommonSimulatorPanel(wxPanel * panel)
+void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
 {
     wxGridBagSizer * gridSizer = new wxGridBagSizer(0, 0);
 
@@ -383,36 +307,10 @@ void SettingsDialog::PopulateCommonSimulatorPanel(wxPanel * panel)
 
         {
             wxGridBagSizer * mechanicsSizer = new wxGridBagSizer(0, 0);
-
-            // Time step
-            {
-                mCommonSimulationTimeStepDurationSlider = new SliderControl<float>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Time Step",
-                    "The time step of the simulation.",
-                    [this](float value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::CommonSimulationTimeStepDuration, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<ExponentialSliderCore>(
-                        0.000002f,
-                        0.02f,
-                        0.4f));
-
-                mechanicsSizer->Add(
-                    mCommonSimulationTimeStepDurationSlider,
-                    wxGBPosition(0, 0),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
+            
             // Mass Adjustment
             {
-                mCommonMassAdjustmentSlider = new SliderControl<float>(
+                mMassAdjustmentSlider = new SliderControl<float>(
                     mechanicsBox,
                     SliderWidth,
                     SliderHeight,
@@ -420,16 +318,16 @@ void SettingsDialog::PopulateCommonSimulatorPanel(wxPanel * panel)
                     "Adjusts the mass of all particles.",
 					[this](float value)
                     {
-                        this->mLiveSettings.SetValue(SLabSettings::CommonMassAdjustment, value);
+                        this->mLiveSettings.SetValue(SLabSettings::MassAdjustment, value);
                         this->OnLiveSettingsChanged();
                     },
                     std::make_unique<ExponentialSliderCore>(
-                        mSimulationController->GetCommonMinMassAdjustment(),
+                        mLabController->GetMinMassAdjustment(),
                         1.0f,
-                        mSimulationController->GetCommonMaxMassAdjustment()));
+                        mLabController->GetMaxMassAdjustment()));
 
                 mechanicsSizer->Add(
-                    mCommonMassAdjustmentSlider,
+                    mMassAdjustmentSlider,
                     wxGBPosition(0, 1),
                     wxGBSpan(1, 1),
                     wxEXPAND | wxALL,
@@ -438,7 +336,7 @@ void SettingsDialog::PopulateCommonSimulatorPanel(wxPanel * panel)
 
             // Gravity Adjustment
             {
-                mCommonGravityAdjustmentSlider = new SliderControl<float>(
+                mGravityAdjustmentSlider = new SliderControl<float>(
                     mechanicsBox,
                     SliderWidth,
                     SliderHeight,
@@ -446,175 +344,16 @@ void SettingsDialog::PopulateCommonSimulatorPanel(wxPanel * panel)
                     "Adjusts the magnitude of gravity.",
                     [this](float value)
                     {
-                        this->mLiveSettings.SetValue(SLabSettings::CommonGravityAdjustment, value);
+                        this->mLiveSettings.SetValue(SLabSettings::GravityAdjustment, value);
                         this->OnLiveSettingsChanged();
                     },
                     std::make_unique<ExponentialSliderCore>(
-                        mSimulationController->GetCommonMinGravityAdjustment(),
+                        mLabController->GetMinGravityAdjustment(),
                         1.0f,
-                        mSimulationController->GetCommonMaxGravityAdjustment()));
+                        mLabController->GetMaxGravityAdjustment()));
 
                 mechanicsSizer->Add(
-                    mCommonGravityAdjustmentSlider,
-                    wxGBPosition(0, 2),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
-            mechanicsBoxSizer->Add(mechanicsSizer, 0, wxALL, StaticBoxInsetMargin);
-        }
-
-        mechanicsBox->SetSizerAndFit(mechanicsBoxSizer);
-
-        gridSizer->Add(
-            mechanicsBox,
-            wxGBPosition(0, 0),
-            wxGBSpan(1, 3),
-            wxEXPAND | wxALL | wxALIGN_CENTER_HORIZONTAL,
-            CellBorder);
-    }
-
-    // Computation
-    {
-        wxStaticBox * computationBox = new wxStaticBox(panel, wxID_ANY, _("Computation"));
-
-        wxBoxSizer * computationBoxSizer = new wxBoxSizer(wxVERTICAL);
-        computationBoxSizer->AddSpacer(StaticBoxTopMargin);
-
-        {
-            wxGridBagSizer * computationSizer = new wxGridBagSizer(0, 0);
-
-            // NumberOfThreads
-            {
-                mNumberOfSimulationThreadsSlider = new SliderControl<size_t>(
-                    computationBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Number of Threads",
-                    "The number of threads that multi-threaded simulators may use.",
-                    [this](size_t value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::NumberOfSimulationThreads, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<IntegralLinearSliderCore<size_t>>(
-                        mSimulationController->GetMinNumberOfSimulationThreads(),
-                        mSimulationController->GetMaxNumberOfSimulationThreads()));
-
-                computationSizer->Add(
-                    mNumberOfSimulationThreadsSlider,
-                    wxGBPosition(0, 0),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
-            computationBoxSizer->Add(computationSizer, 0, wxALL, StaticBoxInsetMargin);
-        }
-
-        computationBox->SetSizerAndFit(computationBoxSizer);
-
-        gridSizer->Add(
-            computationBox,
-            wxGBPosition(0, 4),
-            wxGBSpan(1, 1),
-            wxEXPAND | wxALL | wxALIGN_CENTER_HORIZONTAL,
-            CellBorder);
-    }
-
-
-    // Finalize panel
-
-    for (int c = 0; c < gridSizer->GetCols(); ++c)
-        gridSizer->AddGrowableCol(c);
-
-    panel->SetSizer(gridSizer);
-}
-
-void SettingsDialog::PopulateClassicSimulatorPanel(wxPanel * panel)
-{
-    wxGridBagSizer * gridSizer = new wxGridBagSizer(0, 0);
-
-    // Mechanics
-    {
-        wxStaticBox * mechanicsBox = new wxStaticBox(panel, wxID_ANY, _("Mechanics"));
-
-        wxBoxSizer * mechanicsBoxSizer = new wxBoxSizer(wxVERTICAL);
-        mechanicsBoxSizer->AddSpacer(StaticBoxTopMargin);
-
-        {
-            wxGridBagSizer * mechanicsSizer = new wxGridBagSizer(0, 0);
-
-            // Spring Stiffness
-            {
-                mClassicSimulatorSpringStiffnessSlider = new SliderControl<float>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Spring Stiffness",
-                    "Adjusts the stiffness of the spring's Hookean force.",
-					[this](float value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::ClassicSimulatorSpringStiffnessCoefficient, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<LinearSliderCore>(
-                        mSimulationController->GetClassicSimulatorMinSpringStiffnessCoefficient(),
-                        mSimulationController->GetClassicSimulatorMaxSpringStiffnessCoefficient()));
-
-                mechanicsSizer->Add(
-                    mClassicSimulatorSpringStiffnessSlider,
-                    wxGBPosition(0, 0),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
-            // Spring Damping
-            {
-                mClassicSimulatorSpringDampingSlider = new SliderControl<float>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Spring Damping",
-                    "Adjusts the magnitude of the spring damping.",
-                    [this](float value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::ClassicSimulatorSpringDampingCoefficient, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<LinearSliderCore>(
-                        mSimulationController->GetClassicSimulatorMinSpringDampingCoefficient(),
-                        mSimulationController->GetClassicSimulatorMaxSpringDampingCoefficient()));
-
-                mechanicsSizer->Add(
-                    mClassicSimulatorSpringDampingSlider,
-                    wxGBPosition(0, 1),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
-            // Global Damping
-            {
-                mClassicSimulatorGlobalDampingSlider = new SliderControl<float>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Global Damping",
-                    "The global velocity damp factor.",
-                    [this](float value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::ClassicSimulatorGlobalDamping, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<LinearSliderCore>(
-                        mSimulationController->GetClassicSimulatorMinGlobalDamping(),
-                        mSimulationController->GetClassicSimulatorMaxGlobalDamping()));
-
-                mechanicsSizer->Add(
-                    mClassicSimulatorGlobalDampingSlider,
+                    mGravityAdjustmentSlider,
                     wxGBPosition(0, 2),
                     wxGBSpan(1, 1),
                     wxEXPAND | wxALL,
@@ -638,612 +377,15 @@ void SettingsDialog::PopulateClassicSimulatorPanel(wxPanel * panel)
 
     for (int c = 0; c < gridSizer->GetCols(); ++c)
         gridSizer->AddGrowableCol(c);
-
-    panel->SetSizer(gridSizer);
-}
-
-void SettingsDialog::PopulateFSSimulatorPanel(wxPanel * panel)
-{
-    wxGridBagSizer * gridSizer = new wxGridBagSizer(0, 0);
-
-    // Mechanics
-    {
-        wxStaticBox * mechanicsBox = new wxStaticBox(panel, wxID_ANY, _("Mechanics"));
-
-        wxBoxSizer * mechanicsBoxSizer = new wxBoxSizer(wxVERTICAL);
-        mechanicsBoxSizer->AddSpacer(StaticBoxTopMargin);
-
-        {
-            wxGridBagSizer * mechanicsSizer = new wxGridBagSizer(0, 0);
-
-            // Num Iterations
-            {
-                mFSSimulatorNumMechanicalDynamicsIterationsSlider = new SliderControl<size_t>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Num Iterations",
-                    "Adjusts the number of iterations of the spring relaxation algorithm.",
-                    [this](size_t value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::FSSimulatorNumMechanicalDynamicsIterations, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<IntegralLinearSliderCore<size_t>>(
-                        mSimulationController->GetFSSimulatorMinNumMechanicalDynamicsIterations(),
-                        mSimulationController->GetFSSimulatorMaxNumMechanicalDynamicsIterations()));
-
-                mechanicsSizer->Add(
-                    mFSSimulatorNumMechanicalDynamicsIterationsSlider,
-                    wxGBPosition(0, 0),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
-            // Spring Reduction Fraction
-            {
-                mFSSimulatorSpringReductionFraction = new SliderControl<float>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Spring Reduction Fraction",
-                    "Adjusts the fraction of the over-length that gets reduced by the spring.",
-                    [this](float value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::FSSimulatorSpringReductionFraction, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<LinearSliderCore>(
-                        mSimulationController->GetFSSimulatorMinSpringReductionFraction(),
-                        mSimulationController->GetFSSimulatorMaxSpringReductionFraction()));
-
-                mechanicsSizer->Add(
-                    mFSSimulatorSpringReductionFraction,
-                    wxGBPosition(0, 1),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
-            // Spring Damping
-            {
-                mFSSimulatorSpringDampingSlider = new SliderControl<float>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Spring Damping",
-                    "Adjusts the magnitude of the spring damping.",
-                    [this](float value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::FSSimulatorSpringDampingCoefficient, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<LinearSliderCore>(
-                        mSimulationController->GetFSSimulatorMinSpringDampingCoefficient(),
-                        mSimulationController->GetFSSimulatorMaxSpringDampingCoefficient()));
-
-                mechanicsSizer->Add(
-                    mFSSimulatorSpringDampingSlider,
-                    wxGBPosition(0, 2),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
-            // Global Damping
-            {
-                mFSSimulatorGlobalDampingSlider = new SliderControl<float>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Global Damping",
-                    "The global velocity damp factor.",
-                    [this](float value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::FSSimulatorGlobalDamping, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<LinearSliderCore>(
-                        mSimulationController->GetFSSimulatorMinGlobalDamping(),
-                        mSimulationController->GetFSSimulatorMaxGlobalDamping()));
-
-                mechanicsSizer->Add(
-                    mFSSimulatorGlobalDampingSlider,
-                    wxGBPosition(0, 3),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
-            mechanicsBoxSizer->Add(mechanicsSizer, 0, wxALL, StaticBoxInsetMargin);
-        }
-
-        mechanicsBox->SetSizerAndFit(mechanicsBoxSizer);
-
-        gridSizer->Add(
-            mechanicsBox,
-            wxGBPosition(0, 0),
-            wxGBSpan(1, 4),
-            wxEXPAND | wxALL | wxALIGN_CENTER_HORIZONTAL,
-            CellBorder);
-    }
-
-
-    // Finalize panel
-
-    for (int c = 0; c < gridSizer->GetCols(); ++c)
-        gridSizer->AddGrowableCol(c);
-
-    panel->SetSizer(gridSizer);
-}
-
-void SettingsDialog::PopulateFastMSSSimulatorPanel(wxPanel * panel)
-{
-    wxGridBagSizer * gridSizer = new wxGridBagSizer(0, 0);
-
-    // Mechanics
-    {
-        wxStaticBox * mechanicsBox = new wxStaticBox(panel, wxID_ANY, _("Mechanics"));
-
-        wxBoxSizer * mechanicsBoxSizer = new wxBoxSizer(wxVERTICAL);
-        mechanicsBoxSizer->AddSpacer(StaticBoxTopMargin);
-
-        {
-            wxGridBagSizer * mechanicsSizer = new wxGridBagSizer(0, 0);
-
-            // Local-Global Num Iterations
-            {
-                mFastMSSSimulatorNumLocalGlobalStepIterationsSlider = new SliderControl<size_t>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Local-Global Solver Iterations",
-                    "Adjusts the number of local-global solver iterations per step.",
-                    [this](size_t value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::FastMSSSimulatorNumLocalGlobalStepIterations, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<IntegralLinearSliderCore<size_t>>(
-                        mSimulationController->GetFastMSSSimulatorMinNumLocalGlobalStepIterations(),
-                        mSimulationController->GetFastMSSSimulatorMaxNumLocalGlobalStepIterations()));
-
-                mechanicsSizer->Add(
-                    mFastMSSSimulatorNumLocalGlobalStepIterationsSlider,
-                    wxGBPosition(0, 0),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-            
-            // Spring Stiffness
-            {
-                mFastMSSSimulatorSpringStiffnessSlider = new SliderControl<float>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,                    
-                    "Spring Stiffness",
-                    "Adjusts the stiffness of springs.",
-                    [this](float value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::FastMSSSimulatorSpringStiffnessCoefficient, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<LinearSliderCore>(
-                        mSimulationController->GetFastMSSSimulatorMinSpringStiffnessCoefficient(),
-                        mSimulationController->GetFastMSSSimulatorMaxSpringStiffnessCoefficient()));
-
-                mechanicsSizer->Add(
-                    mFastMSSSimulatorSpringStiffnessSlider,
-                    wxGBPosition(0, 1),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
-            // Global Damping
-            {
-                mFastMSSSimulatorGlobalDampingSlider = new SliderControl<float>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Global Damping",
-                    "The global velocity damp factor.",
-                    [this](float value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::FastMSSSimulatorGlobalDamping, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<LinearSliderCore>(
-                        mSimulationController->GetFastMSSSimulatorMinGlobalDamping(),
-                        mSimulationController->GetFastMSSSimulatorMaxGlobalDamping()));
-
-                mechanicsSizer->Add(
-                    mFastMSSSimulatorGlobalDampingSlider,
-                    wxGBPosition(0, 2),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
-            mechanicsBoxSizer->Add(mechanicsSizer, 0, wxALL, StaticBoxInsetMargin);
-        }
-
-        mechanicsBox->SetSizerAndFit(mechanicsBoxSizer);
-
-        gridSizer->Add(
-            mechanicsBox,
-            wxGBPosition(0, 0),
-            wxGBSpan(1, 3),
-            wxEXPAND | wxALL | wxALIGN_CENTER_HORIZONTAL,
-            CellBorder);
-    }
-
-    // Finalize panel
-
-    for (int c = 0; c < gridSizer->GetCols(); ++c)
-        gridSizer->AddGrowableCol(c);
-
-    panel->SetSizer(gridSizer);
-}
-
-void SettingsDialog::PopulateGaussSeidelSimulatorPanel(wxPanel * panel)
-{
-    wxGridBagSizer * gridSizer = new wxGridBagSizer(0, 0);
-
-    // Mechanics
-    {
-        wxStaticBox * mechanicsBox = new wxStaticBox(panel, wxID_ANY, _("Mechanics"));
-
-        wxBoxSizer * mechanicsBoxSizer = new wxBoxSizer(wxVERTICAL);
-        mechanicsBoxSizer->AddSpacer(StaticBoxTopMargin);
-
-        {
-            wxGridBagSizer * mechanicsSizer = new wxGridBagSizer(0, 0);
-
-            // Num Iterations
-            {
-                mGaussSeidelSimulatorNumMechanicalDynamicsIterationsSlider = new SliderControl<size_t>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Num Iterations",
-                    "Adjusts the number of iterations of the spring relaxation algorithm.",
-                    [this](size_t value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::GaussSeidelSimulatorNumMechanicalDynamicsIterations, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<IntegralLinearSliderCore<size_t>>(
-                        mSimulationController->GetGaussSeidelSimulatorMinNumMechanicalDynamicsIterations(),
-                        mSimulationController->GetGaussSeidelSimulatorMaxNumMechanicalDynamicsIterations()));
-
-                mechanicsSizer->Add(
-                    mGaussSeidelSimulatorNumMechanicalDynamicsIterationsSlider,
-                    wxGBPosition(0, 0),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
-            // Spring Reduction Fraction
-            {
-                mGaussSeidelSimulatorSpringReductionFraction = new SliderControl<float>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Spring Reduction Fraction",
-                    "Adjusts the fraction of the over-length that gets reduced by the spring.",
-                    [this](float value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::GaussSeidelSimulatorSpringReductionFraction, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<LinearSliderCore>(
-                        mSimulationController->GetGaussSeidelSimulatorMinSpringReductionFraction(),
-                        mSimulationController->GetGaussSeidelSimulatorMaxSpringReductionFraction()));
-
-                mechanicsSizer->Add(
-                    mGaussSeidelSimulatorSpringReductionFraction,
-                    wxGBPosition(0, 1),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
-            // Spring Damping
-            {
-                mGaussSeidelSimulatorSpringDampingSlider = new SliderControl<float>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Spring Damping",
-                    "Adjusts the magnitude of the spring damping.",
-                    [this](float value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::GaussSeidelSimulatorSpringDampingCoefficient, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<LinearSliderCore>(
-                        mSimulationController->GetGaussSeidelSimulatorMinSpringDampingCoefficient(),
-                        mSimulationController->GetGaussSeidelSimulatorMaxSpringDampingCoefficient()));
-
-                mechanicsSizer->Add(
-                    mGaussSeidelSimulatorSpringDampingSlider,
-                    wxGBPosition(0, 2),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
-            // Global Damping
-            {
-                mGaussSeidelSimulatorGlobalDampingSlider = new SliderControl<float>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Global Damping",
-                    "The global velocity damp factor.",
-                    [this](float value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::GaussSeidelSimulatorGlobalDamping, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<LinearSliderCore>(
-                        mSimulationController->GetGaussSeidelSimulatorMinGlobalDamping(),
-                        mSimulationController->GetGaussSeidelSimulatorMaxGlobalDamping()));
-
-                mechanicsSizer->Add(
-                    mGaussSeidelSimulatorGlobalDampingSlider,
-                    wxGBPosition(0, 3),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
-            mechanicsBoxSizer->Add(mechanicsSizer, 0, wxALL, StaticBoxInsetMargin);
-        }
-
-        mechanicsBox->SetSizerAndFit(mechanicsBoxSizer);
-
-        gridSizer->Add(
-            mechanicsBox,
-            wxGBPosition(0, 0),
-            wxGBSpan(1, 4),
-            wxEXPAND | wxALL | wxALIGN_CENTER_HORIZONTAL,
-            CellBorder);
-    }
-
-
-    // Finalize panel
-
-    for (int c = 0; c < gridSizer->GetCols(); ++c)
-        gridSizer->AddGrowableCol(c);
-
-    panel->SetSizer(gridSizer);
-}
-
-void SettingsDialog::PopulatePositionBasedSimulatorPanel(wxPanel * panel)
-{
-    wxGridBagSizer * gridSizer = new wxGridBagSizer(0, 0);
-
-    // Mechanics
-    {
-        wxStaticBox * mechanicsBox = new wxStaticBox(panel, wxID_ANY, _("Mechanics"));
-
-        wxBoxSizer * mechanicsBoxSizer = new wxBoxSizer(wxVERTICAL);
-        mechanicsBoxSizer->AddSpacer(StaticBoxTopMargin);
-
-        {
-            wxGridBagSizer * mechanicsSizer = new wxGridBagSizer(0, 0);
-
-            // Num Update Iterations
-            {
-                mPositionBasedSimulatorNumUpdateIterationsSlider = new SliderControl<size_t>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Num Update Iterations",
-                    "Adjusts the number of iterations per step.",
-                    [this](size_t value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::PositionBasedSimulatorNumUpdateIterations, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<IntegralLinearSliderCore<size_t>>(
-                        mSimulationController->GetPositionBasedSimulatorMinNumUpdateIterations(),
-                        mSimulationController->GetPositionBasedSimulatorMaxNumUpdateIterations()));
-
-                mechanicsSizer->Add(
-                    mPositionBasedSimulatorNumUpdateIterationsSlider,
-                    wxGBPosition(0, 0),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
-            // Num Solver Iterations
-            {
-                mPositionBasedSimulatorNumSolverIterationsSlider = new SliderControl<size_t>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Num Solver Iterations",
-                    "Adjusts the number of solver iterations.",
-                    [this](size_t value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::PositionBasedSimulatorNumSolverIterations, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<IntegralLinearSliderCore<size_t>>(
-                        mSimulationController->GetPositionBasedSimulatorMinNumSolverIterations(),
-                        mSimulationController->GetPositionBasedSimulatorMaxNumSolverIterations()));
-
-                mechanicsSizer->Add(
-                    mPositionBasedSimulatorNumSolverIterationsSlider,
-                    wxGBPosition(0, 1),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
-            // Spring Stiffness
-            {
-                mPositionBasedSimulatorSpringStiffnessSlider = new SliderControl<float>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Spring Stiffness",
-                    "Adjusts the stiffness of the spring constraints.",
-                    [this](float value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::PositionBasedSimulatorSpringStiffness, value);
-                        this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<LinearSliderCore>(
-                        mSimulationController->GetPositionBasedSimulatorMinSpringStiffness(),
-                        mSimulationController->GetPositionBasedSimulatorMaxSpringStiffness()));
-
-                mechanicsSizer->Add(
-                    mPositionBasedSimulatorSpringStiffnessSlider,
-                    wxGBPosition(0, 2),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
-            // Global Damping
-            {
-                mPositionBasedSimulatorGlobalDampingSlider = new SliderControl<float>(
-                    mechanicsBox,
-                    SliderWidth,
-                    SliderHeight,
-                    "Global Damping",
-                    "The global velocity damp factor.",
-                    [this](float value)
-                    {
-                        this->mLiveSettings.SetValue(SLabSettings::PositionBasedSimulatorGlobalDamping, value);
-                this->OnLiveSettingsChanged();
-                    },
-                    std::make_unique<LinearSliderCore>(
-                        mSimulationController->GetPositionBasedSimulatorMinGlobalDamping(),
-                        mSimulationController->GetPositionBasedSimulatorMaxGlobalDamping()));
-
-                mechanicsSizer->Add(
-                    mPositionBasedSimulatorGlobalDampingSlider,
-                    wxGBPosition(0, 3),
-                    wxGBSpan(1, 1),
-                    wxEXPAND | wxALL,
-                    CellBorder);
-            }
-
-            mechanicsBoxSizer->Add(mechanicsSizer, 0, wxALL, StaticBoxInsetMargin);
-        }
-
-        mechanicsBox->SetSizerAndFit(mechanicsBoxSizer);
-
-        gridSizer->Add(
-            mechanicsBox,
-            wxGBPosition(0, 0),
-            wxGBSpan(1, 4),
-            wxEXPAND | wxALL | wxALIGN_CENTER_HORIZONTAL,
-            CellBorder);
-    }
-
-    // Finalize panel
-
-    for (int c = 0; c < gridSizer->GetCols(); ++c)
-        gridSizer->AddGrowableCol(c);
-
-    panel->SetSizer(gridSizer);
-}
-
-void SettingsDialog::PopulateRenderingPanel(wxPanel * panel)
-{
-    wxGridBagSizer * gridSizer = new wxGridBagSizer(0, 0);
-
-    // Forces
-    {
-        wxStaticBox * forcesBox = new wxStaticBox(panel, wxID_ANY, _("Forces"));
-
-        wxBoxSizer * forcesBoxSizer1 = new wxBoxSizer(wxVERTICAL);
-        forcesBoxSizer1->AddSpacer(StaticBoxTopMargin);
-
-        {
-            wxGridBagSizer * forcesSizer = new wxGridBagSizer(0, 0);
-
-            // Do Render assigned particle forces
-            {
-                mDoRenderAssignedParticleForcesCheckBox = new wxCheckBox(forcesBox, wxID_ANY,
-                    _("Render Assigned Particle Forces"), wxDefaultPosition, wxDefaultSize);
-                mDoRenderAssignedParticleForcesCheckBox->SetToolTip("Renders the forces that have been manually assigned to individual particles.");
-                mDoRenderAssignedParticleForcesCheckBox->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, &SettingsDialog::OnDoRenderAssignedParticleForcesCheckBoxClick, this);
-
-                forcesSizer->Add(
-                    mDoRenderAssignedParticleForcesCheckBox,
-                    wxGBPosition(0, 0),
-                    wxGBSpan(1, 1),
-                    wxALL,
-                    CellBorder);
-            }
-
-            forcesBoxSizer1->Add(forcesSizer, 0, wxALL, StaticBoxInsetMargin);
-        }
-
-        forcesBox->SetSizerAndFit(forcesBoxSizer1);
-
-        gridSizer->Add(
-            forcesBox,
-            wxGBPosition(0, 0),
-            wxGBSpan(1, 1),
-            wxALL,
-            CellBorder);
-    }
-
-    // Finalize panel
 
     panel->SetSizer(gridSizer);
 }
 
 void SettingsDialog::SyncControlsWithSettings(Settings<SLabSettings> const & settings)
 {
-    // Common
-    mCommonSimulationTimeStepDurationSlider->SetValue(settings.GetValue<float>(SLabSettings::CommonSimulationTimeStepDuration));
-    mCommonMassAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::CommonMassAdjustment));
-    mCommonGravityAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::CommonGravityAdjustment));    
-    mNumberOfSimulationThreadsSlider->SetValue(settings.GetValue<size_t>(SLabSettings::NumberOfSimulationThreads));
-
-    // Classic
-    mClassicSimulatorSpringStiffnessSlider->SetValue(settings.GetValue<float>(SLabSettings::ClassicSimulatorSpringStiffnessCoefficient));
-    mClassicSimulatorSpringDampingSlider->SetValue(settings.GetValue<float>(SLabSettings::ClassicSimulatorSpringDampingCoefficient));
-    mClassicSimulatorGlobalDampingSlider->SetValue(settings.GetValue<float>(SLabSettings::ClassicSimulatorGlobalDamping));
-
-    // FS
-    mFSSimulatorNumMechanicalDynamicsIterationsSlider->SetValue(settings.GetValue<size_t>(SLabSettings::FSSimulatorNumMechanicalDynamicsIterations));
-    mFSSimulatorSpringReductionFraction->SetValue(settings.GetValue<float>(SLabSettings::FSSimulatorSpringReductionFraction));
-    mFSSimulatorSpringDampingSlider->SetValue(settings.GetValue<float>(SLabSettings::FSSimulatorSpringDampingCoefficient));
-    mFSSimulatorGlobalDampingSlider->SetValue(settings.GetValue<float>(SLabSettings::FSSimulatorGlobalDamping));
-
-    // Position-Based
-    mPositionBasedSimulatorNumUpdateIterationsSlider->SetValue(settings.GetValue<size_t>(SLabSettings::PositionBasedSimulatorNumUpdateIterations));
-    mPositionBasedSimulatorNumSolverIterationsSlider->SetValue(settings.GetValue<size_t>(SLabSettings::PositionBasedSimulatorNumSolverIterations));
-    mPositionBasedSimulatorSpringStiffnessSlider->SetValue(settings.GetValue<float>(SLabSettings::PositionBasedSimulatorSpringStiffness));
-    mPositionBasedSimulatorGlobalDampingSlider->SetValue(settings.GetValue<float>(SLabSettings::PositionBasedSimulatorGlobalDamping));
-
-    // FastMSS
-    mFastMSSSimulatorNumLocalGlobalStepIterationsSlider->SetValue(settings.GetValue<size_t>(SLabSettings::FastMSSSimulatorNumLocalGlobalStepIterations));
-    mFastMSSSimulatorSpringStiffnessSlider->SetValue(settings.GetValue<float>(SLabSettings::FastMSSSimulatorSpringStiffnessCoefficient));
-    mFastMSSSimulatorGlobalDampingSlider->SetValue(settings.GetValue<float>(SLabSettings::FastMSSSimulatorGlobalDamping));
-
-    // Gauss-Seidel
-    mGaussSeidelSimulatorNumMechanicalDynamicsIterationsSlider->SetValue(settings.GetValue<size_t>(SLabSettings::GaussSeidelSimulatorNumMechanicalDynamicsIterations));
-    mGaussSeidelSimulatorSpringReductionFraction->SetValue(settings.GetValue<float>(SLabSettings::GaussSeidelSimulatorSpringReductionFraction));
-    mGaussSeidelSimulatorSpringDampingSlider->SetValue(settings.GetValue<float>(SLabSettings::GaussSeidelSimulatorSpringDampingCoefficient));
-    mGaussSeidelSimulatorGlobalDampingSlider->SetValue(settings.GetValue<float>(SLabSettings::GaussSeidelSimulatorGlobalDamping));
-
-    // Render
-    mDoRenderAssignedParticleForcesCheckBox->SetValue(settings.GetValue<bool>(SLabSettings::DoRenderAssignedParticleForces));
+    // Simulator
+    mMassAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::MassAdjustment));
+    mGravityAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::GravityAdjustment));    
 }
 
 void SettingsDialog::OnLiveSettingsChanged()

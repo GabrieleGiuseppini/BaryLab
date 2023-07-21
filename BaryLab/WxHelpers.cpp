@@ -5,8 +5,8 @@
 ***************************************************************************************/
 #include "WxHelpers.h"
 
-#include <SLabCoreLib/ResourceLocator.h>
-#include <SLabCoreLib/SLabException.h>
+#include <BLabCoreLib/BLabException.h>
+#include <BLabCoreLib/ResourceLocator.h>
 
 #include <wx/rawbmp.h>
 
@@ -35,7 +35,7 @@ wxImage WxHelpers::MakeCursorImage(
     auto bmp = std::make_unique<wxBitmap>(filepath.string(), wxBITMAP_TYPE_PNG);
     if (!bmp->IsOk())
     {
-        throw SLabException("Cursor \"" + filepath.string() + "\" could not be loaded");
+        throw BLabException("Cursor \"" + filepath.string() + "\" could not be loaded");
     }
 
     wxImage img = bmp->ConvertToImage();

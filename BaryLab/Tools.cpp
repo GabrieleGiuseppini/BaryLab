@@ -7,40 +7,15 @@
 
 #include "WxHelpers.h"
 
-MoveSimpleTool::MoveSimpleTool(
+MoveVertexTool::MoveVertexTool(
     wxWindow * cursorWindow,
-    std::shared_ptr<SimulationController> simulationController)
+    std::shared_ptr<LabController> labController)
     : Tool(
-        ToolType::MoveSimple,
+        ToolType::MoveVertex,
         cursorWindow,
-        std::move(simulationController))
+        std::move(labController))
     , mCurrentEngagementState(std::nullopt)
-    , mUpCursor(WxHelpers::MakeCursor("move_cursor_up", 13, 5))
-    , mDownCursor(WxHelpers::MakeCursor("move_cursor_down", 13, 5))
-{
-}
-
-MoveSmoothTool::MoveSmoothTool(
-    wxWindow * cursorWindow,
-    std::shared_ptr<SimulationController> simulationController)
-    : Tool(
-        ToolType::MoveSmooth,
-        cursorWindow,
-        std::move(simulationController))
-    , mCurrentEngagementState(std::nullopt)
-    , mUpCursor(WxHelpers::MakeCursor("move_cursor_up", 13, 5))
-    , mDownCursor(WxHelpers::MakeCursor("move_cursor_down", 13, 5))
-{
-}
-
-PinTool::PinTool(
-    wxWindow * cursorWindow,
-    std::shared_ptr<SimulationController> simulationController)
-    : Tool(
-        ToolType::Pin,
-        cursorWindow,
-        std::move(simulationController))
-    , mCurrentlyEngagedElement(false)
-    , mCursor(WxHelpers::MakeCursor("pin_cursor", 4, 27))
+    , mUpCursor(WxHelpers::MakeCursor("move_vertex_up", 13, 5))
+    , mDownCursor(WxHelpers::MakeCursor("move_vertex_down", 13, 5))
 {
 }

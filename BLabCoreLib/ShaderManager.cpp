@@ -462,12 +462,14 @@ std::set<std::string> ShaderManager::ExtractVertexAttributeNames(std::string con
 
 ShaderManager::ProgramType ShaderManager::ShaderFilenameToProgramType(std::string const & str)
 {
-    if (Utils::CaseInsensitiveEquals(str, "Grid"))
+    if (Utils::CaseInsensitiveEquals(str, "Edges"))
+        return ProgramType::Edges;
+    else if (Utils::CaseInsensitiveEquals(str, "Grid"))
         return ProgramType::Grid;
-    else if (Utils::CaseInsensitiveEquals(str, "Points"))
-        return ProgramType::Points;
-    else if (Utils::CaseInsensitiveEquals(str, "Springs"))
-        return ProgramType::Springs;
+    else if (Utils::CaseInsensitiveEquals(str, "Particles"))
+        return ProgramType::Particles;
+    else if (Utils::CaseInsensitiveEquals(str, "Vertices"))
+        return ProgramType::Vertices;
     else
         throw BLabException("Unrecognized program \"" + str + "\"");
 }
@@ -476,12 +478,14 @@ std::string ShaderManager::ProgramTypeToStr(ProgramType program)
 {
     switch (program)
     {
+        case ProgramType::Edges:
+            return "Edges";
         case ProgramType::Grid:
             return "Grid";
-        case ProgramType::Points:
-            return "Points";
-        case ProgramType::Springs:
-            return "Springs";
+        case ProgramType::Particles:
+            return "Particles";
+        case ProgramType::Vertices:
+            return "Vertices";
         default:
             assert(false);
             throw BLabException("Unsupported ProgramType");
@@ -520,18 +524,16 @@ ShaderManager::VertexAttributeType ShaderManager::StrToVertexAttributeType(std::
 {
     if (Utils::CaseInsensitiveEquals(str, "GridAttributeGroup1"))
         return VertexAttributeType::GridAttributeGroup1;
-    else if (Utils::CaseInsensitiveEquals(str, "PointAttributeGroup1"))
-        return VertexAttributeType::PointAttributeGroup1;
-    else if (Utils::CaseInsensitiveEquals(str, "PointAttributeGroup2"))
-        return VertexAttributeType::PointAttributeGroup2;
-    else if (Utils::CaseInsensitiveEquals(str, "PointAttributeGroup3"))
-        return VertexAttributeType::PointAttributeGroup3;
-    else if (Utils::CaseInsensitiveEquals(str, "SpringAttributeGroup1"))
-        return VertexAttributeType::SpringAttributeGroup1;
-    else if (Utils::CaseInsensitiveEquals(str, "SpringAttributeGroup2"))
-        return VertexAttributeType::SpringAttributeGroup2;
-    else if (Utils::CaseInsensitiveEquals(str, "SpringAttributeGroup3"))
-        return VertexAttributeType::SpringAttributeGroup3;
+    else if (Utils::CaseInsensitiveEquals(str, "EdgeAttributeGroup1"))
+        return VertexAttributeType::EdgeAttributeGroup1;
+    else if (Utils::CaseInsensitiveEquals(str, "EdgeAttributeGroup2"))
+        return VertexAttributeType::EdgeAttributeGroup2;
+    else if (Utils::CaseInsensitiveEquals(str, "ParticleAttributeGroup1"))
+        return VertexAttributeType::ParticleAttributeGroup1;
+    else if (Utils::CaseInsensitiveEquals(str, "ParticleAttributeGroup2"))
+        return VertexAttributeType::ParticleAttributeGroup2;
+    else if (Utils::CaseInsensitiveEquals(str, "VertexAttributeGroup1"))
+        return VertexAttributeType::VertexAttributeGroup1;
     else
         throw BLabException("Unrecognized vertex attribute \"" + str + "\"");
 }

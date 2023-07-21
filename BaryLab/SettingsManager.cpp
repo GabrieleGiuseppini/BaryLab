@@ -14,54 +14,26 @@ std::string MangleSettingName(std::string && settingName);
     factory.AddSetting<type>(                           \
         SLabSettings::name,                             \
         MangleSettingName(#name),                       \
-        [simulationController]() -> type { return simulationController->Get##name(); }, \
-        [simulationController](auto const & v) { simulationController->Set##name(v); }, \
-		[simulationController](auto const & v) { simulationController->Set##name(v); });
+        [labController]() -> type { return labController->Get##name(); }, \
+        [labController](auto const & v) { labController->Set##name(v); }, \
+		[labController](auto const & v) { labController->Set##name(v); });
 
 BaseSettingsManager<SLabSettings>::BaseSettingsManagerFactory SettingsManager::MakeSettingsFactory(
-    std::shared_ptr<SimulationController> simulationController)
+    std::shared_ptr<LabController> labController)
 {
     BaseSettingsManagerFactory factory;
 
-    ADD_SETTING(float, CommonSimulationTimeStepDuration);
-    ADD_SETTING(float, CommonMassAdjustment);
-    ADD_SETTING(float, CommonGravityAdjustment);    
-
-    ADD_SETTING(float, ClassicSimulatorSpringStiffnessCoefficient);
-    ADD_SETTING(float, ClassicSimulatorSpringDampingCoefficient);
-    ADD_SETTING(float, ClassicSimulatorGlobalDamping);
-
-    ADD_SETTING(size_t, FSSimulatorNumMechanicalDynamicsIterations);
-    ADD_SETTING(float, FSSimulatorSpringReductionFraction);
-    ADD_SETTING(float, FSSimulatorSpringDampingCoefficient);
-    ADD_SETTING(float, FSSimulatorGlobalDamping);
-
-    ADD_SETTING(size_t, PositionBasedSimulatorNumUpdateIterations);
-    ADD_SETTING(size_t, PositionBasedSimulatorNumSolverIterations);
-    ADD_SETTING(float, PositionBasedSimulatorSpringStiffness);
-    ADD_SETTING(float, PositionBasedSimulatorGlobalDamping);
-
-    ADD_SETTING(size_t, FastMSSSimulatorNumLocalGlobalStepIterations);
-    ADD_SETTING(float, FastMSSSimulatorSpringStiffnessCoefficient);
-    ADD_SETTING(float, FastMSSSimulatorGlobalDamping);
-
-    ADD_SETTING(size_t, GaussSeidelSimulatorNumMechanicalDynamicsIterations);
-    ADD_SETTING(float, GaussSeidelSimulatorSpringReductionFraction);
-    ADD_SETTING(float, GaussSeidelSimulatorSpringDampingCoefficient);
-    ADD_SETTING(float, GaussSeidelSimulatorGlobalDamping);
-
-    ADD_SETTING(size_t, NumberOfSimulationThreads);
-
-    ADD_SETTING(bool, DoRenderAssignedParticleForces);
+    ADD_SETTING(float, MassAdjustment);
+    ADD_SETTING(float, GravityAdjustment);    
 
     return factory;
 }
 
 SettingsManager::SettingsManager(
-    std::shared_ptr<SimulationController> simulationController,
+    std::shared_ptr<LabController> labController,
     std::filesystem::path const & rootUserSettingsDirectoryPath)
     : BaseSettingsManager<SLabSettings>(
-        MakeSettingsFactory(simulationController),
+        MakeSettingsFactory(labController),
         rootUserSettingsDirectoryPath,
         rootUserSettingsDirectoryPath)
 {}

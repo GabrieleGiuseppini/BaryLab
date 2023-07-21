@@ -86,7 +86,7 @@ private:
     // Timers
     //
 
-    std::unique_ptr<wxTimer> mTimer;
+    std::unique_ptr<wxTimer> mSimulationTimer;
 
 private:
 
@@ -111,11 +111,8 @@ private:
     void OnMainGLCanvasCaptureMouseLost(wxMouseCaptureLostEvent & event);
 
     // Menu
-    // TODOHERE
-    void OnLoadObjectMenuItemSelected(wxCommandEvent & event);
-    void OnMakeObjectMenuItemSelected(wxCommandEvent & event);
+    void OnLoadMeshMenuItemSelected(wxCommandEvent & event);
     void OnResetMenuItemSelected(wxCommandEvent & event);
-    void OnSaveScreenshotMenuItemSelected(wxCommandEvent & event);
     void OnZoomInMenuItemSelected(wxCommandEvent & event);
     void OnZoomOutMenuItemSelected(wxCommandEvent & event);
     void OnResetViewMenuItemSelected(wxCommandEvent & event);
@@ -127,15 +124,14 @@ private:
     void OnAboutMenuItemSelected(wxCommandEvent & event);
 
     // Control toolbar
+    void OnMoveParticle(wxCommandEvent & event);
+    void OnMoveVertex(wxCommandEvent & event);
+    void OnSetParticleTrajectory(wxCommandEvent & event);
+    void OnSetOriginTriangle(wxCommandEvent & event);
+    void OnSetParticleGravity(wxCommandEvent & event);    
     void OnSimulationControlPlay(wxCommandEvent & event);
-    void OnSimulationControlFastPlay(wxCommandEvent & event);
     void OnSimulationControlPause(wxCommandEvent & event);
     void OnSimulationControlStep(wxCommandEvent & event);
-    void OnInitialConditionsGravity(wxCommandEvent & event);
-    void OnInitialConditionsMove(wxCommandEvent & event);
-    void OnInitialConditionsPin(wxCommandEvent & event);
-    void OnInitialConditionsParticleForce(wxCommandEvent & event);
-    void OnSimulatorTypeChanged(wxCommandEvent & event);
     void OnViewControlGridToggled(wxCommandEvent & event);
 
     // Timers
@@ -160,4 +156,17 @@ private:
     std::shared_ptr<LabController> mLabController;
     std::shared_ptr<SettingsManager> mSettingsManager;
     std::unique_ptr<ToolController> mToolController;
+
+    //
+    // Simulation control
+    //
+
+    enum class SimulationControlStateType
+    {
+        Paused = 0,
+        Play
+    };
+
+    SimulationControlStateType mSimulationControlState;
+    bool mSimulationControlImpulse;
 };

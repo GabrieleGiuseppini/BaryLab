@@ -6,13 +6,13 @@
 #include "Triangles.h"
 
 void Triangles::Add(
-    ElementIndex pointAIndex,
-    ElementIndex pointBIndex,
-    ElementIndex pointCIndex,
-    ElementIndex subSpringAIndex,
-    ElementIndex subSpringBIndex,
-    ElementIndex subSpringCIndex)
+    ElementIndex particleAIndex,
+    ElementIndex particleBIndex,
+    ElementIndex particleCIndex,
+    ElementIndex subEdgeAIndex,
+    ElementIndex subEdgeBIndex,
+    ElementIndex subEdgeCIndex)
 {
-    mEndpointsBuffer.emplace_back(pointAIndex, pointBIndex, pointCIndex);
-    mSubSpringsBuffer.emplace_back(subSpringAIndex, subSpringBIndex, subSpringCIndex);
+    mEndpointsBuffer.emplace_back(particleAIndex, particleBIndex, particleCIndex);
+    mSubEdgesBuffer.emplace_back(subEdgeAIndex, subEdgeBIndex, subEdgeCIndex);
 }

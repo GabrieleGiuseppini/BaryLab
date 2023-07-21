@@ -6,11 +6,11 @@
 #pragma once
 
 #include "BLabTypes.h"
+#include "Edges.h"
 #include "Mesh.h"
-#include "MeshBuilderTypes.h"
-#include "Points.h"
-#include "Springs.h"
+#include "Particles.h"
 #include "Triangles.h"
+#include "Vertices.h"
 
 #include <cstdint>
 #include <filesystem>

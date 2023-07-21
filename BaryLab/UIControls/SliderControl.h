@@ -7,8 +7,7 @@
 
 #include "ISliderCore.h"
 
-#include <SLabCoreLib/Log.h>
-#include <SLabCoreLib/Utils.h>
+#include <BLabCoreLib/Utils.h>
 
 #include <wx/bitmap.h>
 #include <wx/slider.h>

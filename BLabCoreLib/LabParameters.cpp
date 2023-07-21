@@ -6,5 +6,7 @@
 #include "LabParameters.h"
 
 LabParameters::LabParameters()
+	: MassAdjustment(1.0f)
+	, GravityAdjustment(1.0f)
 {
 }

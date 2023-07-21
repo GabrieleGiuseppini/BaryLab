@@ -5,7 +5,7 @@
  ***************************************************************************************/
 #include "Utils.h"
 
-#include "SLabException.h"
+#include "BLabException.h"
 
 #include <cassert>
 #include <memory>
@@ -55,7 +55,7 @@ picojson::value Utils::ParseJSONString(std::string const & jsonString)
     std::string parseError = picojson::parse(jsonContent, jsonString);
     if (!parseError.empty())
     {
-        throw SLabException("Error parsing JSON string: " + parseError);
+        throw BLabException("Error parsing JSON string: " + parseError);
     }
 
     return jsonContent;

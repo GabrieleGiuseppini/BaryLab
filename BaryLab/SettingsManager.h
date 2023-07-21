@@ -5,43 +5,15 @@
 ***************************************************************************************/
 #pragma once
 
-#include <SLabCoreLib/Settings.h>
-#include <SLabCoreLib/SimulationController.h>
+#include <BLabCoreLib/LabController.h>
+#include <BLabCoreLib/Settings.h>
 
 enum class SLabSettings : size_t
 {
-    CommonSimulationTimeStepDuration = 0,
-    CommonMassAdjustment,
-    CommonGravityAdjustment,    
+    MassAdjustment = 0,
+    GravityAdjustment,    
 
-    ClassicSimulatorSpringStiffnessCoefficient,
-    ClassicSimulatorSpringDampingCoefficient,
-    ClassicSimulatorGlobalDamping,
-
-    FSSimulatorNumMechanicalDynamicsIterations,
-    FSSimulatorSpringReductionFraction,
-    FSSimulatorSpringDampingCoefficient,
-    FSSimulatorGlobalDamping,
-
-    PositionBasedSimulatorNumUpdateIterations,
-    PositionBasedSimulatorNumSolverIterations,
-    PositionBasedSimulatorSpringStiffness,
-    PositionBasedSimulatorGlobalDamping,
-
-    FastMSSSimulatorNumLocalGlobalStepIterations,
-    FastMSSSimulatorSpringStiffnessCoefficient,
-    FastMSSSimulatorGlobalDamping,
-
-    GaussSeidelSimulatorNumMechanicalDynamicsIterations,
-    GaussSeidelSimulatorSpringReductionFraction,
-    GaussSeidelSimulatorSpringDampingCoefficient,
-    GaussSeidelSimulatorGlobalDamping,
-
-    NumberOfSimulationThreads,
-
-    DoRenderAssignedParticleForces,    
-
-    _Last = DoRenderAssignedParticleForces
+    _Last = GravityAdjustment
 };
 
 class SettingsManager final : public BaseSettingsManager<SLabSettings>
@@ -49,11 +21,11 @@ class SettingsManager final : public BaseSettingsManager<SLabSettings>
 public:
 
     SettingsManager(
-        std::shared_ptr<SimulationController> simulationController,
+        std::shared_ptr<LabController> labController,
         std::filesystem::path const & rootUserSettingsDirectoryPath);
 
 private:
 
     static BaseSettingsManagerFactory MakeSettingsFactory(
-        std::shared_ptr<SimulationController> simulationController);
+        std::shared_ptr<LabController> labController);
 };

@@ -7,6 +7,9 @@
 
 #include <cmath>
 
+float constexpr EdgeThicknessWorld = 0.1f;
+float constexpr ParticleRadiusWorld = 0.3f;
+
 RenderContext::RenderContext(
     int canvasWidth,
     int canvasHeight)
@@ -17,6 +20,7 @@ RenderContext::RenderContext(
     , mIsViewModelDirty(true)
     , mIsGridDirty(true)
     ////
+    , mVertexVertexCount(0)
     , mIsGridEnabled(false)
 {
     GLuint tmpGLuint;
@@ -27,7 +31,7 @@ RenderContext::RenderContext(
 
     try
     {
-        SLabOpenGL::InitOpenGL();
+        BLabOpenGL::InitOpenGL();
     }
     catch (std::exception const & e)
     {
@@ -41,47 +45,62 @@ RenderContext::RenderContext(
     mShaderManager = ShaderManager::CreateInstance();
 
     //
-    // Points
+    // Vertices
     //
 
-    mPointVertexCount = 0;
+    mVertexVertexCount = 0;
 
     glGenVertexArrays(1, &tmpGLuint);
-    mPointVAO = tmpGLuint;
-    glBindVertexArray(*mPointVAO);
+    mVertexVAO = tmpGLuint;
+    glBindVertexArray(*mVertexVAO);
 
     glGenBuffers(1, &tmpGLuint);
-    mPointVertexVBO = tmpGLuint;
-    glBindBuffer(GL_ARRAY_BUFFER, *mPointVertexVBO);
+    mVertexVertexVBO = tmpGLuint;
+    glBindBuffer(GL_ARRAY_BUFFER, *mVertexVertexVBO);
 
-    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::PointAttributeGroup1));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::PointAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(PointVertex), (void *)0);
-    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::PointAttributeGroup2));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::PointAttributeGroup2), 4, GL_FLOAT, GL_FALSE, sizeof(PointVertex), (void *)(4 * sizeof(float)));
-    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::PointAttributeGroup3));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::PointAttributeGroup3), 2, GL_FLOAT, GL_FALSE, sizeof(PointVertex), (void *)(8 * sizeof(float)));
-    static_assert(sizeof(PointVertex) == 10 * sizeof(float));
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::VertexAttributeGroup1));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::VertexAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(VertexVertex), (void *)0);
+    static_assert(sizeof(VertexVertex) == 4 * sizeof(float));
 
     glBindVertexArray(0);
 
     //
-    // Springs
+    // Edges
     //
 
     glGenVertexArrays(1, &tmpGLuint);
-    mSpringVAO = tmpGLuint;
-    glBindVertexArray(*mSpringVAO);
+    mEdgeVAO = tmpGLuint;
+    glBindVertexArray(*mEdgeVAO);
 
     glGenBuffers(1, &tmpGLuint);
-    mSpringVertexVBO = tmpGLuint;
-    glBindBuffer(GL_ARRAY_BUFFER, *mSpringVertexVBO);
+    mEdgeVertexVBO = tmpGLuint;
+    glBindBuffer(GL_ARRAY_BUFFER, *mEdgeVertexVBO);
 
-    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::SpringAttributeGroup1));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::SpringAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(SpringVertex), (void *)0);
-    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::SpringAttributeGroup2));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::SpringAttributeGroup2), 4, GL_FLOAT, GL_FALSE, sizeof(SpringVertex), (void *)(4 * sizeof(float)));
-    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::SpringAttributeGroup3));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::SpringAttributeGroup3), 1, GL_FLOAT, GL_FALSE, sizeof(SpringVertex), (void *)(8 * sizeof(float)));
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::EdgeAttributeGroup1));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::EdgeAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(EdgeVertex), (void *)0);
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::EdgeAttributeGroup2));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::EdgeAttributeGroup2), 4, GL_FLOAT, GL_FALSE, sizeof(EdgeVertex), (void *)(4 * sizeof(float)));
+    static_assert(sizeof(EdgeVertex) == 8 * sizeof(float));
+
+    glBindVertexArray(0);
+
+    //
+    // Particles
+    //
+
+    glGenVertexArrays(1, &tmpGLuint);
+    mParticleVAO = tmpGLuint;
+    glBindVertexArray(*mParticleVAO);
+
+    glGenBuffers(1, &tmpGLuint);
+    mParticleVertexVBO = tmpGLuint;
+    glBindBuffer(GL_ARRAY_BUFFER, *mParticleVertexVBO);
+
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleAttributeGroup1));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(ParticleVertex), (void *)0);
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleAttributeGroup2));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleAttributeGroup2), 4, GL_FLOAT, GL_FALSE, sizeof(ParticleVertex), (void *)(4 * sizeof(float)));
+    static_assert(sizeof(ParticleVertex) == (4 + 4) * sizeof(float));
 
     glBindVertexArray(0);
 
@@ -120,48 +139,6 @@ RenderContext::RenderContext(
     ProcessSettingChanges();
 }
 
-RgbImageData RenderContext::TakeScreenshot()
-{
-    //
-    // Allocate buffer
-    //
-
-    int const canvasWidth = mViewModel.GetCanvasWidth();
-    int const canvasHeight = mViewModel.GetCanvasHeight();
-
-    auto pixelBuffer = std::make_unique<rgbColor[]>(canvasWidth * canvasHeight);
-
-    //
-    // Take screenshot
-    //
-
-    //
-    // Flush draw calls
-    //
-
-    glFinish();
-
-    //
-    // Read pixels
-    //
-
-    // Alignment is byte
-    glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    CheckOpenGLError();
-
-    // Read the front buffer
-    glReadBuffer(GL_FRONT);
-    CheckOpenGLError();
-
-    // Read
-    glReadPixels(0, 0, canvasWidth, canvasHeight, GL_RGB, GL_UNSIGNED_BYTE, pixelBuffer.get());
-    CheckOpenGLError();
-
-    return RgbImageData(
-        ImageSize(canvasWidth, canvasHeight),
-        std::move(pixelBuffer));
-}
-
 void RenderContext::RenderStart()
 {
     // Set polygon mode
@@ -173,200 +150,229 @@ void RenderContext::RenderStart()
     glClearColor(ClearColor.x, ClearColor.y, ClearColor.z, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Reset all buffers
-    mPointVertexCount = 0;
-
     // Process setting changes
     ProcessSettingChanges();
 }
 
-void RenderContext::UploadPoints(
-    size_t pointCount,
-    vec2f const * pointPositions,
-    vec4f const * pointColors,
-    float const * pointNormRadii,
-    float const * pointHighlights,
-    float const * pointFrozenCoefficients)
+void RenderContext::UploadVertices(
+    size_t vertexCount,
+    vec2f const * vertexPositions)
 {
     //
     // Map buffer
     //
 
-    glBindBuffer(GL_ARRAY_BUFFER, *mPointVertexVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, *mVertexVertexVBO);
 
     // Check whether we need to re-allocate the buffers
-    if (pointCount * 6 != mPointVertexCount)
+    if (vertexCount * 6 != mVertexVertexCount)
     {
-        mPointVertexCount = pointCount * 6;
+        mVertexVertexCount = vertexCount * 6;
 
-        glBufferData(GL_ARRAY_BUFFER, mPointVertexCount * sizeof(PointVertex), nullptr, GL_STREAM_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, mVertexVertexCount * sizeof(VertexVertex), nullptr, GL_STREAM_DRAW);
         CheckOpenGLError();
     }
 
-    mPointVertexBuffer.map(mPointVertexCount);
-
+    mVertexVertexBuffer.map(mVertexVertexCount);
 
     //
     // Upload buffer
     //
 
-    float constexpr WorldRadius = 0.3f;
-
-    for (size_t p = 0; p < pointCount; ++p)
+    for (size_t v = 0; v < vertexCount; ++v)
     {
-        vec2f const & pointPosition = pointPositions[p];
-        float const halfRadius = pointNormRadii[p] * WorldRadius / 2.0f;
-        vec4f const & pointColor = pointColors[p];
-        float const pointHighlight = pointHighlights[p];
-        float const pointFrozenCoefficient = pointFrozenCoefficients[p];
+        vec2f const & vertexPosition = vertexPositions[v];
 
-        float const xLeft = pointPosition.x - halfRadius;
-        float const xRight = pointPosition.x + halfRadius;
-        float const yTop = pointPosition.y + halfRadius;
-        float const yBottom = pointPosition.y - halfRadius;
+        float const xLeft = vertexPosition.x - EdgeThicknessWorld / 2.0f;
+        float const xRight = vertexPosition.x + EdgeThicknessWorld / 2.0f;
+        float const yTop = vertexPosition.y + EdgeThicknessWorld / 2.0f;
+        float const yBottom = vertexPosition.y - EdgeThicknessWorld / 2.0f;
 
         // Left, bottom
-        mPointVertexBuffer.emplace_back(
+        mVertexVertexBuffer.emplace_back(
             vec2f(xLeft, yBottom),
-            vec2f(-1.0f, -1.0f),
-            pointColor,
-            pointHighlight,
-            pointFrozenCoefficient);
+            vec2f(-1.0f, -1.0f));
 
         // Left, top
-        mPointVertexBuffer.emplace_back(
+        mVertexVertexBuffer.emplace_back(
             vec2f(xLeft, yTop),
-            vec2f(-1.0f, 1.0f),
-            pointColor,
-            pointHighlight,
-            pointFrozenCoefficient);
+            vec2f(-1.0f, 1.0f));
 
         // Right, bottom
-        mPointVertexBuffer.emplace_back(
+        mVertexVertexBuffer.emplace_back(
             vec2f(xRight, yBottom),
-            vec2f(1.0f, -1.0f),
-            pointColor,
-            pointHighlight,
-            pointFrozenCoefficient);
+            vec2f(1.0f, -1.0f));
 
         // Left, top
-        mPointVertexBuffer.emplace_back(
+        mVertexVertexBuffer.emplace_back(
             vec2f(xLeft, yTop),
-            vec2f(-1.0f, 1.0f),
-            pointColor,
-            pointHighlight,
-            pointFrozenCoefficient);
+            vec2f(-1.0f, 1.0f));
 
         // Right, bottom
-        mPointVertexBuffer.emplace_back(
+        mVertexVertexBuffer.emplace_back(
             vec2f(xRight, yBottom),
-            vec2f(1.0f, -1.0f),
-            pointColor,
-            pointHighlight,
-            pointFrozenCoefficient);
+            vec2f(1.0f, -1.0f));
 
         // Right, top
-        mPointVertexBuffer.emplace_back(
+        mVertexVertexBuffer.emplace_back(
             vec2f(xRight, yTop),
-            vec2f(1.0f, 1.0f),
-            pointColor,
-            pointHighlight,
-            pointFrozenCoefficient);
+            vec2f(1.0f, 1.0f));
     }
-
 
     //
     // Unmap buffer
     //
 
-    assert(mPointVertexBuffer.size() == mPointVertexCount);
+    assert(mVertexVertexBuffer.size() == mVertexVertexCount);
 
-    mPointVertexBuffer.unmap();
+    mVertexVertexBuffer.unmap();
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void RenderContext::UploadSpringsStart(size_t springCount)
+void RenderContext::UploadEdgesStart(size_t edgeCount)
 {
     //
     // Prepare buffer
     //
 
-    mSpringVertexBuffer.clear();
-    mSpringVertexBuffer.reserve(springCount * 6);
+    mEdgeVertexBuffer.clear();
+    mEdgeVertexBuffer.reserve(edgeCount * 6);
 }
 
-void RenderContext::UploadSpring(
-    vec2f const & springEndpointAPosition,
-    vec2f const & springEndpointBPosition,
-    vec4f const & springColor,
-    float springNormThickness,
-    float springHighlight)
+void RenderContext::UploadEdge(
+    vec2f const & edgeEndpointAPosition,
+    vec2f const & edgeEndpointBPosition)
 {
-    float constexpr WorldThickness = 0.1f;
+    vec2f const edgeVector = edgeEndpointBPosition - edgeEndpointAPosition;
+    vec2f const edgeNormal = edgeVector.to_perpendicular().normalise() * EdgeThicknessWorld / 2.0f;
 
-    vec2f const springVector = springEndpointBPosition - springEndpointAPosition;
-    vec2f const springNormal = springVector.to_perpendicular().normalise()
-        * springNormThickness * WorldThickness / 2.0f;
+    vec2f const bottomLeft = edgeEndpointAPosition - edgeNormal;
+    vec2f const bottomRight = edgeEndpointAPosition + edgeNormal;
+    vec2f const topLeft = edgeEndpointBPosition - edgeNormal;
+    vec2f const topRight = edgeEndpointBPosition + edgeNormal;
 
-    vec2f const bottomLeft = springEndpointAPosition - springNormal;
-    vec2f const bottomRight = springEndpointAPosition + springNormal;
-    vec2f const topLeft = springEndpointBPosition - springNormal;
-    vec2f const topRight = springEndpointBPosition + springNormal;
+    vec4f constexpr Color = rgbaColor(0x80, 0x80, 0x90, 0xff).toVec4f();
 
     // Left, bottom
-    mSpringVertexBuffer.emplace_back(
+    mEdgeVertexBuffer.emplace_back(
         bottomLeft,
         vec2f(-1.0f, -1.0f),
-        springColor,
-        springHighlight);
+        Color);
 
     // Left, top
-    mSpringVertexBuffer.emplace_back(
+    mEdgeVertexBuffer.emplace_back(
         topLeft,
         vec2f(-1.0f, 1.0f),
-        springColor,
-        springHighlight);
+        Color);
 
     // Right, bottom
-    mSpringVertexBuffer.emplace_back(
+    mEdgeVertexBuffer.emplace_back(
         bottomRight,
         vec2f(1.0f, -1.0f),
-        springColor,
-        springHighlight);
+        Color);
 
     // Left, top
-    mSpringVertexBuffer.emplace_back(
+    mEdgeVertexBuffer.emplace_back(
         topLeft,
         vec2f(-1.0f, 1.0f),
-        springColor,
-        springHighlight);
+        Color);
 
     // Right, bottom
-    mSpringVertexBuffer.emplace_back(
+    mEdgeVertexBuffer.emplace_back(
         bottomRight,
         vec2f(1.0f, -1.0f),
-        springColor,
-        springHighlight);
+        Color);
 
     // Right, top
-    mSpringVertexBuffer.emplace_back(
+    mEdgeVertexBuffer.emplace_back(
         topRight,
         vec2f(1.0f, 1.0f),
-        springColor,
-        springHighlight);
+        Color);
 }
 
-void RenderContext::UploadSpringsEnd()
+void RenderContext::UploadEdgesEnd()
 {
     //
     // Upload buffer, if needed
     //
 
-    if (!mSpringVertexBuffer.empty())
+    if (!mEdgeVertexBuffer.empty())
     {
-        glBindBuffer(GL_ARRAY_BUFFER, *mSpringVertexVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(SpringVertex) * mSpringVertexBuffer.size(), mSpringVertexBuffer.data(), GL_STREAM_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, *mEdgeVertexVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(EdgeVertex) * mEdgeVertexBuffer.size(), mEdgeVertexBuffer.data(), GL_STREAM_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+}
+
+void RenderContext::UploadParticlesStart(size_t particleCount)
+{
+    //
+    // Prepare buffer
+    //
+
+    mParticleVertexBuffer.clear();
+    mParticleVertexBuffer.reserve(particleCount * 6);
+}
+
+void RenderContext::UploadParticle(
+    vec2f const & particlePosition,
+    rgbaColor const & particleColor)
+{
+    float const xLeft = particlePosition.x - ParticleRadiusWorld / 2.0f;
+    float const xRight = particlePosition.x + ParticleRadiusWorld / 2.0f;
+    float const yTop = particlePosition.y + ParticleRadiusWorld / 2.0f;
+    float const yBottom = particlePosition.y - ParticleRadiusWorld / 2.0f;
+
+    vec4f const color = particleColor.toVec4f();
+
+    // Left, bottom
+    mParticleVertexBuffer.emplace_back(
+        vec2f(xLeft, yBottom),
+        vec2f(-1.0f, -1.0f),
+        color);
+
+    // Left, top
+    mParticleVertexBuffer.emplace_back(
+        vec2f(xLeft, yTop),
+        vec2f(-1.0f, 1.0f),
+        color);
+
+    // Right, bottom
+    mParticleVertexBuffer.emplace_back(
+        vec2f(xRight, yBottom),
+        vec2f(1.0f, -1.0f),
+        color);
+
+    // Left, top
+    mParticleVertexBuffer.emplace_back(
+        vec2f(xLeft, yTop),
+        vec2f(-1.0f, 1.0f),
+        color);
+
+    // Right, bottom
+    mParticleVertexBuffer.emplace_back(
+        vec2f(xRight, yBottom),
+        vec2f(1.0f, -1.0f),
+        color);
+
+    // Right, top
+    mParticleVertexBuffer.emplace_back(
+        vec2f(xRight, yTop),
+        vec2f(1.0f, 1.0f),
+        color);
+}
+
+void RenderContext::UploadParticlesEnd()
+{
+    //
+    // Upload buffer, if needed
+    //
+
+    if (!mParticleVertexBuffer.empty())
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, *mParticleVertexVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(ParticleVertex) * mParticleVertexBuffer.size(), mParticleVertexBuffer.data(), GL_STREAM_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 }
@@ -374,17 +380,17 @@ void RenderContext::UploadSpringsEnd()
 void RenderContext::RenderEnd()
 {
     ////////////////////////////////////////////////////////////////
-    // Render springs
+    // Render edges
     ////////////////////////////////////////////////////////////////
 
-    if (!mSpringVertexBuffer.empty())
+    if (!mEdgeVertexBuffer.empty())
     {
-        glBindVertexArray(*mSpringVAO);
+        glBindVertexArray(*mEdgeVAO);
 
-        mShaderManager->ActivateProgram<ShaderManager::ProgramType::Springs>();
+        mShaderManager->ActivateProgram<ShaderManager::ProgramType::Edges>();
 
-        assert((mSpringVertexBuffer.size() % 6) == 0);
-        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mSpringVertexBuffer.size()));
+        assert((mEdgeVertexBuffer.size() % 6) == 0);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mEdgeVertexBuffer.size()));
 
         CheckOpenGLError();
 
@@ -392,19 +398,37 @@ void RenderContext::RenderEnd()
     }
 
     ////////////////////////////////////////////////////////////////
-    // Render points
+    // Render vertices
     ////////////////////////////////////////////////////////////////
 
-    glBindVertexArray(*mPointVAO);
+    glBindVertexArray(*mVertexVAO);
 
-    mShaderManager->ActivateProgram<ShaderManager::ProgramType::Points>();
+    mShaderManager->ActivateProgram<ShaderManager::ProgramType::Vertices>();
 
-    assert((mPointVertexCount % 6) == 0);
-    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mPointVertexCount));
+    assert((mVertexVertexCount % 6) == 0);
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mVertexVertexCount));
 
     CheckOpenGLError();
 
     glBindVertexArray(0);
+
+    ////////////////////////////////////////////////////////////////
+    // Render particles
+    ////////////////////////////////////////////////////////////////
+
+    if (!mParticleVertexBuffer.empty())
+    {
+        glBindVertexArray(*mParticleVAO);
+
+        mShaderManager->ActivateProgram<ShaderManager::ProgramType::Particles>();
+
+        assert((mParticleVertexBuffer.size() % 6) == 0);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mParticleVertexBuffer.size()));
+
+        CheckOpenGLError();
+
+        glBindVertexArray(0);
+    }
 
     ////////////////////////////////////////////////////////////////
     // Grid
@@ -428,7 +452,7 @@ void RenderContext::RenderEnd()
     ////////////////////////////////////////////////////////////////
 
     // Flush all pending commands (but not the GPU buffer)
-    SLabOpenGL::Flush();
+    BLabOpenGL::Flush();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -468,16 +492,16 @@ void RenderContext::OnViewModelUpdated()
 
     ViewModel::ProjectionMatrix const & orthoMatrix = mViewModel.GetOrthoMatrix();
 
-    mShaderManager->ActivateProgram<ShaderManager::ProgramType::Points>();
-    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::Points, ShaderManager::ProgramParameterType::OrthoMatrix>(
+    mShaderManager->ActivateProgram<ShaderManager::ProgramType::Edges>();
+    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::Edges, ShaderManager::ProgramParameterType::OrthoMatrix>(
         orthoMatrix);
 
-    mShaderManager->ActivateProgram<ShaderManager::ProgramType::Springs>();
-    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::Springs, ShaderManager::ProgramParameterType::OrthoMatrix>(
+    mShaderManager->ActivateProgram<ShaderManager::ProgramType::Particles>();
+    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::Particles, ShaderManager::ProgramParameterType::OrthoMatrix>(
         orthoMatrix);
 
-    mShaderManager->ActivateProgram<ShaderManager::ProgramType::Grid>();
-    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::Grid, ShaderManager::ProgramParameterType::OrthoMatrix>(
+    mShaderManager->ActivateProgram<ShaderManager::ProgramType::Vertices>();
+    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::Vertices, ShaderManager::ProgramParameterType::OrthoMatrix>(
         orthoMatrix);
 }
 

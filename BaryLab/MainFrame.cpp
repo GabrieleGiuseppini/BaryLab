@@ -37,11 +37,8 @@
 
 long const ID_MAIN_CANVAS = wxNewId();
 
-// TODOHERE
-long const ID_LOAD_OBJECT_MENUITEM = wxNewId();
-long const ID_MAKE_OBJECT_MENUITEM = wxNewId();
+long const ID_LOAD_MESH_MENUITEM = wxNewId();
 long const ID_RESET_MENUITEM = wxNewId();
-long const ID_SAVE_SCREENSHOT_MENUITEM = wxNewId();
 long const ID_QUIT_MENUITEM = wxNewId();
 
 long const ID_ZOOM_IN_MENUITEM = wxNewId();
@@ -58,15 +55,15 @@ long const ID_ABOUT_MENUITEM = wxNewId();
 
 long const ID_SIMULATION_TIMER = wxNewId();
 
+// TODOHERE
 MainFrame::MainFrame(wxApp * mainApp)
     : mIsMouseCapturedByGLCanvas(false)
     , mMainApp(mainApp)
-    , mSimulationController()
+    , mLabController()
     , mSettingsManager()
     , mToolController()
-    , mSimulationControlState(static_cast<SimulationControlStateType>(0))
+    , mSimulationControlState(SimulationControlStateType::Paused)
     , mSimulationControlImpulse(false)
-    , mLastSimulationStepTimestamp(std::chrono::steady_clock::time_point::min())
 {
     Create(
         nullptr,
@@ -147,17 +144,16 @@ MainFrame::MainFrame(wxApp * mainApp)
 
         // Control toolbar
         mControlToolbar = new ControlToolbar(mMainPanel);
+        mControlToolbar->Connect(ControlToolbar::ID_MOVE_PARTICLE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnMoveParticle, 0, this);
+        mControlToolbar->Connect(ControlToolbar::ID_MOVE_VERTEX, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnMoveVertex, 0, this);
+        mControlToolbar->Connect(ControlToolbar::ID_SET_PARTICLE_TRAJECTORY, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSetParticleTrajectory, 0, this);
+        mControlToolbar->Connect(ControlToolbar::ID_SET_ORIGIN_TRIANGLE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSetOriginTriangle, 0, this);
+        mControlToolbar->Connect(ControlToolbar::ID_SET_PARTICLE_GRAVITY, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSetParticleGravity, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_SIMULATION_CONTROL_PLAY, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSimulationControlPlay, 0, this);
-        mControlToolbar->Connect(ControlToolbar::ID_SIMULATION_CONTROL_FAST_PLAY, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSimulationControlFastPlay, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_SIMULATION_CONTROL_PAUSE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSimulationControlPause, 0, this);
-        mControlToolbar->Connect(ControlToolbar::ID_SIMULATION_CONTROL_STEP, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSimulationControlStep, 0, this);
-        mControlToolbar->Connect(ControlToolbar::ID_INITIAL_CONDITIONS_GRAVITY, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnInitialConditionsGravity, 0, this);
-        mControlToolbar->Connect(ControlToolbar::ID_INITIAL_CONDITIONS_MOVE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnInitialConditionsMove, 0, this);
-        mControlToolbar->Connect(ControlToolbar::ID_INITIAL_CONDITIONS_PIN, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnInitialConditionsPin, 0, this);
-        mControlToolbar->Connect(ControlToolbar::ID_INITIAL_CONDITIONS_PARTICLE_FORCE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnInitialConditionsParticleForce, 0, this);
-        mControlToolbar->Connect(ControlToolbar::ID_SIMULATOR_TYPE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSimulatorTypeChanged, 0, this);
+        mControlToolbar->Connect(ControlToolbar::ID_SIMULATION_CONTROL_STEP, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSimulationControlStep, 0, this);        
         mControlToolbar->Connect(ControlToolbar::ID_ACTION_RESET, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnResetMenuItemSelected, 0, this);
-        mControlToolbar->Connect(ControlToolbar::ID_ACTION_LOAD_OBJECT, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnLoadObjectMenuItemSelected, 0, this);
+        mControlToolbar->Connect(ControlToolbar::ID_ACTION_LOAD_MESH, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnLoadMeshMenuItemSelected, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_ACTION_SETTINGS, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnOpenSettingsWindowMenuItemSelected, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_VIEW_CONTROL_GRID, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnViewControlGridToggled, 0, this);
 
@@ -204,23 +200,13 @@ MainFrame::MainFrame(wxApp * mainApp)
 
         wxMenu * fileMenu = new wxMenu();
 
-        wxMenuItem * loadObjectMenuItem = new wxMenuItem(fileMenu, ID_LOAD_OBJECT_MENUITEM, _("Load Object\tCtrl+O"), wxEmptyString, wxITEM_NORMAL);
-        fileMenu->Append(loadObjectMenuItem);
-        Connect(ID_LOAD_OBJECT_MENUITEM, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&MainFrame::OnLoadObjectMenuItemSelected);
-
-        wxMenuItem * makeObjectMenuItem = new wxMenuItem(fileMenu, ID_MAKE_OBJECT_MENUITEM, _("Make Object"), wxEmptyString, wxITEM_NORMAL);
-        fileMenu->Append(makeObjectMenuItem);
-        Connect(ID_MAKE_OBJECT_MENUITEM, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&MainFrame::OnMakeObjectMenuItemSelected);
+        wxMenuItem * loadMeshMenuItem = new wxMenuItem(fileMenu, ID_LOAD_MESH_MENUITEM, _("Load Mesh\tCtrl+O"), wxEmptyString, wxITEM_NORMAL);
+        fileMenu->Append(loadMeshMenuItem);
+        Connect(ID_LOAD_MESH_MENUITEM, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&MainFrame::OnLoadMeshMenuItemSelected);
 
         wxMenuItem * resetMenuItem = new wxMenuItem(fileMenu, ID_RESET_MENUITEM, _("Reset\tCtrl+R"), wxEmptyString, wxITEM_NORMAL);
         fileMenu->Append(resetMenuItem);
         Connect(ID_RESET_MENUITEM, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&MainFrame::OnResetMenuItemSelected);
-
-        fileMenu->Append(new wxMenuItem(fileMenu, wxID_SEPARATOR));
-
-        wxMenuItem * saveScreenshotMenuItem = new wxMenuItem(fileMenu, ID_SAVE_SCREENSHOT_MENUITEM, _("Save Screenshot\tCtrl+C"), wxEmptyString, wxITEM_NORMAL);
-        fileMenu->Append(saveScreenshotMenuItem);
-        Connect(ID_SAVE_SCREENSHOT_MENUITEM, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction)&MainFrame::OnSaveScreenshotMenuItemSelected);
 
         fileMenu->Append(new wxMenuItem(fileMenu, wxID_SEPARATOR));
 
@@ -365,27 +351,27 @@ void MainFrame::OnQuit(wxCommandEvent & /*event*/)
 
 void MainFrame::OnKeyDown(wxKeyEvent & event)
 {
-    assert(!!mSimulationController);
+    assert(!!mLabController);
 
     if (event.GetKeyCode() == WXK_LEFT)
     {
         // Left
-        mSimulationController->Pan(vec2f(-20.0, 0.0f));
+        mLabController->Pan(vec2f(-20.0, 0.0f));
     }
     else if (event.GetKeyCode() == WXK_UP)
     {
         // Up
-        mSimulationController->Pan(vec2f(00.0f, -20.0f));
+        mLabController->Pan(vec2f(00.0f, -20.0f));
     }
     else if (event.GetKeyCode() == WXK_RIGHT)
     {
         // Right
-        mSimulationController->Pan(vec2f(20.0f, 0.0f));
+        mLabController->Pan(vec2f(20.0f, 0.0f));
     }
     else if (event.GetKeyCode() == WXK_DOWN)
     {
         // Down
-        mSimulationController->Pan(vec2f(0.0f, 20.0f));
+        mLabController->Pan(vec2f(0.0f, 20.0f));
     }
     else if (event.GetKeyCode() == '/')
     {
@@ -394,11 +380,11 @@ void MainFrame::OnKeyDown(wxKeyEvent & event)
         // Query
 
         vec2f screenCoords = mToolController->GetMouseScreenCoordinates();
-        vec2f worldCoords = mSimulationController->ScreenToWorld(screenCoords);
+        vec2f worldCoords = mLabController->ScreenToWorld(screenCoords);
 
         LogMessage(worldCoords.toString(), ":");
 
-        mSimulationController->QueryNearestPointAt(screenCoords);
+        mLabController->QueryNearestParticleAt(screenCoords);
     }
     else if (mControlToolbar->ProcessKeyDown(event.GetKeyCode(), event.GetModifiers()))
     {
@@ -417,9 +403,9 @@ void MainFrame::OnKeyDown(wxKeyEvent & event)
 
 void MainFrame::OnMainGLCanvasPaint(wxPaintEvent & event)
 {
-    if (mSimulationController)
+    if (mLabController)
     {
-        mSimulationController->Render();
+        mLabController->Render();
 
         assert(mMainGLCanvas);
         mMainGLCanvas->SwapBuffers();
@@ -432,11 +418,11 @@ void MainFrame::OnMainGLCanvasResize(wxSizeEvent & event)
 {
     LogMessage("OnMainGLCanvasResize: ", event.GetSize().GetX(), "x", event.GetSize().GetY());
 
-    if (mSimulationController
+    if (mLabController
         && event.GetSize().GetX() > 0
         && event.GetSize().GetY() > 0)
     {
-        mSimulationController->SetCanvasSize(
+        mLabController->SetCanvasSize(
             event.GetSize().GetX(),
             event.GetSize().GetY());
     }
@@ -519,9 +505,9 @@ void MainFrame::OnMainGLCanvasMouseMove(wxMouseEvent & event)
 
 void MainFrame::OnMainGLCanvasMouseWheel(wxMouseEvent & event)
 {
-    if (mSimulationController)
+    if (mLabController)
     {
-        mSimulationController->AdjustZoom(powf(1.002f, event.GetWheelRotation()));
+        mLabController->AdjustZoom(powf(1.002f, event.GetWheelRotation()));
     }
 }
 
@@ -537,7 +523,7 @@ void MainFrame::OnMainGLCanvasCaptureMouseLost(wxMouseCaptureLostEvent & /*event
 // Menu event handlers
 //
 
-void MainFrame::OnLoadObjectMenuItemSelected(wxCommandEvent & /*event*/)
+void MainFrame::OnLoadMeshMenuItemSelected(wxCommandEvent & /*event*/)
 {
     if (!mFileOpenDialog)
     {
@@ -559,32 +545,10 @@ void MainFrame::OnLoadObjectMenuItemSelected(wxCommandEvent & /*event*/)
     {
         std::string const filepath = mFileOpenDialog->GetPath().ToStdString();
 
-        assert(!!mSimulationController);
+        assert(!!mLabController);
         try
         {
-            mSimulationController->LoadObject(filepath);
-        }
-        catch (std::exception const & ex)
-        {
-            OnError(ex.what(), false);
-        }
-    }
-}
-
-void MainFrame::OnMakeObjectMenuItemSelected(wxCommandEvent & /*event*/)
-{
-    if (!mSyntheticObjectDialog)
-    {
-        mSyntheticObjectDialog = std::make_unique<SyntheticObjectDialog>(
-            this);
-    }
-
-    auto numSprings = mSyntheticObjectDialog->AskNumSprings();
-    if (numSprings)
-    {
-        try
-        {
-            mSimulationController->MakeObject(*numSprings);
+            mLabController->LoadMesh(filepath);
         }
         catch (std::exception const & ex)
         {
@@ -595,106 +559,28 @@ void MainFrame::OnMakeObjectMenuItemSelected(wxCommandEvent & /*event*/)
 
 void MainFrame::OnResetMenuItemSelected(wxCommandEvent & /*event*/)
 {
-    assert(!!mSimulationController);
-    mSimulationController->Reset();
-}
-
-void MainFrame::OnSaveScreenshotMenuItemSelected(wxCommandEvent & /*event*/)
-{
-    //
-    // Take screenshot
-    //
-
-    assert(!!mSimulationController);
-    auto screenshotImage = mSimulationController->TakeScreenshot();
-
-    //
-    // Ensure pictures folder exists
-    //
-
-    auto const folderPath = StandardSystemPaths::GetInstance().GetUserPicturesSimulatorFolderPath();
-
-    if (!std::filesystem::exists(folderPath))
-    {
-        try
-        {
-            std::filesystem::create_directories(folderPath);
-        }
-        catch (std::filesystem::filesystem_error const & fex)
-        {
-            OnError(
-                std::string("Could not save screenshot to path \"") + folderPath.string() + "\": " + fex.what(),
-                false);
-
-            return;
-        }
-    }
-
-
-    //
-    // Choose filename
-    //
-
-    std::filesystem::path screenshotFilePath;
-
-    do
-    {
-        auto now = std::chrono::system_clock::now();
-        auto now_time_t = std::chrono::system_clock::to_time_t(now);
-        auto const tm = std::localtime(&now_time_t);
-
-        std::stringstream ssFilename;
-        ssFilename.fill('0');
-        ssFilename
-            << std::setw(4) << (1900 + tm->tm_year) << std::setw(2) << (1 + tm->tm_mon) << std::setw(2) << tm->tm_mday
-            << "_"
-            << std::setw(2) << tm->tm_hour << std::setw(2) << tm->tm_min << std::setw(2) << tm->tm_sec
-            << "_"
-            << std::setw(3) << std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch() % std::chrono::seconds(1)).count()
-            << "_"
-            << "SpringLab.png";
-
-        screenshotFilePath = folderPath / std::filesystem::path(ssFilename.str());
-
-    } while (std::filesystem::exists(screenshotFilePath));
-
-
-    //
-    // Save screenshot
-    //
-
-    try
-    {
-        ImageFileTools::SaveImage(
-            screenshotFilePath,
-            screenshotImage);
-    }
-    catch (std::filesystem::filesystem_error const & fex)
-    {
-        OnError(
-            std::string("Could not save screenshot to file \"") + screenshotFilePath.string() + "\": " + fex.what(),
-            false);
-    }
+    assert(!!mLabController);
+    mLabController->Reset();
 }
 
 void MainFrame::OnResetViewMenuItemSelected(wxCommandEvent & /*event*/)
 {
-    assert(!!mSimulationController);
+    assert(!!mLabController);
 
-    mSimulationController->ResetPan();
-    mSimulationController->ResetZoom();
+    mLabController->ResetPan();
+    mLabController->ResetZoom();
 }
 
 void MainFrame::OnZoomInMenuItemSelected(wxCommandEvent & /*event*/)
 {
-    assert(!!mSimulationController);
-    mSimulationController->AdjustZoom(1.05f);
+    assert(!!mLabController);
+    mLabController->AdjustZoom(1.05f);
 }
 
 void MainFrame::OnZoomOutMenuItemSelected(wxCommandEvent & /*event*/)
 {
-    assert(!!mSimulationController);
-    mSimulationController->AdjustZoom(1.0f / 1.05f);
+    assert(!!mLabController);
+    mLabController->AdjustZoom(1.0f / 1.05f);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -706,7 +592,7 @@ void MainFrame::OnOpenSettingsWindowMenuItemSelected(wxCommandEvent & /*event*/)
         mSettingsDialog = std::make_unique<SettingsDialog>(
             this,
             mSettingsManager,
-            mSimulationController);
+            mLabController);
     }
 
     mSettingsDialog->Open();
@@ -765,14 +651,39 @@ void MainFrame::OnAboutMenuItemSelected(wxCommandEvent & /*event*/)
     mAboutDialog->Open();
 }
 
-void MainFrame::OnSimulationControlPlay(wxCommandEvent & /*event*/)
+void MainFrame::OnMoveParticle(wxCommandEvent & /*event*/)
 {
-    mSimulationControlState = SimulationControlStateType::SlowPlay;
+    assert(!!mToolController);
+    mToolController->SetTool(ToolType::MoveParticle);
 }
 
-void MainFrame::OnSimulationControlFastPlay(wxCommandEvent & /*event*/)
+void MainFrame::OnMoveVertex(wxCommandEvent & /*event*/)
 {
-    mSimulationControlState = SimulationControlStateType::FastPlay;
+    assert(!!mToolController);
+    mToolController->SetTool(ToolType::MoveVertex);
+}
+
+void MainFrame::OnSetParticleTrajectory(wxCommandEvent & /*event*/)
+{
+    assert(!!mToolController);
+    mToolController->SetTool(ToolType::SetParticleTrajectory);
+}
+
+void MainFrame::OnSetOriginTriangle(wxCommandEvent & /*event*/)
+{
+    assert(!!mToolController);
+    mToolController->SetTool(ToolType::SetOriginTriangle);
+}
+
+void MainFrame::OnSetParticleGravity(wxCommandEvent & event)
+{
+    assert(!!mLabController);
+    mLabController->SetParticleGravityEnabled(event.GetInt() != 0);
+}
+
+void MainFrame::OnSimulationControlPlay(wxCommandEvent & /*event*/)
+{
+    mSimulationControlState = SimulationControlStateType::Play;
 }
 
 void MainFrame::OnSimulationControlPause(wxCommandEvent & /*event*/)
@@ -785,39 +696,10 @@ void MainFrame::OnSimulationControlStep(wxCommandEvent & /*event*/)
     mSimulationControlImpulse = true;
 }
 
-void MainFrame::OnInitialConditionsGravity(wxCommandEvent & event)
-{
-    assert(!!mSimulationController);
-    mSimulationController->SetCommonDoApplyGravity(event.GetInt() != 0);
-}
-
-void MainFrame::OnInitialConditionsMove(wxCommandEvent & /*event*/)
-{
-    assert(!!mToolController);
-    mToolController->SetTool(ToolType::MoveSimple);
-}
-
-void MainFrame::OnInitialConditionsPin(wxCommandEvent & /*event*/)
-{
-    assert(!!mToolController);
-    mToolController->SetTool(ToolType::Pin);
-}
-
-void MainFrame::OnInitialConditionsParticleForce(wxCommandEvent & /*event*/)
-{
-    LogMessage("TODO: OnInitialConditionsParticleForce");
-}
-
-void MainFrame::OnSimulatorTypeChanged(wxCommandEvent & event)
-{
-    assert(!!mSimulationController);
-    mSimulationController->SetSimulator(event.GetString().ToStdString());
-}
-
 void MainFrame::OnViewControlGridToggled(wxCommandEvent & event)
 {
-    assert(!!mSimulationController);
-    mSimulationController->SetViewGridEnabled(event.GetInt() != 0);
+    assert(!!mLabController);
+    mLabController->SetViewGridEnabled(event.GetInt() != 0);
 }
 
 void MainFrame::OnSimulationTimer(wxTimerEvent & /*event*/)
@@ -828,13 +710,13 @@ void MainFrame::OnSimulationTimer(wxTimerEvent & /*event*/)
     // We do it here to make sure we get the final canvas size
     //
 
-    if (!mSimulationController)
+    if (!mLabController)
     {
         try
         {
             FinishInitialization();
         }
-        catch (SLabException const & e)
+        catch (BLabException const & e)
         {
             mSimulationTimer->Stop(); // Stop looping and allow Die() to finish
 
@@ -867,20 +749,17 @@ void MainFrame::OnSimulationTimer(wxTimerEvent & /*event*/)
     // Update
     //
 
-    assert(!!mSimulationController);
+    assert(!!mLabController);
 
     auto constexpr SlowPlayInterval = std::chrono::milliseconds(500);
 
-    if (auto const now = std::chrono::steady_clock::now();
-        mSimulationControlState == SimulationControlStateType::FastPlay
-        || (mSimulationControlState == SimulationControlStateType::SlowPlay && now >= mLastSimulationStepTimestamp + SlowPlayInterval)
+    if (mSimulationControlState == SimulationControlStateType::Play
         || mSimulationControlImpulse)
     {
-        mSimulationController->UpdateSimulation();
+        mLabController->UpdateSimulation();
 
         // Update state
         mSimulationControlImpulse = false;
-        mLastSimulationStepTimestamp = now;
     }
 
 
@@ -899,7 +778,7 @@ void MainFrame::OnSimulationTimer(wxTimerEvent & /*event*/)
 
     assert(!!mProbeToolbar);
 
-    mProbeToolbar->UpdateSimulation();
+    mProbeToolbar->Update();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -910,15 +789,17 @@ void MainFrame::FinishInitialization()
     // Create Simulation Controller
     //
 
+    assert(!mLabController);
+
     try
     {
-        mSimulationController = SimulationController::Create(
+        mLabController = LabController::Create(
             mMainGLCanvas->GetSize().x,
             mMainGLCanvas->GetSize().y);
     }
     catch (std::exception const & e)
     {
-        throw SLabException("Error during initialization of simulation controller: " + std::string(e.what()));
+        throw BLabException("Error during initialization of simulation controller: " + std::string(e.what()));
     }
 
     //
@@ -926,8 +807,8 @@ void MainFrame::FinishInitialization()
     //
 
     mSettingsManager = std::make_shared<SettingsManager>(
-        mSimulationController,
-        StandardSystemPaths::GetInstance().GetUserSimulatorSettingsRootFolderPath());
+        mLabController,
+        StandardSystemPaths::GetInstance().GetUserSettingsRootFolderPath());
 
     // Enable "Reload Last Modified Settings" menu if we have last-modified settings
     mReloadLastModifiedSettingsMenuItem->Enable(mSettingsManager->HasLastModifiedSettingsPersisted());
@@ -939,26 +820,26 @@ void MainFrame::FinishInitialization()
     try
     {
         mToolController = std::make_unique<ToolController>(
-            ToolType::MoveSimple,
+            ToolType::MoveVertex,
             mMainGLCanvas.get(),
-            mSimulationController);
+            mLabController);
     }
     catch (std::exception const & e)
     {
-        throw SLabException("Error during initialization of tool controller: " + std::string(e.what()));
+        throw BLabException("Error during initialization of tool controller: " + std::string(e.what()));
     }
 
     //
     // Register event handlers
     //
 
-    mSimulationController->RegisterEventHandler(mProbeToolbar);
+    mLabController->RegisterEventHandler(mProbeToolbar);
 
     //
     // Load initial object
     //
 
-    mSimulationController->LoadObject(ResourceLocator::GetDefaultObjectDefinitionFilePath());
+    mLabController->LoadMesh(ResourceLocator::GetDefaultMeshDefinitionFilePath());
 }
 
 void MainFrame::OnError(

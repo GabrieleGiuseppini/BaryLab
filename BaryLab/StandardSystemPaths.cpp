@@ -5,20 +5,13 @@
 ***************************************************************************************/
 #include "StandardSystemPaths.h"
 
-#include <SLabCoreLib/Version.h>
+#include <BLabCoreLib/Version.h>
 
 #include <wx/stdpaths.h>
 
 StandardSystemPaths * StandardSystemPaths::mSingleInstance = nullptr;
 
-std::filesystem::path StandardSystemPaths::GetUserPicturesSimulatorFolderPath() const
-{
-    auto picturesFolder = wxStandardPaths::Get().GetUserDir(wxStandardPaths::Dir::Dir_Pictures);
-
-    return std::filesystem::path(picturesFolder.ToStdString()) / ApplicationName;
-}
-
-std::filesystem::path StandardSystemPaths::GetUserSimulatorSettingsRootFolderPath() const
+std::filesystem::path StandardSystemPaths::GetUserSettingsRootFolderPath() const
 {
     auto userFolder = wxStandardPaths::Get().GetUserConfigDir();
 

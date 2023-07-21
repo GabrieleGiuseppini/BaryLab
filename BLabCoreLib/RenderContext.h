@@ -132,35 +132,30 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////
-    // Interactions
-    ////////////////////////////////////////////////////////////////
-
-    RgbImageData TakeScreenshot();
-
-    ////////////////////////////////////////////////////////////////
     // Rendering
     ////////////////////////////////////////////////////////////////
 
     void RenderStart();
 
-    void UploadPoints(
-        size_t pointCount,
-        vec2f const * pointPositions,
-        vec4f const * pointColors,
-        float const * pointNormRadii,
-        float const * pointHighlights,
-        float const * pointFrozenCoefficients);
+    void UploadVertices(
+        size_t vertexCount,
+        vec2f const * vertexPositions);
 
-    void UploadSpringsStart(size_t springCount);
+    void UploadEdgesStart(size_t edgeCount);
 
-    void UploadSpring(
-        vec2f const & springEndpointAPosition,
-        vec2f const & springEndpointBPosition,
-        vec4f const & springColor,
-        float springNormThickness,
-        float springHighlight);
+    void UploadEdge(
+        vec2f const & edgeEndpointAPosition,
+        vec2f const & edgeEndpointBPosition);
 
-    void UploadSpringsEnd();
+    void UploadEdgesEnd();
+
+    void UploadParticlesStart(size_t particleCount);
+
+    void UploadParticle(
+        vec2f const & particlePosition,
+        rgbaColor const & particleColor);
+
+    void UploadParticlesEnd();
 
     void RenderEnd();
 
@@ -190,73 +185,90 @@ private:
 private:
 
     ////////////////////////////////////////////////////////////////
-    // Points
+    // Vertices
     ////////////////////////////////////////////////////////////////
 
 #pragma pack(push)
 
-    struct PointVertex
+    struct VertexVertex
     {
         vec2f Position;
         vec2f VertexSpacePosition;
-        vec4f Color;
-        float Highlight;
-        float FrozenCoefficient;
 
-        PointVertex(
+        VertexVertex(
             vec2f const & position,
-            vec2f const & vertexSpacePosition,
-            vec4f const & color,
-            float highlight,
-            float frozenCoefficient)
+            vec2f const & vertexSpacePosition)
             : Position(position)
             , VertexSpacePosition(vertexSpacePosition)
-            , Color(color)
-            , Highlight(highlight)
-            , FrozenCoefficient(frozenCoefficient)
         {}
     };
 
 #pragma pack(pop)
 
-    size_t mPointVertexCount;
+    size_t mVertexVertexCount;
 
-    SLabOpenGLVAO mPointVAO;
+    BLabOpenGLVAO mVertexVAO;
 
-    SLabOpenGLMappedBuffer<PointVertex, GL_ARRAY_BUFFER> mPointVertexBuffer;
-    SLabOpenGLVBO mPointVertexVBO;
+    BLabOpenGLMappedBuffer<VertexVertex, GL_ARRAY_BUFFER> mVertexVertexBuffer;
+    BLabOpenGLVBO mVertexVertexVBO;
 
     ////////////////////////////////////////////////////////////////
-    // Springs
+    // Edges
     ////////////////////////////////////////////////////////////////
 
 #pragma pack(push)
 
-    struct SpringVertex
+    struct EdgeVertex
     {
         vec2f Position;
         vec2f VertexSpacePosition;
         vec4f Color;
-        float Highlight;
 
-        SpringVertex(
+        EdgeVertex(
             vec2f const & position,
             vec2f const & vertexSpacePosition,
-            vec4f const & color,
-            float highlight)
+            vec4f const & color)
             : Position(position)
             , VertexSpacePosition(vertexSpacePosition)
             , Color(color)
-            , Highlight(highlight)
         {}
     };
 
 #pragma pack(pop)
 
-    SLabOpenGLVAO mSpringVAO;
+    BLabOpenGLVAO mEdgeVAO;
 
-    std::vector<SpringVertex> mSpringVertexBuffer;
-    SLabOpenGLVBO mSpringVertexVBO;
+    std::vector<EdgeVertex> mEdgeVertexBuffer;
+    BLabOpenGLVBO mEdgeVertexVBO;
+
+    ////////////////////////////////////////////////////////////////
+    // Particles
+    ////////////////////////////////////////////////////////////////
+
+#pragma pack(push)
+
+    struct ParticleVertex
+    {
+        vec2f Position;
+        vec2f VertexSpacePosition;
+        vec4f Color;
+
+        ParticleVertex(
+            vec2f const & position,
+            vec2f const & vertexSpacePosition,
+            vec4f const & color)
+            : Position(position)
+            , VertexSpacePosition(vertexSpacePosition)
+            , Color(color)
+        {}
+    };
+
+#pragma pack(pop)
+
+    BLabOpenGLVAO mParticleVAO;
+
+    std::vector<ParticleVertex> mParticleVertexBuffer;
+    BLabOpenGLVBO mParticleVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // Grid
@@ -278,7 +290,7 @@ private:
 
 #pragma pack(pop)
 
-    SLabOpenGLVAO mGridVAO;
-    SLabOpenGLVBO mGridVBO;
+    BLabOpenGLVAO mGridVAO;
+    BLabOpenGLVBO mGridVBO;
     bool mIsGridEnabled;
 };

@@ -42,7 +42,7 @@ public:
 
     void LoadMesh(std::filesystem::path const & meshDefinitionFilepath);
 
-    void Update();
+    void UpdateSimulation();
 
     void Render();
 
@@ -52,15 +52,21 @@ public:
     // Interactions
     //
 
+    std::optional<ElementIndex> TryPickVertex(vec2f const & screenCoordinates) const;
+
+    void MoveVertexTo(ElementIndex vertexIndex, vec2f const & targetScreenCoordinates);
+
     bool TrySelectOriginTriangle(vec2f const & screenCoordinates);
 
-    std::optional<ElementIndex> TryPickParticle(vec2f const & screenCoordinates);
+    std::optional<ElementIndex> TryPickParticle(vec2f const & screenCoordinates) const;
 
     void MoveParticleTo(ElementIndex particleIndex, vec2f const & targetScreenCoordinates);
 
     void SetParticleTrajectory(vec2f const & targetScreenCoordinates);
 
-    void RunTrajectoryStep();
+    void QueryNearestParticleAt(vec2f const & screenCoordinates) const;
+
+    void SetParticleGravityEnabled(bool isEnabled);
 
     //
     // Render controls
@@ -114,6 +120,26 @@ public:
         assert(!!mRenderContext);
         return mRenderContext->WorldToScreen(worldCoordinates);
     }
+
+    void SetViewGridEnabled(bool value)
+    {
+        assert(!!mRenderContext);
+        mRenderContext->SetGridEnabled(value);
+    }
+
+    //
+    // Simmulation parameters
+    //
+
+    float GetMassAdjustment() const { return mLabParameters.MassAdjustment; }
+    void SetMassAdjustment(float value) { mLabParameters.MassAdjustment = value; }
+    float GetMinMassAdjustment() const { return LabParameters::MinMassAdjustment; }
+    float GetMaxMassAdjustment() const { return LabParameters::MaxMassAdjustment; }
+
+    float GetGravityAdjustment() const { return mLabParameters.GravityAdjustment; }
+    void SetGravityAdjustment(float value) { mLabParameters.GravityAdjustment = value; }
+    float GetMinGravityAdjustment() const { return LabParameters::MinGravityAdjustment; }
+    float GetMaxGravityAdjustment() const { return LabParameters::MaxGravityAdjustment; }
 
 private:
 

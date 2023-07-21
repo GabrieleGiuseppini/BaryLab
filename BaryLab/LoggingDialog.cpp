@@ -5,8 +5,7 @@
 ***************************************************************************************/
 #include "LoggingDialog.h"
 
-#include <SLabCoreLib/Log.h>
-#include <SLabCoreLib/SLabWallClock.h>
+#include <BLabCoreLib/Log.h>
 
 #include <wx/clipbrd.h>
 #include <wx/settings.h>

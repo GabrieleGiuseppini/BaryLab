@@ -5,42 +5,42 @@
  ***************************************************************************************/
 #pragma once
 
-#include "Points.h"
-#include "Springs.h"
+#include "Edges.h"
 #include "Triangles.h"
+#include "Vertices.h"
 
 class Mesh
 {
 public:
 
     Mesh(
-        Points && points,
-        Springs && springs,
+        Vertices && vertices,
+        Edges && edges,
         Triangles && triangles)
-        : mPoints(std::move(points))
-        , mSprings(std::move(springs))
+        : mVertices(std::move(vertices))
+        , mEdges(std::move(edges))
         , mTriangles(std::move(triangles))
     {}
 
 
-    Points const & GetPoints() const
+    Vertices const & GetVertices() const
     {
-        return mPoints;
+        return mVertices;
     }
 
-    Points & GetPoints()
+    Vertices & GetVertices()
     {
-        return mPoints;
+        return mVertices;
     }
 
-    Springs const & GetSprings() const
+    Edges const & GetEdges() const
     {
-        return mSprings;
+        return mEdges;
     }
 
-    Springs & GetSprings()
+    Edges & GetEdges()
     {
-        return mSprings;
+        return mEdges;
     }
 
     Triangles & GetTriangles()
@@ -50,7 +50,7 @@ public:
 
 private:
 
-    Points mPoints;
-    Springs mSprings;
+    Vertices mVertices;
+    Edges mEdges;
     Triangles mTriangles;
 };

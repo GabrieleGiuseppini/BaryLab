@@ -7,37 +7,29 @@
 
 #include "WxHelpers.h"
 
-#include <SLabCoreLib/Vectors.h>
+#include <BLabCoreLib/Vectors.h>
 
 ToolController::ToolController(
     ToolType initialToolType,
     wxWindow * cursorWindow,
-    std::shared_ptr<SimulationController> simulationController)
+    std::shared_ptr<LabController> labController)
     : mInputState()
     , mCurrentTool(nullptr)
     , mAllTools()
     , mCursorWindow(cursorWindow)
     , mPanCursor()
-    , mSimulationController(std::move(simulationController))
+    , mLabController(std::move(labController))
 {
     //
     // Initialize all tools
     //
 
     mAllTools.emplace_back(
-        std::make_unique<MoveSimpleTool>(
+        std::make_unique<MoveVertexTool>(
             mCursorWindow,
-            mSimulationController));
+            mLabController));
 
-    mAllTools.emplace_back(
-        std::make_unique<MoveSmoothTool>(
-            mCursorWindow,
-            mSimulationController));
-
-    mAllTools.emplace_back(
-        std::make_unique<PinTool>(
-            mCursorWindow,
-            mSimulationController));
+    // TODO: other tools
 
     // Prepare own cursor(s)
     mPanCursor = WxHelpers::MakeCursor("pan_cursor", 15, 15);
@@ -61,7 +53,7 @@ void ToolController::OnMouseMove(
 
         // Pan (opposite direction)
         vec2f screenOffset = mInputState.PreviousMousePosition - mInputState.MousePosition;
-        mSimulationController->Pan(screenOffset);
+        mLabController->Pan(screenOffset);
     }
 }
 

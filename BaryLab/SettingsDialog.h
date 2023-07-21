@@ -9,8 +9,8 @@
 
 #include "UIControls/SliderControl.h"
 
-#include <SLabCoreLib/Settings.h>
-#include <SLabCoreLib/SimulationController.h>
+#include <BLabCoreLib/LabController.h>
+#include <BLabCoreLib/Settings.h>
 
 #include <wx/button.h>
 #include <wx/checkbox.h>
@@ -26,15 +26,13 @@ public:
     SettingsDialog(
         wxWindow * parent,
         std::shared_ptr<SettingsManager> settingsManager,
-		std::shared_ptr<SimulationController> simulationController);
+		std::shared_ptr<LabController> labController);
 
     virtual ~SettingsDialog();
 
     void Open();
 
 private:
-
-    void OnDoRenderAssignedParticleForcesCheckBoxClick(wxCommandEvent & event);
 
 	void OnRevertToDefaultsButton(wxCommandEvent& event);
     void OnOkButton(wxCommandEvent & event);
@@ -49,42 +47,9 @@ private:
     // Control tabs
     //////////////////////////////////////////////////////
 
-    // Common
-    SliderControl<float> * mCommonSimulationTimeStepDurationSlider;
-    SliderControl<float> * mCommonMassAdjustmentSlider;
-    SliderControl<float> * mCommonGravityAdjustmentSlider;
-    SliderControl<size_t> * mNumberOfSimulationThreadsSlider;
-
-    // Classic
-    SliderControl<float> * mClassicSimulatorSpringStiffnessSlider;
-    SliderControl<float> * mClassicSimulatorSpringDampingSlider;
-    SliderControl<float> * mClassicSimulatorGlobalDampingSlider;
-
-    // FS
-    SliderControl<size_t> * mFSSimulatorNumMechanicalDynamicsIterationsSlider;
-    SliderControl<float> * mFSSimulatorSpringReductionFraction;
-    SliderControl<float> * mFSSimulatorSpringDampingSlider;
-    SliderControl<float> * mFSSimulatorGlobalDampingSlider;
-
-    // PositionBased
-    SliderControl<size_t> * mPositionBasedSimulatorNumUpdateIterationsSlider;
-    SliderControl<size_t> * mPositionBasedSimulatorNumSolverIterationsSlider;
-    SliderControl<float> * mPositionBasedSimulatorSpringStiffnessSlider;
-    SliderControl<float> * mPositionBasedSimulatorGlobalDampingSlider;
-
-    // FastMSS
-    SliderControl<size_t> * mFastMSSSimulatorNumLocalGlobalStepIterationsSlider;
-    SliderControl<float> * mFastMSSSimulatorSpringStiffnessSlider;
-    SliderControl<float> * mFastMSSSimulatorGlobalDampingSlider;
-
-    // GaussSeidel
-    SliderControl<size_t> * mGaussSeidelSimulatorNumMechanicalDynamicsIterationsSlider;
-    SliderControl<float> * mGaussSeidelSimulatorSpringReductionFraction;
-    SliderControl<float> * mGaussSeidelSimulatorSpringDampingSlider;
-    SliderControl<float> * mGaussSeidelSimulatorGlobalDampingSlider;
-
-    // Rendering
-    wxCheckBox * mDoRenderAssignedParticleForcesCheckBox;
+    // Simulator
+    SliderControl<float> * mMassAdjustmentSlider;
+    SliderControl<float> * mGravityAdjustmentSlider;
 
     //////////////////////////////////////////////////////
 
@@ -99,13 +64,7 @@ private:
     void DoCancel();
     void DoClose();
 
-    void PopulateCommonSimulatorPanel(wxPanel * panel);
-    void PopulateClassicSimulatorPanel(wxPanel * panel);
-    void PopulateFSSimulatorPanel(wxPanel * panel);
-    void PopulatePositionBasedSimulatorPanel(wxPanel * panel);
-    void PopulateFastMSSSimulatorPanel(wxPanel * panel);
-    void PopulateGaussSeidelSimulatorPanel(wxPanel * panel);
-    void PopulateRenderingPanel(wxPanel * panel);
+    void PopulateSimulatorPanel(wxPanel * panel);
 
     void SyncControlsWithSettings(Settings<SLabSettings> const & settings);
 
@@ -116,7 +75,7 @@ private:
 
     wxWindow * const mParent;
     std::shared_ptr<SettingsManager> mSettingsManager;
-	std::shared_ptr<SimulationController> mSimulationController;
+	std::shared_ptr<LabController> mLabController;
 
     //
     // State

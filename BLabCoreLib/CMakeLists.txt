@@ -20,13 +20,19 @@ set  (SOURCES
 	CircularList.h
 	Colors.cpp
 	Colors.h
-	Controller_Interactions.cpp
+	Edges.cpp
+	Edges.h
 	ElementContainer.h
 	ElementIndexRangeIterator.h
 	EventDispatcher.h
+	FileSystem.h
 	FixedSizeVector.h
 	FloatingPoint.h
 	IEventHandler.h
+	ImageData.h
+	ImageFileTools.cpp
+	ImageFileTools.h
+	ImageSize.h
 	LabController.cpp
 	LabController.h
 	LabParameters.cpp
@@ -39,8 +45,8 @@ set  (SOURCES
 	MeshBuilderTypes.h
 	Model.cpp
 	Model.h
-	Points.cpp
-	Points.h
+	Particles.cpp
+	Particles.h
 	RenderContext.cpp
 	RenderContext.h
 	ResourceLocator.h
@@ -48,8 +54,6 @@ set  (SOURCES
 	Settings.h
 	ShaderManager.cpp
 	ShaderManager.h
-	Springs.cpp
-	Springs.h
 	SysSpecifics.h
 	Triangles.cpp
 	Triangles.h
@@ -58,6 +62,8 @@ set  (SOURCES
 	Vectors.cpp
 	Vectors.h
 	Version.h
+	Vertices.cpp
+	Vertices.h
 	ViewModel.h
 )
 

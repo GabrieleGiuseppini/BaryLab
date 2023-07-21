@@ -9,7 +9,7 @@
 #include "Colors.h"
 #include "ElementContainer.h"
 #include "FixedSizeVector.h"
-#include "Points.h"
+#include "Vertices.h"
 
 #include <algorithm>
 #include <array>
@@ -27,29 +27,29 @@ private:
     struct Endpoints
     {
         // A, B, C
-        std::array<ElementIndex, 3u> PointIndices;
+        std::array<ElementIndex, 3u> VertexIndices;
 
         Endpoints(
-            ElementIndex pointAIndex,
-            ElementIndex pointBIndex,
-            ElementIndex pointCIndex)
-            : PointIndices({ pointAIndex, pointBIndex, pointCIndex })
+            ElementIndex vertexAIndex,
+            ElementIndex vertexBIndex,
+            ElementIndex vertexCIndex)
+            : VertexIndices({ vertexAIndex, vertexBIndex, vertexCIndex })
         {}
     };
 
     /*
-     * The springs along the edges of a triangle, in CW order.
+     * The edges of a triangle, in CW order.
      */
-    struct SubSprings
+    struct SubEdges
     {
         // A, B, C
-        std::array<ElementIndex, 3u> SpringIndices;
+        std::array<ElementIndex, 3u> EdgeIndices;
 
-        SubSprings(
-            ElementIndex subSpringAIndex,
-            ElementIndex subSpringBIndex,
-            ElementIndex subSpringCIndex)
-            : SpringIndices({ subSpringAIndex, subSpringBIndex, subSpringCIndex })
+        SubEdges(
+            ElementIndex subEdgeAIndex,
+            ElementIndex subEdgeBIndex,
+            ElementIndex subEdgeCIndex)
+            : EdgeIndices({ subEdgeAIndex, subEdgeBIndex, subEdgeCIndex })
         {}
     };
 
@@ -62,20 +62,20 @@ public:
         //////////////////////////////////
         // Endpoints
         , mEndpointsBuffer(mBufferElementCount, mElementCount, Endpoints(NoneElementIndex, NoneElementIndex, NoneElementIndex))
-        // Sub springs
-        , mSubSpringsBuffer(mBufferElementCount, mElementCount, SubSprings(NoneElementIndex, NoneElementIndex, NoneElementIndex))
+        // Sub wdges
+        , mSubEdgesBuffer(mBufferElementCount, mElementCount, SubEdges(NoneElementIndex, NoneElementIndex, NoneElementIndex))
     {
     }
 
     Triangles(Triangles && other) = default;
 
     void Add(
-        ElementIndex pointAIndex,
-        ElementIndex pointBIndex,
-        ElementIndex pointCIndex,
-        ElementIndex subSpringAIndex,
-        ElementIndex subSpringBIndex,
-        ElementIndex subSpringCIndex);
+        ElementIndex vertexAIndex,
+        ElementIndex vertexBIndex,
+        ElementIndex vertexCIndex,
+        ElementIndex subEdgeAIndex,
+        ElementIndex subEdgeBIndex,
+        ElementIndex subEdgeCIndex);
 
 public:
 
@@ -83,58 +83,58 @@ public:
     // Endpoints
     //
 
-    inline auto const & GetPointIndices(ElementIndex triangleElementIndex) const
+    inline auto const & GetVertexIndices(ElementIndex triangleElementIndex) const
     {
-        return mEndpointsBuffer[triangleElementIndex].PointIndices;
+        return mEndpointsBuffer[triangleElementIndex].VertexIndices;
     }
 
-    inline ElementIndex GetPointAIndex(ElementIndex triangleElementIndex) const
+    inline ElementIndex GetVertexAIndex(ElementIndex triangleElementIndex) const
     {
-        return mEndpointsBuffer[triangleElementIndex].PointIndices[0];
+        return mEndpointsBuffer[triangleElementIndex].VertexIndices[0];
     }
 
-    inline ElementIndex GetPointBIndex(ElementIndex triangleElementIndex) const
+    inline ElementIndex GetVertexBIndex(ElementIndex triangleElementIndex) const
     {
-        return mEndpointsBuffer[triangleElementIndex].PointIndices[1];
+        return mEndpointsBuffer[triangleElementIndex].VertexIndices[1];
     }
 
-    inline ElementIndex GetPointCIndex(ElementIndex triangleElementIndex) const
+    inline ElementIndex GetVertexCIndex(ElementIndex triangleElementIndex) const
     {
-        return mEndpointsBuffer[triangleElementIndex].PointIndices[2];
+        return mEndpointsBuffer[triangleElementIndex].VertexIndices[2];
     }
 
-    inline bool ArePointsInCwOrder(
+    inline bool AreVerticesInCwOrder(
         ElementIndex triangleElementIndex,
-        ElementIndex point1Index,
-        ElementIndex point2Index) const
+        ElementIndex vertex1Index,
+        ElementIndex vertex2Index) const
     {
-        return (GetPointAIndex(triangleElementIndex) == point1Index && GetPointBIndex(triangleElementIndex) == point2Index)
-            || (GetPointBIndex(triangleElementIndex) == point1Index && GetPointCIndex(triangleElementIndex) == point2Index)
-            || (GetPointCIndex(triangleElementIndex) == point1Index && GetPointAIndex(triangleElementIndex) == point2Index);
+        return (GetVertexAIndex(triangleElementIndex) == vertex1Index && GetVertexBIndex(triangleElementIndex) == vertex2Index)
+            || (GetVertexBIndex(triangleElementIndex) == vertex1Index && GetVertexCIndex(triangleElementIndex) == vertex2Index)
+            || (GetVertexCIndex(triangleElementIndex) == vertex1Index && GetVertexAIndex(triangleElementIndex) == vertex2Index);
     }
 
     //
-    // Sub springs
+    // Sub edges
     //
 
-    auto const & GetSubSprings(ElementIndex triangleElementIndex) const
+    auto const & GetSubEdges(ElementIndex triangleElementIndex) const
     {
-        return mSubSpringsBuffer[triangleElementIndex];
+        return mSubEdgesBuffer[triangleElementIndex];
     }
 
-    inline ElementIndex GetSubSpringAIndex(ElementIndex triangleElementIndex) const
+    inline ElementIndex GetSubEdgeAIndex(ElementIndex triangleElementIndex) const
     {
-        return mSubSpringsBuffer[triangleElementIndex].SpringIndices[0];
+        return mSubEdgesBuffer[triangleElementIndex].EdgeIndices[0];
     }
 
-    inline ElementIndex GetSubSpringBIndex(ElementIndex triangleElementIndex) const
+    inline ElementIndex GetSubEdgeBIndex(ElementIndex triangleElementIndex) const
     {
-        return mSubSpringsBuffer[triangleElementIndex].SpringIndices[1];
+        return mSubEdgesBuffer[triangleElementIndex].EdgeIndices[1];
     }
 
-    inline ElementIndex GetSubSpringCIndex(ElementIndex triangleElementIndex) const
+    inline ElementIndex GetSubEdgeCIndex(ElementIndex triangleElementIndex) const
     {
-        return mSubSpringsBuffer[triangleElementIndex].SpringIndices[2];
+        return mSubEdgesBuffer[triangleElementIndex].EdgeIndices[2];
     }
 
 private:
@@ -146,6 +146,6 @@ private:
     // Endpoints
     Buffer<Endpoints> mEndpointsBuffer;
 
-    // Sub springs - the springs that have this triangle among their super triangles
-    Buffer<SubSprings> mSubSpringsBuffer;
+    // Sub edges
+    Buffer<SubEdges> mSubEdgesBuffer;
 };
