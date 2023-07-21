@@ -50,12 +50,12 @@ ControlToolbar::ControlToolbar(wxWindow* parent)
 
         // Move particle
         {
-            mMoveParticleButton = new wxBitmapButton(
+            mMoveParticleButton = new wxBitmapToggleButton(
                 this,
                 ID_MOVE_PARTICLE,
                 wxBitmap(
                     // TODO
-                    (ResourceLocator::GetResourcesFolderPath() / "settings_icon.png").string(),
+                    (ResourceLocator::GetResourcesFolderPath() / "move_particle_icon.png").string(),
                     wxBITMAP_TYPE_PNG),
                 wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 
@@ -73,9 +73,9 @@ ControlToolbar::ControlToolbar(wxWindow* parent)
 
         // Move vertex
         {
-            mMoveVertexButton = new wxBitmapButton(
+            mMoveVertexButton = new wxBitmapToggleButton(
                 this,
-                ID_MOVE_PARTICLE,
+                ID_MOVE_VERTEX,
                 wxBitmap(
                 (ResourceLocator::GetResourcesFolderPath() / "move_vertex_icon.png").string(),
                 wxBITMAP_TYPE_PNG),
@@ -92,9 +92,73 @@ ControlToolbar::ControlToolbar(wxWindow* parent)
 
             gridSizer->Add(mMoveVertexButton);
         }
-        
-        // TODOHERE: others
 
+        // Set particle trajectory
+        {
+            mSetParticleTrajectoryButton = new wxBitmapToggleButton(
+                this,
+                ID_SET_PARTICLE_TRAJECTORY,
+                wxBitmap(
+                    (ResourceLocator::GetResourcesFolderPath() / "set_particle_trajectory_icon.png").string(),
+                    wxBITMAP_TYPE_PNG),
+                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+
+            mSetParticleTrajectoryButton->Bind(wxEVT_TOGGLEBUTTON,
+                [this](wxCommandEvent & /*event*/)
+                {
+                    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_SET_PARTICLE_TRAJECTORY);
+                    ProcessEvent(evt);
+                });
+
+            mSetParticleTrajectoryButton->SetToolTip("Set a trajectory for a particle");
+
+            gridSizer->Add(mSetParticleTrajectoryButton);
+        }
+
+        // Set origin triangle
+        {
+            mSetOriginTriangleButton = new wxBitmapToggleButton(
+                this,
+                ID_SET_ORIGIN_TRIANGLE,
+                wxBitmap(
+                    (ResourceLocator::GetResourcesFolderPath() / "set_origin_triangle_icon.png").string(),
+                    wxBITMAP_TYPE_PNG),
+                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+
+            mSetOriginTriangleButton->Bind(wxEVT_TOGGLEBUTTON,
+                [this](wxCommandEvent & /*event*/)
+                {
+                    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_SET_ORIGIN_TRIANGLE);
+                    ProcessEvent(evt);
+                });
+
+            mSetOriginTriangleButton->SetToolTip("Set a triangle as origin of the barycentric coordinates");
+
+            gridSizer->Add(mSetOriginTriangleButton);
+        }
+
+        // Set particle gravity
+        {
+            mSetParticleGravityButton = new wxBitmapToggleButton(
+                this,
+                ID_SET_PARTICLE_GRAVITY,
+                wxBitmap(
+                    (ResourceLocator::GetResourcesFolderPath() / "gravity_icon.png").string(),
+                    wxBITMAP_TYPE_PNG),
+                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+
+            mSetParticleGravityButton->Bind(wxEVT_TOGGLEBUTTON,
+                [this](wxCommandEvent & /*event*/)
+                {
+                    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_SET_PARTICLE_GRAVITY);
+                    ProcessEvent(evt);
+                });
+
+            mSetParticleGravityButton->SetToolTip("Enable gravity for the particles");
+
+            gridSizer->Add(mSetParticleGravityButton);
+        }
+        
         vSizer->Add(gridSizer, 0, wxALIGN_CENTER | wxALL, 5);
     }
 
@@ -277,8 +341,50 @@ ControlToolbar::ControlToolbar(wxWindow* parent)
     this->SetSizer(vSizer);
 }
 
-ControlToolbar::~ControlToolbar()
+void ControlToolbar::SetTool(ToolType tool)
 {
+    switch (tool)
+    {
+        case ToolType::MoveParticle:
+        {
+            mMoveParticleButton->SetValue(true);
+            mMoveVertexButton->SetValue(false);
+            mSetParticleTrajectoryButton->SetValue(false);
+            mSetOriginTriangleButton->SetValue(false);
+
+            break;
+        }
+
+        case ToolType::MoveVertex:
+        {
+            mMoveParticleButton->SetValue(false);
+            mMoveVertexButton->SetValue(true);
+            mSetParticleTrajectoryButton->SetValue(false);
+            mSetOriginTriangleButton->SetValue(false);
+
+            break;
+        }
+
+        case ToolType::SetOriginTriangle:
+        {
+            mMoveParticleButton->SetValue(false);
+            mMoveVertexButton->SetValue(false);
+            mSetParticleTrajectoryButton->SetValue(false);
+            mSetOriginTriangleButton->SetValue(true);
+
+            break;
+        }
+
+        case ToolType::SetParticleTrajectory:
+        {
+            mMoveParticleButton->SetValue(false);
+            mMoveVertexButton->SetValue(false);
+            mSetParticleTrajectoryButton->SetValue(true);
+            mSetOriginTriangleButton->SetValue(false);
+
+            break;
+        }
+    }
 }
 
 bool ControlToolbar::ProcessKeyDown(

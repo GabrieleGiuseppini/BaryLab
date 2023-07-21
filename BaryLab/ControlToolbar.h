@@ -5,6 +5,8 @@
 ***************************************************************************************/
 #pragma once
 
+#include "Tools.h"
+
 #include <wx/bmpbuttn.h>
 #include <wx/panel.h>
 #include <wx/tglbtn.h>
@@ -38,7 +40,9 @@ public:
 
     ControlToolbar(wxWindow* parent);
 
-    virtual ~ControlToolbar();
+    virtual ~ControlToolbar() = default;
+
+    void SetTool(ToolType tool);
 
     bool ProcessKeyDown(
         int keyCode,
@@ -55,10 +59,10 @@ private:
 
 private:
 
-    wxBitmapButton * mMoveParticleButton;
-    wxBitmapButton * mMoveVertexButton;
-    wxBitmapButton * mSetParticleTrajectoryButton;
-    wxBitmapButton * mSetOriginTriangleButton;
+    wxBitmapToggleButton * mMoveParticleButton;
+    wxBitmapToggleButton * mMoveVertexButton;
+    wxBitmapToggleButton * mSetParticleTrajectoryButton;
+    wxBitmapToggleButton * mSetOriginTriangleButton;
     wxBitmapToggleButton * mSetParticleGravityButton;
 
     wxBitmapToggleButton * mSimulationControlPlayButton;

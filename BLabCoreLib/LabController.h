@@ -62,7 +62,7 @@ public:
 
     void MoveParticleTo(ElementIndex particleIndex, vec2f const & targetScreenCoordinates);
 
-    void SetParticleTrajectory(vec2f const & targetScreenCoordinates);
+    void SetParticleTrajectory(ElementIndex particleIndex, vec2f const & targetScreenCoordinates);
 
     void QueryNearestParticleAt(vec2f const & screenCoordinates) const;
 

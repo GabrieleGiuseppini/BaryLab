@@ -47,7 +47,7 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
 
     // Create particles
     std::unique_ptr<Particles> particles = std::make_unique<Particles>(1);
-    particles->Add(vec2f::zero(), rgbaColor(0x60, 0x60, 0x60, 0xff));
+    particles->Add(vec2f(0.25f, 0.25f), rgbaColor(0x60, 0x60, 0x60, 0xff));
 
     // Create a new model
     std::unique_ptr<Model> newModel = std::make_unique<Model>(
@@ -217,9 +217,12 @@ void LabController::MoveParticleTo(ElementIndex particleIndex, vec2f const & tar
     mModel->GetParticles().SetVelocity(particleIndex, vec2f::zero());
 }
 
-void LabController::SetParticleTrajectory(vec2f const & targetScreenCoordinates)
+void LabController::SetParticleTrajectory(
+    ElementIndex particleIndex,
+    vec2f const & targetScreenCoordinates)
 {
     // TODOHERE
+    (void)particleIndex;
     (void)targetScreenCoordinates;
 }
 

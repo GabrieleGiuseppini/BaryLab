@@ -817,10 +817,12 @@ void MainFrame::FinishInitialization()
     // Create Tool Controller
     //
 
+    ToolType constexpr InitialToolType = ToolType::MoveVertex;
+
     try
     {
         mToolController = std::make_unique<ToolController>(
-            ToolType::MoveVertex,
+            InitialToolType,
             mMainGLCanvas.get(),
             mLabController);
     }
@@ -828,6 +830,8 @@ void MainFrame::FinishInitialization()
     {
         throw BLabException("Error during initialization of tool controller: " + std::string(e.what()));
     }
+
+    mControlToolbar->SetTool(InitialToolType);
 
     //
     // Register event handlers

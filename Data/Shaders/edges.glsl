@@ -36,28 +36,15 @@ in vec4 edgeColor;
 
 void main()
 {
-    /* TODO
-    float d1 = distance(vertexSpacePosition, vec2(.0, .0));
-    float alpha = 1.0 - smoothstep(0.85, 1.0, d1);
+    float d1 = abs(vertexSpacePosition.x);
+    float alpha = 1.0 - smoothstep(0.0, 1.0, d1);
 
-    float d2 = distance(vertexSpacePosition, vec2(-0.3, 0.3));
-    float reflection = 1.0 - smoothstep(0.0, 0.5, d2);
-
-    float highlight = smoothstep(0.8, 0.9, d1) - smoothstep(0.9, 1.0, d1);
-
-    vec3 pointColor2 =  mix(
-        vec3(pointColor.xyz), 
+    vec3 edgeColor2 =  mix(        
         vec3(1., 1., 1.),
-        reflection);
+        vec3(edgeColor.rgb), 
+        alpha);
 
     gl_FragColor = vec4(
-        mix(pointColor2, 
-            vec3(.55, .0, .0),
-            highlight * pointHighlight),
-        alpha * pointColor.w);
-    */
-
-    gl_FragColor = vec4(
-        edgeColor.rgb,
-        .5 * edgeColor.a);    
+        edgeColor2.rgb,
+        alpha * edgeColor.a);    
 } 

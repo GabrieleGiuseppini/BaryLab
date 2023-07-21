@@ -504,6 +504,10 @@ void RenderContext::OnViewModelUpdated()
     mShaderManager->ActivateProgram<ShaderManager::ProgramType::Vertices>();
     mShaderManager->SetProgramParameter<ShaderManager::ProgramType::Vertices, ShaderManager::ProgramParameterType::OrthoMatrix>(
         orthoMatrix);
+
+    mShaderManager->ActivateProgram<ShaderManager::ProgramType::Grid>();
+    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::Grid, ShaderManager::ProgramParameterType::OrthoMatrix>(
+        orthoMatrix);
 }
 
 void RenderContext::OnGridUpdated()

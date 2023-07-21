@@ -46,5 +46,5 @@ struct LabParameters
     // Interactions
     //
 
-    static float constexpr SearchRadius = 0.2f;
+    static float constexpr SearchRadius = 0.07f;
 };
