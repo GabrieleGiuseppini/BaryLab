@@ -35,6 +35,7 @@ set  (SOURCES
 	ImageSize.h
 	LabController.cpp
 	LabController.h
+	LabController_Simulation.cpp
 	LabParameters.cpp
 	LabParameters.h	
 	Log.cpp

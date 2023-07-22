@@ -37,7 +37,21 @@ LabController::LabController(std::unique_ptr<RenderContext> renderContext)
     , mLabParameters()
     , mModel()
     , mCurrentMeshFilePath()
+    , mCurrentOriginTriangle()
+    // Simulation control
+    , mSimulationControlState(SimulationControlStateType::Paused)
+    , mSimulationControlImpulse(false)
 {    
+}
+
+void LabController::SetSimulationControlState(SimulationControlStateType state)
+{
+    mSimulationControlState = state;
+}
+
+void LabController::SetSimulationControlPulse()
+{
+    mSimulationControlImpulse = true;
 }
 
 void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepath)
@@ -55,6 +69,9 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
         std::move(particles),
         mEventDispatcher);
 
+    // Select first triangle as origin triangle
+    mCurrentOriginTriangle = 0;
+
     //
     // No errors, so we may continue
     //
@@ -64,31 +81,29 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
         meshDefinitionFilepath);
 }
 
-void LabController::UpdateSimulation()
+void LabController::Update()
 {
     assert(mModel);
 
-    float const dt = LabParameters::SimulationTimeStepDuration;
-
-    //
-    // Particles
-    //
-
-    auto & particles = mModel->GetParticles();
-
-    float const particleMass = LabParameters::ParticleMass * mLabParameters.MassAdjustment;
-
-    for (auto const & p : particles)
+    if (mSimulationControlState == SimulationControlStateType::Play
+        || mSimulationControlImpulse)
     {
-        vec2f const forces = particles.GetWorldForce(p) * mLabParameters.GravityAdjustment;
+        UpdateSimulation(mLabParameters);
 
-        vec2f const deltaPos =
-            particles.GetVelocity(p) * dt
-            + forces / LabParameters::ParticleMass * dt * dt;
-
-        particles.SetPosition(p, particles.GetPosition(p) + deltaPos);
-        particles.SetVelocity(p, deltaPos / dt);
+        // Update state
+        mSimulationControlImpulse = false;
     }
+
+    std::optional<vec3f> barycentricCoordinates;
+    if (mCurrentOriginTriangle)
+    {
+        barycentricCoordinates = mModel->GetMesh().GetTriangles().ToBarycentricCoordinates(
+            *mCurrentOriginTriangle, 
+            0, 
+            mModel->GetMesh().GetVertices());
+    }
+
+    mEventDispatcher.OnSubjectParticleBarycentricCoordinatesChanged(barycentricCoordinates);
 }
 
 void LabController::Render()

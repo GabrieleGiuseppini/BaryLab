@@ -188,31 +188,42 @@ void ProbeToolbar::OnReset()
     }
 }
 
-void ProbeToolbar::OnSubjectParticleBarycentricCoordinatesChanged(vec3f const & coordinates)
+void ProbeToolbar::OnSubjectParticleBarycentricCoordinatesChanged(std::optional<vec3f> const & coordinates)
 {
-    {
-        std::ostringstream ss;
-        ss.fill('0');
-        ss << std::fixed << std::setprecision(2) << coordinates.x;
+    std::string l1;
+    std::string l2;
+    std::string l3;
 
-        mBarycentricCoordinateL1TextCtrl->SetValue(ss.str());
+    if (coordinates)
+    {
+        {
+            std::ostringstream ss;
+            ss.fill('0');
+            ss << std::fixed << std::setprecision(2) << coordinates->x;
+
+            l1 = ss.str();
+        }
+
+        {
+            std::ostringstream ss;
+            ss.fill('0');
+            ss << std::fixed << std::setprecision(2) << coordinates->y;
+
+            l2 = ss.str();
+        }
+
+        {
+            std::ostringstream ss;
+            ss.fill('0');
+            ss << std::fixed << std::setprecision(2) << coordinates->z;
+
+            l3 = ss.str();
+        }
     }
 
-    {
-        std::ostringstream ss;
-        ss.fill('0');
-        ss << std::fixed << std::setprecision(2) << coordinates.y;
-
-        mBarycentricCoordinateL1TextCtrl->SetValue(ss.str());
-    }
-
-    {
-        std::ostringstream ss;
-        ss.fill('0');
-        ss << std::fixed << std::setprecision(2) << coordinates.z;
-
-        mBarycentricCoordinateL1TextCtrl->SetValue(ss.str());
-    }
+    mBarycentricCoordinateL1TextCtrl->SetValue(l1);
+    mBarycentricCoordinateL2TextCtrl->SetValue(l2);
+    mBarycentricCoordinateL3TextCtrl->SetValue(l3);
 }
 
 void ProbeToolbar::OnCustomProbe(

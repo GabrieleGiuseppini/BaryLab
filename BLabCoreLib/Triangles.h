@@ -113,6 +113,11 @@ public:
             || (GetVertexCIndex(triangleElementIndex) == vertex1Index && GetVertexAIndex(triangleElementIndex) == vertex2Index);
     }
 
+    vec3f ToBarycentricCoordinates(
+        ElementIndex triangleElementIndex,
+        ElementIndex vertexIndex,
+        Vertices const & vertices);
+
     //
     // Sub edges
     //

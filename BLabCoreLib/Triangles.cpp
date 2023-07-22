@@ -16,3 +16,15 @@ void Triangles::Add(
     mEndpointsBuffer.emplace_back(particleAIndex, particleBIndex, particleCIndex);
     mSubEdgesBuffer.emplace_back(subEdgeAIndex, subEdgeBIndex, subEdgeCIndex);
 }
+
+vec3f Triangles::ToBarycentricCoordinates(
+    ElementIndex triangleElementIndex,
+    ElementIndex vertexIndex,
+    Vertices const & vertices)
+{
+    // TODOHERE
+    (void)triangleElementIndex;
+    (void)vertexIndex;
+    (void)vertices;
+    return vec3f::zero();
+}

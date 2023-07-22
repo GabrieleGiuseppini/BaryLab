@@ -156,17 +156,4 @@ private:
     std::shared_ptr<LabController> mLabController;
     std::shared_ptr<SettingsManager> mSettingsManager;
     std::unique_ptr<ToolController> mToolController;
-
-    //
-    // Simulation control
-    //
-
-    enum class SimulationControlStateType
-    {
-        Paused = 0,
-        Play
-    };
-
-    SimulationControlStateType mSimulationControlState;
-    bool mSimulationControlImpulse;
 };

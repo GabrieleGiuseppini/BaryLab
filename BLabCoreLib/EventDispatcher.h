@@ -28,7 +28,7 @@ public:
         }
     }
 
-    void OnSubjectParticleBarycentricCoordinatesChanged(vec3f const & coordinates) override
+    void OnSubjectParticleBarycentricCoordinatesChanged(std::optional<vec3f> const & coordinates) override
     {
         for (auto sink : mSinks)
         {

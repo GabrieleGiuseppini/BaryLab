@@ -40,9 +40,13 @@ public:
     // Lab
     //
 
+    void SetSimulationControlState(SimulationControlStateType state);
+
+    void SetSimulationControlPulse();
+
     void LoadMesh(std::filesystem::path const & meshDefinitionFilepath);
 
-    void UpdateSimulation();
+    void Update();
 
     void Render();
 
@@ -149,6 +153,8 @@ private:
         std::unique_ptr<Model> newModel,
         std::filesystem::path const & meshDefinitionFilepath);
 
+    void UpdateSimulation(LabParameters const & labParameters);
+
 private:
 
     EventDispatcher mEventDispatcher;
@@ -160,6 +166,14 @@ private:
 
     LabParameters mLabParameters;
     std::unique_ptr<Model> mModel;
-
     std::optional<std::filesystem::path> mCurrentMeshFilePath;
+
+    std::optional<ElementIndex> mCurrentOriginTriangle;
+
+    //
+    // Simulation control
+    //
+
+    SimulationControlStateType mSimulationControlState;
+    bool mSimulationControlImpulse;
 };

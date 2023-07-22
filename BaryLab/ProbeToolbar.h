@@ -37,7 +37,7 @@ public:
 
     void OnReset() override;
 
-    void OnSubjectParticleBarycentricCoordinatesChanged(vec3f const & coordinates) override;
+    void OnSubjectParticleBarycentricCoordinatesChanged(std::optional<vec3f> const & coordinates) override;
 
     void OnCustomProbe(
         std::string const & name,

@@ -62,8 +62,6 @@ MainFrame::MainFrame(wxApp * mainApp)
     , mLabController()
     , mSettingsManager()
     , mToolController()
-    , mSimulationControlState(SimulationControlStateType::Paused)
-    , mSimulationControlImpulse(false)
 {
     Create(
         nullptr,
@@ -683,17 +681,20 @@ void MainFrame::OnSetParticleGravity(wxCommandEvent & event)
 
 void MainFrame::OnSimulationControlPlay(wxCommandEvent & /*event*/)
 {
-    mSimulationControlState = SimulationControlStateType::Play;
+    assert(!!mLabController);
+    mLabController->SetSimulationControlState(SimulationControlStateType::Play);
 }
 
 void MainFrame::OnSimulationControlPause(wxCommandEvent & /*event*/)
 {
-    mSimulationControlState = SimulationControlStateType::Paused;
+    assert(!!mLabController);
+    mLabController->SetSimulationControlState(SimulationControlStateType::Paused);
 }
 
 void MainFrame::OnSimulationControlStep(wxCommandEvent & /*event*/)
 {
-    mSimulationControlImpulse = true;
+    assert(!!mLabController);
+    mLabController->SetSimulationControlPulse();
 }
 
 void MainFrame::OnViewControlGridToggled(wxCommandEvent & event)
@@ -751,16 +752,7 @@ void MainFrame::OnSimulationTimer(wxTimerEvent & /*event*/)
 
     assert(!!mLabController);
 
-    auto constexpr SlowPlayInterval = std::chrono::milliseconds(500);
-
-    if (mSimulationControlState == SimulationControlStateType::Play
-        || mSimulationControlImpulse)
-    {
-        mLabController->UpdateSimulation();
-
-        // Update state
-        mSimulationControlImpulse = false;
-    }
+    mLabController->Update();
 
 
     //
