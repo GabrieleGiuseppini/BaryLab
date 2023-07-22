@@ -98,8 +98,8 @@ void LabController::Update()
     if (mCurrentOriginTriangle)
     {
         barycentricCoordinates = mModel->GetMesh().GetTriangles().ToBarycentricCoordinates(
+            mModel->GetParticles().GetPosition(0),
             *mCurrentOriginTriangle, 
-            0, 
             mModel->GetMesh().GetVertices());
     }
 

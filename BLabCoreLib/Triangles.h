@@ -114,8 +114,8 @@ public:
     }
 
     vec3f ToBarycentricCoordinates(
+        vec2f const & position,
         ElementIndex triangleElementIndex,
-        ElementIndex vertexIndex,
         Vertices const & vertices);
 
     //

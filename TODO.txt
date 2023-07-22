@@ -1,1 +1,4 @@
-- Barycentric calculation
+- Material system
+- Load mesh
+
+- Rethink trajectory
