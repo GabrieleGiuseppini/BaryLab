@@ -17,6 +17,9 @@ std::unique_ptr<LabController> LabController::Create(
 {
     LogMessage("InitialCanvasSize: ", initialCanvasWidth, "x", initialCanvasHeight);
 
+    // Load materials
+    StructuralMaterialDatabase structuralMaterialDatabase = StructuralMaterialDatabase::Load();
+
     // Create render context
     std::unique_ptr<RenderContext> renderContext = std::make_unique<RenderContext>(
         initialCanvasWidth,
@@ -27,12 +30,17 @@ std::unique_ptr<LabController> LabController::Create(
     //
 
     return std::unique_ptr<LabController>(
-        new LabController(std::move(renderContext)));
+        new LabController(
+        std::move(structuralMaterialDatabase),
+            std::move(renderContext)));
 }
 
-LabController::LabController(std::unique_ptr<RenderContext> renderContext)
-    : mEventDispatcher()
+LabController::LabController(
+    StructuralMaterialDatabase structuralMaterialDatabase,
+    std::unique_ptr<RenderContext> renderContext)
+    : mStructuralMaterialDatabase(std::move(structuralMaterialDatabase))
     , mRenderContext(std::move(renderContext))
+    , mEventDispatcher()
     // Simulation state
     , mLabParameters()
     , mModel()

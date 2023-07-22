@@ -55,6 +55,9 @@ set  (SOURCES
 	Settings.h
 	ShaderManager.cpp
 	ShaderManager.h
+	StructuralMaterial.cpp
+	StructuralMaterial.h
+	StructuralMaterialDatabase.h
 	SysSpecifics.h
 	Triangles.cpp
 	Triangles.h

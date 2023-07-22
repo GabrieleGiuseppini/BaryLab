@@ -10,6 +10,7 @@
 #include "LabParameters.h"
 #include "Model.h"
 #include "RenderContext.h"
+#include "StructuralMaterialDatabase.h"
 #include "Vectors.h"
 
 #include <cassert>
@@ -147,7 +148,9 @@ public:
 
 private:
 
-    explicit LabController(std::unique_ptr<RenderContext> renderContext);
+    explicit LabController(
+        StructuralMaterialDatabase structuralMaterialDatabase,
+        std::unique_ptr<RenderContext> renderContext);
 
     void Reset(
         std::unique_ptr<Model> newModel,
@@ -156,9 +159,11 @@ private:
     void UpdateSimulation(LabParameters const & labParameters);
 
 private:
-
-    EventDispatcher mEventDispatcher;
+    
+    StructuralMaterialDatabase mStructuralMaterialDatabase;
     std::unique_ptr<RenderContext> mRenderContext;
+    EventDispatcher mEventDispatcher;
+    
 
     //
     // Current state

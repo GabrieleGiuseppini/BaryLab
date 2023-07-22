@@ -1,0 +1,14 @@
+[
+    {
+        "color_key": "#0A0A0A", 
+	"name": "Floor",
+	"surface": "Floor"
+    }, 
+
+    {
+        "color_key": "#BABABA", 
+	"name": "Open",
+	"surface": "Open"
+    }
+
+]

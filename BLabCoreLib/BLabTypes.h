@@ -50,3 +50,11 @@ enum class SimulationControlStateType
     Paused = 0,
     Play
 };
+
+enum class SurfaceType
+{
+    Floor,
+    Open
+};
+
+SurfaceType StrToSurfaceType(std::string const & str);

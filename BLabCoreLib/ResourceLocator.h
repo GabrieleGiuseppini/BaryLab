@@ -20,6 +20,11 @@ public:
     {
         return GetInstalledMeshesFolderPath() / "default_mesh.png";
     }
+
+    static std::filesystem::path GetStructuralMaterialDatabaseFilePath()
+    {
+        return std::filesystem::absolute(std::filesystem::path("Data") / "materials_structural.json");
+    }
     
     static std::filesystem::path GetResourcesFolderPath()
     {
