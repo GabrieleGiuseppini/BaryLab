@@ -1,4 +1,1 @@
-- Draw selected triangle
-	- RenderContext method, just draw triangle w/matte hardcoded color
-
 - Rethink trajectory

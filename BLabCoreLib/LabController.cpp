@@ -177,6 +177,22 @@ void LabController::Render()
         }
 
         mRenderContext->UploadParticlesEnd();
+
+        //
+        // Selected triangles
+        //
+
+        mRenderContext->UploadSelectedTrianglesStart(mCurrentOriginTriangle ? 1 : 0);
+
+        if (mCurrentOriginTriangle)
+        {
+            mRenderContext->UploadSelectedTriangle(
+                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexAIndex(*mCurrentOriginTriangle)),
+                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexBIndex(*mCurrentOriginTriangle)),
+                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexCIndex(*mCurrentOriginTriangle)));
+        }
+
+        mRenderContext->UploadSelectedTrianglesEnd();
     }
 
     mRenderContext->RenderEnd();

@@ -102,6 +102,24 @@ RenderContext::RenderContext(
     glBindVertexArray(0);
 
     //
+    // Selected triangles
+    //
+
+    glGenVertexArrays(1, &tmpGLuint);
+    mSelectedTriangleVAO = tmpGLuint;
+    glBindVertexArray(*mSelectedTriangleVAO);
+
+    glGenBuffers(1, &tmpGLuint);
+    mSelectedTriangleVertexVBO = tmpGLuint;
+    glBindBuffer(GL_ARRAY_BUFFER, *mSelectedTriangleVertexVBO);
+
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::SelectedTriangleAttributeGroup1));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::SelectedTriangleAttributeGroup1), 2, GL_FLOAT, GL_FALSE, sizeof(SelectedTriangleVertex), (void *)0);
+    static_assert(sizeof(SelectedTriangleVertex) == 2 * sizeof(float));
+
+    glBindVertexArray(0);
+
+    //
     // Grid
     //
 
@@ -375,8 +393,60 @@ void RenderContext::UploadParticlesEnd()
     }
 }
 
+void RenderContext::UploadSelectedTrianglesStart(size_t triangleCount)
+{
+    //
+    // Prepare buffer
+    //
+
+    mSelectedTriangleVertexBuffer.clear();
+    mSelectedTriangleVertexBuffer.reserve(triangleCount * 3);
+}
+
+void RenderContext::UploadSelectedTriangle(
+    vec2f const & endpointAPosition,
+    vec2f const & endpointBPosition,
+    vec2f const & endpointCPosition)
+{
+    mSelectedTriangleVertexBuffer.emplace_back(endpointAPosition);
+    mSelectedTriangleVertexBuffer.emplace_back(endpointBPosition);
+    mSelectedTriangleVertexBuffer.emplace_back(endpointCPosition);
+}
+
+void RenderContext::UploadSelectedTrianglesEnd()
+{
+    //
+    // Upload buffer, if needed
+    //
+
+    if (!mSelectedTriangleVertexBuffer.empty())
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, *mSelectedTriangleVertexVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(SelectedTriangleVertex) * mSelectedTriangleVertexBuffer.size(), mSelectedTriangleVertexBuffer.data(), GL_STREAM_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+}
+
 void RenderContext::RenderEnd()
 {
+    ////////////////////////////////////////////////////////////////
+    // Render selected triangles
+    ////////////////////////////////////////////////////////////////
+
+    if (!mSelectedTriangleVertexBuffer.empty())
+    {
+        glBindVertexArray(*mSelectedTriangleVAO);
+
+        mShaderManager->ActivateProgram<ShaderManager::ProgramType::SelectedTriangles>();
+
+        assert((mSelectedTriangleVertexBuffer.size() % 3) == 0);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mSelectedTriangleVertexBuffer.size()));
+
+        CheckOpenGLError();
+
+        glBindVertexArray(0);
+    }
+
     ////////////////////////////////////////////////////////////////
     // Render edges
     ////////////////////////////////////////////////////////////////
@@ -500,6 +570,10 @@ void RenderContext::OnViewModelUpdated()
 
     mShaderManager->ActivateProgram<ShaderManager::ProgramType::Vertices>();
     mShaderManager->SetProgramParameter<ShaderManager::ProgramType::Vertices, ShaderManager::ProgramParameterType::OrthoMatrix>(
+        orthoMatrix);
+
+    mShaderManager->ActivateProgram<ShaderManager::ProgramType::SelectedTriangles>();
+    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::SelectedTriangles, ShaderManager::ProgramParameterType::OrthoMatrix>(
         orthoMatrix);
 
     mShaderManager->ActivateProgram<ShaderManager::ProgramType::Grid>();

@@ -159,6 +159,15 @@ public:
 
     void UploadParticlesEnd();
 
+    void UploadSelectedTrianglesStart(size_t triangleCount);
+
+    void UploadSelectedTriangle(
+        vec2f const & endpointAPosition,
+        vec2f const & endpointBPosition,
+        vec2f const & endpointCPosition);
+
+    void UploadSelectedTrianglesEnd();
+
     void RenderEnd();
 
 private:
@@ -271,6 +280,29 @@ private:
 
     std::vector<ParticleVertex> mParticleVertexBuffer;
     BLabOpenGLVBO mParticleVertexVBO;
+
+    ////////////////////////////////////////////////////////////////
+    // Selected triangles
+    ////////////////////////////////////////////////////////////////
+
+#pragma pack(push)
+
+    struct SelectedTriangleVertex
+    {
+        vec2f Position;
+
+        SelectedTriangleVertex(
+            vec2f const & position)
+            : Position(position)
+        {}
+    };
+
+#pragma pack(pop)
+
+    BLabOpenGLVAO mSelectedTriangleVAO;
+
+    std::vector<SelectedTriangleVertex> mSelectedTriangleVertexBuffer;
+    BLabOpenGLVBO mSelectedTriangleVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // Grid
