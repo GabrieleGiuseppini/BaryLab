@@ -1,4 +1,6 @@
-- Material system
-- Load mesh
+= Load mesh
+- Draw triangle edges, not edges
+	- Just upload
+- Draw selected triangle
 
 - Rethink trajectory

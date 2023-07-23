@@ -5,9 +5,10 @@
 ***************************************************************************************/
 #pragma once
 
+#include "BLabTypes.h"
 #include "Colors.h"
+#include "FixedSizeVector.h"
 #include "Matrix.h"
-#include "SLabTypes.h"
 #include "StructuralMaterialDatabase.h"
 #include "Vectors.h"
 
@@ -16,82 +17,107 @@
 #include <vector>
 
 /*
- * Types describing the intermediate object structure.
+ * Types describing the intermediate mesh structure.
  */
 
-using ObjectBuildPointIndexMatrix = Matrix2<std::optional<ElementIndex>>;
+using MeshBuildVertexIndexMatrix = Matrix2<std::optional<ElementIndex>>;
 
-struct ObjectBuildPoint
+struct MeshBuildVertex
 {
     vec2f Position;
     rgbColor RenderColor;
     StructuralMaterial const & Material;
 
-    std::vector<ElementIndex> ConnectedSprings;
+    std::vector<ElementIndex> ConnectedEdges;
+    std::vector<ElementIndex> ConnectedTriangles;
 
-    ObjectBuildPoint(
+    MeshBuildVertex(
         vec2f position,
         rgbColor renderColor,
         StructuralMaterial const & material)
         : Position(position)
         , RenderColor(renderColor)
         , Material(material)
-        , ConnectedSprings()
+        , ConnectedEdges()
+        , ConnectedTriangles()
     {
     }
 
-    void AddConnectedSpring(ElementIndex springIndex)
+    void AddConnectedEdge(ElementIndex edgeIndex)
     {
-        assert(!ContainsConnectedSpring(springIndex));
-        ConnectedSprings.push_back(springIndex);
+        assert(!ContainsConnectedEdge(edgeIndex));
+        ConnectedEdges.push_back(edgeIndex);
     }
 
 private:
 
-    inline bool ContainsConnectedSpring(ElementIndex springIndex1) const
+    inline bool ContainsConnectedEdge(ElementIndex edgeIndex1) const
     {
         return std::find(
-            ConnectedSprings.cbegin(),
-            ConnectedSprings.cend(),
-            springIndex1)
-            != ConnectedSprings.cend();
+            ConnectedEdges.cbegin(),
+            ConnectedEdges.cend(),
+            edgeIndex1)
+            != ConnectedEdges.cend();
     }
 };
 
-struct ObjectBuildSpring
+struct MeshBuildEdge
 {
-    ElementIndex PointAIndex;
-    ElementIndex PointBIndex;
+    ElementIndex VertexAIndex;
+    uint32_t VertexAAngle;
 
-    ObjectBuildSpring(
-        ElementIndex pointAIndex,
-        ElementIndex pointBIndex)
-        : PointAIndex(pointAIndex)
-        , PointBIndex(pointBIndex)
+    ElementIndex VertexBIndex;
+    uint32_t VertexBAngle;
+
+    FixedSizeVector<ElementIndex, 2> Triangles; // Triangles that have this spring as an edge
+
+    MeshBuildEdge(
+        ElementIndex vertexAIndex,
+        uint32_t vertexAAngle,
+        ElementIndex vertexBIndex,
+        uint32_t vertexBAngle)
+        : VertexAIndex(vertexAIndex)
+        , VertexAAngle(vertexAAngle)
+        , VertexBIndex(vertexBIndex)
+        , VertexBAngle(vertexBAngle)
+    {
+    }
+};
+
+struct MeshBuildTriangle
+{
+    std::array<ElementIndex, 3> VertexIndices;
+
+    FixedSizeVector<ElementIndex, 3> Edges;
+
+    MeshBuildTriangle(
+        std::array<ElementIndex, 3> const & vertexIndices)
+        : VertexIndices(vertexIndices)
+        , Edges()
     {
     }
 };
 
 // Utilities for navigating object's structure
 
-struct PointPair
+struct VertexPair
 {
     ElementIndex Endpoint1Index;
     ElementIndex Endpoint2Index;
 
-    PointPair()
+    VertexPair()
         : Endpoint1Index(NoneElementIndex)
         , Endpoint2Index(NoneElementIndex)
     {}
 
-    PointPair(
+    VertexPair(
         ElementIndex endpoint1Index,
         ElementIndex endpoint2Index)
         : Endpoint1Index(std::min(endpoint1Index, endpoint2Index))
         , Endpoint2Index(std::max(endpoint1Index, endpoint2Index))
     {}
 
-    bool operator==(PointPair const & other) const
+    bool operator==(VertexPair const & other) const
     {
         return this->Endpoint1Index == other.Endpoint1Index
             && this->Endpoint2Index == other.Endpoint2Index;
@@ -99,7 +125,7 @@ struct PointPair
 
     struct Hasher
     {
-        size_t operator()(PointPair const & p) const
+        size_t operator()(VertexPair const & p) const
         {
             return p.Endpoint1Index * 23
                 + p.Endpoint2Index;
@@ -107,4 +133,4 @@ struct PointPair
     };
 };
 
-using PointPairToIndexMap = std::unordered_map<PointPair, ElementIndex, PointPair::Hasher>;
+using VertexPairToIndexMap = std::unordered_map<VertexPair, ElementIndex, VertexPair::Hasher>;

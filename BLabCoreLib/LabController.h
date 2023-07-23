@@ -8,6 +8,7 @@
 #include "BLabTypes.h"
 #include "EventDispatcher.h"
 #include "LabParameters.h"
+#include "MeshDefinition.h"
 #include "Model.h"
 #include "RenderContext.h"
 #include "StructuralMaterialDatabase.h"

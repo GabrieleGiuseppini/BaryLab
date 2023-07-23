@@ -64,8 +64,13 @@ void LabController::SetSimulationControlPulse()
 
 void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepath)
 {
-    // Load mesh
-    std::unique_ptr<Mesh> mesh = MeshBuilder::BuildMesh(meshDefinitionFilepath);
+    // Load mesh definition
+    auto meshDefinition = MeshDefinition::Load(meshDefinitionFilepath);
+
+    // Make mesh
+    std::unique_ptr<Mesh> mesh = MeshBuilder::BuildMesh(
+        std::move(meshDefinition),
+        mStructuralMaterialDatabase);
 
     // Create particles
     std::unique_ptr<Particles> particles = std::make_unique<Particles>(1);

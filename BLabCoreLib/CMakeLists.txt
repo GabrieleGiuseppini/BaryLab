@@ -40,10 +40,13 @@ set  (SOURCES
 	LabParameters.h	
 	Log.cpp
 	Log.h
+	Matrix.h
 	Mesh.h
 	MeshBuilder.cpp
 	MeshBuilder.h
 	MeshBuilderTypes.h
+	MeshDefinition.cpp
+	MeshDefinition.h
 	Model.cpp
 	Model.h
 	Particles.cpp
