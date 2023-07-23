@@ -1,1 +1,6 @@
-- Rethink trajectory
+
+- Then, facilities to display:
+	- Highlighted edge + "place" (for trajectory hitting edge)
+
+- LabController::Update:
+	- If particle is in ParticleTrajectory, do trajectory, else do physics

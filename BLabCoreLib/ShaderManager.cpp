@@ -466,6 +466,8 @@ ShaderManager::ProgramType ShaderManager::ShaderFilenameToProgramType(std::strin
         return ProgramType::Edges;
     else if (Utils::CaseInsensitiveEquals(str, "Grid"))
         return ProgramType::Grid;
+    else if (Utils::CaseInsensitiveEquals(str, "ParticleTrajectories"))
+        return ProgramType::ParticleTrajectories;
     else if (Utils::CaseInsensitiveEquals(str, "Particles"))
         return ProgramType::Particles;
     else if (Utils::CaseInsensitiveEquals(str, "SelectedTriangles"))
@@ -484,6 +486,8 @@ std::string ShaderManager::ProgramTypeToStr(ProgramType program)
             return "Edges";
         case ProgramType::Grid:
             return "Grid";
+        case ProgramType::ParticleTrajectories:
+            return "ParticleTrajectories";
         case ProgramType::Particles:
             return "Particles";
         case ProgramType::SelectedTriangles:
@@ -536,6 +540,8 @@ ShaderManager::VertexAttributeType ShaderManager::StrToVertexAttributeType(std::
         return VertexAttributeType::ParticleAttributeGroup1;
     else if (Utils::CaseInsensitiveEquals(str, "ParticleAttributeGroup2"))
         return VertexAttributeType::ParticleAttributeGroup2;
+    else if (Utils::CaseInsensitiveEquals(str, "ParticleTrajectoryAttributeGroup1"))
+        return VertexAttributeType::ParticleTrajectoryAttributeGroup1;
     else if (Utils::CaseInsensitiveEquals(str, "SelectedTriangleAttributeGroup1"))
         return VertexAttributeType::SelectedTriangleAttributeGroup1;
     else if (Utils::CaseInsensitiveEquals(str, "VertexAttributeGroup1"))

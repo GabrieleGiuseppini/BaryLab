@@ -5,6 +5,8 @@
 ***************************************************************************************/
 #pragma once
 
+#include "Vectors.h"
+
 #include <picojson.h>
 
 #include <cassert>
@@ -51,6 +53,18 @@ enum class SimulationControlStateType
     Play
 };
 
+struct ParticleTrajectory
+{
+    ElementIndex ParticleIndex;
+    vec2f TargetPosition;
+
+    ParticleTrajectory(
+        ElementIndex particleIndex,
+        vec2f const & targetPosition)
+        : ParticleIndex(particleIndex)
+        , TargetPosition(targetPosition)
+    {}
+};
 enum class SurfaceType
 {
     Floor,

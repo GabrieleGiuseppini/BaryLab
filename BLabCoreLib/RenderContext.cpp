@@ -102,6 +102,24 @@ RenderContext::RenderContext(
     glBindVertexArray(0);
 
     //
+    // Particle trajectories
+    //
+
+    glGenVertexArrays(1, &tmpGLuint);
+    mParticleTrajectoryVAO = tmpGLuint;
+    glBindVertexArray(*mParticleTrajectoryVAO);
+
+    glGenBuffers(1, &tmpGLuint);
+    mParticleTrajectoryVertexVBO = tmpGLuint;
+    glBindBuffer(GL_ARRAY_BUFFER, *mParticleTrajectoryVertexVBO);
+
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleAttributeGroup1));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(ParticleTrajectoryVertex), (void *)0);
+    static_assert(sizeof(ParticleTrajectoryVertex) == 4 * sizeof(float));
+
+    glBindVertexArray(0);
+
+    //
     // Selected triangles
     //
 
@@ -393,6 +411,73 @@ void RenderContext::UploadParticlesEnd()
     }
 }
 
+void RenderContext::UploadParticleTrajectoriesStart(size_t particleTrajectoryCount)
+{
+    //
+    // Prepare buffer
+    //
+
+    mParticleTrajectoryVertexBuffer.clear();
+    mParticleTrajectoryVertexBuffer.reserve(particleTrajectoryCount * 6);
+}
+
+void RenderContext::UploadParticleTrajectory(
+    vec2f const & startPosition,
+    vec2f const & endPosition)
+{
+    vec2f const trajectoryVector = endPosition - startPosition;
+    vec2f const edgeNormal = trajectoryVector.to_perpendicular().normalise() * LabParameters::ParticleTrajectoryThickness / 2.0f;
+
+    vec2f const bottomLeft = startPosition - edgeNormal;
+    vec2f const bottomRight = startPosition + edgeNormal;
+    vec2f const topLeft = endPosition - edgeNormal;
+    vec2f const topRight = endPosition + edgeNormal;
+
+    // Left, bottom
+    mParticleTrajectoryVertexBuffer.emplace_back(
+        bottomLeft,
+        vec2f(-1.0f, -1.0f));
+
+    // Left, top
+    mParticleTrajectoryVertexBuffer.emplace_back(
+        topLeft,
+        vec2f(-1.0f, 1.0f));
+
+    // Right, bottom
+    mParticleTrajectoryVertexBuffer.emplace_back(
+        bottomRight,
+        vec2f(1.0f, -1.0f));
+
+    // Left, top
+    mParticleTrajectoryVertexBuffer.emplace_back(
+        topLeft,
+        vec2f(-1.0f, 1.0f));
+
+    // Right, bottom
+    mParticleTrajectoryVertexBuffer.emplace_back(
+        bottomRight,
+        vec2f(1.0f, -1.0f));
+
+    // Right, top
+    mParticleTrajectoryVertexBuffer.emplace_back(
+        topRight,
+        vec2f(1.0f, 1.0f));
+}
+
+void RenderContext::UploadParticleTrajectoriesEnd()
+{
+    //
+    // Upload buffer, if needed
+    //
+
+    if (!mParticleTrajectoryVertexBuffer.empty())
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, *mParticleTrajectoryVertexVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(ParticleTrajectoryVertex) * mParticleTrajectoryVertexBuffer.size(), mParticleTrajectoryVertexBuffer.data(), GL_STREAM_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+}
+
 void RenderContext::UploadSelectedTrianglesStart(size_t triangleCount)
 {
     //
@@ -459,6 +544,24 @@ void RenderContext::RenderEnd()
 
         assert((mEdgeVertexBuffer.size() % 6) == 0);
         glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mEdgeVertexBuffer.size()));
+
+        CheckOpenGLError();
+
+        glBindVertexArray(0);
+    }
+
+    ////////////////////////////////////////////////////////////////
+    // Render particle trajectories
+    ////////////////////////////////////////////////////////////////
+
+    if (!mParticleTrajectoryVertexBuffer.empty())
+    {
+        glBindVertexArray(*mParticleTrajectoryVAO);
+
+        mShaderManager->ActivateProgram<ShaderManager::ProgramType::ParticleTrajectories>();
+
+        assert((mParticleTrajectoryVertexBuffer.size() % 6) == 0);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mParticleTrajectoryVertexBuffer.size()));
 
         CheckOpenGLError();
 
@@ -570,6 +673,10 @@ void RenderContext::OnViewModelUpdated()
 
     mShaderManager->ActivateProgram<ShaderManager::ProgramType::Vertices>();
     mShaderManager->SetProgramParameter<ShaderManager::ProgramType::Vertices, ShaderManager::ProgramParameterType::OrthoMatrix>(
+        orthoMatrix);
+
+    mShaderManager->ActivateProgram<ShaderManager::ProgramType::ParticleTrajectories>();
+    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::ParticleTrajectories, ShaderManager::ProgramParameterType::OrthoMatrix>(
         orthoMatrix);
 
     mShaderManager->ActivateProgram<ShaderManager::ProgramType::SelectedTriangles>();

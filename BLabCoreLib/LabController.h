@@ -176,6 +176,8 @@ private:
 
     std::optional<ElementIndex> mCurrentOriginTriangle;
 
+    std::optional<ParticleTrajectory> mCurrentParticleTrajectory;
+
     //
     // Simulation control
     //

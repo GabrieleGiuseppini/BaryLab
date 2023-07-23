@@ -47,6 +47,7 @@ LabController::LabController(
     , mModel()
     , mCurrentMeshFilePath()
     , mCurrentOriginTriangle()
+    , mCurrentParticleTrajectory()
     // Simulation control
     , mSimulationControlState(SimulationControlStateType::Paused)
     , mSimulationControlImpulse(false)
@@ -180,6 +181,21 @@ void LabController::Render()
         mRenderContext->UploadParticlesEnd();
 
         //
+        // Particle trajectory
+        //
+
+        mRenderContext->UploadParticleTrajectoriesStart(mCurrentParticleTrajectory ? 1 : 0);
+
+        if (mCurrentParticleTrajectory)
+        {
+            mRenderContext->UploadParticleTrajectory(
+                mModel->GetParticles().GetPosition(mCurrentParticleTrajectory->ParticleIndex),
+                mCurrentParticleTrajectory->TargetPosition);
+        }
+
+        mRenderContext->UploadParticleTrajectoriesEnd();
+
+        //
         // Selected triangles
         //
 
@@ -193,10 +209,10 @@ void LabController::Render()
                 mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexCIndex(*mCurrentOriginTriangle)));
         }
 
-        mRenderContext->UploadSelectedTrianglesEnd();
+        mRenderContext->UploadSelectedTrianglesEnd();        
     }
 
-    mRenderContext->RenderEnd();
+    mRenderContext->RenderEnd();    
 }
 
 void LabController::Reset()
@@ -330,9 +346,9 @@ void LabController::SetParticleTrajectory(
     ElementIndex particleIndex,
     vec2f const & targetScreenCoordinates)
 {
-    // TODOHERE
-    (void)particleIndex;
-    (void)targetScreenCoordinates;
+    mCurrentParticleTrajectory.emplace(
+        particleIndex,
+        ScreenToWorld(targetScreenCoordinates));
 }
 
 void LabController::QueryNearestParticleAt(vec2f const & screenCoordinates) const

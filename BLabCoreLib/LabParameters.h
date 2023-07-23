@@ -49,4 +49,5 @@ struct LabParameters
     static float constexpr VertexRadius = 0.05f;
     static float constexpr EdgeThickness = 0.03f;
     static float constexpr ParticleRadius = 0.15f;
+    static float constexpr ParticleTrajectoryThickness = 0.04f;
 };

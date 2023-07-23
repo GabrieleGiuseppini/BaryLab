@@ -313,6 +313,92 @@ private:
     wxCursor const mDownCursor;
 };
 
+class SetParticleTrajectoryTool final : public Tool
+{
+public:
+
+    SetParticleTrajectoryTool(
+        wxWindow * cursorWindow,
+        std::shared_ptr<LabController> labController);
+
+public:
+
+    virtual void Initialize(InputState const & /*inputState*/) override
+    {
+        mCurrentSelectedParticle.reset();
+
+        // Set cursor
+        SetCurrentCursor();
+    }
+
+    virtual void Deinitialize(InputState const & /*inputState*/) override
+    {
+    }
+
+    virtual void SetCurrentCursor() override
+    {
+        mCursorWindow->SetCursor(mCursor);
+    }
+
+    virtual void Update(InputState const & inputState) override
+    {
+        vec2f const mousePosition = inputState.MousePosition;
+
+        if (inputState.IsLeftMouseDown)
+        {
+            if (!mCurrentSelectedParticle)
+            {
+                //
+                // Not engaged...
+                // ...see if we're able to pick a particle and thus start engagement
+                //
+
+                auto const particleId = mLabController->TryPickParticle(mousePosition);
+                if (particleId.has_value())
+                {
+                    //
+                    // Engage!
+                    //
+
+                    mCurrentSelectedParticle.emplace(*particleId);
+                }
+            }
+            else
+            {
+                //
+                // Engaged
+                //
+
+                mLabController->SetParticleTrajectory(
+                    *mCurrentSelectedParticle,
+                    mousePosition);
+            }
+        }
+        else
+        {
+            if (mCurrentSelectedParticle)
+            {
+                // Set trajectory
+                mLabController->SetParticleTrajectory(
+                    *mCurrentSelectedParticle,
+                    mousePosition);
+
+                // Disengage
+                mCurrentSelectedParticle.reset();
+            }
+        }
+    }
+
+private:
+
+    // Our state
+
+    std::optional<ElementIndex> mCurrentSelectedParticle; // When set, we're setting a trajectory for a particle
+
+    // The cursor
+    wxCursor const mCursor;
+};
+
 class SetOriginTriangleTool final : public Tool
 {
 public:

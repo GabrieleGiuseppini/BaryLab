@@ -159,6 +159,14 @@ public:
 
     void UploadParticlesEnd();
 
+    void UploadParticleTrajectoriesStart(size_t particleTrajectoryCount);
+
+    void UploadParticleTrajectory(
+        vec2f const & startPosition,
+        vec2f const & endPosition);
+
+    void UploadParticleTrajectoriesEnd();
+
     void UploadSelectedTrianglesStart(size_t triangleCount);
 
     void UploadSelectedTriangle(
@@ -280,6 +288,32 @@ private:
 
     std::vector<ParticleVertex> mParticleVertexBuffer;
     BLabOpenGLVBO mParticleVertexVBO;
+
+    ////////////////////////////////////////////////////////////////
+    // Particle trajectory
+    ////////////////////////////////////////////////////////////////
+
+#pragma pack(push)
+
+    struct ParticleTrajectoryVertex
+    {
+        vec2f Position;
+        vec2f VertexSpacePosition;
+
+        ParticleTrajectoryVertex(
+            vec2f const & position,
+            vec2f const & vertexSpacePosition)
+            : Position(position)
+            , VertexSpacePosition(vertexSpacePosition)
+        {}
+    };
+
+#pragma pack(pop)
+
+    BLabOpenGLVAO mParticleTrajectoryVAO;
+
+    std::vector<ParticleTrajectoryVertex> mParticleTrajectoryVertexBuffer;
+    BLabOpenGLVBO mParticleTrajectoryVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // Selected triangles

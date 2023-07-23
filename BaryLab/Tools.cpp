@@ -33,6 +33,18 @@ MoveVertexTool::MoveVertexTool(
 {
 }
 
+SetParticleTrajectoryTool::SetParticleTrajectoryTool(
+    wxWindow * cursorWindow,
+    std::shared_ptr<LabController> labController)
+    : Tool(
+        ToolType::SetParticleTrajectory,
+        cursorWindow,
+        std::move(labController))
+    , mCurrentSelectedParticle()
+    , mCursor(WxHelpers::MakeCursor("generic_cursor", 7, 8))
+{
+}
+
 SetOriginTriangleTool::SetOriginTriangleTool(
     wxWindow * cursorWindow,
     std::shared_ptr<LabController> labController)

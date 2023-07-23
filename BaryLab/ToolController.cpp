@@ -34,9 +34,8 @@ ToolController::ToolController(
             mCursorWindow,
             mLabController));
 
-    // TODOHERE: particle trajectory tool
     mAllTools.emplace_back(
-        std::make_unique<MoveVertexTool>(
+        std::make_unique<SetParticleTrajectoryTool>(
         mCursorWindow,
         mLabController));
 
