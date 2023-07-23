@@ -1,6 +1,12 @@
 = Load mesh
+	- Store floor in edge as type
+		- And set color accordingly
+
 - Draw triangle edges, not edges
 	- Just upload
+	- Take color from edge
+
 - Draw selected triangle
+	- RenderContext method, just draw triangle w/matte hardcoded color
 
 - Rethink trajectory

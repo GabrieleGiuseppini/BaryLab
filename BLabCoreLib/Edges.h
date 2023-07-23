@@ -70,7 +70,6 @@ public:
         , mTrianglesBuffer(mBufferElementCount, mElementCount, TrianglesVector())
         // Render
         , mRenderColorBuffer(mBufferElementCount, mElementCount, vec4f::zero())
-        , mRenderHighlightBuffer(mBufferElementCount, mElementCount, 0.0f)
     {
     }
 
@@ -224,23 +223,6 @@ public:
         return mRenderColorBuffer[edgeElementIndex];
     }
 
-    float GetRenderHighlight(ElementIndex edgeElementIndex) const
-    {
-        return mRenderHighlightBuffer[edgeElementIndex];
-    }
-
-    void SetRenderHighlight(
-        ElementIndex edgeElementIndex,
-        float hightlight)
-    {
-        mRenderHighlightBuffer[edgeElementIndex] = hightlight;
-    }
-
-    float const * GetRenderHighlightBuffer() const
-    {
-        return mRenderHighlightBuffer.data();
-    }
-
 private:
 
     //////////////////////////////////////////////////////////
@@ -260,5 +242,4 @@ private:
     //
 
     Buffer<vec4f> mRenderColorBuffer;
-    Buffer<float> mRenderHighlightBuffer;
 };

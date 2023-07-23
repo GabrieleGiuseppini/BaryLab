@@ -17,5 +17,4 @@ void Edges::Add(
     mTrianglesBuffer.emplace_back(triangles);
 
     mRenderColorBuffer.emplace_back(vec4f::zero());
-    mRenderHighlightBuffer.emplace_back(0.0f);
 }
