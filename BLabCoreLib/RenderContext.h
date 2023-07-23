@@ -146,7 +146,8 @@ public:
 
     void UploadEdge(
         vec2f const & edgeEndpointAPosition,
-        vec2f const & edgeEndpointBPosition);
+        vec2f const & edgeEndpointBPosition,
+        rgbaColor const & edgeColor);
 
     void UploadEdgesEnd();
 

@@ -48,6 +48,7 @@ private:
 
     static Edges CreateEdges(
         std::vector<MeshBuildEdge> const & edgeInfos,
+        std::vector<MeshBuildVertex> & vertexInfos,
         Vertices & vertices);
 
     static Triangles CreateTriangles(

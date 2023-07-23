@@ -10,11 +10,17 @@ void Edges::Add(
     ElementIndex vertexBIndex,
     Octant pointAOctant,
     Octant pointBOctant,
+    SurfaceType surface,
     TrianglesVector const & triangles)
 {
     mEndpointsBuffer.emplace_back(vertexAIndex, vertexBIndex);
     mEndpointOctantsBuffer.emplace_back(pointAOctant, pointBOctant);
     mTrianglesBuffer.emplace_back(triangles);
 
-    mRenderColorBuffer.emplace_back(vec4f::zero());
+    mSurfaceTypeBuffer.emplace_back(surface);
+
+    mRenderColorBuffer.emplace_back(
+        surface == SurfaceType::Floor 
+        ? rgbaColor(0x0a, 0x0a, 0x0a, 0xff) 
+        : rgbaColor(0xba, 0xba, 0xba, 0xff));
 }

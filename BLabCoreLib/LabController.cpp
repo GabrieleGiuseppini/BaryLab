@@ -136,16 +136,29 @@ void LabController::Render()
             mModel->GetMesh().GetVertices().GetPositionBuffer());
 
         //
-        // Edges
+        // Edges (of triangles)
+        //
+        // Note: for lazyness we load lots of repetitions
         //
 
-        mRenderContext->UploadEdgesStart(mModel->GetMesh().GetEdges().GetElementCount());
+        mRenderContext->UploadEdgesStart(mModel->GetMesh().GetTriangles().GetElementCount() * 2);
 
-        for (auto e : mModel->GetMesh().GetEdges())
+        for (auto t : mModel->GetMesh().GetTriangles())
         {
             mRenderContext->UploadEdge(
-                mModel->GetMesh().GetEdges().GetEndpointAPosition(e, mModel->GetMesh().GetVertices()),
-                mModel->GetMesh().GetEdges().GetEndpointBPosition(e, mModel->GetMesh().GetVertices()));
+                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexAIndex(t)),
+                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexBIndex(t)),
+                mModel->GetMesh().GetEdges().GetRenderColor(mModel->GetMesh().GetTriangles().GetSubEdgeAIndex(t)));
+
+            mRenderContext->UploadEdge(
+                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexBIndex(t)),
+                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexCIndex(t)),
+                mModel->GetMesh().GetEdges().GetRenderColor(mModel->GetMesh().GetTriangles().GetSubEdgeBIndex(t)));
+
+            mRenderContext->UploadEdge(
+                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexCIndex(t)),
+                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexAIndex(t)),
+                mModel->GetMesh().GetEdges().GetRenderColor(mModel->GetMesh().GetTriangles().GetSubEdgeCIndex(t)));
         }
 
         mRenderContext->UploadEdgesEnd();

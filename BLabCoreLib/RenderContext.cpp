@@ -239,7 +239,8 @@ void RenderContext::UploadEdgesStart(size_t edgeCount)
 
 void RenderContext::UploadEdge(
     vec2f const & edgeEndpointAPosition,
-    vec2f const & edgeEndpointBPosition)
+    vec2f const & edgeEndpointBPosition,
+    rgbaColor const & edgeColor)
 {
     vec2f const edgeVector = edgeEndpointBPosition - edgeEndpointAPosition;
     vec2f const edgeNormal = edgeVector.to_perpendicular().normalise() * LabParameters::EdgeThickness / 2.0f;
@@ -249,43 +250,43 @@ void RenderContext::UploadEdge(
     vec2f const topLeft = edgeEndpointBPosition - edgeNormal;
     vec2f const topRight = edgeEndpointBPosition + edgeNormal;
 
-    vec4f constexpr Color = rgbaColor(0x80, 0x80, 0x90, 0xff).toVec4f();
+    vec4f const color = edgeColor.toVec4f();
 
     // Left, bottom
     mEdgeVertexBuffer.emplace_back(
         bottomLeft,
         vec2f(-1.0f, -1.0f),
-        Color);
+        color);
 
     // Left, top
     mEdgeVertexBuffer.emplace_back(
         topLeft,
         vec2f(-1.0f, 1.0f),
-        Color);
+        color);
 
     // Right, bottom
     mEdgeVertexBuffer.emplace_back(
         bottomRight,
         vec2f(1.0f, -1.0f),
-        Color);
+        color);
 
     // Left, top
     mEdgeVertexBuffer.emplace_back(
         topLeft,
         vec2f(-1.0f, 1.0f),
-        Color);
+        color);
 
     // Right, bottom
     mEdgeVertexBuffer.emplace_back(
         bottomRight,
         vec2f(1.0f, -1.0f),
-        Color);
+        color);
 
     // Right, top
     mEdgeVertexBuffer.emplace_back(
         topRight,
         vec2f(1.0f, 1.0f),
-        Color);
+        color);
 }
 
 void RenderContext::UploadEdgesEnd()

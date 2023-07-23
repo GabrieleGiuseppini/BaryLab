@@ -68,8 +68,10 @@ public:
         , mEndpointsBuffer(mBufferElementCount, mElementCount, Endpoints(NoneElementIndex, NoneElementIndex))
         , mEndpointOctantsBuffer(mBufferElementCount, mElementCount, EndpointOctants(0, 4))
         , mTrianglesBuffer(mBufferElementCount, mElementCount, TrianglesVector())
+        // Properties
+        , mSurfaceTypeBuffer(mBufferElementCount, mElementCount, SurfaceType::Open)
         // Render
-        , mRenderColorBuffer(mBufferElementCount, mElementCount, vec4f::zero())
+        , mRenderColorBuffer(mBufferElementCount, mElementCount, rgbaColor::zero())
     {
     }
 
@@ -80,6 +82,7 @@ public:
         ElementIndex vertexBIndex,
         Octant vertexAOctant,
         Octant vertexBOctant,
+        SurfaceType surface,
         TrianglesVector const & triangles);
 
 public:
@@ -218,7 +221,7 @@ public:
     // Render
     //
 
-    vec4f const & GetRenderColor(ElementIndex edgeElementIndex) const
+    rgbaColor const & GetRenderColor(ElementIndex edgeElementIndex) const
     {
         return mRenderColorBuffer[edgeElementIndex];
     }
@@ -238,8 +241,14 @@ private:
     Buffer<TrianglesVector> mTrianglesBuffer;
 
     //
+    // Properties
+    //
+
+    Buffer<SurfaceType> mSurfaceTypeBuffer;
+
+    //
     // Render
     //
 
-    Buffer<vec4f> mRenderColorBuffer;
+    Buffer<rgbaColor> mRenderColorBuffer;
 };

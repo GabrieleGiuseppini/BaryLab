@@ -150,6 +150,7 @@ std::unique_ptr<Mesh> MeshBuilder::BuildMesh(
 
     Edges edges = CreateEdges(
         edgeInfos,
+        vertexInfos,
         vertices);
 
     //
@@ -397,6 +398,7 @@ Vertices MeshBuilder::CreateVertices(
 
 Edges MeshBuilder::CreateEdges(
     std::vector<MeshBuildEdge> const & edgeInfos,
+    std::vector<MeshBuildVertex> & vertexInfos,
     Vertices & vertices)
 {
     Edges edges(
@@ -404,12 +406,18 @@ Edges MeshBuilder::CreateEdges(
 
     for (ElementIndex e = 0; e < edgeInfos.size(); ++e)
     {
+        // Determine surface type
+        SurfaceType const surface =
+            (vertexInfos[edgeInfos[e].VertexAIndex].Material.Surface == SurfaceType::Floor && vertexInfos[edgeInfos[e].VertexBIndex].Material.Surface == SurfaceType::Floor)
+            ? SurfaceType::Floor : SurfaceType::Open;
+
         // Create edge
         edges.Add(
             edgeInfos[e].VertexAIndex,
             edgeInfos[e].VertexBIndex,
             edgeInfos[e].VertexAAngle,
             edgeInfos[e].VertexBAngle,
+            surface,
             edgeInfos[e].Triangles);
 
         // Add edge to its endpoints
