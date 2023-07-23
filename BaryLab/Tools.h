@@ -313,3 +313,57 @@ private:
     wxCursor const mDownCursor;
 };
 
+class SetOriginTriangleTool final : public Tool
+{
+public:
+
+    SetOriginTriangleTool(
+        wxWindow * cursorWindow,
+        std::shared_ptr<LabController> labController);
+
+public:
+
+    virtual void Initialize(InputState const & /*inputState*/) override
+    {
+        mIsLeftMouseDown = false;
+
+        // Set cursor
+        SetCurrentCursor();
+    }
+
+    virtual void Deinitialize(InputState const & /*inputState*/) override
+    {
+    }
+
+    virtual void SetCurrentCursor() override
+    {
+        mCursorWindow->SetCursor(mCursor);
+    }
+
+    virtual void Update(InputState const & inputState) override
+    {
+        if (inputState.IsLeftMouseDown)
+        {
+            if (!mIsLeftMouseDown)
+            {
+                mLabController->TrySelectOriginTriangle(inputState.MousePosition);
+
+                mIsLeftMouseDown = true;
+            }
+        }
+        else
+        {
+            mIsLeftMouseDown = false;
+        }
+    }
+
+private:
+
+    // Our state
+
+    bool mIsLeftMouseDown;
+
+    // The cursor
+    wxCursor const mCursor;
+};
+

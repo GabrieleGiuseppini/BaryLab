@@ -11,9 +11,9 @@ MoveParticleTool::MoveParticleTool(
     wxWindow * cursorWindow,
     std::shared_ptr<LabController> labController)
     : Tool(
-    ToolType::MoveParticle,
-    cursorWindow,
-    std::move(labController))
+        ToolType::MoveParticle,
+        cursorWindow,
+        std::move(labController))
     , mCurrentEngagementState(std::nullopt)
     , mUpCursor(WxHelpers::MakeCursor("generic_cursor", 7, 8))
     , mDownCursor(WxHelpers::MakeCursor("generic_cursor", 7, 8))
@@ -30,5 +30,17 @@ MoveVertexTool::MoveVertexTool(
     , mCurrentEngagementState(std::nullopt)
     , mUpCursor(WxHelpers::MakeCursor("generic_cursor", 7, 8))
     , mDownCursor(WxHelpers::MakeCursor("generic_cursor", 7, 8))
+{
+}
+
+SetOriginTriangleTool::SetOriginTriangleTool(
+    wxWindow * cursorWindow,
+    std::shared_ptr<LabController> labController)
+    : Tool(
+        ToolType::SetOriginTriangle,
+        cursorWindow,
+        std::move(labController))
+    , mIsLeftMouseDown(false)
+    , mCursor(WxHelpers::MakeCursor("generic_cursor", 7, 8))
 {
 }

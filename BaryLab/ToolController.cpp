@@ -34,7 +34,16 @@ ToolController::ToolController(
             mCursorWindow,
             mLabController));
 
-    // TODO: other tools
+    // TODOHERE: particle trajectory tool
+    mAllTools.emplace_back(
+        std::make_unique<MoveVertexTool>(
+        mCursorWindow,
+        mLabController));
+
+    mAllTools.emplace_back(
+        std::make_unique<SetOriginTriangleTool>(
+        mCursorWindow,
+        mLabController));
 
     // Prepare own cursor(s)
     mPanCursor = WxHelpers::MakeCursor("pan_cursor", 15, 15);

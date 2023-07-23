@@ -6,6 +6,7 @@
 #include "LabController.h"
 
 #include "AABB.h"
+#include "Geometry.h"
 #include "MeshBuilder.h"
 #include "ResourceLocator.h"
 
@@ -252,8 +253,24 @@ void LabController::MoveVertexBy(
 
 bool LabController::TrySelectOriginTriangle(vec2f const & screenCoordinates)
 {
-    // TODOHERE
-    (void)screenCoordinates;
+    assert(!!mModel);
+
+    vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
+
+    for (auto const t : mModel->GetMesh().GetTriangles())
+    {
+        if (Geometry::IsPointInTriangle(
+            worldCoordinates,
+            mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexAIndex(t)),
+            mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexBIndex(t)),
+            mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexCIndex(t))))
+        {
+            mCurrentOriginTriangle = t;
+            return true;
+        }
+    }
+
+    mCurrentOriginTriangle.reset();
     return false;
 }
 
