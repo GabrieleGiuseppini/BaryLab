@@ -142,7 +142,7 @@ public:
         size_t vertexCount,
         vec2f const * vertexPositions);
 
-    void UploadEdgesStart(size_t edgeCount);
+    void UploadEdgesStart();
 
     void UploadEdge(
         vec2f const & edgeEndpointAPosition,
@@ -151,7 +151,7 @@ public:
 
     void UploadEdgesEnd();
 
-    void UploadParticlesStart(size_t particleCount);
+    void UploadParticlesStart();
 
     void UploadParticle(
         vec2f const & particlePosition,
@@ -159,7 +159,7 @@ public:
 
     void UploadParticlesEnd();
 
-    void UploadParticleTrajectoriesStart(size_t particleTrajectoryCount);
+    void UploadParticleTrajectoriesStart();
 
     void UploadParticleTrajectory(
         vec2f const & startPosition,
@@ -167,7 +167,7 @@ public:
 
     void UploadParticleTrajectoriesEnd();
 
-    void UploadSelectedTrianglesStart(size_t triangleCount);
+    void UploadSelectedTrianglesStart();
 
     void UploadSelectedTriangle(
         vec2f const & endpointAPosition,

@@ -1,6 +1,24 @@
 
-- Then, facilities to display:
-	- Highlighted edge + "place" (for trajectory hitting edge)
+- SetTrajectory:
+	- Tool calls NotifyTrajectory (during) and SetTrajectory (at end)
+	- LabController stores them separately and uploads both
+		- Different colors, add to vertex and shader
 
-- LabController::Update:
-	- If particle is in ParticleTrajectory, do trajectory, else do physics
+- Particle state machine:
+	- Particle::StateType struct
+		- Stored in buffer as opt<.>
+	- Initialized at SetTrajectory (i.e. the final call), and at Move Particle and Move Vertex
+		- Only initialized if there is a trajectory, and if particle is in a triangle
+	- State is:
+		- Current triangle
+		- Current barycentric coords
+		- Target position (copy of trajectory)
+	- Update:
+		- For each particle that has a state:
+			- UpdateParticleState(.)
+	- UpdateParticleState:
+		- TODOHERE
+
+
+- Facilities to display:
+	- Highlighted edge + "place" (for trajectory hitting edge)

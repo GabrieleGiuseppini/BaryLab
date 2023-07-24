@@ -143,7 +143,7 @@ void LabController::Render()
         // Note: for lazyness we load lots of repetitions
         //
 
-        mRenderContext->UploadEdgesStart(mModel->GetMesh().GetTriangles().GetElementCount() * 2);
+        mRenderContext->UploadEdgesStart();
 
         for (auto t : mModel->GetMesh().GetTriangles())
         {
@@ -169,7 +169,7 @@ void LabController::Render()
         // Particles
         //
 
-        mRenderContext->UploadParticlesStart(mModel->GetParticles().GetElementCount());
+        mRenderContext->UploadParticlesStart();
 
         for (auto p : mModel->GetParticles())
         {
@@ -184,7 +184,7 @@ void LabController::Render()
         // Particle trajectory
         //
 
-        mRenderContext->UploadParticleTrajectoriesStart(mCurrentParticleTrajectory ? 1 : 0);
+        mRenderContext->UploadParticleTrajectoriesStart();
 
         if (mCurrentParticleTrajectory)
         {
@@ -199,7 +199,7 @@ void LabController::Render()
         // Selected triangles
         //
 
-        mRenderContext->UploadSelectedTrianglesStart(mCurrentOriginTriangle ? 1 : 0);
+        mRenderContext->UploadSelectedTrianglesStart();
 
         if (mCurrentOriginTriangle)
         {

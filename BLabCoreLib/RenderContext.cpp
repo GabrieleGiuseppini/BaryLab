@@ -263,14 +263,13 @@ void RenderContext::UploadVertices(
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void RenderContext::UploadEdgesStart(size_t edgeCount)
+void RenderContext::UploadEdgesStart()
 {
     //
     // Prepare buffer
     //
 
     mEdgeVertexBuffer.clear();
-    mEdgeVertexBuffer.reserve(edgeCount * 6);
 }
 
 void RenderContext::UploadEdge(
@@ -339,14 +338,13 @@ void RenderContext::UploadEdgesEnd()
     }
 }
 
-void RenderContext::UploadParticlesStart(size_t particleCount)
+void RenderContext::UploadParticlesStart()
 {
     //
     // Prepare buffer
     //
 
     mParticleVertexBuffer.clear();
-    mParticleVertexBuffer.reserve(particleCount * 6);
 }
 
 void RenderContext::UploadParticle(
@@ -411,14 +409,13 @@ void RenderContext::UploadParticlesEnd()
     }
 }
 
-void RenderContext::UploadParticleTrajectoriesStart(size_t particleTrajectoryCount)
+void RenderContext::UploadParticleTrajectoriesStart()
 {
     //
     // Prepare buffer
     //
 
     mParticleTrajectoryVertexBuffer.clear();
-    mParticleTrajectoryVertexBuffer.reserve(particleTrajectoryCount * 6);
 }
 
 void RenderContext::UploadParticleTrajectory(
@@ -478,14 +475,13 @@ void RenderContext::UploadParticleTrajectoriesEnd()
     }
 }
 
-void RenderContext::UploadSelectedTrianglesStart(size_t triangleCount)
+void RenderContext::UploadSelectedTrianglesStart()
 {
     //
     // Prepare buffer
     //
 
     mSelectedTriangleVertexBuffer.clear();
-    mSelectedTriangleVertexBuffer.reserve(triangleCount * 3);
 }
 
 void RenderContext::UploadSelectedTriangle(
