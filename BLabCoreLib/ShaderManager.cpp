@@ -542,6 +542,8 @@ ShaderManager::VertexAttributeType ShaderManager::StrToVertexAttributeType(std::
         return VertexAttributeType::ParticleAttributeGroup2;
     else if (Utils::CaseInsensitiveEquals(str, "ParticleTrajectoryAttributeGroup1"))
         return VertexAttributeType::ParticleTrajectoryAttributeGroup1;
+    else if (Utils::CaseInsensitiveEquals(str, "ParticleTrajectoryAttributeGroup2"))
+        return VertexAttributeType::ParticleTrajectoryAttributeGroup2;
     else if (Utils::CaseInsensitiveEquals(str, "SelectedTriangleAttributeGroup1"))
         return VertexAttributeType::SelectedTriangleAttributeGroup1;
     else if (Utils::CaseInsensitiveEquals(str, "VertexAttributeGroup1"))

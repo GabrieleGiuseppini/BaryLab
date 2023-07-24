@@ -68,6 +68,8 @@ public:
 
     void MoveParticleBy(ElementIndex particleIndex, vec2f const & screenOffset, vec2f const & inertialStride);
 
+    void NotifyParticleTrajectory(ElementIndex particleIndex, vec2f const & targetScreenCoordinates);
+
     void SetParticleTrajectory(ElementIndex particleIndex, vec2f const & targetScreenCoordinates);
 
     void QueryNearestParticleAt(vec2f const & screenCoordinates) const;
@@ -177,6 +179,7 @@ private:
     std::optional<ElementIndex> mCurrentOriginTriangle;
 
     std::optional<ParticleTrajectory> mCurrentParticleTrajectory;
+    std::optional<ParticleTrajectory> mCurrentParticleTrajectoryNotification;
 
     //
     // Simulation control

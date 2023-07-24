@@ -1,9 +1,4 @@
 
-- SetTrajectory:
-	- Tool calls NotifyTrajectory (during) and SetTrajectory (at end)
-	- LabController stores them separately and uploads both
-		- Different colors, add to vertex and shader
-
 - Particle state machine:
 	- Particle::StateType struct
 		- Stored in buffer as opt<.>

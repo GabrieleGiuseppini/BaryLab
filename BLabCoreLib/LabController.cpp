@@ -48,6 +48,7 @@ LabController::LabController(
     , mCurrentMeshFilePath()
     , mCurrentOriginTriangle()
     , mCurrentParticleTrajectory()
+    , mCurrentParticleTrajectoryNotification()
     // Simulation control
     , mSimulationControlState(SimulationControlStateType::Paused)
     , mSimulationControlImpulse(false)
@@ -186,11 +187,20 @@ void LabController::Render()
 
         mRenderContext->UploadParticleTrajectoriesStart();
 
+        if (mCurrentParticleTrajectoryNotification)
+        {
+            mRenderContext->UploadParticleTrajectory(
+                mModel->GetParticles().GetPosition(mCurrentParticleTrajectoryNotification->ParticleIndex),
+                mCurrentParticleTrajectoryNotification->TargetPosition,
+                rgbaColor(0xc0, 0xc0, 0xc0, 0xff));
+        }
+
         if (mCurrentParticleTrajectory)
         {
             mRenderContext->UploadParticleTrajectory(
                 mModel->GetParticles().GetPosition(mCurrentParticleTrajectory->ParticleIndex),
-                mCurrentParticleTrajectory->TargetPosition);
+                mCurrentParticleTrajectory->TargetPosition,
+                rgbaColor(0x99, 0x99, 0x99, 0xff));
         }
 
         mRenderContext->UploadParticleTrajectoriesEnd();
@@ -342,6 +352,17 @@ void LabController::MoveParticleBy(
         worldStride / LabParameters::SimulationTimeStepDuration * 0.5f); // Magic adjustment
 }
 
+void LabController::NotifyParticleTrajectory(
+    ElementIndex particleIndex,
+    vec2f const & targetScreenCoordinates)
+{
+    mCurrentParticleTrajectoryNotification.emplace(
+        particleIndex,
+        ScreenToWorld(targetScreenCoordinates));
+
+    mCurrentParticleTrajectory.reset();
+}
+
 void LabController::SetParticleTrajectory(
     ElementIndex particleIndex,
     vec2f const & targetScreenCoordinates)
@@ -349,6 +370,8 @@ void LabController::SetParticleTrajectory(
     mCurrentParticleTrajectory.emplace(
         particleIndex,
         ScreenToWorld(targetScreenCoordinates));
+
+    mCurrentParticleTrajectoryNotification.reset();
 }
 
 void LabController::QueryNearestParticleAt(vec2f const & screenCoordinates) const

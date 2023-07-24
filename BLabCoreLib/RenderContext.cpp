@@ -115,7 +115,9 @@ RenderContext::RenderContext(
 
     glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleAttributeGroup1));
     glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(ParticleTrajectoryVertex), (void *)0);
-    static_assert(sizeof(ParticleTrajectoryVertex) == 4 * sizeof(float));
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleAttributeGroup2));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleAttributeGroup2), 4, GL_FLOAT, GL_FALSE, sizeof(ParticleTrajectoryVertex), (void *)(4 * sizeof(float)));
+    static_assert(sizeof(ParticleTrajectoryVertex) == (4 + 4) * sizeof(float));
 
     glBindVertexArray(0);
 
@@ -420,7 +422,8 @@ void RenderContext::UploadParticleTrajectoriesStart()
 
 void RenderContext::UploadParticleTrajectory(
     vec2f const & startPosition,
-    vec2f const & endPosition)
+    vec2f const & endPosition,
+    rgbaColor const & color)
 {
     vec2f const trajectoryVector = endPosition - startPosition;
     vec2f const edgeNormal = trajectoryVector.to_perpendicular().normalise() * LabParameters::ParticleTrajectoryThickness / 2.0f;
@@ -430,35 +433,43 @@ void RenderContext::UploadParticleTrajectory(
     vec2f const topLeft = endPosition - edgeNormal;
     vec2f const topRight = endPosition + edgeNormal;
 
+    vec4f const colorf = color.toVec4f();
+
     // Left, bottom
     mParticleTrajectoryVertexBuffer.emplace_back(
         bottomLeft,
-        vec2f(-1.0f, -1.0f));
+        vec2f(-1.0f, -1.0f),
+        colorf);
 
     // Left, top
     mParticleTrajectoryVertexBuffer.emplace_back(
         topLeft,
-        vec2f(-1.0f, 1.0f));
+        vec2f(-1.0f, 1.0f),
+        colorf);
 
     // Right, bottom
     mParticleTrajectoryVertexBuffer.emplace_back(
         bottomRight,
-        vec2f(1.0f, -1.0f));
+        vec2f(1.0f, -1.0f),
+        colorf);
 
     // Left, top
     mParticleTrajectoryVertexBuffer.emplace_back(
         topLeft,
-        vec2f(-1.0f, 1.0f));
+        vec2f(-1.0f, 1.0f),
+        colorf);
 
     // Right, bottom
     mParticleTrajectoryVertexBuffer.emplace_back(
         bottomRight,
-        vec2f(1.0f, -1.0f));
+        vec2f(1.0f, -1.0f),
+        colorf);
 
     // Right, top
     mParticleTrajectoryVertexBuffer.emplace_back(
         topRight,
-        vec2f(1.0f, 1.0f));
+        vec2f(1.0f, 1.0f),
+        colorf);
 }
 
 void RenderContext::UploadParticleTrajectoriesEnd()

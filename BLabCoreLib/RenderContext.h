@@ -163,7 +163,8 @@ public:
 
     void UploadParticleTrajectory(
         vec2f const & startPosition,
-        vec2f const & endPosition);
+        vec2f const & endPosition,
+        rgbaColor const & color);
 
     void UploadParticleTrajectoriesEnd();
 
@@ -299,12 +300,15 @@ private:
     {
         vec2f Position;
         vec2f VertexSpacePosition;
+        vec4f Color;
 
         ParticleTrajectoryVertex(
             vec2f const & position,
-            vec2f const & vertexSpacePosition)
+            vec2f const & vertexSpacePosition,
+            vec4f const & color)
             : Position(position)
             , VertexSpacePosition(vertexSpacePosition)
+            , Color(color)
         {}
     };
 

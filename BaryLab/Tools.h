@@ -369,7 +369,7 @@ public:
                 // Engaged
                 //
 
-                mLabController->SetParticleTrajectory(
+                mLabController->NotifyParticleTrajectory(
                     *mCurrentSelectedParticle,
                     mousePosition);
             }

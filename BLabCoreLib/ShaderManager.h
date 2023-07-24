@@ -55,6 +55,7 @@ public:
         ParticleAttributeGroup2 = 1,
 
         ParticleTrajectoryAttributeGroup1 = 0,
+        ParticleTrajectoryAttributeGroup2 = 1,
 
         SelectedTriangleAttributeGroup1 = 0,
 
