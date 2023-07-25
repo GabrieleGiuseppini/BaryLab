@@ -16,6 +16,8 @@ void Particles::Add(
     mWorldForceBuffer.emplace_back(vec2f::zero());
 
     mRenderColorBuffer.emplace_back(color);
+
+    mStateBuffer.emplace_back(std::nullopt);
 }
 
 void Particles::Query(ElementIndex particleElementIndex) const

@@ -26,7 +26,12 @@ struct IEventHandler
         // Default-implemented
     }
 
-    virtual void OnSubjectParticleBarycentricCoordinatesChanged(std::optional<vec3f> const & /*coordinates*/)
+    virtual void OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(std::optional<vec3f> const & /*coordinates*/)
+    {
+        // Default implemented
+    }
+
+    virtual void OnSubjectParticleUpdated(std::optional<ParticleProbe> const & /*particleProbe*/)
     {
         // Default implemented
     }

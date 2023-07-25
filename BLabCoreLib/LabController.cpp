@@ -119,7 +119,7 @@ void LabController::Update()
             mModel->GetMesh().GetVertices());
     }
 
-    mEventDispatcher.OnSubjectParticleBarycentricCoordinatesChanged(barycentricCoordinates);
+    mEventDispatcher.OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(barycentricCoordinates);
 }
 
 void LabController::Render()
@@ -216,7 +216,20 @@ void LabController::Render()
             mRenderContext->UploadSelectedTriangle(
                 mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexAIndex(*mCurrentOriginTriangle)),
                 mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexBIndex(*mCurrentOriginTriangle)),
-                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexCIndex(*mCurrentOriginTriangle)));
+                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexCIndex(*mCurrentOriginTriangle)),
+                rgbaColor(227, 107, 107, 77));
+        }
+
+        assert(mModel->GetParticles().GetElementCount() > 0);
+        if (mModel->GetParticles().GetState(0).has_value())
+        {
+            auto const t = mModel->GetParticles().GetState(0)->CurrentTriangle;
+
+            mRenderContext->UploadSelectedTriangle(
+                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexAIndex(t)),
+                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexBIndex(t)),
+                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexCIndex(t)),
+                rgbaColor(227, 107, 107, 200));
         }
 
         mRenderContext->UploadSelectedTrianglesEnd();        
@@ -275,6 +288,9 @@ void LabController::MoveVertexBy(
     mModel->GetMesh().GetVertices().SetPosition(
         vertexIndex,
         mModel->GetMesh().GetVertices().GetPosition(vertexIndex) + worldOffset);
+
+    assert(mModel->GetParticles().GetElementCount() >= 1);
+    InitializeParticleState(0);
 }
 
 bool LabController::TrySelectOriginTriangle(vec2f const & screenCoordinates)
@@ -283,17 +299,11 @@ bool LabController::TrySelectOriginTriangle(vec2f const & screenCoordinates)
 
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
-    for (auto const t : mModel->GetMesh().GetTriangles())
+    ElementIndex const t = FindTriangleContaining(worldCoordinates);
+    if (t != NoneElementIndex)
     {
-        if (Geometry::IsPointInTriangle(
-            worldCoordinates,
-            mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexAIndex(t)),
-            mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexBIndex(t)),
-            mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexCIndex(t))))
-        {
-            mCurrentOriginTriangle = t;
-            return true;
-        }
+        mCurrentOriginTriangle = t;
+        return true;
     }
 
     mCurrentOriginTriangle.reset();
@@ -350,6 +360,8 @@ void LabController::MoveParticleBy(
     mModel->GetParticles().SetVelocity(
         particleIndex, 
         worldStride / LabParameters::SimulationTimeStepDuration * 0.5f); // Magic adjustment
+
+    InitializeParticleState(particleIndex);
 }
 
 void LabController::NotifyParticleTrajectory(
@@ -372,6 +384,8 @@ void LabController::SetParticleTrajectory(
         ScreenToWorld(targetScreenCoordinates));
 
     mCurrentParticleTrajectoryNotification.reset();
+
+    InitializeParticleState(particleIndex);
 }
 
 void LabController::QueryNearestParticleAt(vec2f const & screenCoordinates) const
@@ -438,4 +452,21 @@ void LabController::Reset(
     //
 
     mEventDispatcher.OnReset();
+}
+
+ElementIndex LabController::FindTriangleContaining(vec2f const & position) const
+{
+    for (auto const t : mModel->GetMesh().GetTriangles())
+    {
+        if (Geometry::IsPointInTriangle(
+            position,
+            mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexAIndex(t)),
+            mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexBIndex(t)),
+            mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexCIndex(t))))
+        {
+            return t;
+        }
+    }
+
+    return NoneElementIndex;
 }

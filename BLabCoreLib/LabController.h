@@ -159,7 +159,17 @@ private:
         std::unique_ptr<Model> newModel,
         std::filesystem::path const & meshDefinitionFilepath);
 
+    ElementIndex FindTriangleContaining(vec2f const & position) const;
+
+    //
+    // Simulation
+    //
+
+    void InitializeParticleState(ElementIndex particleIndex);
+
     void UpdateSimulation(LabParameters const & labParameters);
+
+    bool UpdateParticleState(ElementIndex particleIndex);
 
 private:
     

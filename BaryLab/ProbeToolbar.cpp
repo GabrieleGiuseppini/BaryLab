@@ -36,6 +36,8 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
     // Setup UI
     //
 
+    int constexpr TextCtrlWidth = 100;
+
     {
         int constexpr HMargin = 10;
 
@@ -43,10 +45,8 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
 
         hSizer->AddSpacer(HMargin);
 
-        // Fixed scalars
+        // Origin triangle
         {
-            int constexpr TextCtrlWidth = 100;
-
             wxGridBagSizer * gridSizer = new wxGridBagSizer(0, 0);
 
             // L1
@@ -54,15 +54,15 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                 auto label = new wxStaticText(this, wxID_ANY, _("l1:"));
                 gridSizer->Add(
                     label,
-                    wxGBPosition(0, 0),
+                    wxGBPosition(1, 0),
                     wxGBSpan(1, 1),
                     wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
                     0);
 
-                mBarycentricCoordinateL1TextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
+                mOriginTriangleBarycentricCoordinateL1TextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
                 gridSizer->Add(
-                    mBarycentricCoordinateL1TextCtrl,
-                    wxGBPosition(0, 1),
+                    mOriginTriangleBarycentricCoordinateL1TextCtrl,
+                    wxGBPosition(1, 1),
                     wxGBSpan(1, 1),
                     wxEXPAND,
                     0);
@@ -73,15 +73,15 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                 auto label = new wxStaticText(this, wxID_ANY, _("l2:"));
                 gridSizer->Add(
                     label,
-                    wxGBPosition(1, 0),
+                    wxGBPosition(2, 0),
                     wxGBSpan(1, 1),
                     wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
                     0);
 
-                mBarycentricCoordinateL2TextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
+                mOriginTriangleBarycentricCoordinateL2TextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
                 gridSizer->Add(
-                    mBarycentricCoordinateL2TextCtrl,
-                    wxGBPosition(1, 1),
+                    mOriginTriangleBarycentricCoordinateL2TextCtrl,
+                    wxGBPosition(2, 1),
                     wxGBSpan(1, 1),
                     wxEXPAND,
                     0);
@@ -92,15 +92,115 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                 auto label = new wxStaticText(this, wxID_ANY, _("l3:"));
                 gridSizer->Add(
                     label,
+                    wxGBPosition(3, 0),
+                    wxGBSpan(1, 1),
+                    wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
+                    0);
+
+                mOriginTriangleBarycentricCoordinateL3TextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
+                gridSizer->Add(
+                    mOriginTriangleBarycentricCoordinateL3TextCtrl,
+                    wxGBPosition(3, 1),
+                    wxGBSpan(1, 1),
+                    wxEXPAND,
+                    0);
+            }
+
+            {
+                // Empty
+                gridSizer->Add(
+                    TextCtrlWidth,
+                    mOriginTriangleBarycentricCoordinateL1TextCtrl->GetSize().GetHeight(),
+                    wxGBPosition(0, 0),
+                    wxGBSpan(1, 2),
+                    wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
+                    0);
+            }
+
+            hSizer->Add(
+                gridSizer,
+                0,
+                0,
+                0);
+        }
+
+        hSizer->AddSpacer(HMargin);
+
+        // Probe
+        {
+            wxGridBagSizer * gridSizer = new wxGridBagSizer(0, 0);
+
+            // Triangle index
+            {
+                auto label = new wxStaticText(this, wxID_ANY, _("t:"));
+                gridSizer->Add(
+                    label,
+                    wxGBPosition(0, 0),
+                    wxGBSpan(1, 1),
+                    wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
+                    0);
+
+                mProbeTriangleIndexTextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
+                gridSizer->Add(
+                    mProbeTriangleIndexTextCtrl,
+                    wxGBPosition(0, 1),
+                    wxGBSpan(1, 1),
+                    wxEXPAND,
+                    0);
+            }
+
+            // L1
+            {
+                auto label = new wxStaticText(this, wxID_ANY, _("l1:"));
+                gridSizer->Add(
+                    label,
+                    wxGBPosition(1, 0),
+                    wxGBSpan(1, 1),
+                    wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
+                    0);
+
+                mProbeBarycentricCoordinateL1TextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
+                gridSizer->Add(
+                    mProbeBarycentricCoordinateL1TextCtrl,
+                    wxGBPosition(1, 1),
+                    wxGBSpan(1, 1),
+                    wxEXPAND,
+                    0);
+            }
+
+            // L2
+            {
+                auto label = new wxStaticText(this, wxID_ANY, _("l2:"));
+                gridSizer->Add(
+                    label,
                     wxGBPosition(2, 0),
                     wxGBSpan(1, 1),
                     wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
                     0);
 
-                mBarycentricCoordinateL3TextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
+                mProbeBarycentricCoordinateL2TextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
                 gridSizer->Add(
-                    mBarycentricCoordinateL3TextCtrl,
+                    mProbeBarycentricCoordinateL2TextCtrl,
                     wxGBPosition(2, 1),
+                    wxGBSpan(1, 1),
+                    wxEXPAND,
+                    0);
+            }
+
+            // L3
+            {
+                auto label = new wxStaticText(this, wxID_ANY, _("l3:"));
+                gridSizer->Add(
+                    label,
+                    wxGBPosition(3, 0),
+                    wxGBSpan(1, 1),
+                    wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
+                    0);
+
+                mProbeBarycentricCoordinateL3TextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
+                gridSizer->Add(
+                    mProbeBarycentricCoordinateL3TextCtrl,
+                    wxGBPosition(3, 1),
                     wxGBSpan(1, 1),
                     wxEXPAND,
                     0);
@@ -113,7 +213,9 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                 0);
         }
 
-        // Probes
+        hSizer->AddSpacer(HMargin);
+
+        // Custom probes
         {
             mProbesSizer = new wxBoxSizer(wxHORIZONTAL);
 
@@ -178,9 +280,14 @@ std::unique_ptr<ScalarTimeSeriesProbeControl> ProbeToolbar::AddScalarTimeSeriesP
 
 void ProbeToolbar::OnReset()
 {
-    mBarycentricCoordinateL1TextCtrl->SetValue("");
-    mBarycentricCoordinateL2TextCtrl->SetValue("");
-    mBarycentricCoordinateL3TextCtrl->SetValue("");
+    mOriginTriangleBarycentricCoordinateL1TextCtrl->SetValue("");
+    mOriginTriangleBarycentricCoordinateL2TextCtrl->SetValue("");
+    mOriginTriangleBarycentricCoordinateL3TextCtrl->SetValue("");
+
+    mProbeTriangleIndexTextCtrl->SetValue("");
+    mProbeBarycentricCoordinateL1TextCtrl->SetValue("");
+    mProbeBarycentricCoordinateL2TextCtrl->SetValue("");
+    mProbeBarycentricCoordinateL3TextCtrl->SetValue("");
 
     for (auto const & p : mCustomProbes)
     {
@@ -188,7 +295,7 @@ void ProbeToolbar::OnReset()
     }
 }
 
-void ProbeToolbar::OnSubjectParticleBarycentricCoordinatesChanged(std::optional<vec3f> const & coordinates)
+void ProbeToolbar::OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(std::optional<vec3f> const & coordinates)
 {
     std::string l1;
     std::string l2;
@@ -221,10 +328,58 @@ void ProbeToolbar::OnSubjectParticleBarycentricCoordinatesChanged(std::optional<
         }
     }
 
-    mBarycentricCoordinateL1TextCtrl->SetValue(l1);
-    mBarycentricCoordinateL2TextCtrl->SetValue(l2);
-    mBarycentricCoordinateL3TextCtrl->SetValue(l3);
+    mOriginTriangleBarycentricCoordinateL1TextCtrl->SetValue(l1);
+    mOriginTriangleBarycentricCoordinateL2TextCtrl->SetValue(l2);
+    mOriginTriangleBarycentricCoordinateL3TextCtrl->SetValue(l3);
 }
+
+void ProbeToolbar::OnSubjectParticleUpdated(std::optional<ParticleProbe> const & particleProbe)
+{
+    std::string tIndex;
+    std::string l1;
+    std::string l2;
+    std::string l3;
+
+    if (particleProbe)
+    {
+        {
+            std::ostringstream ss;
+            ss << particleProbe->CurrentTriangle;
+
+            tIndex = ss.str();
+        }
+
+        {
+            std::ostringstream ss;
+            ss.fill('0');
+            ss << std::fixed << std::setprecision(2) << particleProbe->CurrentTriangleBarycentricCoords.x;
+
+            l1 = ss.str();
+        }
+
+        {
+            std::ostringstream ss;
+            ss.fill('0');
+            ss << std::fixed << std::setprecision(2) << particleProbe->CurrentTriangleBarycentricCoords.y;
+
+            l2 = ss.str();
+        }
+
+        {
+            std::ostringstream ss;
+            ss.fill('0');
+            ss << std::fixed << std::setprecision(2) << particleProbe->CurrentTriangleBarycentricCoords.z;
+
+            l3 = ss.str();
+        }
+    }
+
+    mProbeTriangleIndexTextCtrl->SetValue(tIndex);
+    mProbeBarycentricCoordinateL1TextCtrl->SetValue(l1);
+    mProbeBarycentricCoordinateL2TextCtrl->SetValue(l2);
+    mProbeBarycentricCoordinateL3TextCtrl->SetValue(l3);
+}
+
 
 void ProbeToolbar::OnCustomProbe(
     std::string const & name,

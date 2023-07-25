@@ -135,7 +135,9 @@ RenderContext::RenderContext(
 
     glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::SelectedTriangleAttributeGroup1));
     glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::SelectedTriangleAttributeGroup1), 2, GL_FLOAT, GL_FALSE, sizeof(SelectedTriangleVertex), (void *)0);
-    static_assert(sizeof(SelectedTriangleVertex) == 2 * sizeof(float));
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::SelectedTriangleAttributeGroup2));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::SelectedTriangleAttributeGroup2), 4, GL_FLOAT, GL_FALSE, sizeof(SelectedTriangleVertex), (void *)(2 * sizeof(float)));
+    static_assert(sizeof(SelectedTriangleVertex) ==(2 + 4) * sizeof(float));
 
     glBindVertexArray(0);
 
@@ -498,11 +500,14 @@ void RenderContext::UploadSelectedTrianglesStart()
 void RenderContext::UploadSelectedTriangle(
     vec2f const & endpointAPosition,
     vec2f const & endpointBPosition,
-    vec2f const & endpointCPosition)
+    vec2f const & endpointCPosition,
+    rgbaColor const & color)
 {
-    mSelectedTriangleVertexBuffer.emplace_back(endpointAPosition);
-    mSelectedTriangleVertexBuffer.emplace_back(endpointBPosition);
-    mSelectedTriangleVertexBuffer.emplace_back(endpointCPosition);
+    auto const colorf = color.toVec4f();
+
+    mSelectedTriangleVertexBuffer.emplace_back(endpointAPosition, colorf);
+    mSelectedTriangleVertexBuffer.emplace_back(endpointBPosition, colorf);
+    mSelectedTriangleVertexBuffer.emplace_back(endpointCPosition, colorf);
 }
 
 void RenderContext::UploadSelectedTrianglesEnd()

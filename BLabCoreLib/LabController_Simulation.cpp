@@ -5,27 +5,81 @@
  ***************************************************************************************/
 #include "LabController.h"
 
-void LabController::UpdateSimulation(LabParameters const & labParameters)
+void LabController::InitializeParticleState(ElementIndex particleIndex)
 {
-    float const dt = LabParameters::SimulationTimeStepDuration;
+    ElementIndex const triangleIndex = FindTriangleContaining(mModel->GetParticles().GetPosition(particleIndex));
 
-    //
-    // Particles
-    //
+    if (mCurrentParticleTrajectory.has_value()
+        && triangleIndex != NoneElementIndex)
+    {
+        vec3f const barycentricCoords = mModel->GetMesh().GetTriangles().ToBarycentricCoordinates(
+            mModel->GetParticles().GetPosition(particleIndex),
+            triangleIndex,
+            mModel->GetMesh().GetVertices());
+
+        mModel->GetParticles().GetState(particleIndex).emplace(
+            triangleIndex,
+            barycentricCoords,
+            mCurrentParticleTrajectory->TargetPosition);
+
+        mEventDispatcher.OnSubjectParticleUpdated(
+            ParticleProbe(
+                triangleIndex,
+                barycentricCoords));
+    }
+    else
+    {
+        mModel->GetParticles().GetState(particleIndex).reset();
+
+        mEventDispatcher.OnSubjectParticleUpdated(std::nullopt);
+    }
+}
+
+void LabController::UpdateSimulation(LabParameters const & /*labParameters*/)
+{
+    //////
+    ////// Particle physics
+    //////
+
+    ////float const dt = LabParameters::SimulationTimeStepDuration;
+
+    ////auto & particles = mModel->GetParticles();
+
+    ////float const particleMass = LabParameters::ParticleMass * labParameters.MassAdjustment;
+
+    ////for (auto const & p : particles)
+    ////{
+    ////    vec2f const forces = particles.GetWorldForce(p) * labParameters.GravityAdjustment;
+
+    ////    vec2f const deltaPos =
+    ////        particles.GetVelocity(p) * dt
+    ////        + forces / LabParameters::ParticleMass * dt * dt;
+
+    ////    particles.SetPosition(p, particles.GetPosition(p) + deltaPos);
+    ////    particles.SetVelocity(p, deltaPos / dt);
+    ////}
 
     auto & particles = mModel->GetParticles();
 
-    float const particleMass = LabParameters::ParticleMass * labParameters.MassAdjustment;
-
     for (auto const & p : particles)
     {
-        vec2f const forces = particles.GetWorldForce(p) * labParameters.GravityAdjustment;
-
-        vec2f const deltaPos =
-            particles.GetVelocity(p) * dt
-            + forces / LabParameters::ParticleMass * dt * dt;
-
-        particles.SetPosition(p, particles.GetPosition(p) + deltaPos);
-        particles.SetVelocity(p, deltaPos / dt);
+        if (particles.GetState(p).has_value())
+        {
+            bool hasCompleted = UpdateParticleState(p);
+            if (hasCompleted)
+            {
+                // Reset state
+                particles.GetState(p).reset();
+                mCurrentParticleTrajectory.reset();
+                mEventDispatcher.OnSubjectParticleUpdated(std::nullopt);
+            }
+        }
     }
+}
+
+bool LabController::UpdateParticleState(ElementIndex particleIndex)
+{
+    // TODOHERE
+    (void)particleIndex;
+    return true;
 }

@@ -28,11 +28,19 @@ public:
         }
     }
 
-    void OnSubjectParticleBarycentricCoordinatesChanged(std::optional<vec3f> const & coordinates) override
+    void OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(std::optional<vec3f> const & coordinates) override
     {
         for (auto sink : mSinks)
         {
-            sink->OnSubjectParticleBarycentricCoordinatesChanged(coordinates);
+            sink->OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(coordinates);
+        }
+    }
+
+    void OnSubjectParticleUpdated(std::optional<ParticleProbe> const & particleProbe) override
+    {
+        for (auto sink : mSinks)
+        {
+            sink->OnSubjectParticleUpdated(particleProbe);
         }
     }
 

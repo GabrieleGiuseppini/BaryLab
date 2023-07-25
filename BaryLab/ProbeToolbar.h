@@ -37,7 +37,9 @@ public:
 
     void OnReset() override;
 
-    void OnSubjectParticleBarycentricCoordinatesChanged(std::optional<vec3f> const & coordinates) override;
+    void OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(std::optional<vec3f> const & coordinates) override;
+
+    void OnSubjectParticleUpdated(std::optional<ParticleProbe> const & particleProbe) override;
 
     void OnCustomProbe(
         std::string const & name,
@@ -60,9 +62,14 @@ private:
     // UI
     //
 
-    wxTextCtrl * mBarycentricCoordinateL1TextCtrl;
-    wxTextCtrl * mBarycentricCoordinateL2TextCtrl;
-    wxTextCtrl * mBarycentricCoordinateL3TextCtrl;    
+    wxTextCtrl * mOriginTriangleBarycentricCoordinateL1TextCtrl;
+    wxTextCtrl * mOriginTriangleBarycentricCoordinateL2TextCtrl;
+    wxTextCtrl * mOriginTriangleBarycentricCoordinateL3TextCtrl;
+
+    wxTextCtrl * mProbeTriangleIndexTextCtrl;
+    wxTextCtrl * mProbeBarycentricCoordinateL1TextCtrl;
+    wxTextCtrl * mProbeBarycentricCoordinateL2TextCtrl;
+    wxTextCtrl * mProbeBarycentricCoordinateL3TextCtrl;
 
     std::unordered_map<std::string, std::unique_ptr<ScalarTimeSeriesProbeControl>> mCustomProbes;
 

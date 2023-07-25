@@ -21,6 +21,24 @@ class Particles : public ElementContainer
 {
 public:
 
+    struct State
+    {
+        ElementIndex CurrentTriangle;
+        vec3f CurrentTriangleBarycentricCoords;
+        vec2f TargetPosition;
+
+        State(
+            ElementIndex currentTriangle,
+            vec3f const & currentTriangleBarycentricCoords,
+            vec2f const & targetPosition)
+            : CurrentTriangle(currentTriangle)
+            , CurrentTriangleBarycentricCoords(currentTriangleBarycentricCoords)
+            , TargetPosition(targetPosition)
+        {}
+    };
+
+public:
+
     Particles(ElementCount particleCount)
         : ElementContainer(particleCount)
         //////////////////////////////////
@@ -32,6 +50,8 @@ public:
         , mWorldForceBuffer(mBufferElementCount, particleCount, vec2f::zero())
         // Render
         , mRenderColorBuffer(mBufferElementCount, particleCount, rgbaColor::zero())
+        // State
+        , mStateBuffer(mBufferElementCount, particleCount, std::nullopt)
     {
     }
 
@@ -131,6 +151,20 @@ public:
         return mRenderColorBuffer.data();
     }
 
+    //
+    // State
+    //
+
+    std::optional<State> const & GetState(ElementIndex particleElementIndex) const
+    {
+        return mStateBuffer[particleElementIndex];
+    }
+
+    std::optional<State> & GetState(ElementIndex particleElementIndex)
+    {
+        return mStateBuffer[particleElementIndex];
+    }
+
 private:
 
     //////////////////////////////////////////////////////////
@@ -150,4 +184,10 @@ private:
     //
 
     Buffer<rgbaColor> mRenderColorBuffer;
+
+    //
+    // State
+    //
+
+    Buffer<std::optional<State>> mStateBuffer;
 };

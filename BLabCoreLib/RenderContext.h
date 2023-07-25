@@ -173,7 +173,8 @@ public:
     void UploadSelectedTriangle(
         vec2f const & endpointAPosition,
         vec2f const & endpointBPosition,
-        vec2f const & endpointCPosition);
+        vec2f const & endpointCPosition,
+        rgbaColor const & particleColor);
 
     void UploadSelectedTrianglesEnd();
 
@@ -328,10 +329,13 @@ private:
     struct SelectedTriangleVertex
     {
         vec2f Position;
+        vec4f Color;
 
         SelectedTriangleVertex(
-            vec2f const & position)
+            vec2f const & position,
+            vec4f const & color)
             : Position(position)
+            , Color(color)
         {}
     };
 

@@ -53,6 +53,19 @@ enum class SimulationControlStateType
     Play
 };
 
+struct ParticleProbe
+{
+    ElementIndex CurrentTriangle;
+    vec3f CurrentTriangleBarycentricCoords;
+
+    ParticleProbe(
+        ElementIndex currentTriangle,
+        vec3f const & currentTriangleBarycentricCoords)
+        : CurrentTriangle(currentTriangle)
+        , CurrentTriangleBarycentricCoords(currentTriangleBarycentricCoords)
+    {}
+};
+
 struct ParticleTrajectory
 {
     ElementIndex ParticleIndex;

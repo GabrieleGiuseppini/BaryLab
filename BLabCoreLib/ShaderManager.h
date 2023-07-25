@@ -58,6 +58,7 @@ public:
         ParticleTrajectoryAttributeGroup2 = 1,
 
         SelectedTriangleAttributeGroup1 = 0,
+        SelectedTriangleAttributeGroup2 = 1,
 
         GridAttributeGroup1 = 0
     };
