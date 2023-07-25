@@ -1,6 +1,6 @@
 
 - Particle state machine:
-	- Particle::StateType struct
+	- Particles::StateType struct
 		- Stored in buffer as opt<.>
 	- Initialized at SetTrajectory (i.e. the final call), and at Move Particle and Move Vertex
 		- Only initialized if there is a trajectory, and if particle is in a triangle
@@ -8,11 +8,36 @@
 		- Current triangle
 		- Current barycentric coords
 		- Target position (copy of trajectory)
-	- Update:
+	- LabController::Update:
 		- For each particle that has a state:
-			- UpdateParticleState(.)
-	- UpdateParticleState:
-		- TODOHERE
+			- bool isCompleted = LabController::UpdateParticleState(.)
+			- if isComplete:
+				- Reset particle state
+				- Reset trajectory
+	- LabController::UpdateParticleState:
+		- If not in triangle:
+			- Move to target
+		- If @ target:
+			return true
+		- assert(InTriangle)
+		- if on floor spring (based on current bary coords):
+			return true
+		- Calc bary coords of target wrt current triangle
+		- If stricly inside:
+			- Move to target
+			- return true
+		- Find edge & coords on it
+		- Move to edge (pos + cur bary coords)
+		- If edge is floor:
+			- // Impact			
+			- return false
+		- Find next triangle
+		- If no triangle found:
+			- // Become free
+			- Reset current triangle
+			- return false
+		- Move to edge of that next triangle (cur triangle + cur bary coords)
+		- return false
 
 
 - Facilities to display:
