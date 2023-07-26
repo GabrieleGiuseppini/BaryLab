@@ -159,11 +159,11 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
     //
 
     ElementIndex tEdgeIndex;
-    float intersectionT;
+    vec3f intersectionBarycentricCoords;
 
     // TODOTEST
     tEdgeIndex = 0;
-    intersectionT = 0.0f;
+    intersectionBarycentricCoords = vec3f::zero();
 
     if (targetBarycentricCoords.x <= 0.0f)
     {
@@ -208,8 +208,11 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
                 // TODO
                 assert(false);
             }
-
-            intersectionT = state->ConstrainedState->CurrentTriangleBarycentricCoords.x / den;
+            float const intersectionT = state->ConstrainedState->CurrentTriangleBarycentricCoords.x / den;
+            intersectionBarycentricCoords = vec3f(
+                0.0f,
+                state->ConstrainedState->CurrentTriangleBarycentricCoords.y * (1.0f - intersectionT) + targetBarycentricCoords.y * intersectionT,
+                state->ConstrainedState->CurrentTriangleBarycentricCoords.z * (1.0f - intersectionT) + targetBarycentricCoords.z * intersectionT);
         }
     }
     else if (targetBarycentricCoords.y <= 0.0f)
@@ -245,7 +248,11 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
                 assert(false);
             }
 
-            intersectionT = state->ConstrainedState->CurrentTriangleBarycentricCoords.y / den;
+            float const intersectionT = state->ConstrainedState->CurrentTriangleBarycentricCoords.y / den;
+            intersectionBarycentricCoords = vec3f(
+                state->ConstrainedState->CurrentTriangleBarycentricCoords.x * (1.0f - intersectionT) + targetBarycentricCoords.x * intersectionT,
+                0.0f,
+                state->ConstrainedState->CurrentTriangleBarycentricCoords.z * (1.0f - intersectionT) + targetBarycentricCoords.z * intersectionT);
         }
     }
     else
@@ -268,15 +275,15 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
             assert(false);
         }
 
-        intersectionT = state->ConstrainedState->CurrentTriangleBarycentricCoords.z / den;
+        float const intersectionT = state->ConstrainedState->CurrentTriangleBarycentricCoords.z / den;
+        intersectionBarycentricCoords = vec3f(
+            state->ConstrainedState->CurrentTriangleBarycentricCoords.x * (1.0f - intersectionT) + targetBarycentricCoords.x * intersectionT,
+            state->ConstrainedState->CurrentTriangleBarycentricCoords.y * (1.0f - intersectionT) + targetBarycentricCoords.y * intersectionT,
+            0.0f);
     }
 
-    // TODO: since we want to move to a position that is unambiguously over an edge, we need to 
-    // construct the intersection barycentric coords from above
-
-    vec3f const intersectionBarycentricCoords =
-        state->ConstrainedState->CurrentTriangleBarycentricCoords * (1.0f - intersectionT)
-        + targetBarycentricCoords * intersectionT;
+    // Normalize barycentric coords
+    intersectionBarycentricCoords.z = 1.0f - intersectionBarycentricCoords.x - intersectionBarycentricCoords.y;
 
     //
     // Move to intersection point

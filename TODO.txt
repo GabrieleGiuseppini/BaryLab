@@ -36,11 +36,10 @@
 			+ Move to target
 			+ return true
 		= Find hit edge & coords on it
-		= Move to edge (pos + cur bary coords)
-			--- TODOHERE: need to make sure opposite coord is exactly zero
-		- If edge is floor:
-			- // Impact			
-			- return false
+		+ Move to edge (pos + cur bary coords)
+		+ If edge is floor:
+			+ // Impact			
+			+ return false
 		- Find next triangle
 		- If no triangle found:
 			- // Become free

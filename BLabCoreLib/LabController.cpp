@@ -89,8 +89,7 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
             + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexCIndex(0))) / 3.0f;
 
         particles->Add(center, rgbaColor(0x60, 0x60, 0x60, 0xff));
-    }
-    mCurrentlySelectedParticleProbe.emplace(0);
+    }    
 
     // Create a new model
     std::unique_ptr<Model> newModel = std::make_unique<Model>(
@@ -452,7 +451,14 @@ void LabController::Reset(
 
     mModel.reset();
     mModel = std::move(newModel);
-    mCurrentMeshFilePath = meshDefinitionFilepath;
+    mCurrentMeshFilePath = meshDefinitionFilepath;    
+
+    // Reset state
+    assert(mModel->GetParticles().GetElementCount() == 1);
+    mCurrentlySelectedParticleProbe.emplace(0);
+    mCurrentOriginTriangle.reset();
+    mCurrentParticleTrajectory.reset();
+    mCurrentParticleTrajectoryNotification.reset();
 
     //
     // Auto-zoom & center
