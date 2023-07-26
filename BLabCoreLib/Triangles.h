@@ -116,7 +116,12 @@ public:
     vec3f ToBarycentricCoordinates(
         vec2f const & position,
         ElementIndex triangleElementIndex,
-        Vertices const & vertices);
+        Vertices const & vertices) const;
+
+    vec2f FromBarycentricCoordinates(
+        vec3f const & barycentricCoordinates,
+        ElementIndex triangleElementIndex,
+        Vertices const & vertices) const;
 
     //
     // Sub edges

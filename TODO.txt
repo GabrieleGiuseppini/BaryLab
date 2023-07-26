@@ -28,14 +28,15 @@
 		+ If @ target:
 			+ return true
 		+ assert(InTriangle)
-		+ If on floor spring (based on current bary coords):
+		--- TODOHERE: next is broken: only valid if direction is outside of the edge
+		+ If on floor edge (based on current bary coords):
 			+ return true
 		+ Calc bary coords of target wrt current triangle
 		+ If stricly inside:
 			+ Move to target
 			+ return true
-		- Find hit edge & coords on it
-		- Move to edge (pos + cur bary coords)
+		= Find hit edge & coords on it
+		+ Move to edge (pos + cur bary coords)
 		- If edge is floor:
 			- // Impact			
 			- return false

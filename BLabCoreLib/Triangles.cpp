@@ -20,7 +20,7 @@ void Triangles::Add(
 vec3f Triangles::ToBarycentricCoordinates(
     vec2f const & position,
     ElementIndex triangleElementIndex,
-    Vertices const & vertices)
+    Vertices const & vertices) const
 {
     vec2f const & positionA = vertices.GetPosition(mEndpointsBuffer[triangleElementIndex].VertexIndices[0]);
     vec2f const & positionB = vertices.GetPosition(mEndpointsBuffer[triangleElementIndex].VertexIndices[1]);
@@ -50,4 +50,19 @@ vec3f Triangles::ToBarycentricCoordinates(
         l1,
         l2,
         l3);
+}
+
+vec2f Triangles::FromBarycentricCoordinates(
+    vec3f const & barycentricCoordinates,
+    ElementIndex triangleElementIndex,
+    Vertices const & vertices) const
+{
+    vec2f const & positionA = vertices.GetPosition(mEndpointsBuffer[triangleElementIndex].VertexIndices[0]);
+    vec2f const & positionB = vertices.GetPosition(mEndpointsBuffer[triangleElementIndex].VertexIndices[1]);
+    vec2f const & positionC = vertices.GetPosition(mEndpointsBuffer[triangleElementIndex].VertexIndices[2]);
+
+    return
+        positionA * barycentricCoordinates.x
+        + positionB * barycentricCoordinates.y
+        + positionC * barycentricCoordinates.z;
 }

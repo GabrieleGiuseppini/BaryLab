@@ -218,6 +218,15 @@ public:
     }
 
     //
+    // Properties
+    //
+
+    SurfaceType GetSurfaceType(ElementIndex edgeElementIndex) const
+    {
+        return mSurfaceTypeBuffer[edgeElementIndex];
+    }
+
+    //
     // Render
     //
 

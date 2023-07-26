@@ -75,9 +75,21 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
         std::move(meshDefinition),
         mStructuralMaterialDatabase);
 
-    // Create particles
+    if (mesh->GetTriangles().GetElementCount() < 1)
+    {
+        throw BLabException("Mesh must contain at least one triangle");
+    }
+
+    // Create particle
     std::unique_ptr<Particles> particles = std::make_unique<Particles>(1);
-    particles->Add(vec2f(0.25f, 0.25f), rgbaColor(0x60, 0x60, 0x60, 0xff));
+    {
+        vec2f const center = (
+            mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexAIndex(0))
+            + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexBIndex(0))
+            + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexCIndex(0))) / 3.0f;
+
+        particles->Add(center, rgbaColor(0x60, 0x60, 0x60, 0xff));
+    }
     mCurrentlySelectedParticleProbe.emplace(0);
 
     // Create a new model
@@ -85,9 +97,6 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
         std::move(mesh),
         std::move(particles),
         mEventDispatcher);
-
-    // Select first triangle as origin triangle
-    mCurrentOriginTriangle = 0;
 
     //
     // No errors, so we may continue
@@ -324,9 +333,11 @@ bool LabController::TrySelectOriginTriangle(vec2f const & screenCoordinates)
         mCurrentOriginTriangle = t;
         return true;
     }
-
-    mCurrentOriginTriangle.reset();
-    return false;
+    else
+    {
+        mCurrentOriginTriangle.reset();
+        return false;
+    }
 }
 
 std::optional<ElementIndex> LabController::TryPickParticle(vec2f const & screenCoordinates) const

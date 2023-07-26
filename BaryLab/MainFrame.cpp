@@ -528,7 +528,7 @@ void MainFrame::OnLoadMeshMenuItemSelected(wxCommandEvent & /*event*/)
         mFileOpenDialog = std::make_unique<wxFileDialog>(
             this,
             L"Select Object",
-            wxEmptyString,
+            ResourceLocator::GetInstalledMeshesFolderPath().string(),
             wxEmptyString,
             L"Object files (*.png)|*.png",
             wxFD_OPEN | wxFD_FILE_MUST_EXIST,
