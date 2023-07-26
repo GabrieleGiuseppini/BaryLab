@@ -191,6 +191,10 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
         }
         else
         {
+            assert(targetBarycentricCoords.x <= 0.0f);
+            assert(targetBarycentricCoords.y > 0.0f);
+            assert(targetBarycentricCoords.z > 0.0f);
+
             // B-C edge
 
             LogMessage("  Touch/cross B-C");
@@ -223,6 +227,10 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
         }
         else
         {
+            assert(targetBarycentricCoords.x > 0.0f);
+            assert(targetBarycentricCoords.y <= 0.0f);
+            assert(targetBarycentricCoords.z > 0.0f);
+
             // C-A edge
 
             LogMessage("  Touch/cross C-A");

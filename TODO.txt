@@ -36,7 +36,8 @@
 			+ Move to target
 			+ return true
 		= Find hit edge & coords on it
-		+ Move to edge (pos + cur bary coords)
+		= Move to edge (pos + cur bary coords)
+			--- TODOHERE: need to make sure opposite coord is exactly zero
 		- If edge is floor:
 			- // Impact			
 			- return false
