@@ -186,6 +186,7 @@ private:
     std::unique_ptr<Model> mModel;
     std::optional<std::filesystem::path> mCurrentMeshFilePath;
 
+    std::optional<ElementIndex> mCurrentlySelectedParticleProbe;
     std::optional<ElementIndex> mCurrentOriginTriangle;
 
     std::optional<ParticleTrajectory> mCurrentParticleTrajectory;

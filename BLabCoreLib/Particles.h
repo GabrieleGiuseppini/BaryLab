@@ -21,18 +21,28 @@ class Particles : public ElementContainer
 {
 public:
 
-    struct State
+    struct StateType
     {
-        ElementIndex CurrentTriangle;
-        vec3f CurrentTriangleBarycentricCoords;
+        struct ConstrainedStateType
+        {
+            ElementIndex CurrentTriangle;
+            vec3f CurrentTriangleBarycentricCoords;
+
+            ConstrainedStateType(
+                ElementIndex currentTriangle,
+                vec3f const & currentTriangleBarycentricCoords)
+                : CurrentTriangle(currentTriangle)
+                , CurrentTriangleBarycentricCoords(currentTriangleBarycentricCoords)
+            {}
+        };
+
+        std::optional<ConstrainedStateType> ConstrainedState;
         vec2f TargetPosition;
 
-        State(
-            ElementIndex currentTriangle,
-            vec3f const & currentTriangleBarycentricCoords,
+        StateType(
+            std::optional<ConstrainedStateType> const & constrainedState,
             vec2f const & targetPosition)
-            : CurrentTriangle(currentTriangle)
-            , CurrentTriangleBarycentricCoords(currentTriangleBarycentricCoords)
+            : ConstrainedState(constrainedState)
             , TargetPosition(targetPosition)
         {}
     };
@@ -155,12 +165,12 @@ public:
     // State
     //
 
-    std::optional<State> const & GetState(ElementIndex particleElementIndex) const
+    std::optional<StateType> const & GetState(ElementIndex particleElementIndex) const
     {
         return mStateBuffer[particleElementIndex];
     }
 
-    std::optional<State> & GetState(ElementIndex particleElementIndex)
+    std::optional<StateType> & GetState(ElementIndex particleElementIndex)
     {
         return mStateBuffer[particleElementIndex];
     }
@@ -189,5 +199,5 @@ private:
     // State
     //
 
-    Buffer<std::optional<State>> mStateBuffer;
+    Buffer<std::optional<StateType>> mStateBuffer;
 };

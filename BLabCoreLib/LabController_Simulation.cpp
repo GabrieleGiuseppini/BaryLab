@@ -7,31 +7,31 @@
 
 void LabController::InitializeParticleState(ElementIndex particleIndex)
 {
-    ElementIndex const triangleIndex = FindTriangleContaining(mModel->GetParticles().GetPosition(particleIndex));
-
     if (mCurrentParticleTrajectory.has_value()
-        && triangleIndex != NoneElementIndex)
+        && mCurrentParticleTrajectory->ParticleIndex == particleIndex)
     {
-        vec3f const barycentricCoords = mModel->GetMesh().GetTriangles().ToBarycentricCoordinates(
-            mModel->GetParticles().GetPosition(particleIndex),
-            triangleIndex,
-            mModel->GetMesh().GetVertices());
+        std::optional<Particles::StateType::ConstrainedStateType> constrainedState;
+
+        ElementIndex const triangleIndex = FindTriangleContaining(mModel->GetParticles().GetPosition(particleIndex));
+        if (triangleIndex != NoneElementIndex)
+        {
+            vec3f const barycentricCoords = mModel->GetMesh().GetTriangles().ToBarycentricCoordinates(
+                mModel->GetParticles().GetPosition(particleIndex),
+                triangleIndex,
+                mModel->GetMesh().GetVertices());
+
+            constrainedState.emplace(
+                triangleIndex,
+                barycentricCoords);
+        }
 
         mModel->GetParticles().GetState(particleIndex).emplace(
-            triangleIndex,
-            barycentricCoords,
+            constrainedState,
             mCurrentParticleTrajectory->TargetPosition);
-
-        mEventDispatcher.OnSubjectParticleUpdated(
-            ParticleProbe(
-                triangleIndex,
-                barycentricCoords));
     }
     else
     {
         mModel->GetParticles().GetState(particleIndex).reset();
-
-        mEventDispatcher.OnSubjectParticleUpdated(std::nullopt);
     }
 }
 
@@ -71,7 +71,6 @@ void LabController::UpdateSimulation(LabParameters const & /*labParameters*/)
                 // Reset state
                 particles.GetState(p).reset();
                 mCurrentParticleTrajectory.reset();
-                mEventDispatcher.OnSubjectParticleUpdated(std::nullopt);
             }
         }
     }

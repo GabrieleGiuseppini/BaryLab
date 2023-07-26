@@ -78,6 +78,7 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
     // Create particles
     std::unique_ptr<Particles> particles = std::make_unique<Particles>(1);
     particles->Add(vec2f(0.25f, 0.25f), rgbaColor(0x60, 0x60, 0x60, 0xff));
+    mCurrentlySelectedParticleProbe.emplace(0);
 
     // Create a new model
     std::unique_ptr<Model> newModel = std::make_unique<Model>(
@@ -109,6 +110,23 @@ void LabController::Update()
         // Update state
         mSimulationControlImpulse = false;
     }
+
+    // Publish particle probe, if constrained
+
+    std::optional<ParticleProbe> particleProbe;
+    if (mCurrentlySelectedParticleProbe.has_value()
+        && mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).has_value()
+        && mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe)->ConstrainedState.has_value())
+    {
+        particleProbe.emplace(
+            mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe)->ConstrainedState->CurrentTriangle,
+            mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe)->ConstrainedState->CurrentTriangleBarycentricCoords);
+    }
+
+    mEventDispatcher.OnSubjectParticleUpdated(particleProbe);
+
+
+    // Publish barycentric coords wrt origin
 
     std::optional<vec3f> barycentricCoordinates;
     if (mCurrentOriginTriangle)
@@ -220,16 +238,17 @@ void LabController::Render()
                 rgbaColor(227, 107, 107, 77));
         }
 
-        assert(mModel->GetParticles().GetElementCount() > 0);
-        if (mModel->GetParticles().GetState(0).has_value())
+        if (mCurrentlySelectedParticleProbe.has_value()
+            && mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).has_value()
+            && mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe)->ConstrainedState.has_value())
         {
-            auto const t = mModel->GetParticles().GetState(0)->CurrentTriangle;
+            auto const t = mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe)->ConstrainedState->CurrentTriangle;
 
             mRenderContext->UploadSelectedTriangle(
                 mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexAIndex(t)),
                 mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexBIndex(t)),
                 mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexCIndex(t)),
-                rgbaColor(227, 107, 107, 200));
+                rgbaColor(107, 227, 107, 77));
         }
 
         mRenderContext->UploadSelectedTrianglesEnd();        
