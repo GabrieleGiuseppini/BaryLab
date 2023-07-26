@@ -22,19 +22,19 @@
 	+ Split state, ConstrainedState is opt
 		+ Redo state initialization & publishing
 			+ Publishing done @ end of update, at a single place
-	- LabController::UpdateParticleState:
-		- If not in triangle:
-			- Move to target
-		- If @ target:
-			return true
-		- assert(InTriangle)
-		- if on floor spring (based on current bary coords):
-			return true
-		- Calc bary coords of target wrt current triangle
-		- If stricly inside:
-			- Move to target
-			- return true
-		- Find edge & coords on it
+	= LabController::UpdateParticleState:
+		+ If not in a triangle:
+			+ Move to target
+		+ If @ target:
+			+ return true
+		+ assert(InTriangle)
+		+ If on floor spring (based on current bary coords):
+			+ return true
+		+ Calc bary coords of target wrt current triangle
+		+ If stricly inside:
+			+ Move to target
+			+ return true
+		- Find hit edge & coords on it
 		- Move to edge (pos + cur bary coords)
 		- If edge is floor:
 			- // Impact			
