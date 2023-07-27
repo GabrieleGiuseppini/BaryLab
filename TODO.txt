@@ -29,18 +29,27 @@
 			+ return true
 		+ assert(InTriangle)
 		--- TODOHERE: next is broken: only valid if direction is outside of the edge
-		+ If on floor edge (based on current bary coords):
+		- If on floor edge (based on current bary coords):
+			+ AND: normal is opposite direction of trajectory
+			+ AND: allow when inside floor to move like ghost: if not all edges are floor
+			+ Test before & after
 			+ return true
+			- Fix new bary coord normalization and then restate ghost condition
+			- Test ghost condition
 		+ Calc bary coords of target wrt current triangle
 		+ If stricly inside:
 			+ Move to target
 			+ return true
 		= Find hit edge & coords on it
+			- Trick: calculate edge t at entry of if's
+			- Try: approach with calculating all t's and choosing min among those 0 <= t <= 1
+			- TODO: verify sign of value of intersection t
 		+ Move to edge (pos + cur bary coords)
 		+ If edge is floor:
 			+ // Impact			
 			+ return false
 		- Find next triangle
+			- Edges::GetOppositeTriangle(s, t)
 		- If no triangle found:
 			- // Become free
 			- Reset current triangle

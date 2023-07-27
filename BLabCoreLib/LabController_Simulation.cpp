@@ -87,6 +87,7 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
 
     Particles & particles = mModel->GetParticles();
     Vertices const & vertices = mModel->GetMesh().GetVertices();
+    Edges const & edges = mModel->GetMesh().GetEdges();
     Triangles const & triangles = mModel->GetMesh().GetTriangles();
 
     auto & state = particles.GetState(particleIndex);
@@ -113,26 +114,70 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
 
     assert(state->ConstrainedState.has_value());
 
-    // If we are on a floor spring, we're done;
-    // note: we leverage that we move forcibly to a zero b-coord when we hit an edge
-    if (state->ConstrainedState->CurrentTriangleBarycentricCoords.x == 0.0f
-        || state->ConstrainedState->CurrentTriangleBarycentricCoords.y == 0.0f
-        || state->ConstrainedState->CurrentTriangleBarycentricCoords.z == 0.0f)
+    ElementIndex const currentTriangle = state->ConstrainedState->CurrentTriangle;
+
+    // Calculate trajectory == Target - CurrentPost
+    vec2f const trajectory = state->TargetPosition - particles.GetPosition(particleIndex);
+
+    //
+    // If we are on a floor edge and we're moving against it, we're done;
+    // Note: we ensure later that we move forcibly to a zero bary-coord when we hit an edge
+    //
+
+    // Note: if we are exactly at a vertex, we pick an arbitrary edge here
+    ElementIndex tEdgeIndex = NoneElementIndex;
+    if (state->ConstrainedState->CurrentTriangleBarycentricCoords.x == 0.0f)
     {
-        return true;
+        tEdgeIndex = 1;
+    }
+    else if (state->ConstrainedState->CurrentTriangleBarycentricCoords.y == 0.0f)
+    {
+        tEdgeIndex = 2;
+    }
+    else if (state->ConstrainedState->CurrentTriangleBarycentricCoords.z == 0.0f)
+    {
+        tEdgeIndex = 0;
     }
 
-    // Calculate barycentric coordinates of target position wrt current triangle
-    vec3f const targetBarycentricCoords = triangles.ToBarycentricCoordinates(
-        state->TargetPosition,
-        state->ConstrainedState->CurrentTriangle,
-        vertices);
+    if (tEdgeIndex != NoneElementIndex 
+        && edges.GetSurfaceType(triangles.GetSubEdges(currentTriangle).EdgeIndices[tEdgeIndex]) == SurfaceType::Floor)
+    {
+        // Allow to move like a ghost through all-floor triangles
+        // TODOTEST
+        ////if (edges.GetSurfaceType(triangles.GetSubEdgeAIndex(currentTriangle)) != SurfaceType::Floor
+        ////    || edges.GetSurfaceType(triangles.GetSubEdgeBIndex(currentTriangle)) != SurfaceType::Floor
+        ////    || edges.GetSurfaceType(triangles.GetSubEdgeCIndex(currentTriangle)) != SurfaceType::Floor)
+        {
+            // Calculate pseudonormal, considering that we are *inside* the triangle
+            // (points outside)
+            vec2f const edgePNormal = (
+                vertices.GetPosition(triangles.GetVertexIndices(currentTriangle)[(tEdgeIndex + 1) % 3])
+                - vertices.GetPosition(triangles.GetVertexIndices(currentTriangle)[tEdgeIndex])
+                ).to_perpendicular();
 
-    LogMessage("Target pos wrt current triangle: ", targetBarycentricCoords);
+            if (edgePNormal.dot(trajectory) >= 0.0f) // Trajectory leaves this edge
+            {
+                // We're going against the floor
+
+                LogMessage("On edge ", tEdgeIndex);
+
+                return true;
+            }            
+        }
+    }
 
     //
     // Analyze target position
     //
+
+
+    // Calculate barycentric coordinates of target position wrt current triangle
+    vec3f const targetBarycentricCoords = triangles.ToBarycentricCoordinates(
+        state->TargetPosition,
+        currentTriangle,
+        vertices);
+
+    LogMessage("Target pos wrt current triangle: ", targetBarycentricCoords);
 
     bool const isTargetStrictlyInsideX = (targetBarycentricCoords.x > 0.0f && targetBarycentricCoords.x < 1.0f);
     bool const isTargetStrictlyInsideY = (targetBarycentricCoords.y > 0.0f && targetBarycentricCoords.y < 1.0f);
@@ -158,11 +203,11 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
     // yielding ti = lpi/(lpi - lti)
     //
 
-    ElementIndex tEdgeIndex;
+    ElementIndex tIntersectionEdgeIndex;
     vec3f intersectionBarycentricCoords;
 
     // TODOTEST
-    tEdgeIndex = 0;
+    tIntersectionEdgeIndex = 0;
     intersectionBarycentricCoords = vec3f::zero();
 
     if (targetBarycentricCoords.x <= 0.0f)
@@ -199,16 +244,17 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
 
             LogMessage("  Touch/cross B-C");
 
-            tEdgeIndex = 1;
+            tIntersectionEdgeIndex = 1;
 
             float const den = state->ConstrainedState->CurrentTriangleBarycentricCoords.x - targetBarycentricCoords.x;
             if (den == 0.0f)
             {
                 // Parallel to B-C
-                // TODO
+                // TODO: intersectionT is +inf - good for comparisons, but then we have problems with calculating barycentric coords
                 assert(false);
             }
             float const intersectionT = state->ConstrainedState->CurrentTriangleBarycentricCoords.x / den;
+            // TODO: use new formula w/trajectory
             intersectionBarycentricCoords = vec3f(
                 0.0f,
                 state->ConstrainedState->CurrentTriangleBarycentricCoords.y * (1.0f - intersectionT) + targetBarycentricCoords.y * intersectionT,
@@ -238,7 +284,7 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
 
             LogMessage("  Touch/cross C-A");
 
-            tEdgeIndex = 2;
+            tIntersectionEdgeIndex = 2;
 
             float const den = state->ConstrainedState->CurrentTriangleBarycentricCoords.y - targetBarycentricCoords.y;
             if (den == 0.0f)
@@ -249,6 +295,7 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
             }
 
             float const intersectionT = state->ConstrainedState->CurrentTriangleBarycentricCoords.y / den;
+            // TODO: use new formula w/trajectory
             intersectionBarycentricCoords = vec3f(
                 state->ConstrainedState->CurrentTriangleBarycentricCoords.x * (1.0f - intersectionT) + targetBarycentricCoords.x * intersectionT,
                 0.0f,
@@ -265,7 +312,7 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
 
         LogMessage("  Touch/cross A-B");
 
-        tEdgeIndex = 0;
+        tIntersectionEdgeIndex = 0;
 
         float const den = state->ConstrainedState->CurrentTriangleBarycentricCoords.z - targetBarycentricCoords.z;
         if (den == 0.0f)
@@ -276,6 +323,7 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
         }
 
         float const intersectionT = state->ConstrainedState->CurrentTriangleBarycentricCoords.z / den;
+        // TODO: use new formula w/trajectory
         intersectionBarycentricCoords = vec3f(
             state->ConstrainedState->CurrentTriangleBarycentricCoords.x * (1.0f - intersectionT) + targetBarycentricCoords.x * intersectionT,
             state->ConstrainedState->CurrentTriangleBarycentricCoords.y * (1.0f - intersectionT) + targetBarycentricCoords.y * intersectionT,
@@ -283,6 +331,7 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
     }
 
     // Normalize barycentric coords
+    // TODO: doesn't work if we've just set z to zero
     intersectionBarycentricCoords.z = 1.0f - intersectionBarycentricCoords.x - intersectionBarycentricCoords.y;
 
     //
@@ -291,14 +340,14 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
 
     vec2f const intersectionPosition = triangles.FromBarycentricCoordinates(
         intersectionBarycentricCoords,
-        state->ConstrainedState->CurrentTriangle,
+        currentTriangle,
         vertices);
 
     particles.SetPosition(particleIndex, intersectionPosition);
     state->ConstrainedState->CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
 
     // Check if edge is floor
-    ElementIndex const edgeIndex = triangles.GetSubEdges(state->ConstrainedState->CurrentTriangle).EdgeIndices[tEdgeIndex];
+    ElementIndex const edgeIndex = triangles.GetSubEdges(currentTriangle).EdgeIndices[tIntersectionEdgeIndex];
     if (mModel->GetMesh().GetEdges().GetSurfaceType(edgeIndex) == SurfaceType::Floor)
     {
         //
