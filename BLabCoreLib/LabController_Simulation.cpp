@@ -157,7 +157,11 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
 
             if (edgePNormal.dot(trajectory) >= 0.0f) // Trajectory leaves this edge
             {
-                // We're going against the floor
+                //
+                // We're going against the floor - floor impact
+                //
+                // (actually we've impacted at the previous step, here we just realize it)
+                //
 
                 LogMessage("On edge ", tEdgeIndex);
 
@@ -169,7 +173,6 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
     //
     // Analyze target position
     //
-
 
     // Calculate barycentric coordinates of target position wrt current triangle
     vec3f const targetBarycentricCoords = triangles.ToBarycentricCoordinates(
