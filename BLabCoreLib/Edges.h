@@ -194,6 +194,23 @@ public:
         return mTrianglesBuffer[edgeElementIndex];
     }
 
+    inline ElementIndex GetOppositeTriangle(
+        ElementIndex edgeElementIndex,
+        ElementIndex triangleIndex) const
+    {
+        assert(mTrianglesBuffer[edgeElementIndex].size() >= 1);
+        if (mTrianglesBuffer[edgeElementIndex].size() == 2)
+        {
+            return mTrianglesBuffer[edgeElementIndex][0] == triangleIndex
+                ? mTrianglesBuffer[edgeElementIndex][1]
+                : mTrianglesBuffer[edgeElementIndex][0];
+        }
+        else
+        {
+            return NoneElementIndex;
+        }
+    }
+
     inline void AddTriangle(
         ElementIndex edgeElementIndex,
         ElementIndex triangleElementIndex)

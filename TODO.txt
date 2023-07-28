@@ -38,24 +38,23 @@
 		+ If stricly inside:
 			+ Move to target
 			+ return true
-		= Find hit edge & coords on it
-			- Trick: calculate edge t at entry of if's
-			- Try: approach with calculating all t's and choosing min among those 0 <= t <= 1 - see Moleskine
-			- TODO: verify sign of value of intersection t
+		+ Find hit edge & coords on it
 		+ Move to edge (pos + cur bary coords)
 		+ If edge is floor:
 			+ // Impact			
 			+ return false
-		- Find next triangle
-			- Edges::GetOppositeTriangle(s, t)
-		- If no triangle found:
-			- // Become free
-			- Reset current triangle
-			- return false
-		- Move to edge of that next triangle (cur triangle + cur bary coords)
-		- return false
+		+ Find next triangle
+			+ Edges::GetOppositeTriangle(s, t)
+		+ If no triangle found:
+			+ // Become free
+			+ Reset current triangle
+			+ return false
+		+ Move to edge of that next triangle (cur triangle + cur bary coords)
+		+ return false
 	- TODO:
+		- Fix ghost condition
 		- vec3_arr instead of vec3f::indexer?
+		- TODO's
 
 
 - Facilities to display:

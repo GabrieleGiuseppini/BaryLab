@@ -147,10 +147,11 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
     if (tEdgeIndex != NoneElementIndex 
         && edges.GetSurfaceType(triangles.GetSubEdges(currentTriangle).EdgeIndices[tEdgeIndex]) == SurfaceType::Floor)
     {
-        // Allow to move like a ghost through all-floor triangles
-        if (edges.GetSurfaceType(triangles.GetSubEdgeAIndex(currentTriangle)) != SurfaceType::Floor
-            || edges.GetSurfaceType(triangles.GetSubEdgeBIndex(currentTriangle)) != SurfaceType::Floor
-            || edges.GetSurfaceType(triangles.GetSubEdgeCIndex(currentTriangle)) != SurfaceType::Floor)
+        // TODOTEST
+        ////// Allow to move like a ghost through all-floor triangles
+        ////if (edges.GetSurfaceType(triangles.GetSubEdgeAIndex(currentTriangle)) != SurfaceType::Floor
+        ////    || edges.GetSurfaceType(triangles.GetSubEdgeBIndex(currentTriangle)) != SurfaceType::Floor
+        ////    || edges.GetSurfaceType(triangles.GetSubEdgeCIndex(currentTriangle)) != SurfaceType::Floor)
         {
             // Calculate pseudonormal, considering that we are *inside* the triangle
             // (points outside)
@@ -175,7 +176,13 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
     }
 
     //
-    // Analyze target position
+    // Calculate nearest intersection with triangle's edges
+    //
+    // The trajectory can be parameterized as (1 − t)*P + t*T, with P and T being the
+    // particle and target points, in either coordinate system. By expressing P and T
+    // in barycentric coordinates, the touch/cross point of the line with each edge
+    // is found by imposing the parameterized trajectory component to be zero, 
+    // yielding ti = lpi/(lpi - lti)
     //
 
     // Calculate barycentric coordinates of target position wrt current triangle
@@ -185,16 +192,6 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
         vertices);
 
     LogMessage("Target pos wrt current triangle: ", targetBarycentricCoords);
-
-    //
-    // Calculate nearest intersection with triangle's edges
-    //
-    // The trajectory can be parameterized as (1 − t)*P + t*T, with P and T being the
-    // particle and target points, in either coordinate system. By expressing P and T
-    // in barycentric coordinates, the touch/cross point of the line with each edge
-    // is found by imposing the parameterized trajectory component to be zero, 
-    // yielding ti = lpi/(lpi - lti)
-    //
 
     ElementIndex intersectionVertex = NoneElementIndex;
     float minIntersectionT = std::numeric_limits<float>::max();
@@ -237,7 +234,8 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
         return true;
     }
 
-    LogMessage("  Intersection on edge ", (intersectionVertex + 1) % 3, " @ t=", minIntersectionT);
+    ElementIndex const intersectionEdge = (intersectionVertex + 1) % 3;
+    LogMessage("  Intersection on edge ", intersectionEdge, " @ t=", minIntersectionT);
 
     //
     // Trajectory intersects an edge before end-of-trajectory
@@ -423,20 +421,41 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
     state->ConstrainedState->CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
 
     // Check if edge is floor
-    ElementIndex const edgeIndex = triangles.GetSubEdges(currentTriangle).EdgeIndices[(intersectionVertex + 1) % 3];
+    ElementIndex const edgeIndex = triangles.GetSubEdges(currentTriangle).EdgeIndices[intersectionEdge];
     if (mModel->GetMesh().GetEdges().GetSurfaceType(edgeIndex) == SurfaceType::Floor)
     {
         //
         // Impact
         //
 
-        LogMessage("  Impact");
+        LogMessage("  Impact (pre)");
 
         // Return, we'll then complete since we are on an edge
         return false;
     }
 
-    // TODOHERE
+    // Find opposite triangle
+    ElementIndex const oppositeTriangle = edges.GetOppositeTriangle(edgeIndex, state->ConstrainedState->CurrentTriangle);
+    if (oppositeTriangle == NoneElementIndex)
+    {
+        //
+        // Become free
+        //
+
+        LogMessage("  Becoming free");
+
+        state->ConstrainedState.reset();
+
+        return false;
+    }
+
+    // Move to edge of opposite triangle
+    state->ConstrainedState->CurrentTriangle = oppositeTriangle;
+    // TODO: derive from intersection b-coords
+    state->ConstrainedState->CurrentTriangleBarycentricCoords = triangles.ToBarycentricCoordinates(
+        intersectionPosition,
+        state->ConstrainedState->CurrentTriangle,
+        vertices);
 
     return false;
 }
