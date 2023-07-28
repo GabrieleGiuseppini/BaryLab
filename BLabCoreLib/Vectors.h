@@ -9,6 +9,7 @@
 #include "SysSpecifics.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <ostream>
@@ -315,6 +316,38 @@ public:
         , y(vec2.y)
         , z(_z)
     {
+    }
+
+    float const & operator[](int index) const
+    {
+        assert(index >= 0 && index < 3);
+        switch (index)
+        {
+            case 0: return x;
+            case 1: return y;
+            case 2: return z;
+            default:
+            {
+                assert(false);
+                return x;
+            }
+        }
+    }
+
+    float & operator[](int index)
+    {
+        assert(index >= 0 && index < 3);
+        switch (index)
+        {
+            case 0: return x;
+            case 1: return y;
+            case 2: return z;
+            default:
+            {
+                assert(false);
+                return x;
+            }
+        }
     }
 
 	inline vec3f operator+(vec3f const & other) const

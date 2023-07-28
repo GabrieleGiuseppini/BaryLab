@@ -7,6 +7,8 @@
 
 #include "Log.h"
 
+#include <limits>
+
 void LabController::InitializeParticleState(ElementIndex particleIndex)
 {
     if (mCurrentParticleTrajectory.has_value()
@@ -143,10 +145,9 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
         && edges.GetSurfaceType(triangles.GetSubEdges(currentTriangle).EdgeIndices[tEdgeIndex]) == SurfaceType::Floor)
     {
         // Allow to move like a ghost through all-floor triangles
-        // TODOTEST
-        ////if (edges.GetSurfaceType(triangles.GetSubEdgeAIndex(currentTriangle)) != SurfaceType::Floor
-        ////    || edges.GetSurfaceType(triangles.GetSubEdgeBIndex(currentTriangle)) != SurfaceType::Floor
-        ////    || edges.GetSurfaceType(triangles.GetSubEdgeCIndex(currentTriangle)) != SurfaceType::Floor)
+        if (edges.GetSurfaceType(triangles.GetSubEdgeAIndex(currentTriangle)) != SurfaceType::Floor
+            || edges.GetSurfaceType(triangles.GetSubEdgeBIndex(currentTriangle)) != SurfaceType::Floor
+            || edges.GetSurfaceType(triangles.GetSubEdgeCIndex(currentTriangle)) != SurfaceType::Floor)
         {
             // Calculate pseudonormal, considering that we are *inside* the triangle
             // (points outside)
@@ -182,22 +183,8 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
 
     LogMessage("Target pos wrt current triangle: ", targetBarycentricCoords);
 
-    bool const isTargetStrictlyInsideX = (targetBarycentricCoords.x > 0.0f && targetBarycentricCoords.x < 1.0f);
-    bool const isTargetStrictlyInsideY = (targetBarycentricCoords.y > 0.0f && targetBarycentricCoords.y < 1.0f);
-    bool const isTargetStrictlyInsideZ = (targetBarycentricCoords.z > 0.0f && targetBarycentricCoords.z < 1.0f);
-
-    if (isTargetStrictlyInsideX && isTargetStrictlyInsideY && isTargetStrictlyInsideZ)
-    {
-        // Strictly inside triangle...
-        // ...move to target and we're done
-        particles.SetPosition(particleIndex, state->TargetPosition);
-        return true;
-    }
-
-    // The particle is either on an edge/vertex, or crosses it
-
     //
-    // Find edge and intersection point
+    // Calculate nearest intersection with triangle's edges
     //
     // The trajectory can be parameterized as (1 − t)*P + t*T, with P and T being the
     // particle and target points, in either coordinate system. By expressing P and T
@@ -206,136 +193,220 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
     // yielding ti = lpi/(lpi - lti)
     //
 
-    ElementIndex tIntersectionEdgeIndex;
-    vec3f intersectionBarycentricCoords;
+    ElementIndex intersectionVertex = NoneElementIndex;
+    float minIntersectionT = std::numeric_limits<float>::max();
 
-    // TODOTEST
-    tIntersectionEdgeIndex = 0;
-    intersectionBarycentricCoords = vec3f::zero();
-
-    if (targetBarycentricCoords.x <= 0.0f)
+    for (ElementIndex vi = 0; vi < 3; ++vi)
     {
-        if (targetBarycentricCoords.y <= 0.0f)
+        // TODOTEST: do float_arr
+
+        float const den = state->ConstrainedState->CurrentTriangleBarycentricCoords[vi] - targetBarycentricCoords[vi];
+        float const t = (den == 0.0f) // TODO: with epsilon (GameMath)
+            ? std::numeric_limits<float>::max() // Parallel, meets at infinity
+            : state->ConstrainedState->CurrentTriangleBarycentricCoords[vi] / den;
+
+        if (t > 0.0f)
         {
-            // B-C or C-A edge
-
-            assert(targetBarycentricCoords.z >= 0.0f);
-
-            LogMessage("  Touch/cross B-C or C-A");
-            
-            // TODO
-            assert(false);
-        }
-        else if (targetBarycentricCoords.z <= 0.0f)
-        {
-            // B-C or A-B edge
-
-            assert(targetBarycentricCoords.y >= 0.0f);
-
-            LogMessage("  Touch/cross B-C or A-B");
-
-            // TODO
-            assert(false);
-        }
-        else
-        {
-            assert(targetBarycentricCoords.x <= 0.0f);
-            assert(targetBarycentricCoords.y > 0.0f);
-            assert(targetBarycentricCoords.z > 0.0f);
-
-            // B-C edge
-
-            LogMessage("  Touch/cross B-C");
-
-            tIntersectionEdgeIndex = 1;
-
-            float const den = state->ConstrainedState->CurrentTriangleBarycentricCoords.x - targetBarycentricCoords.x;
-            if (den == 0.0f)
+            // Meets ahead - in the direction of trajectory
+            if (t < minIntersectionT)
             {
-                // Parallel to B-C
-                // TODO: intersectionT is +inf - good for comparisons, but then we have problems with calculating barycentric coords
-                assert(false);
+                intersectionVertex = vi;
+                minIntersectionT = t;
             }
-            float const intersectionT = state->ConstrainedState->CurrentTriangleBarycentricCoords.x / den;
-            // TODO: use new formula w/trajectory
-            intersectionBarycentricCoords = vec3f(
-                0.0f,
-                state->ConstrainedState->CurrentTriangleBarycentricCoords.y * (1.0f - intersectionT) + targetBarycentricCoords.y * intersectionT,
-                state->ConstrainedState->CurrentTriangleBarycentricCoords.z * (1.0f - intersectionT) + targetBarycentricCoords.z * intersectionT);
         }
+        // TODO: if t==0.0f?
     }
-    else if (targetBarycentricCoords.y <= 0.0f)
+
+    assert(minIntersectionT >= 0.0f); // Meets ahead - in the direction of trajectory
+
+    if (minIntersectionT > 1.0f)
     {
-        assert(targetBarycentricCoords.x > 0.0f);
+        // No intersection before end of trajectory =>
+        // trajectory does not touch any edge before end of trajectory =>
+        // end-of-trajectory is internal
+        assert(targetBarycentricCoords.x > 0.0f && targetBarycentricCoords.x < 1.0f);
+        assert(targetBarycentricCoords.y > 0.0f && targetBarycentricCoords.y < 1.0f);
+        assert(targetBarycentricCoords.z > 0.0f && targetBarycentricCoords.z < 1.0f);
 
-        if (targetBarycentricCoords.z <= 0.0f)
-        {
-            // C-A or A-B edge
+        LogMessage("  No intersection before end of trajectory");
 
-            LogMessage("  Touch/cross A-B or C-A");
-
-            // TODO
-            assert(false);
-        }
-        else
-        {
-            assert(targetBarycentricCoords.x > 0.0f);
-            assert(targetBarycentricCoords.y <= 0.0f);
-            assert(targetBarycentricCoords.z > 0.0f);
-
-            // C-A edge
-
-            LogMessage("  Touch/cross C-A");
-
-            tIntersectionEdgeIndex = 2;
-
-            float const den = state->ConstrainedState->CurrentTriangleBarycentricCoords.y - targetBarycentricCoords.y;
-            if (den == 0.0f)
-            {
-                // Parallel to C-A
-                // TODO
-                assert(false);
-            }
-
-            float const intersectionT = state->ConstrainedState->CurrentTriangleBarycentricCoords.y / den;
-            // TODO: use new formula w/trajectory
-            intersectionBarycentricCoords = vec3f(
-                state->ConstrainedState->CurrentTriangleBarycentricCoords.x * (1.0f - intersectionT) + targetBarycentricCoords.x * intersectionT,
-                0.0f,
-                state->ConstrainedState->CurrentTriangleBarycentricCoords.z * (1.0f - intersectionT) + targetBarycentricCoords.z * intersectionT);
-        }
-    }
-    else
-    {
-        assert(targetBarycentricCoords.x > 0.0f);
-        assert(targetBarycentricCoords.y > 0.0f);
-        assert(targetBarycentricCoords.z <= 0.0f);
-
-        // A-B edge
-
-        LogMessage("  Touch/cross A-B");
-
-        tIntersectionEdgeIndex = 0;
-
-        float const den = state->ConstrainedState->CurrentTriangleBarycentricCoords.z - targetBarycentricCoords.z;
-        if (den == 0.0f)
-        {
-            // Parallel to A-B
-            // TODO
-            assert(false);
-        }
-
-        float const intersectionT = state->ConstrainedState->CurrentTriangleBarycentricCoords.z / den;
-        // TODO: use new formula w/trajectory
-        intersectionBarycentricCoords = vec3f(
-            state->ConstrainedState->CurrentTriangleBarycentricCoords.x * (1.0f - intersectionT) + targetBarycentricCoords.x * intersectionT,
-            state->ConstrainedState->CurrentTriangleBarycentricCoords.y * (1.0f - intersectionT) + targetBarycentricCoords.y * intersectionT,
-            0.0f);
+        // ...move to target and we're done
+        particles.SetPosition(particleIndex, state->TargetPosition);
+        return true;
     }
 
-    // Normalize barycentric coords
-    // TODO: doesn't work if we've just set z to zero
-    intersectionBarycentricCoords.z = 1.0f - intersectionBarycentricCoords.x - intersectionBarycentricCoords.y;
+    LogMessage("  Intersection on edge ", (intersectionVertex + 1) % 3, " (", minIntersectionT, ")");
+
+    //
+    // Trajectory intersects an edge before end-of-trajectory
+    //
+
+    // Calculate intersection's barycentric coordinates
+    vec3f intersectionBarycentricCoords;    
+    intersectionBarycentricCoords[intersectionVertex] = 0.0f;
+    float const lNext = // Barycentric coord of next vertex at intersection
+        state->ConstrainedState->CurrentTriangleBarycentricCoords[(intersectionVertex + 1) % 3] * (1.0f - minIntersectionT)
+        + targetBarycentricCoords[(intersectionVertex + 1) % 3] * minIntersectionT;    
+    intersectionBarycentricCoords[(intersectionVertex + 1) % 3] = lNext;
+    intersectionBarycentricCoords[(intersectionVertex + 2) % 3] = 1.0f - lNext;
+
+    LogMessage("  Intersection b-coords: ", intersectionBarycentricCoords);
+
+    ////// TODOOLD
+    ////bool const isTargetStrictlyInsideX = (targetBarycentricCoords.x > 0.0f && targetBarycentricCoords.x < 1.0f);
+    ////bool const isTargetStrictlyInsideY = (targetBarycentricCoords.y > 0.0f && targetBarycentricCoords.y < 1.0f);
+    ////bool const isTargetStrictlyInsideZ = (targetBarycentricCoords.z > 0.0f && targetBarycentricCoords.z < 1.0f);
+
+    ////if (isTargetStrictlyInsideX && isTargetStrictlyInsideY && isTargetStrictlyInsideZ)
+    ////{
+    ////    // Strictly inside triangle...
+    ////    // ...move to target and we're done
+    ////    particles.SetPosition(particleIndex, state->TargetPosition);
+    ////    return true;
+    ////}
+
+    ////// The particle is either on an edge/vertex, or crosses it
+
+    //////
+    ////// Find edge and intersection point
+    //////
+    ////// The trajectory can be parameterized as (1 − t)*P + t*T, with P and T being the
+    ////// particle and target points, in either coordinate system. By expressing P and T
+    ////// in barycentric coordinates, the touch/cross point of the line with each edge
+    ////// is found by imposing the parameterized trajectory component to be zero, 
+    ////// yielding ti = lpi/(lpi - lti)
+    //////
+    
+    ////ElementIndex tIntersectionEdgeIndex;
+    ////vec3f intersectionBarycentricCoords;
+
+    ////// TODOTEST
+    ////tIntersectionEdgeIndex = 0;
+    ////intersectionBarycentricCoords = vec3f::zero();
+
+    ////if (targetBarycentricCoords.x <= 0.0f)
+    ////{
+    ////    if (targetBarycentricCoords.y <= 0.0f)
+    ////    {
+    ////        // B-C or C-A edge
+
+    ////        assert(targetBarycentricCoords.z >= 0.0f);
+
+    ////        LogMessage("  Touch/cross B-C or C-A");
+    ////        
+    ////        // TODO
+    ////        assert(false);
+    ////    }
+    ////    else if (targetBarycentricCoords.z <= 0.0f)
+    ////    {
+    ////        // B-C or A-B edge
+
+    ////        assert(targetBarycentricCoords.y >= 0.0f);
+
+    ////        LogMessage("  Touch/cross B-C or A-B");
+
+    ////        // TODO
+    ////        assert(false);
+    ////    }
+    ////    else
+    ////    {
+    ////        assert(targetBarycentricCoords.x <= 0.0f);
+    ////        assert(targetBarycentricCoords.y > 0.0f);
+    ////        assert(targetBarycentricCoords.z > 0.0f);
+
+    ////        // B-C edge
+
+    ////        LogMessage("  Touch/cross B-C");
+
+    ////        tIntersectionEdgeIndex = 1;
+
+    ////        float const den = state->ConstrainedState->CurrentTriangleBarycentricCoords.x - targetBarycentricCoords.x;
+    ////        if (den == 0.0f)
+    ////        {
+    ////            // Parallel to B-C
+    ////            // TODO: intersectionT is +inf - good for comparisons, but then we have problems with calculating barycentric coords
+    ////            assert(false);
+    ////        }
+    ////        float const intersectionT = state->ConstrainedState->CurrentTriangleBarycentricCoords.x / den;
+    ////        // TODO: use new formula w/trajectory
+    ////        intersectionBarycentricCoords = vec3f(
+    ////            0.0f,
+    ////            state->ConstrainedState->CurrentTriangleBarycentricCoords.y * (1.0f - intersectionT) + targetBarycentricCoords.y * intersectionT,
+    ////            state->ConstrainedState->CurrentTriangleBarycentricCoords.z * (1.0f - intersectionT) + targetBarycentricCoords.z * intersectionT);
+    ////    }
+    ////}
+    ////else if (targetBarycentricCoords.y <= 0.0f)
+    ////{
+    ////    assert(targetBarycentricCoords.x > 0.0f);
+
+    ////    if (targetBarycentricCoords.z <= 0.0f)
+    ////    {
+    ////        // C-A or A-B edge
+
+    ////        LogMessage("  Touch/cross A-B or C-A");
+
+    ////        // TODO
+    ////        assert(false);
+    ////    }
+    ////    else
+    ////    {
+    ////        assert(targetBarycentricCoords.x > 0.0f);
+    ////        assert(targetBarycentricCoords.y <= 0.0f);
+    ////        assert(targetBarycentricCoords.z > 0.0f);
+
+    ////        // C-A edge
+
+    ////        LogMessage("  Touch/cross C-A");
+
+    ////        tIntersectionEdgeIndex = 2;
+
+    ////        float const den = state->ConstrainedState->CurrentTriangleBarycentricCoords.y - targetBarycentricCoords.y;
+    ////        if (den == 0.0f)
+    ////        {
+    ////            // Parallel to C-A
+    ////            // TODO
+    ////            assert(false);
+    ////        }
+
+    ////        float const intersectionT = state->ConstrainedState->CurrentTriangleBarycentricCoords.y / den;
+    ////        // TODO: use new formula w/trajectory
+    ////        intersectionBarycentricCoords = vec3f(
+    ////            state->ConstrainedState->CurrentTriangleBarycentricCoords.x * (1.0f - intersectionT) + targetBarycentricCoords.x * intersectionT,
+    ////            0.0f,
+    ////            state->ConstrainedState->CurrentTriangleBarycentricCoords.z * (1.0f - intersectionT) + targetBarycentricCoords.z * intersectionT);
+    ////    }
+    ////}
+    ////else
+    ////{
+    ////    assert(targetBarycentricCoords.x > 0.0f);
+    ////    assert(targetBarycentricCoords.y > 0.0f);
+    ////    assert(targetBarycentricCoords.z <= 0.0f);
+
+    ////    // A-B edge
+
+    ////    LogMessage("  Touch/cross A-B");
+
+    ////    tIntersectionEdgeIndex = 0;
+
+    ////    float const den = state->ConstrainedState->CurrentTriangleBarycentricCoords.z - targetBarycentricCoords.z;
+    ////    if (den == 0.0f)
+    ////    {
+    ////        // Parallel to A-B
+    ////        // TODO
+    ////        assert(false);
+    ////    }
+
+    ////    float const intersectionT = state->ConstrainedState->CurrentTriangleBarycentricCoords.z / den;
+    ////    // TODO: use new formula w/trajectory
+    ////    intersectionBarycentricCoords = vec3f(
+    ////        state->ConstrainedState->CurrentTriangleBarycentricCoords.x * (1.0f - intersectionT) + targetBarycentricCoords.x * intersectionT,
+    ////        state->ConstrainedState->CurrentTriangleBarycentricCoords.y * (1.0f - intersectionT) + targetBarycentricCoords.y * intersectionT,
+    ////        0.0f);
+    ////}
+
+    ////// Normalize barycentric coords
+    ////// TODO: doesn't work if we've just set z to zero
+    ////intersectionBarycentricCoords.z = 1.0f - intersectionBarycentricCoords.x - intersectionBarycentricCoords.y;
 
     //
     // Move to intersection point
@@ -350,12 +421,14 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
     state->ConstrainedState->CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
 
     // Check if edge is floor
-    ElementIndex const edgeIndex = triangles.GetSubEdges(currentTriangle).EdgeIndices[tIntersectionEdgeIndex];
+    ElementIndex const edgeIndex = triangles.GetSubEdges(currentTriangle).EdgeIndices[(intersectionVertex + 1) % 3];
     if (mModel->GetMesh().GetEdges().GetSurfaceType(edgeIndex) == SurfaceType::Floor)
     {
         //
         // Impact
         //
+
+        LogMessage("  Impact");
 
         // Return, we'll then complete since we are on an edge
         return false;

@@ -28,13 +28,11 @@
 		+ If @ target:
 			+ return true
 		+ assert(InTriangle)
-		--- TODOHERE: next is broken: only valid if direction is outside of the edge
 		- If on floor edge (based on current bary coords):
 			+ AND: normal is opposite direction of trajectory
 			+ AND: allow when inside floor to move like ghost: if not all edges are floor
 			+ Test before & after
 			+ return true
-			- Fix new bary coord normalization and then restate ghost condition
 			- Test ghost condition
 		+ Calc bary coords of target wrt current triangle
 		+ If stricly inside:
@@ -42,7 +40,7 @@
 			+ return true
 		= Find hit edge & coords on it
 			- Trick: calculate edge t at entry of if's
-			- Try: approach with calculating all t's and choosing min among those 0 <= t <= 1
+			- Try: approach with calculating all t's and choosing min among those 0 <= t <= 1 - see Moleskine
 			- TODO: verify sign of value of intersection t
 		+ Move to edge (pos + cur bary coords)
 		+ If edge is floor:
@@ -56,6 +54,8 @@
 			- return false
 		- Move to edge of that next triangle (cur triangle + cur bary coords)
 		- return false
+	- TODO:
+		- vec3_arr instead of vec3f::indexer?
 
 
 - Facilities to display:
