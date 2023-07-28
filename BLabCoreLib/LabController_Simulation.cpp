@@ -107,6 +107,9 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
     if (particles.GetPosition(particleIndex) == state->TargetPosition)
     {
         // Reached destination
+
+        LogMessage("  Reached destination");
+
         return true;
     }
 
@@ -164,7 +167,7 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
                 // (actually we've impacted at the previous step, here we just realize it)
                 //
 
-                LogMessage("On edge ", tEdgeIndex);
+                LogMessage("  Impact on edge ", tEdgeIndex);
 
                 return true;
             }            
@@ -205,7 +208,7 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
             ? std::numeric_limits<float>::max() // Parallel, meets at infinity
             : state->ConstrainedState->CurrentTriangleBarycentricCoords[vi] / den;
 
-        if (t > 0.0f)
+        if (t > 0.0f) // If 0.0 we're on the edge itself
         {
             // Meets ahead - in the direction of trajectory
             if (t < minIntersectionT)
@@ -214,7 +217,6 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
                 minIntersectionT = t;
             }
         }
-        // TODO: if t==0.0f?
     }
 
     assert(minIntersectionT >= 0.0f); // Meets ahead - in the direction of trajectory
@@ -235,7 +237,7 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
         return true;
     }
 
-    LogMessage("  Intersection on edge ", (intersectionVertex + 1) % 3, " (", minIntersectionT, ")");
+    LogMessage("  Intersection on edge ", (intersectionVertex + 1) % 3, " @ t=", minIntersectionT);
 
     //
     // Trajectory intersects an edge before end-of-trajectory
