@@ -52,7 +52,11 @@
 		+ Move to edge of that next triangle (cur triangle + cur bary coords)
 		+ return false
 	- TODO:
-		- Fix ghost condition
+		- Fix: starting on non-floor edge pointing outside and finding verlenging of edge: 
+			- Issue 1: if t > 1.0 we think we end inside
+			- Issue 2: if t <= 1.0 we do an extra step
+			- In either case we should not find verlenging
+		- Fix: dance when we are on edge - trying to get to other side alternatively
 		- vec3_arr instead of vec3f::indexer?
 		- TODO's
 

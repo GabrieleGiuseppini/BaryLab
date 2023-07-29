@@ -83,10 +83,14 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
     // Create particle
     std::unique_ptr<Particles> particles = std::make_unique<Particles>(1);
     {
+        // TODOTEST
+        ////vec2f const center = (
+        ////    mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexAIndex(0))
+        ////    + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexBIndex(0))
+        ////    + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexCIndex(0))) / 3.0f;
         vec2f const center = (
             mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexAIndex(0))
-            + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexBIndex(0))
-            + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexCIndex(0))) / 3.0f;
+            + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexCIndex(0))) / 2.0f;
 
         particles->Add(center, rgbaColor(0x60, 0x60, 0x60, 0xff));
     }    
