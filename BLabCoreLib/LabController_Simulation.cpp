@@ -247,14 +247,21 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
                     // Move to edge of opposite triangle 
                     //
 
-                    LogMessage("  Moving to edge of opposite triangle ", oppositeTriangle);
+                    int const oppositeTriangleEdgeIndex = triangles.GetSubEdgeIndex(oppositeTriangle, currentEdgeElement);
+
+                    LogMessage("  Moving to edge ", oppositeTriangleEdgeIndex, " of opposite triangle ", oppositeTriangle);
 
                     state->ConstrainedState->CurrentTriangle = oppositeTriangle;
-                    // TODO: derive from intersection b-coords
-                    state->ConstrainedState->CurrentTriangleBarycentricCoords = triangles.ToBarycentricCoordinates(
-                        particles.GetPosition(particleIndex),
-                        state->ConstrainedState->CurrentTriangle,
-                        vertices);
+
+                    // Calculate new barycentric coords (wrt opposite triangle)
+                    vec3f newBarycentricCoords; // In new triangle
+                    newBarycentricCoords[(oppositeTriangleEdgeIndex + 2) % 3] = 0.0f;
+                    newBarycentricCoords[oppositeTriangleEdgeIndex] = state->ConstrainedState->CurrentTriangleBarycentricCoords[(currentEdge + 1) % 3];
+                    newBarycentricCoords[(oppositeTriangleEdgeIndex + 1) % 3] = state->ConstrainedState->CurrentTriangleBarycentricCoords[currentEdge];                    
+
+                    LogMessage("  B-Coords: ", state->ConstrainedState->CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
+
+                    state->ConstrainedState->CurrentTriangleBarycentricCoords = newBarycentricCoords;
 
                     return false;
                 }

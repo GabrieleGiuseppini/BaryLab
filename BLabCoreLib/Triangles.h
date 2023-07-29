@@ -147,6 +147,21 @@ public:
         return mSubEdgesBuffer[triangleElementIndex].EdgeIndices[2];
     }
 
+    inline ElementIndex GetSubEdgeIndex(
+        ElementIndex triangleElementIndex,
+        ElementIndex edgeIndex) const
+    {
+        if (mSubEdgesBuffer[triangleElementIndex].EdgeIndices[0] == edgeIndex)
+            return 0;
+        else if (mSubEdgesBuffer[triangleElementIndex].EdgeIndices[1] == edgeIndex)
+            return 1;
+        else
+        {
+            assert(mSubEdgesBuffer[triangleElementIndex].EdgeIndices[2] == edgeIndex);
+            return 2;
+        }
+    }
+
 private:
 
     //////////////////////////////////////////////////////////
