@@ -22,7 +22,7 @@
 	+ Split state, ConstrainedState is opt
 		+ Redo state initialization & publishing
 			+ Publishing done @ end of update, at a single place
-	= LabController::UpdateParticleState:
+	X LabController::UpdateParticleState:
 		+ If not in a triangle:
 			+ Move to target
 		+ If @ target:
@@ -51,43 +51,41 @@
 			+ return false
 		+ Move to edge of that next triangle (cur triangle + cur bary coords)
 		+ return false
+	+ Try alternative algo:
+		+ If @ target:
+			+ END
+		+ If we're free:
+			+ Move to target
+			+ return false; // We'll END at next iteration
+		+ If target in triangle:
+			+ Move to target
+			+ return false; // We'll END at next iteration
+		+ If on edge: // leverage forced zero b-coord's
+			+ Check traj direction wrt normal // TODO: see if can be replaced by checking signs of target b-coords
+			+ If traj does not point inside and is not parallel: // TODOHERE: traj parallel case ?
+				+ // On edge wanting to go strictly outside
+				+ If on floor and we're not ghost:
+					+ // Impact
+					+ END
+				+ Else:
+					+ // Climb over edge
+					+ Find opposite triangle
+					+ If none:
+						+ // Become free
+						+ Reset state::constrained
+						+ return false; // We'll move to target and then END
+					+ Else:
+						+ Move to edge of opposite triangle (cur triangle + cur bary coords)
+						+ return false;
+		+ // We're inside triangle, and target is outside triangle
+		+ // Or we're on edge, with trajectory pointing inside or parallel, and target is outside triangle
+		+ Find closest intersection with one of the edges, excluding edge we are on -- also takes care of parallel case
+			+ // Guaranteed to exist: target outside of triangle and we're on an edge pointing inside
+		+ Move to intersection
+		+ return false;
 	- TODO:
-		- Fix: dance when we are on edge - trying to get to other side alternatively
 		- vec3_arr instead of vec3f::indexer?
 		- TODO's
-
-	- Try alternative algo:
-		- If @ target:
-			- END
-		- If we're free:
-			- Move to target
-			- return false; // We'll END at next iteration
-		- If target in triangle:
-			- Move to target
-			- return false; // We'll END at next iteration
-		- If on edge: // leverage forced zero b-coord's
-			- Check traj direction wrt normal // TODO: see if can be replaced by checking signs of target b-coords
-			- If traj does not point inside and is not parallel: // TODOHERE: traj parallel case ?
-				- // On edge wanting to go strictly outside
-				- If on floor and we're not ghost:
-					- // Impact
-					- END
-				- Else:
-					- // Climb over edge
-					- Find opposite triangle
-					- If none:
-						- // Become free
-						- Reset state::constrained
-						- return false; // We'll move to target and then END
-					- Else:
-						- Move to edge of opposite triangle (cur triangle + cur bary coords)
-						- return false;
-		- // We're inside triangle, and target is outside triangle
-		- // Or we're on edge, with trajectory pointing inside or parallel, and target is outside triangle
-		- Find closest intersection with one of the edges, excluding edge we are on -- also takes care of parallel case
-			- // Guaranteed to exist: target outside of triangle and we're on an edge pointing inside
-		- Move to intersection
-		- return false;
 
 
 - Facilities to display:

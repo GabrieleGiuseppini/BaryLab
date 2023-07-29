@@ -93,16 +93,11 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
     Triangles const & triangles = mModel->GetMesh().GetTriangles();
 
     auto & state = particles.GetState(particleIndex);
-
     assert(state.has_value());
 
-    if (!state->ConstrainedState)
-    {
-        // Free regime...
-
-        // ...move to target position directly
-        particles.SetPosition(particleIndex, state->TargetPosition);
-    }
+    //
+    // If we are at target, we're done
+    //
 
     if (particles.GetPosition(particleIndex) == state->TargetPosition)
     {
@@ -114,26 +109,53 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
     }
 
     //
-    // We must be in constrained regime now
+    // If we're free, we move to target
     //
 
-    assert(state->ConstrainedState.has_value());
+    if (!state->ConstrainedState)
+    {
+        LogMessage("  Particle is free, moving to target");
+
+        // ...move to target position directly
+        particles.SetPosition(particleIndex, state->TargetPosition);
+
+        return false; //  // We'll end at next iteration
+    }
+
+    //
+    // We are in constrained state
+    //
+
+    LogMessage("  Particle is in constrained state");
+
+    assert(state->ConstrainedState.has_value());    
 
     ElementIndex const currentTriangle = state->ConstrainedState->CurrentTriangle;
 
-    // Calculate ghost condition - we don't consider a surface floor (and thus allow 
-    // particle to ghost through it) if it's in a triangle made fully of floors
-    bool const isGhost =
-        edges.GetSurfaceType(triangles.GetSubEdgeAIndex(currentTriangle)) == SurfaceType::Floor
-        && edges.GetSurfaceType(triangles.GetSubEdgeBIndex(currentTriangle)) == SurfaceType::Floor
-        && edges.GetSurfaceType(triangles.GetSubEdgeCIndex(currentTriangle)) == SurfaceType::Floor;
-
-    // Calculate trajectory == Target - CurrentPost
-    vec2f const trajectory = state->TargetPosition - particles.GetPosition(particleIndex);
+    vec3f const targetBarycentricCoords = triangles.ToBarycentricCoordinates(
+        state->TargetPosition,
+        currentTriangle,
+        vertices);
 
     //
-    // If we are on a floor edge and we're moving against it, we're done;
-    // Note: we ensure later that we move forcibly to a zero bary-coord when we hit an edge
+    // If target is strictly in triangle, we move to target
+    //
+
+    if (targetBarycentricCoords.x > 0.0f && targetBarycentricCoords.x < 1.0f
+        && targetBarycentricCoords.y > 0.0f && targetBarycentricCoords.y < 1.0f
+        && targetBarycentricCoords.z > 0.0f && targetBarycentricCoords.z < 1.0f)
+    {
+        LogMessage("  Target is in triangle, moving to target");
+
+        // ...move to target position directly
+        particles.SetPosition(particleIndex, state->TargetPosition);
+        state->ConstrainedState->CurrentTriangleBarycentricCoords = targetBarycentricCoords;
+
+        return false; //  // We'll end at next iteration
+    }
+
+    //
+    // Check whether we are on an edge
     //
 
     // Note: if we are exactly at a vertex, we pick an arbitrary edge here
@@ -151,10 +173,17 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
         currentEdge = 0;
     }
 
-    if (currentEdge != NoneElementIndex
-        && edges.GetSurfaceType(triangles.GetSubEdges(currentTriangle).EdgeIndices[currentEdge]) == SurfaceType::Floor
-        && !isGhost)
+    if (currentEdge != NoneElementIndex)
     {
+        LogMessage("  Particle is on edge ", currentEdge);
+
+        //
+        // Check trajectory direction wrt normal to this edge
+        // TODO: see if can be replaced by checking signs of target b-coords
+        //
+
+        vec2f const trajectory = state->TargetPosition - particles.GetPosition(particleIndex);
+
         // Calculate pseudonormal, considering that we are *inside* the triangle
         // (points outside)
         vec2f const edgePNormal = (
@@ -162,44 +191,99 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
             - vertices.GetPosition(triangles.GetVertexIndices(currentTriangle)[currentEdge])
             ).to_perpendicular();
 
-        if (edgePNormal.dot(trajectory) >= 0.0f) // Trajectory leaves this edge
+        if (edgePNormal.dot(trajectory) > 0.0f) // Trajectory leaves this edge
         {
             //
-            // We're going against the floor - floor impact
-            //
-            // (actually we've impacted at the previous step, here we just realize it)
+            // We are on an edge, wanting to go strictly outside
             //
 
-            LogMessage("  Impact on edge ", currentEdge);
+            LogMessage("  Trajectory is sitrctly outward");
 
-            return true;
-        }            
+            ElementIndex const currentEdgeElement = triangles.GetSubEdges(currentTriangle).EdgeIndices[currentEdge];
+
+            // Calculate ghost condition - we don't consider a surface floor (and thus allow 
+            // particle to ghost through it) if it's in a triangle made fully of floors
+            bool const isGhost =
+                edges.GetSurfaceType(triangles.GetSubEdgeAIndex(currentTriangle)) == SurfaceType::Floor
+                && edges.GetSurfaceType(triangles.GetSubEdgeBIndex(currentTriangle)) == SurfaceType::Floor
+                && edges.GetSurfaceType(triangles.GetSubEdgeCIndex(currentTriangle)) == SurfaceType::Floor;
+
+            if (edges.GetSurfaceType(currentEdgeElement) == SurfaceType::Floor
+                && !isGhost)
+            {
+                //
+                // Impact
+                //
+
+                LogMessage("  Impact");
+
+                return true;
+            }
+            else
+            {
+                //
+                // Climb over edge
+                //
+
+                LogMessage("  Climbing over edge");
+
+                // Find opposite triangle
+                ElementIndex const oppositeTriangle = edges.GetOppositeTriangle(currentEdgeElement, currentTriangle);
+                if (oppositeTriangle == NoneElementIndex)
+                {
+                    //
+                    // Become free
+                    //
+
+                    LogMessage("  No opposite triangle found, becoming free");
+
+                    state->ConstrainedState.reset();
+
+                    return false;
+                }
+                else
+                {
+                    //
+                    // Move to edge of opposite triangle 
+                    //
+
+                    LogMessage("  Moving to edge of opposite triangle ", oppositeTriangle);
+
+                    state->ConstrainedState->CurrentTriangle = oppositeTriangle;
+                    // TODO: derive from intersection b-coords
+                    state->ConstrainedState->CurrentTriangleBarycentricCoords = triangles.ToBarycentricCoordinates(
+                        particles.GetPosition(particleIndex),
+                        state->ConstrainedState->CurrentTriangle,
+                        vertices);
+
+                    return false;
+                }
+            }
+        }
+        else
+        {
+            LogMessage("  Trajectory is parallel or towards interior");
+        }
     }
 
     //
-    // Calculate nearest intersection with triangle's edges
-    //
-    // The trajectory can be parameterized as (1 − t)*P + t*T, with P and T being the
-    // particle and target points, in either coordinate system. By expressing P and T
-    // in barycentric coordinates, the touch/cross point of the line with each edge
-    // is found by imposing the parameterized trajectory component to be zero, 
-    // yielding ti = lpi/(lpi - lti)
+    // We're inside triangle, and target is outside triangle,
+    // OR we're on edge, with trajectory pointing inside or parallel, and target is outside triangle
     //
 
-    // Calculate barycentric coordinates of target position wrt current triangle
-    vec3f const targetBarycentricCoords = triangles.ToBarycentricCoordinates(
-        state->TargetPosition,
-        currentTriangle,
-        vertices);
-
-    LogMessage("  Target pos wrt current triangle ", state->ConstrainedState->CurrentTriangle, ": ", targetBarycentricCoords);
+    //
+    // Find closest intersection with one of the edges, excluding edge we are on
+    //
+    // Guaranteed to exist and within trajectory: target outside of triangle and 
+    // we're inside or on an edge pointing inside
+    //
 
     ElementIndex intersectionVertex = NoneElementIndex;
     float minIntersectionT = std::numeric_limits<float>::max();
 
     for (ElementIndex vi = 0; vi < 3; ++vi)
     {
-        // Skip current edge
+        // Skip current edge (if any)
         if ((vi + 1) % 3 != currentEdge)
         {
             // TODO: do float_arr
@@ -208,11 +292,11 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
                 ? std::numeric_limits<float>::max() // Parallel, meets at infinity
                 : state->ConstrainedState->CurrentTriangleBarycentricCoords[vi] / den;
 
-            LogMessage("    t[v", vi, "]=", t);
+            LogMessage("  t[v", vi, "]=", t);
 
-            if (t > 0.0f) // If 0.0 we're on the edge itself, want to skip that trivial intersection
+            // Cull backward intersections
+            if (t >= 0.0f)
             {
-                // Meets ahead - in the direction of trajectory
                 if (t < minIntersectionT)
                 {
                     intersectionVertex = vi;
@@ -222,113 +306,36 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
         }
     }
 
-    // TODO: see if we find by mistake intersection with verlenging of edge when we are on an edge and traj points outside
-    ElementIndex newEdgeIndex;
-    vec2f newPosition;
-    if (intersectionVertex != NoneElementIndex)
-    {
-        //
-        // We intersect an edge
-        //
+    assert(intersectionVertex != NoneElementIndex); // Guaranteed to exist
+    assert(minIntersectionT >= 0.0f && minIntersectionT <= 1.0f); // Guaranteed to exist, within trajectory
 
-        assert(minIntersectionT >= 0.0f); // Meets ahead - in the direction of trajectory
+    //
+    // Move to intersection
+    //
 
-        if (minIntersectionT > 1.0f)
-        {
-            // No intersection before end of trajectory =>
-            // trajectory does not touch any edge before end of trajectory =>
-            // end-of-trajectory is internal
-            assert(
-                targetBarycentricCoords.x > 0.0f && targetBarycentricCoords.x < 1.0f
-                && targetBarycentricCoords.y > 0.0f && targetBarycentricCoords.y < 1.0f
-                && targetBarycentricCoords.z > 0.0f && targetBarycentricCoords.z < 1.0f);
+    ElementIndex const intersectionEdge = (intersectionVertex + 1) % 3;
 
-            LogMessage("  Intersection is after end of trajectory");
+    LogMessage("  Moving to intersection with edge ", intersectionEdge);
 
-            // ...move to target and we're done
-            particles.SetPosition(particleIndex, state->TargetPosition);
-            return true;
-        }
+    // Calculate intersection barycentric coordinates
+    vec3f intersectionBarycentricCoords;
+    intersectionBarycentricCoords[intersectionVertex] = 0.0f;
+    float const lNext = // Barycentric coord of next vertex at intersection
+        state->ConstrainedState->CurrentTriangleBarycentricCoords[(intersectionVertex + 1) % 3] * (1.0f - minIntersectionT)
+        + targetBarycentricCoords[(intersectionVertex + 1) % 3] * minIntersectionT;
+    intersectionBarycentricCoords[(intersectionVertex + 1) % 3] = lNext;
+    intersectionBarycentricCoords[(intersectionVertex + 2) % 3] = 1.0f - lNext;
 
-        //
-        // Trajectory intersects an edge before end-of-trajectory
-        //
+    // Move to intersection
 
-        ElementIndex const intersectionEdge = (intersectionVertex + 1) % 3;
-        LogMessage("  Intersection on edge ", intersectionEdge, " @ t=", minIntersectionT);
-
-        // Calculate intersection's barycentric coordinates
-        vec3f intersectionBarycentricCoords;
-        intersectionBarycentricCoords[intersectionVertex] = 0.0f;
-        float const lNext = // Barycentric coord of next vertex at intersection
-            state->ConstrainedState->CurrentTriangleBarycentricCoords[(intersectionVertex + 1) % 3] * (1.0f - minIntersectionT)
-            + targetBarycentricCoords[(intersectionVertex + 1) % 3] * minIntersectionT;
-        intersectionBarycentricCoords[(intersectionVertex + 1) % 3] = lNext;
-        intersectionBarycentricCoords[(intersectionVertex + 2) % 3] = 1.0f - lNext;
-
-        LogMessage("  Intersection b-coords: ", intersectionBarycentricCoords);
-
-        newPosition = triangles.FromBarycentricCoordinates(
-            intersectionBarycentricCoords,
-            currentTriangle,
-            vertices);
-
-        particles.SetPosition(particleIndex, newPosition);
-        state->ConstrainedState->CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
-
-        // Check if edge is floor
-        newEdgeIndex = triangles.GetSubEdges(currentTriangle).EdgeIndices[intersectionEdge];
-        if (mModel->GetMesh().GetEdges().GetSurfaceType(newEdgeIndex) == SurfaceType::Floor
-            && !isGhost)
-        {
-            //
-            // Impact
-            //
-
-            LogMessage("  Impact (pre)");
-
-            // Return, we'll then complete since we are on an edge
-            return false;
-        }
-    }
-    else
-    {
-        //
-        // Cannot find intersection
-        //
-        // Must be on an edge
-        //
-
-        LogMessage("  No intersection at all, staying put");
-
-        newPosition = particles.GetPosition(particleIndex);
-        newEdgeIndex = triangles.GetSubEdges(currentTriangle).EdgeIndices[currentEdge];
-    }
-
-    // Find opposite triangle
-    ElementIndex const oppositeTriangle = edges.GetOppositeTriangle(newEdgeIndex, state->ConstrainedState->CurrentTriangle);
-    if (oppositeTriangle == NoneElementIndex)
-    {
-        //
-        // Become free
-        //
-
-        LogMessage("  Becoming free");
-
-        state->ConstrainedState.reset();
-
-        return false;
-    }
-
-    // Move to edge of opposite triangle
-    state->ConstrainedState->CurrentTriangle = oppositeTriangle;
-    // TODO: derive from intersection b-coords
-    state->ConstrainedState->CurrentTriangleBarycentricCoords = triangles.ToBarycentricCoordinates(
-        newPosition,
-        state->ConstrainedState->CurrentTriangle,
+    vec2f const newPosition = triangles.FromBarycentricCoordinates(
+        intersectionBarycentricCoords,
+        currentTriangle,
         vertices);
 
-    LogMessage("  Moved to pos wrt current triangle ", state->ConstrainedState->CurrentTriangle, ": ", state->ConstrainedState->CurrentTriangleBarycentricCoords);
+    particles.SetPosition(particleIndex, newPosition);
 
+    state->ConstrainedState->CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
+    
     return false;
 }
