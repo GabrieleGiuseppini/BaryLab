@@ -175,23 +175,34 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
 
     if (currentEdge != NoneElementIndex)
     {
+        //
+        // We are on an edge
+        //
+
         LogMessage("  Particle is on edge ", currentEdge);
 
         //
         // Check trajectory direction wrt normal to this edge
-        // TODO: see if can be replaced by checking signs of target b-coords
         //
 
-        vec2f const trajectory = state->TargetPosition - particles.GetPosition(particleIndex);
+        // TODOTEST
+        {
+            vec2f const trajectory = state->TargetPosition - particles.GetPosition(particleIndex);
 
-        // Calculate pseudonormal to edge, considering that we are *inside* the triangle
-        // (points outside)
-        vec2f const edgePNormal = (
-            vertices.GetPosition(triangles.GetVertexIndices(currentTriangle)[(currentEdge + 1) % 3])
-            - vertices.GetPosition(triangles.GetVertexIndices(currentTriangle)[currentEdge])
-            ).to_perpendicular();
+            // Calculate pseudonormal to edge, considering that we are *inside* the triangle
+            // (points outside)
+            vec2f const edgePNormal = (
+                vertices.GetPosition(triangles.GetVertexIndices(currentTriangle)[(currentEdge + 1) % 3])
+                - vertices.GetPosition(triangles.GetVertexIndices(currentTriangle)[currentEdge])
+                ).to_perpendicular();
 
-        if (edgePNormal.dot(trajectory) > 0.0f) // Trajectory leaves this edge outbound
+            assert((edgePNormal.dot(trajectory) > 0.0f && targetBarycentricCoords[(currentEdge + 2) % 3] < 0.0f)
+                || (edgePNormal.dot(trajectory) < 0.0f && targetBarycentricCoords[(currentEdge + 2) % 3] > 0.0f)
+                || (edgePNormal.dot(trajectory) == 0.0f && targetBarycentricCoords[(currentEdge + 2) % 3] == 0.0f));
+
+        }
+
+        if (targetBarycentricCoords[(currentEdge + 2) % 3] < 0.0f)
         {
             //
             // We are on an edge, wanting to go strictly outside
@@ -294,7 +305,7 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
         if ((vi + 1) % 3 != currentEdge)
         {
             float const den = state->ConstrainedState->CurrentTriangleBarycentricCoords[vi] - targetBarycentricCoords[vi];
-            float const t = (den == 0.0f) // TODO: with epsilon (GameMath)
+            float const t = (den == 0.0f)
                 ? std::numeric_limits<float>::max() // Parallel, meets at infinity
                 : state->ConstrainedState->CurrentTriangleBarycentricCoords[vi] / den;
 

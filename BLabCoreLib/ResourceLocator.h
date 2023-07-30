@@ -18,7 +18,7 @@ public:
 
     static std::filesystem::path GetDefaultMeshDefinitionFilePath()
     {
-        return GetInstalledMeshesFolderPath() / "one_triangle_floor.png";
+        return GetInstalledMeshesFolderPath() / "default_mesh.png";
     }
 
     static std::filesystem::path GetStructuralMaterialDatabaseFilePath()

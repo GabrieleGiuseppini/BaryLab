@@ -1,5 +1,5 @@
 
-- Particle state machine:
++ Particle state machine:
 	+ Particles::StateType struct
 		+ Stored in buffer as opt<.>
 	+ State is:
@@ -83,11 +83,5 @@
 			+ // Guaranteed to exist: target outside of triangle and we're on an edge pointing inside
 		+ Move to intersection
 		+ return false;
-	- TODO:
-		- TODO's
-
-
-- Facilities to display:
-	- Highlighted edge + "place" (for trajectory hitting edge)
 
 - Take care of colinear triangle @ barycentric coords
