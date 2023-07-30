@@ -200,7 +200,6 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
             assert((edgePNormal.dot(trajectory) > 0.0f && targetBarycentricCoords[(currentEdge + 2) % 3] < 0.0f)
                 || (edgePNormal.dot(trajectory) < 0.0f && targetBarycentricCoords[(currentEdge + 2) % 3] > 0.0f)
                 || (edgePNormal.dot(trajectory) == 0.0f && targetBarycentricCoords[(currentEdge + 2) % 3] == 0.0f));
-
         }
 
         if (targetBarycentricCoords[(currentEdge + 2) % 3] < 0.0f)
