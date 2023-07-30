@@ -312,3 +312,13 @@ inline float MixPiecewiseLinear(
         ? minOutput + (oneOutput - minOutput) * (x - minX) / (1.0f - minX)
         : oneOutput + (maxOutput - oneOutput) * (x - 1.0f) / (maxX - 1.0f);
 }
+
+inline bool IsAlmostZero(float value, float epsilon)
+{
+    return (value > -epsilon) && (value < epsilon);
+}
+
+inline bool IsAlmostZero(float value)
+{
+    return IsAlmostZero(value, 0.000001f);
+}

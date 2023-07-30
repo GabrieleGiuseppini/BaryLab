@@ -5,6 +5,8 @@
 ***************************************************************************************/
 #include "Triangles.h"
 
+#include "BLabMath.h"
+
 void Triangles::Add(
     ElementIndex particleAIndex,
     ElementIndex particleBIndex,
@@ -30,26 +32,33 @@ vec3f Triangles::ToBarycentricCoordinates(
         (positionB.y - positionC.y) * (positionA.x - positionC.x)
         + (positionC.x - positionB.x) * (positionA.y - positionC.y);
 
-    // TODO: colinearity
+    if (IsAlmostZero(denominator))
+    {
+        // Co-linear, put arbitrarily in center
+        float const l = 0.3333333f;
+        return vec3f(l, l, 1.0f - l - l);
+    }
+    else
+    {
+        float const l1 =
+            (
+                (positionB.y - positionC.y) * (position.x - positionC.x)
+                + (positionC.x - positionB.x) * (position.y - positionC.y)
+            ) / denominator;
 
-    float const l1 =
-        (
-            (positionB.y - positionC.y) * (position.x - positionC.x)
-            + (positionC.x - positionB.x) * (position.y - positionC.y)
-        ) / denominator;
-    
-    float const l2 =
-        (
-            (positionC.y - positionA.y) * (position.x - positionC.x)
-            + (positionA.x - positionC.x) * (position.y - positionC.y)
-        ) / denominator;
+        float const l2 =
+            (
+                (positionC.y - positionA.y) * (position.x - positionC.x)
+                + (positionA.x - positionC.x) * (position.y - positionC.y)
+            ) / denominator;
 
-    float const l3 = 1.0f - l1 - l2;
+        float const l3 = 1.0f - l1 - l2;
 
-    return vec3f(
-        l1,
-        l2,
-        l3);
+        return vec3f(
+            l1,
+            l2,
+            l3);
+    }
 }
 
 vec2f Triangles::FromBarycentricCoordinates(

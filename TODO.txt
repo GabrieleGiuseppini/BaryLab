@@ -84,4 +84,4 @@
 		+ Move to intersection
 		+ return false;
 
-- Take care of colinear triangle @ barycentric coords
++ Take care of colinear triangle @ barycentric coords

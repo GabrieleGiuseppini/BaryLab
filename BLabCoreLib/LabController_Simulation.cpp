@@ -5,6 +5,7 @@
  ***************************************************************************************/
 #include "LabController.h"
 
+#include "BLabMath.h"
 #include "Log.h"
 
 #include <limits>
@@ -305,7 +306,7 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
         if ((vi + 1) % 3 != currentEdge)
         {
             float const den = state->ConstrainedState->CurrentTriangleBarycentricCoords[vi] - targetBarycentricCoords[vi];
-            float const t = (den == 0.0f)
+            float const t = IsAlmostZero(den)
                 ? std::numeric_limits<float>::max() // Parallel, meets at infinity
                 : state->ConstrainedState->CurrentTriangleBarycentricCoords[vi] / den;
 
