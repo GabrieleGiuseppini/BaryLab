@@ -321,33 +321,15 @@ public:
     float const & operator[](int index) const
     {
         assert(index >= 0 && index < 3);
-        switch (index)
-        {
-            case 0: return x;
-            case 1: return y;
-            case 2: return z;
-            default:
-            {
-                assert(false);
-                return x;
-            }
-        }
+        float const * arr = reinterpret_cast<float const *>(&(this->x));
+        return arr[index];
     }
 
     float & operator[](int index)
     {
         assert(index >= 0 && index < 3);
-        switch (index)
-        {
-            case 0: return x;
-            case 1: return y;
-            case 2: return z;
-            default:
-            {
-                assert(false);
-                return x;
-            }
-        }
+        float * arr = reinterpret_cast<float *>(&(this->x));
+        return arr[index];
     }
 
 	inline vec3f operator+(vec3f const & other) const

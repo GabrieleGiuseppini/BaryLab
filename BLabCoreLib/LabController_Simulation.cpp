@@ -293,7 +293,6 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
         // Skip current edge (if any)
         if ((vi + 1) % 3 != currentEdge)
         {
-            // TODO: do float_arr
             float const den = state->ConstrainedState->CurrentTriangleBarycentricCoords[vi] - targetBarycentricCoords[vi];
             float const t = (den == 0.0f) // TODO: with epsilon (GameMath)
                 ? std::numeric_limits<float>::max() // Parallel, meets at infinity

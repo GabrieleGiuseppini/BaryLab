@@ -84,7 +84,6 @@
 		+ Move to intersection
 		+ return false;
 	- TODO:
-		- vec3_arr instead of vec3f::indexer?
 		- TODO's
 
 
