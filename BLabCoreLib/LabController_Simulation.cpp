@@ -191,7 +191,7 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
             - vertices.GetPosition(triangles.GetVertexIndices(currentTriangle)[currentEdge])
             ).to_perpendicular();
 
-        if (edgePNormal.dot(trajectory) > 0.0f) // Trajectory leaves this edge
+        if (edgePNormal.dot(trajectory) > 0.0f) // Trajectory leaves this edge outbound
         {
             //
             // We are on an edge, wanting to go strictly outside
