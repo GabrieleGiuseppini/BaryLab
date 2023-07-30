@@ -184,7 +184,7 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
 
         vec2f const trajectory = state->TargetPosition - particles.GetPosition(particleIndex);
 
-        // Calculate pseudonormal, considering that we are *inside* the triangle
+        // Calculate pseudonormal to edge, considering that we are *inside* the triangle
         // (points outside)
         vec2f const edgePNormal = (
             vertices.GetPosition(triangles.GetVertexIndices(currentTriangle)[(currentEdge + 1) % 3])
