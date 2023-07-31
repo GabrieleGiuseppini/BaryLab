@@ -40,45 +40,66 @@ void LabController::InitializeParticleState(ElementIndex particleIndex)
     }
 }
 
-void LabController::UpdateSimulation(LabParameters const & /*labParameters*/)
+void LabController::UpdateSimulation(LabParameters const & labParameters)
 {
-    //////
-    ////// Particle physics
-    //////
-
-    ////float const dt = LabParameters::SimulationTimeStepDuration;
-
-    ////auto & particles = mModel->GetParticles();
-
-    ////float const particleMass = LabParameters::ParticleMass * labParameters.MassAdjustment;
-
-    ////for (auto const & p : particles)
-    ////{
-    ////    vec2f const forces = particles.GetWorldForce(p) * labParameters.GravityAdjustment;
-
-    ////    vec2f const deltaPos =
-    ////        particles.GetVelocity(p) * dt
-    ////        + forces / LabParameters::ParticleMass * dt * dt;
-
-    ////    particles.SetPosition(p, particles.GetPosition(p) + deltaPos);
-    ////    particles.SetVelocity(p, deltaPos / dt);
-    ////}
+    float const dt = LabParameters::SimulationTimeStepDuration;
 
     auto & particles = mModel->GetParticles();
 
+    float const particleMass = LabParameters::ParticleMass * labParameters.MassAdjustment;
+
     for (auto const & p : particles)
     {
-        if (particles.GetState(p).has_value())
+        if (!particles.GetState(p).has_value())
         {
-            bool hasCompleted = UpdateParticleState(p);
-            if (hasCompleted)
-            {
-                LogMessage("Particle ", p, " COMPLETED");
+            // Update physics
 
-                // Destroy state
-                particles.GetState(p).reset();
-                mCurrentParticleTrajectory.reset();
+            vec2f const forces = particles.GetWorldForce(p) * labParameters.GravityAdjustment;
+
+            vec2f const deltaPos =
+                particles.GetVelocity(p) * dt
+                + forces / LabParameters::ParticleMass * dt * dt;
+
+            vec2f const newPosition = particles.GetPosition(p) + deltaPos;
+
+            particles.SetVelocity(p, deltaPos / dt);
+
+            // Initialize state
+
+            std::optional<Particles::StateType::ConstrainedStateType> constrainedState;
+
+            ElementIndex const triangleIndex = FindTriangleContaining(mModel->GetParticles().GetPosition(p));
+            if (triangleIndex != NoneElementIndex)
+            {
+                vec3f const barycentricCoords = mModel->GetMesh().GetTriangles().ToBarycentricCoordinates(
+                    mModel->GetParticles().GetPosition(p),
+                    triangleIndex,
+                    mModel->GetMesh().GetVertices());
+
+                constrainedState.emplace(
+                    triangleIndex,
+                    barycentricCoords);
             }
+
+            mModel->GetParticles().GetState(p).emplace(
+                constrainedState,
+                newPosition);
+
+            mCurrentParticleTrajectory.emplace(p, newPosition);
+
+            mCurrentParticleTrajectoryNotification.reset();
+        }
+
+        assert(particles.GetState(p).has_value());
+        
+        bool hasCompleted = UpdateParticleState(p);
+        if (hasCompleted)
+        {
+            LogMessage("Particle ", p, " COMPLETED");
+
+            // Destroy state
+            particles.GetState(p).reset();
+            mCurrentParticleTrajectory.reset();
         }
     }
 }

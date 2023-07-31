@@ -411,7 +411,7 @@ void LabController::SetParticleTrajectory(
     mCurrentParticleTrajectory.emplace(
         particleIndex,
         ScreenToWorld(targetScreenCoordinates));
-
+    
     mCurrentParticleTrajectoryNotification.reset();
 
     InitializeParticleState(particleIndex);
