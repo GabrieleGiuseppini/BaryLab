@@ -55,7 +55,6 @@ long const ID_ABOUT_MENUITEM = wxNewId();
 
 long const ID_SIMULATION_TIMER = wxNewId();
 
-// TODOHERE
 MainFrame::MainFrame(wxApp * mainApp)
     : mIsMouseCapturedByGLCanvas(false)
     , mMainApp(mainApp)
@@ -793,6 +792,8 @@ void MainFrame::FinishInitialization()
     {
         throw BLabException("Error during initialization of simulation controller: " + std::string(e.what()));
     }
+
+    mControlToolbar->ReconcialiteUI(mLabController->IsParticleGravityEnabled());
 
     //
     // Create Settings Manager

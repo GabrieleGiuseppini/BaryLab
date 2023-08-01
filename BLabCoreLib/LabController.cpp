@@ -52,6 +52,8 @@ LabController::LabController(
     // Simulation control
     , mSimulationControlState(SimulationControlStateType::Paused)
     , mSimulationControlImpulse(false)
+    // Our own parameters
+    , mIsGravityEnabled(false)
 {    
 }
 
@@ -109,6 +111,17 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
 void LabController::Update()
 {
     assert(mModel);
+
+    // Reconcile gravity
+
+    vec2f const gravity = mIsGravityEnabled ? LabParameters::Gravity : vec2f::zero();
+    auto & particles = mModel->GetParticles();
+    for (auto p : particles)
+    {
+        particles.SetWorldForce(p, gravity);
+    }
+
+    // Update simulation
 
     if (mSimulationControlState == SimulationControlStateType::Play
         || mSimulationControlImpulse)
@@ -434,15 +447,14 @@ void LabController::QueryNearestParticleAt(vec2f const & screenCoordinates) cons
     }
 }
 
+bool LabController::IsParticleGravityEnabled() const
+{
+    return mIsGravityEnabled;
+}
+
 void LabController::SetParticleGravityEnabled(bool isEnabled)
 {
-    vec2f const gravity = isEnabled ? LabParameters::Gravity : vec2f::zero();
-
-    auto & particles = mModel->GetParticles();
-    for (auto p : particles)
-    {
-        particles.SetWorldForce(p, gravity);
-    }
+    mIsGravityEnabled = isEnabled;
 }
 
 ////////////////////////////////////////////////

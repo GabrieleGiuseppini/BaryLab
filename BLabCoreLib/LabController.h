@@ -74,6 +74,8 @@ public:
 
     void QueryNearestParticleAt(vec2f const & screenCoordinates) const;
 
+    bool IsParticleGravityEnabled() const;
+
     void SetParticleGravityEnabled(bool isEnabled);
 
     //
@@ -178,7 +180,6 @@ private:
     StructuralMaterialDatabase mStructuralMaterialDatabase;
     std::unique_ptr<RenderContext> mRenderContext;
     EventDispatcher mEventDispatcher;
-    
 
     //
     // Current state
@@ -200,4 +201,10 @@ private:
 
     SimulationControlStateType mSimulationControlState;
     bool mSimulationControlImpulse;
+
+    //
+    // Our parameters
+    //
+
+    bool mIsGravityEnabled;
 };

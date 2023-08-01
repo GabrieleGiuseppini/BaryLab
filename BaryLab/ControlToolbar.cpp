@@ -33,7 +33,7 @@ long const ControlToolbar::ID_ACTION_SETTINGS = wxNewId();
 
 long const ControlToolbar::ID_VIEW_CONTROL_GRID = wxNewId();
 
-ControlToolbar::ControlToolbar(wxWindow* parent)
+ControlToolbar::ControlToolbar(wxWindow * parent)
     : wxPanel(
         parent,
         wxID_ANY,
@@ -153,7 +153,7 @@ ControlToolbar::ControlToolbar(wxWindow* parent)
                 wxBitmap(
                     (ResourceLocator::GetResourcesFolderPath() / "gravity_icon.png").string(),
                     wxBITMAP_TYPE_PNG),
-                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);            
 
             mSetParticleGravityButton->Bind(wxEVT_TOGGLEBUTTON,
                 [this](wxCommandEvent & /*event*/)
@@ -348,6 +348,11 @@ ControlToolbar::ControlToolbar(wxWindow* parent)
     vSizer->AddSpacer(10);
 
     this->SetSizer(vSizer);
+}
+
+void ControlToolbar::ReconcialiteUI(bool isGravityEnabled)
+{
+    mSetParticleGravityButton->SetValue(isGravityEnabled);
 }
 
 void ControlToolbar::ReconciliateUIWithTool(ToolType tool)

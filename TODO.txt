@@ -1,4 +1,2 @@
-- Fix gravity
-	- Need storage at controller
 - SettingsDialog:
 	- Elasticity & Friction

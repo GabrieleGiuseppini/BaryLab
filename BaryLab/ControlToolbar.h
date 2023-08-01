@@ -38,9 +38,11 @@ public:
 
 public:
 
-    ControlToolbar(wxWindow* parent);
+    ControlToolbar(wxWindow * parent);
 
     virtual ~ControlToolbar() = default;
+
+    void ReconcialiteUI(bool isGravityEnabled);
 
     void ReconciliateUIWithTool(ToolType tool);
 
