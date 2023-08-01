@@ -43,9 +43,10 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
         if (!particles.GetState(p).TargetPosition.has_value())
         {
             //
-            // We need a target
+            // We need a trajectory
             //
 
+            vec2f sourcePosition;
             vec2f targetPosition;
 
             if (mCurrentParticleTrajectory.has_value()
@@ -55,15 +56,12 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
 
                 vec2f const deltaPos = mCurrentParticleTrajectory->TargetPosition - particles.GetPosition(p);
 
+                sourcePosition = particles.GetPosition(p);
                 targetPosition = particles.GetPosition(p) + deltaPos;
             }
             else
             {
-                // Use physics to calculate trajectory
-
-                // TODOHERE: switch on regime
-                // if constrained: calculatate trajectory as planned: from current bary coords in cur triangle up to target position calculated by physics
-                // if free: from current (absolute) position up to target position calculated by physics
+                // Use physics to calculate trajectory, including momentum
 
                 vec2f const forces = particles.GetWorldForce(p) * labParameters.GravityAdjustment;
 
@@ -71,11 +69,27 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
                     particles.GetVelocity(p) * dt
                     + forces / LabParameters::ParticleMass * dt * dt;
 
+                // Check regime
+                if (particles.GetState(p).ConstrainedState.has_value())
+                {
+                    // Constrained state: trajectory is from current bary coords in cur triangle up to target position calculated by physics
+                    sourcePosition = mModel->GetMesh().GetTriangles().FromBarycentricCoordinates(
+                        particles.GetState(p).ConstrainedState->CurrentTriangleBarycentricCoords,
+                        particles.GetState(p).ConstrainedState->CurrentTriangle,
+                        mModel->GetMesh().GetVertices());
+                }
+                else
+                {
+                    // Free state: from current (absolute) position up to target position calculated by physics
+                    sourcePosition = particles.GetPosition(p);
+                }
+
                 targetPosition = particles.GetPosition(p) + deltaPos;
             }
 
-            // Update velocity
-            particles.SetVelocity(p, (targetPosition - particles.GetPosition(p)) / dt);
+            // Update physics for trajectory
+            particles.SetPosition(p, sourcePosition);
+            particles.SetVelocity(p, (targetPosition - sourcePosition) / dt);
 
             // Transition state
 

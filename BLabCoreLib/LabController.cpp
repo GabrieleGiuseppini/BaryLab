@@ -388,6 +388,14 @@ void LabController::MoveParticleBy(
         vec2f::zero()); // Zero-out velocity
 
     InitializeParticleRegime(particleIndex);
+
+    // Select particle
+    mCurrentlySelectedParticleProbe.emplace(particleIndex);
+
+    // Re-calcualate trajectory
+    mModel->GetParticles().GetState(particleIndex).TargetPosition.reset();
+    mCurrentParticleTrajectory.reset();
+    mCurrentParticleTrajectory.reset();
 }
 
 void LabController::NotifyParticleTrajectory(

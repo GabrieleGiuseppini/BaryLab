@@ -1,14 +1,5 @@
-= Split State:
-	+ State not optional anymore; exists only for BLab state machine
-		+ Contains optional target pos
-	+ ConstrainedState moves up to root
-	- Finalize:
-		+ Constrained state is to be reset only @
-			+ Load
-			+ Move particle
-			+ Move vertex
-		- Traj decision with physics: switch on regime
 - Fix gravity
+	- Need storage at controller
 - Physics coupling:
 	+ Basic
 	- Impact
