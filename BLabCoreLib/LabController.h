@@ -169,7 +169,9 @@ private:
 
     void UpdateSimulation(LabParameters const & labParameters);
 
-    bool UpdateParticleState(ElementIndex particleIndex);
+    bool UpdateParticleState(
+        ElementIndex particleIndex,
+        LabParameters const & labParameters);
 
 private:
     

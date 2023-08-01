@@ -45,6 +45,16 @@ struct LabParameters
     float GravityAdjustment;
     static float constexpr MinGravityAdjustment = 0.0f;
     static float constexpr MaxGravityAdjustment = 1000.0f;
+    
+    float Elasticity;
+    static float constexpr MinElasticity = 0.0f;
+    static float constexpr MaxElasticity = 1.0f;
+
+    float Friction;
+    static float constexpr MinFriction = 0.0f;
+    static float constexpr MaxFriction = 1.0f;
+
+    // Misc
 
     static float constexpr VertexRadius = 0.05f;
     static float constexpr EdgeThickness = 0.03f;

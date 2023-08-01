@@ -102,7 +102,7 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
         {
             assert(particles.GetState(p).TargetPosition.has_value());
 
-            bool hasCompleted = UpdateParticleState(p);
+            bool hasCompleted = UpdateParticleState(p, labParameters);
             if (hasCompleted)
             {
                 LogMessage("Particle ", p, " COMPLETED");
@@ -115,7 +115,9 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
     }
 }
 
-bool LabController::UpdateParticleState(ElementIndex particleIndex)
+bool LabController::UpdateParticleState(
+    ElementIndex particleIndex,
+    LabParameters const & labParameters)
 {
     LogMessage("--------------------------------------");
     LogMessage("P ", particleIndex);
@@ -241,7 +243,7 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
             // We are on an edge, wanting to go strictly outside
             //
 
-            LogMessage("  Trajectory is sitrctly outward");
+            LogMessage("  Trajectory is strictly outward");
 
             ElementIndex const currentEdgeElement = triangles.GetSubEdges(currentTriangle).EdgeIndices[currentEdge];
 
@@ -260,6 +262,41 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
                 //
 
                 LogMessage("  Impact");
+
+                vec2f const particleVelocity = particles.GetVelocity(particleIndex);
+
+                // Calculate edge normal (positive pointing into the floor)
+                vec2f const edgeNormal = (
+                    vertices.GetPosition(triangles.GetVertexIndices(currentTriangle)[currentEdge])
+                    - vertices.GetPosition(triangles.GetVertexIndices(currentTriangle)[(currentEdge + 1) % 3])
+                    ).to_perpendicular();
+
+                // Calculate the component of the particle's velocity along the normal,
+                // i.e. towards the interior of the floor...
+                float const particleVelocityAlongNormal = particleVelocity.dot(edgeNormal);
+
+                // ...if negative, we have an impact
+                if (particleVelocityAlongNormal < 0.0f)
+                {
+                    // Decompose particle velocity into normal and tangential
+                    vec2f const normalVelocity = edgeNormal * particleVelocityAlongNormal;
+                    vec2f const tangentialVelocity = particleVelocity - normalVelocity;
+
+                    // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
+                    vec2f const normalResponse =
+                        -normalVelocity
+                        * labParameters.Elasticity;
+
+                    // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
+                    vec2f const tangentialResponse =
+                        tangentialVelocity
+                        * (1.0f - labParameters.Friction);
+
+                    // Set velocity to resultant collision velocity
+                    particles.SetVelocity(
+                        particleIndex,
+                        normalResponse + tangentialResponse);
+                }
 
                 return true;
             }

@@ -1,7 +1,4 @@
 - Fix gravity
 	- Need storage at controller
-- Physics coupling:
-	+ Basic
-	- Impact
-		- First implementation: no apparent forces; take world forces, integrate them (incl. current velocity, leftover of previous impact of any),
-		  calculate trajectory (as planned), and upon impact do classic collision response (velocity-based, not force-based), including friction
+- SettingsDialog:
+	- Elasticity & Friction
