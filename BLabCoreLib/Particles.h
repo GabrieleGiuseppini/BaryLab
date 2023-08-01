@@ -37,11 +37,16 @@ public:
         };
 
         std::optional<ConstrainedStateType> ConstrainedState;
-        vec2f TargetPosition;
+        std::optional<vec2f> TargetPosition; // When set, we are moving towards a target; when not set, we have to calculate a target
+
+        StateType()
+            : ConstrainedState()
+            , TargetPosition()
+        {}
 
         StateType(
             std::optional<ConstrainedStateType> const & constrainedState,
-            vec2f const & targetPosition)
+            std::optional<vec2f> const & targetPosition)
             : ConstrainedState(constrainedState)
             , TargetPosition(targetPosition)
         {}
@@ -61,7 +66,7 @@ public:
         // Render
         , mRenderColorBuffer(mBufferElementCount, particleCount, rgbaColor::zero())
         // State
-        , mStateBuffer(mBufferElementCount, particleCount, std::nullopt)
+        , mStateBuffer(mBufferElementCount, particleCount, StateType())
     {
     }
 
@@ -165,12 +170,12 @@ public:
     // State
     //
 
-    std::optional<StateType> const & GetState(ElementIndex particleElementIndex) const
+    StateType const & GetState(ElementIndex particleElementIndex) const
     {
         return mStateBuffer[particleElementIndex];
     }
 
-    std::optional<StateType> & GetState(ElementIndex particleElementIndex)
+    StateType & GetState(ElementIndex particleElementIndex)
     {
         return mStateBuffer[particleElementIndex];
     }
@@ -199,5 +204,5 @@ private:
     // State
     //
 
-    Buffer<std::optional<StateType>> mStateBuffer;
+    Buffer<StateType> mStateBuffer;
 };

@@ -1,87 +1,16 @@
-
-+ Particle state machine:
-	+ Particles::StateType struct
-		+ Stored in buffer as opt<.>
-	+ State is:
-		+ Current triangle
-		+ Current barycentric coords
-		+ Target position (copy of trajectory)
-	+ Initialized at SetTrajectory (i.e. the final call), and at Move Particle and Move Vertex
-		+ LabController::Simulation::InitializeParticleState(p)
-			+ Only populated if there is a trajectory, and if particle is in a triangle
-				+ Publish
-			+ Else: nullopt
-				+ Publish
-	+ LabController::Update:
-		+ For each particle that has a state:
-			+ bool isCompleted = LabController::UpdateParticleState(.)
-			+ if isComplete:
-				+ Reset particle state
-				+ Reset trajectory
-				+ Publish
-	+ Split state, ConstrainedState is opt
-		+ Redo state initialization & publishing
-			+ Publishing done @ end of update, at a single place
-	X LabController::UpdateParticleState:
-		+ If not in a triangle:
-			+ Move to target
-		+ If @ target:
-			+ return true
-		+ assert(InTriangle)
-		- If on floor edge (based on current bary coords):
-			+ AND: normal is opposite direction of trajectory
-			+ AND: allow when inside floor to move like ghost: if not all edges are floor
-			+ Test before & after
-			+ return true
-			- Test ghost condition
-		+ Calc bary coords of target wrt current triangle
-		+ If stricly inside:
-			+ Move to target
-			+ return true
-		+ Find hit edge & coords on it
-		+ Move to edge (pos + cur bary coords)
-		+ If edge is floor:
-			+ // Impact			
-			+ return false
-		+ Find next triangle
-			+ Edges::GetOppositeTriangle(s, t)
-		+ If no triangle found:
-			+ // Become free
-			+ Reset current triangle
-			+ return false
-		+ Move to edge of that next triangle (cur triangle + cur bary coords)
-		+ return false
-	+ Try alternative algo:
-		+ If @ target:
-			+ END
-		+ If we're free:
-			+ Move to target
-			+ return false; // We'll END at next iteration
-		+ If target in triangle:
-			+ Move to target
-			+ return false; // We'll END at next iteration
-		+ If on edge: // leverage forced zero b-coord's
-			+ Check traj direction wrt normal // TODO: see if can be replaced by checking signs of target b-coords
-			+ If traj does not point inside and is not parallel: // TODOHERE: traj parallel case ?
-				+ // On edge wanting to go strictly outside
-				+ If on floor and we're not ghost:
-					+ // Impact
-					+ END
-				+ Else:
-					+ // Climb over edge
-					+ Find opposite triangle
-					+ If none:
-						+ // Become free
-						+ Reset state::constrained
-						+ return false; // We'll move to target and then END
-					+ Else:
-						+ Move to edge of opposite triangle (cur triangle + cur bary coords)
-						+ return false;
-		+ // We're inside triangle, and target is outside triangle
-		+ // Or we're on edge, with trajectory pointing inside or parallel, and target is outside triangle
-		+ Find closest intersection with one of the edges, excluding edge we are on -- also takes care of parallel case
-			+ // Guaranteed to exist: target outside of triangle and we're on an edge pointing inside
-		+ Move to intersection
-		+ return false;
-
-+ Take care of colinear triangle @ barycentric coords
+= Split State:
+	+ State not optional anymore; exists only for BLab state machine
+		+ Contains optional target pos
+	+ ConstrainedState moves up to root
+	- Finalize:
+		+ Constrained state is to be reset only @
+			+ Load
+			+ Move particle
+			+ Move vertex
+		- Traj decision with physics: switch on regime
+- Fix gravity
+- Physics coupling:
+	+ Basic
+	- Impact
+		- First implementation: no apparent forces; take world forces, integrate them (incl. current velocity, leftover of previous impact of any),
+		  calculate trajectory (as planned), and upon impact do classic collision response (velocity-based, not force-based), including friction

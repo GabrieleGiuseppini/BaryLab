@@ -165,7 +165,7 @@ private:
     // Simulation
     //
 
-    void InitializeParticleState(ElementIndex particleIndex);
+    void InitializeParticleRegime(ElementIndex particleIndex);
 
     void UpdateSimulation(LabParameters const & labParameters);
 

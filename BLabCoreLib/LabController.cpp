@@ -123,16 +123,14 @@ void LabController::Update()
 
     std::optional<ParticleProbe> particleProbe;
     if (mCurrentlySelectedParticleProbe.has_value()
-        && mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).has_value()
-        && mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe)->ConstrainedState.has_value())
+        && mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).ConstrainedState.has_value())
     {
         particleProbe.emplace(
-            mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe)->ConstrainedState->CurrentTriangle,
-            mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe)->ConstrainedState->CurrentTriangleBarycentricCoords);
+            mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).ConstrainedState->CurrentTriangle,
+            mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).ConstrainedState->CurrentTriangleBarycentricCoords);
     }
 
     mEventDispatcher.OnSubjectParticleUpdated(particleProbe);
-
 
     // Publish barycentric coords wrt origin
 
@@ -247,10 +245,9 @@ void LabController::Render()
         }
 
         if (mCurrentlySelectedParticleProbe.has_value()
-            && mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).has_value()
-            && mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe)->ConstrainedState.has_value())
+            && mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).ConstrainedState.has_value())
         {
-            auto const t = mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe)->ConstrainedState->CurrentTriangle;
+            auto const t = mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).ConstrainedState->CurrentTriangle;
 
             mRenderContext->UploadSelectedTriangle(
                 mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexAIndex(t)),
@@ -317,7 +314,7 @@ void LabController::MoveVertexBy(
         mModel->GetMesh().GetVertices().GetPosition(vertexIndex) + worldOffset);
 
     assert(mModel->GetParticles().GetElementCount() >= 1);
-    InitializeParticleState(0);
+    InitializeParticleRegime(0);
 }
 
 bool LabController::TrySelectOriginTriangle(vec2f const & screenCoordinates)
@@ -387,10 +384,10 @@ void LabController::MoveParticleBy(
         mModel->GetParticles().GetPosition(particleIndex) + worldOffset);
 
     mModel->GetParticles().SetVelocity(
-        particleIndex, 
-        worldStride / LabParameters::SimulationTimeStepDuration * 0.5f); // Magic adjustment
+        particleIndex,
+        vec2f::zero()); // Zero-out velocity
 
-    InitializeParticleState(particleIndex);
+    InitializeParticleRegime(particleIndex);
 }
 
 void LabController::NotifyParticleTrajectory(
@@ -414,7 +411,8 @@ void LabController::SetParticleTrajectory(
     
     mCurrentParticleTrajectoryNotification.reset();
 
-    InitializeParticleState(particleIndex);
+    // Reset state to needing to calculate a trajectory
+    mModel->GetParticles().GetState(particleIndex).TargetPosition.reset();
 }
 
 void LabController::QueryNearestParticleAt(vec2f const & screenCoordinates) const
@@ -455,10 +453,11 @@ void LabController::Reset(
 
     // Reset state
     assert(mModel->GetParticles().GetElementCount() == 1);
+    InitializeParticleRegime(0);
     mCurrentlySelectedParticleProbe.emplace(0);
     mCurrentOriginTriangle.reset();
     mCurrentParticleTrajectory.reset();
-    mCurrentParticleTrajectoryNotification.reset();
+    mCurrentParticleTrajectoryNotification.reset();    
 
     //
     // Auto-zoom & center

@@ -10,34 +10,24 @@
 
 #include <limits>
 
-void LabController::InitializeParticleState(ElementIndex particleIndex)
+void LabController::InitializeParticleRegime(ElementIndex particleIndex)
 {
-    if (mCurrentParticleTrajectory.has_value()
-        && mCurrentParticleTrajectory->ParticleIndex == particleIndex)
+    std::optional<Particles::StateType::ConstrainedStateType> constrainedState;
+
+    ElementIndex const triangleIndex = FindTriangleContaining(mModel->GetParticles().GetPosition(particleIndex));
+    if (triangleIndex != NoneElementIndex)
     {
-        std::optional<Particles::StateType::ConstrainedStateType> constrainedState;
+        vec3f const barycentricCoords = mModel->GetMesh().GetTriangles().ToBarycentricCoordinates(
+            mModel->GetParticles().GetPosition(particleIndex),
+            triangleIndex,
+            mModel->GetMesh().GetVertices());
 
-        ElementIndex const triangleIndex = FindTriangleContaining(mModel->GetParticles().GetPosition(particleIndex));
-        if (triangleIndex != NoneElementIndex)
-        {
-            vec3f const barycentricCoords = mModel->GetMesh().GetTriangles().ToBarycentricCoordinates(
-                mModel->GetParticles().GetPosition(particleIndex),
-                triangleIndex,
-                mModel->GetMesh().GetVertices());
-
-            constrainedState.emplace(
-                triangleIndex,
-                barycentricCoords);
-        }
-
-        mModel->GetParticles().GetState(particleIndex).emplace(
-            constrainedState,
-            mCurrentParticleTrajectory->TargetPosition);
+        constrainedState.emplace(
+            triangleIndex,
+            barycentricCoords);
     }
-    else
-    {
-        mModel->GetParticles().GetState(particleIndex).reset();
-    }
+
+    mModel->GetParticles().GetState(particleIndex).ConstrainedState = constrainedState;
 }
 
 void LabController::UpdateSimulation(LabParameters const & labParameters)
@@ -50,56 +40,63 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
 
     for (auto const & p : particles)
     {
-        if (!particles.GetState(p).has_value())
+        if (!particles.GetState(p).TargetPosition.has_value())
         {
-            // Update physics
+            //
+            // We need a target
+            //
 
-            vec2f const forces = particles.GetWorldForce(p) * labParameters.GravityAdjustment;
+            vec2f targetPosition;
 
-            vec2f const deltaPos =
-                particles.GetVelocity(p) * dt
-                + forces / LabParameters::ParticleMass * dt * dt;
-
-            vec2f const newPosition = particles.GetPosition(p) + deltaPos;
-
-            particles.SetVelocity(p, deltaPos / dt);
-
-            // Initialize state
-
-            std::optional<Particles::StateType::ConstrainedStateType> constrainedState;
-
-            ElementIndex const triangleIndex = FindTriangleContaining(mModel->GetParticles().GetPosition(p));
-            if (triangleIndex != NoneElementIndex)
+            if (mCurrentParticleTrajectory.has_value()
+                && mCurrentParticleTrajectory->ParticleIndex == p)
             {
-                vec3f const barycentricCoords = mModel->GetMesh().GetTriangles().ToBarycentricCoordinates(
-                    mModel->GetParticles().GetPosition(p),
-                    triangleIndex,
-                    mModel->GetMesh().GetVertices());
+                // Use the provided trajectory
 
-                constrainedState.emplace(
-                    triangleIndex,
-                    barycentricCoords);
+                vec2f const deltaPos = mCurrentParticleTrajectory->TargetPosition - particles.GetPosition(p);
+
+                targetPosition = particles.GetPosition(p) + deltaPos;
+            }
+            else
+            {
+                // Use physics to calculate trajectory
+
+                // TODOHERE: switch on regime
+                // if constrained: calculatate trajectory as planned: from current bary coords in cur triangle up to target position calculated by physics
+                // if free: from current (absolute) position up to target position calculated by physics
+
+                vec2f const forces = particles.GetWorldForce(p) * labParameters.GravityAdjustment;
+
+                vec2f const deltaPos =
+                    particles.GetVelocity(p) * dt
+                    + forces / LabParameters::ParticleMass * dt * dt;
+
+                targetPosition = particles.GetPosition(p) + deltaPos;
             }
 
-            mModel->GetParticles().GetState(p).emplace(
-                constrainedState,
-                newPosition);
+            // Update velocity
+            particles.SetVelocity(p, (targetPosition - particles.GetPosition(p)) / dt);
 
-            mCurrentParticleTrajectory.emplace(p, newPosition);
+            // Transition state
 
+            particles.GetState(p).TargetPosition = targetPosition;
+
+            mCurrentParticleTrajectory.emplace(p, targetPosition);
             mCurrentParticleTrajectoryNotification.reset();
         }
-
-        assert(particles.GetState(p).has_value());
-        
-        bool hasCompleted = UpdateParticleState(p);
-        if (hasCompleted)
+        else
         {
-            LogMessage("Particle ", p, " COMPLETED");
+            assert(particles.GetState(p).TargetPosition.has_value());
 
-            // Destroy state
-            particles.GetState(p).reset();
-            mCurrentParticleTrajectory.reset();
+            bool hasCompleted = UpdateParticleState(p);
+            if (hasCompleted)
+            {
+                LogMessage("Particle ", p, " COMPLETED");
+
+                // Destroy state
+                particles.GetState(p).TargetPosition.reset();
+                mCurrentParticleTrajectory.reset();
+            }
         }
     }
 }
@@ -115,13 +112,14 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
     Triangles const & triangles = mModel->GetMesh().GetTriangles();
 
     auto & state = particles.GetState(particleIndex);
-    assert(state.has_value());
+    assert(state.TargetPosition.has_value());
+    vec2f const targetPosition = *state.TargetPosition;
 
     //
     // If we are at target, we're done
     //
 
-    if (particles.GetPosition(particleIndex) == state->TargetPosition)
+    if (particles.GetPosition(particleIndex) == targetPosition)
     {
         // Reached destination
 
@@ -134,12 +132,12 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
     // If we're free, we move to target
     //
 
-    if (!state->ConstrainedState)
+    if (!state.ConstrainedState)
     {
         LogMessage("  Particle is free, moving to target");
 
         // ...move to target position directly
-        particles.SetPosition(particleIndex, state->TargetPosition);
+        particles.SetPosition(particleIndex, targetPosition);
 
         return false; //  // We'll end at next iteration
     }
@@ -150,12 +148,12 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
 
     LogMessage("  Particle is in constrained state");
 
-    assert(state->ConstrainedState.has_value());    
+    assert(state.ConstrainedState.has_value());    
 
-    ElementIndex const currentTriangle = state->ConstrainedState->CurrentTriangle;
+    ElementIndex const currentTriangle = state.ConstrainedState->CurrentTriangle;
 
     vec3f const targetBarycentricCoords = triangles.ToBarycentricCoordinates(
-        state->TargetPosition,
+        targetPosition,
         currentTriangle,
         vertices);
 
@@ -170,8 +168,8 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
         LogMessage("  Target is in triangle, moving to target");
 
         // ...move to target position directly
-        particles.SetPosition(particleIndex, state->TargetPosition);
-        state->ConstrainedState->CurrentTriangleBarycentricCoords = targetBarycentricCoords;
+        particles.SetPosition(particleIndex, targetPosition);
+        state.ConstrainedState->CurrentTriangleBarycentricCoords = targetBarycentricCoords;
 
         return false; //  // We'll end at next iteration
     }
@@ -182,15 +180,15 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
 
     // Note: if we are exactly at a vertex, we pick an arbitrary edge here
     ElementIndex currentEdge = NoneElementIndex;
-    if (state->ConstrainedState->CurrentTriangleBarycentricCoords.x == 0.0f)
+    if (state.ConstrainedState->CurrentTriangleBarycentricCoords.x == 0.0f)
     {
         currentEdge = 1;
     }
-    else if (state->ConstrainedState->CurrentTriangleBarycentricCoords.y == 0.0f)
+    else if (state.ConstrainedState->CurrentTriangleBarycentricCoords.y == 0.0f)
     {
         currentEdge = 2;
     }
-    else if (state->ConstrainedState->CurrentTriangleBarycentricCoords.z == 0.0f)
+    else if (state.ConstrainedState->CurrentTriangleBarycentricCoords.z == 0.0f)
     {
         currentEdge = 0;
     }
@@ -209,7 +207,7 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
 
         // TODOTEST
         {
-            vec2f const trajectory = state->TargetPosition - particles.GetPosition(particleIndex);
+            vec2f const trajectory = targetPosition - particles.GetPosition(particleIndex);
 
             // Calculate pseudonormal to edge, considering that we are *inside* the triangle
             // (points outside)
@@ -269,7 +267,7 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
 
                     LogMessage("  No opposite triangle found, becoming free");
 
-                    state->ConstrainedState.reset();
+                    state.ConstrainedState.reset();
 
                     return false;
                 }
@@ -283,17 +281,17 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
 
                     LogMessage("  Moving to edge ", oppositeTriangleEdgeIndex, " of opposite triangle ", oppositeTriangle);
 
-                    state->ConstrainedState->CurrentTriangle = oppositeTriangle;
+                    state.ConstrainedState->CurrentTriangle = oppositeTriangle;
 
                     // Calculate new barycentric coords (wrt opposite triangle)
                     vec3f newBarycentricCoords; // In new triangle
                     newBarycentricCoords[(oppositeTriangleEdgeIndex + 2) % 3] = 0.0f;
-                    newBarycentricCoords[oppositeTriangleEdgeIndex] = state->ConstrainedState->CurrentTriangleBarycentricCoords[(currentEdge + 1) % 3];
-                    newBarycentricCoords[(oppositeTriangleEdgeIndex + 1) % 3] = state->ConstrainedState->CurrentTriangleBarycentricCoords[currentEdge];                    
+                    newBarycentricCoords[oppositeTriangleEdgeIndex] = state.ConstrainedState->CurrentTriangleBarycentricCoords[(currentEdge + 1) % 3];
+                    newBarycentricCoords[(oppositeTriangleEdgeIndex + 1) % 3] = state.ConstrainedState->CurrentTriangleBarycentricCoords[currentEdge];                    
 
-                    LogMessage("  B-Coords: ", state->ConstrainedState->CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
+                    LogMessage("  B-Coords: ", state.ConstrainedState->CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
 
-                    state->ConstrainedState->CurrentTriangleBarycentricCoords = newBarycentricCoords;
+                    state.ConstrainedState->CurrentTriangleBarycentricCoords = newBarycentricCoords;
 
                     return false;
                 }
@@ -325,10 +323,10 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
         // Skip current edge (if any)
         if ((vi + 1) % 3 != currentEdge)
         {
-            float const den = state->ConstrainedState->CurrentTriangleBarycentricCoords[vi] - targetBarycentricCoords[vi];
+            float const den = state.ConstrainedState->CurrentTriangleBarycentricCoords[vi] - targetBarycentricCoords[vi];
             float const t = IsAlmostZero(den)
                 ? std::numeric_limits<float>::max() // Parallel, meets at infinity
-                : state->ConstrainedState->CurrentTriangleBarycentricCoords[vi] / den;
+                : state.ConstrainedState->CurrentTriangleBarycentricCoords[vi] / den;
 
             LogMessage("  t[v", vi, "]=", t);
 
@@ -359,7 +357,7 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
     vec3f intersectionBarycentricCoords;
     intersectionBarycentricCoords[intersectionVertex] = 0.0f;
     float const lNext = // Barycentric coord of next vertex at intersection
-        state->ConstrainedState->CurrentTriangleBarycentricCoords[(intersectionVertex + 1) % 3] * (1.0f - minIntersectionT)
+        state.ConstrainedState->CurrentTriangleBarycentricCoords[(intersectionVertex + 1) % 3] * (1.0f - minIntersectionT)
         + targetBarycentricCoords[(intersectionVertex + 1) % 3] * minIntersectionT;
     intersectionBarycentricCoords[(intersectionVertex + 1) % 3] = lNext;
     intersectionBarycentricCoords[(intersectionVertex + 2) % 3] = 1.0f - lNext;
@@ -373,7 +371,7 @@ bool LabController::UpdateParticleState(ElementIndex particleIndex)
 
     particles.SetPosition(particleIndex, newPosition);
 
-    state->ConstrainedState->CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
+    state.ConstrainedState->CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
     
     return false;
 }
