@@ -141,6 +141,16 @@ public:
     // Simmulation parameters
     //
 
+    float GetElasticity() const { return mLabParameters.Elasticity; }
+    void SetElasticity(float value) { mLabParameters.Elasticity = value; }
+    float GetMinElasticity() const { return LabParameters::MinElasticity; }
+    float GetMaxElasticity() const { return LabParameters::MaxElasticity; }
+
+    float GetFriction() const { return mLabParameters.Friction; }
+    void SetFriction(float value) { mLabParameters.Friction = value; }
+    float GetMinFriction() const { return LabParameters::MinFriction; }
+    float GetMaxFriction() const { return LabParameters::MaxFriction; }
+
     float GetMassAdjustment() const { return mLabParameters.MassAdjustment; }
     void SetMassAdjustment(float value) { mLabParameters.MassAdjustment = value; }
     float GetMinMassAdjustment() const { return LabParameters::MinMassAdjustment; }

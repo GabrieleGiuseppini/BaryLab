@@ -48,6 +48,8 @@ private:
     //////////////////////////////////////////////////////
 
     // Simulator
+    SliderControl<float> * mElasticitySlider;
+    SliderControl<float> * mFrictionSlider;
     SliderControl<float> * mMassAdjustmentSlider;
     SliderControl<float> * mGravityAdjustmentSlider;
 

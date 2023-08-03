@@ -45,8 +45,7 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
             //
             // We need a trajectory
             //
-
-            vec2f sourcePosition;
+            
             vec2f targetPosition;
 
             if (mCurrentParticleTrajectory.has_value()
@@ -54,10 +53,7 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
             {
                 // Use the provided trajectory
 
-                vec2f const deltaPos = mCurrentParticleTrajectory->TargetPosition - particles.GetPosition(p);
-
-                sourcePosition = particles.GetPosition(p);
-                targetPosition = particles.GetPosition(p) + deltaPos;
+                targetPosition = mCurrentParticleTrajectory->TargetPosition;
             }
             else
             {
@@ -69,26 +65,28 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
                     particles.GetVelocity(p) * dt
                     + forces / LabParameters::ParticleMass * dt * dt;
 
-                // Check regime
-                if (particles.GetState(p).ConstrainedState.has_value())
-                {
-                    // Constrained state: trajectory is from current bary coords in cur triangle up to target position calculated by physics
-                    sourcePosition = mModel->GetMesh().GetTriangles().FromBarycentricCoordinates(
-                        particles.GetState(p).ConstrainedState->CurrentTriangleBarycentricCoords,
-                        particles.GetState(p).ConstrainedState->CurrentTriangle,
-                        mModel->GetMesh().GetVertices());
-                }
-                else
-                {
-                    // Free state: from current (absolute) position up to target position calculated by physics
-                    sourcePosition = particles.GetPosition(p);
-                }
-
                 targetPosition = particles.GetPosition(p) + deltaPos;
             }
 
+            // Calculate source position
+            vec2f sourcePosition;
+            if (particles.GetState(p).ConstrainedState.has_value())
+            {
+                // Constrained state: trajectory is from current bary coords in cur triangle up to target position calculated by physics
+                sourcePosition = mModel->GetMesh().GetTriangles().FromBarycentricCoordinates(
+                    particles.GetState(p).ConstrainedState->CurrentTriangleBarycentricCoords,
+                    particles.GetState(p).ConstrainedState->CurrentTriangle,
+                    mModel->GetMesh().GetVertices());
+            }
+            else
+            {
+                // Free state: from current (absolute) position up to target position calculated by physics
+                sourcePosition = particles.GetPosition(p);
+            }
+
+            LogMessage("TODO: s=", sourcePosition, " t=", targetPosition);
+
             // Update physics for trajectory
-            particles.SetPosition(p, sourcePosition);
             particles.SetVelocity(p, (targetPosition - sourcePosition) / dt);
 
             // Transition state
@@ -269,7 +267,8 @@ bool LabController::UpdateParticleState(
                 vec2f const edgeNormal = (
                     vertices.GetPosition(triangles.GetVertexIndices(currentTriangle)[currentEdge])
                     - vertices.GetPosition(triangles.GetVertexIndices(currentTriangle)[(currentEdge + 1) % 3])
-                    ).to_perpendicular();
+                    ).to_perpendicular()
+                    .normalise();
 
                 // Calculate the component of the particle's velocity along the normal,
                 // i.e. towards the interior of the floor...
@@ -291,6 +290,8 @@ bool LabController::UpdateParticleState(
                     vec2f const tangentialResponse =
                         tangentialVelocity
                         * (1.0f - labParameters.Friction);
+
+                    LogMessage("TODO: n=", normalResponse, " t=", tangentialResponse);
 
                     // Set velocity to resultant collision velocity
                     particles.SetVelocity(
@@ -415,13 +416,12 @@ bool LabController::UpdateParticleState(
 
     // Move to intersection
 
-    vec2f const newPosition = triangles.FromBarycentricCoordinates(
+    vec2f const intersectionPosition = triangles.FromBarycentricCoordinates(
         intersectionBarycentricCoords,
         currentTriangle,
         vertices);
 
-    particles.SetPosition(particleIndex, newPosition);
-
+    particles.SetPosition(particleIndex, intersectionPosition);
     state.ConstrainedState->CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
     
     return false;

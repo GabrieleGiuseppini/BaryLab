@@ -311,6 +311,56 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
         {
             wxGridBagSizer * mechanicsSizer = new wxGridBagSizer(0, 0);
             
+            // Elasticity
+            {
+                mElasticitySlider = new SliderControl<float>(
+                    mechanicsBox,
+                    SliderWidth,
+                    SliderHeight,
+                    "Elasticity",
+                    "The elasticity of particles' impacts.",
+					[this](float value)
+                    {
+                        this->mLiveSettings.SetValue(SLabSettings::Elasticity, value);
+                        this->OnLiveSettingsChanged();
+                    },
+                    std::make_unique<LinearSliderCore>(
+                        mLabController->GetMinElasticity(),
+                        mLabController->GetMaxElasticity()));
+
+                mechanicsSizer->Add(
+                    mElasticitySlider,
+                    wxGBPosition(0, 0),
+                    wxGBSpan(1, 1),
+                    wxEXPAND | wxALL,
+                    CellBorder);
+            }
+
+            // Friction
+            {
+                mFrictionSlider = new SliderControl<float>(
+                    mechanicsBox,
+                    SliderWidth,
+                    SliderHeight,
+                    "Friction",
+                    "The friction of particles against floor surfaces.",
+					[this](float value)
+                    {
+                        this->mLiveSettings.SetValue(SLabSettings::Friction, value);
+                        this->OnLiveSettingsChanged();
+                    },
+                    std::make_unique<LinearSliderCore>(
+                        mLabController->GetMinFriction(),
+                        mLabController->GetMaxFriction()));
+
+                mechanicsSizer->Add(
+                    mFrictionSlider,
+                    wxGBPosition(0, 1),
+                    wxGBSpan(1, 1),
+                    wxEXPAND | wxALL,
+                    CellBorder);
+            }
+
             // Mass Adjustment
             {
                 mMassAdjustmentSlider = new SliderControl<float>(
@@ -331,7 +381,7 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
 
                 mechanicsSizer->Add(
                     mMassAdjustmentSlider,
-                    wxGBPosition(0, 0),
+                    wxGBPosition(0, 2),
                     wxGBSpan(1, 1),
                     wxEXPAND | wxALL,
                     CellBorder);
@@ -357,7 +407,7 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
 
                 mechanicsSizer->Add(
                     mGravityAdjustmentSlider,
-                    wxGBPosition(0, 1),
+                    wxGBPosition(0, 3),
                     wxGBSpan(1, 1),
                     wxEXPAND | wxALL,
                     CellBorder);
@@ -371,7 +421,7 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
         gridSizer->Add(
             mechanicsBox,
             wxGBPosition(0, 0),
-            wxGBSpan(1, 2),
+            wxGBSpan(1, 4),
             wxEXPAND | wxALL | wxALIGN_CENTER_HORIZONTAL,
             CellBorder);
     }
@@ -387,6 +437,8 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
 void SettingsDialog::SyncControlsWithSettings(Settings<SLabSettings> const & settings)
 {
     // Simulator
+    mElasticitySlider->SetValue(settings.GetValue<float>(SLabSettings::Elasticity));
+    mFrictionSlider->SetValue(settings.GetValue<float>(SLabSettings::Friction));
     mMassAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::MassAdjustment));
     mGravityAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::GravityAdjustment));    
 }
