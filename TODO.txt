@@ -1,5 +1,22 @@
 = Verify elasticity & friction
 	- TODO: at impact (during ray tracing), if we are on edge we do not update pos
+	- Try fix:
+		- At impact:
+			- Set velocity to classic response (N+T)
+			- If bounce is more than threshold:
+				- Detach from edge by fixed epsilon
+			- Else (bounce < threshold)				
+				- Stay on edge
+			- Return true
+		- Then, at step beginning:
+			- If on edge (implies we're constrained):
+				- Total forces += (apparent forces)
+				- When we'll integrate, we'll zero out gravity and apparent force (depending on normal), and also take eventual bounce velocity
+			- Integrate
+				- If on edge, we zero out gravity and apparent force (depending on normal) because of counter apparent forces
+				- We also take the eventual bounce velocity acquired during impact
+		- No more no-do on-edge case at RT
+				
 
 - Consider alternative implementation:
 	- Elasticity (impact) done like now at edge

@@ -40,7 +40,9 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
 
     for (auto const & p : particles)
     {
-        if (!particles.GetState(p).TargetPosition.has_value())
+        auto & particleState = particles.GetState(p);
+
+        if (!particleState.TargetPosition.has_value())
         {
             //
             // We need a trajectory
@@ -70,12 +72,12 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
 
             // Calculate source position
             vec2f sourcePosition;
-            if (particles.GetState(p).ConstrainedState.has_value())
+            if (particleState.ConstrainedState.has_value())
             {
                 // Constrained state: trajectory is from current bary coords in cur triangle up to target position calculated by physics
                 sourcePosition = mModel->GetMesh().GetTriangles().FromBarycentricCoordinates(
-                    particles.GetState(p).ConstrainedState->CurrentTriangleBarycentricCoords,
-                    particles.GetState(p).ConstrainedState->CurrentTriangle,
+                    particleState.ConstrainedState->CurrentTriangleBarycentricCoords,
+                    particleState.ConstrainedState->CurrentTriangle,
                     mModel->GetMesh().GetVertices());
             }
             else
@@ -91,14 +93,14 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
 
             // Transition state
 
-            particles.GetState(p).TargetPosition = targetPosition;
+            particleState.TargetPosition = targetPosition;
 
             mCurrentParticleTrajectory.emplace(p, targetPosition);
             mCurrentParticleTrajectoryNotification.reset();
         }
         else
         {
-            assert(particles.GetState(p).TargetPosition.has_value());
+            assert(particleState.TargetPosition.has_value());
 
             bool hasCompleted = UpdateParticleState(p, labParameters);
             if (hasCompleted)
@@ -106,7 +108,7 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
                 LogMessage("Particle ", p, " COMPLETED");
 
                 // Destroy state
-                particles.GetState(p).TargetPosition.reset();
+                particleState.TargetPosition.reset();
                 mCurrentParticleTrajectory.reset();
             }
         }
