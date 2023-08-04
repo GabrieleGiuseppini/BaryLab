@@ -88,7 +88,7 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
 
             LogMessage("TODO: s=", sourcePosition, " t=", targetPosition);
 
-            // Update physics for trajectory
+            // Update velocity for trajectory
             particles.SetVelocity(p, (targetPosition - sourcePosition) / dt);
 
             // Transition state
@@ -299,6 +299,10 @@ bool LabController::UpdateParticleState(
                     particles.SetVelocity(
                         particleIndex,
                         normalResponse + tangentialResponse);
+                }
+                else
+                {
+                    // Maintain current velocity
                 }
 
                 return true;
