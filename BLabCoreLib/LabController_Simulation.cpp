@@ -86,8 +86,6 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
                 sourcePosition = particles.GetPosition(p);
             }
 
-            LogMessage("TODO: s=", sourcePosition, " t=", targetPosition);
-
             // Update velocity for trajectory
             particles.SetVelocity(p, (targetPosition - sourcePosition) / dt);
 
@@ -129,7 +127,8 @@ bool LabController::UpdateParticleState(
 
     auto & state = particles.GetState(particleIndex);
     assert(state.TargetPosition.has_value());
-    vec2f const targetPosition = *state.TargetPosition;
+    vec2f targetPosition = *state.TargetPosition;
+    vec2f trajectory = targetPosition - particles.GetPosition(particleIndex);
 
     //
     // If we are at target, we're done
@@ -168,7 +167,7 @@ bool LabController::UpdateParticleState(
 
     ElementIndex const currentTriangle = state.ConstrainedState->CurrentTriangle;
 
-    vec3f const targetBarycentricCoords = triangles.ToBarycentricCoordinates(
+    vec3f targetBarycentricCoords = triangles.ToBarycentricCoordinates(
         targetPosition,
         currentTriangle,
         vertices);
@@ -177,11 +176,11 @@ bool LabController::UpdateParticleState(
     // If target is strictly in triangle, we move to target
     //
 
-    if (targetBarycentricCoords.x > 0.0f && targetBarycentricCoords.x < 1.0f
-        && targetBarycentricCoords.y > 0.0f && targetBarycentricCoords.y < 1.0f
-        && targetBarycentricCoords.z > 0.0f && targetBarycentricCoords.z < 1.0f)
+    if (targetBarycentricCoords.x >= 0.0f && targetBarycentricCoords.x <= 1.0f
+        && targetBarycentricCoords.y >= 0.0f && targetBarycentricCoords.y <= 1.0f
+        && targetBarycentricCoords.z >= 0.0f && targetBarycentricCoords.z <= 1.0f)
     {
-        LogMessage("  Target is in triangle, moving to target");
+        LogMessage("  Target is on/in triangle, moving to target");
 
         // ...move to target position directly
         particles.SetPosition(particleIndex, targetPosition);
@@ -223,8 +222,6 @@ bool LabController::UpdateParticleState(
 
         // TODOTEST
         {
-            vec2f const trajectory = targetPosition - particles.GetPosition(particleIndex);
-
             // Calculate pseudonormal to edge, considering that we are *inside* the triangle
             // (points outside)
             vec2f const edgePNormal = (
@@ -263,23 +260,28 @@ bool LabController::UpdateParticleState(
 
                 LogMessage("  Impact");
 
-                // TODOHERE: flatten target and continue
+                //
+                // Update velocity with normal response
+                //
 
-                vec2f const particleVelocity = particles.GetVelocity(particleIndex);
+                vec2f particleVelocity = particles.GetVelocity(particleIndex);
 
-                // Calculate edge normal (positive pointing into the floor)
-                vec2f const edgeNormal = (
-                    vertices.GetPosition(triangles.GetVertexIndices(currentTriangle)[currentEdge])
-                    - vertices.GetPosition(triangles.GetVertexIndices(currentTriangle)[(currentEdge + 1) % 3])
-                    ).to_perpendicular()
-                    .normalise();
+                // Calculate edge direction (from point of view of inside triangle,
+                // hence CW)
+                vec2f const edgeDir = (
+                    vertices.GetPosition(triangles.GetVertexIndices(currentTriangle)[(currentEdge + 1) % 3])
+                    - vertices.GetPosition(triangles.GetVertexIndices(currentTriangle)[currentEdge])
+                    ).normalise();
+
+                // Calculate edge normal (pointing outside the triangle, into the floor)
+                vec2f const edgeNormal = edgeDir.to_perpendicular();
 
                 // Calculate the component of the particle's velocity along the normal,
                 // i.e. towards the interior of the floor...
                 float const particleVelocityAlongNormal = particleVelocity.dot(edgeNormal);
 
-                // ...if negative, we have an impact
-                if (particleVelocityAlongNormal < 0.0f)
+                // ...if positive, we have an impact
+                if (particleVelocityAlongNormal > 0.0f)
                 {
                     // Decompose particle velocity into normal and tangential
                     vec2f const normalVelocity = edgeNormal * particleVelocityAlongNormal;
@@ -307,7 +309,28 @@ bool LabController::UpdateParticleState(
                     // Maintain current velocity
                 }
 
-                return true;
+                //
+                // Flatten trajectory
+                //
+
+                trajectory = edgeDir * trajectory.dot(edgeDir);
+
+                LogMessage("TODOTEST:  targetPosition: old=", targetPosition, " new=", particles.GetPosition(particleIndex) + trajectory);
+
+                // Update target pos and target barycentric coords
+                targetPosition = particles.GetPosition(particleIndex) + trajectory;
+                state.TargetPosition = targetPosition;
+                targetBarycentricCoords = triangles.ToBarycentricCoordinates(
+                    targetPosition,
+                    currentTriangle,
+                    vertices);
+
+                LogMessage("TODOTEST:  new targetBarycentricCoords=", targetBarycentricCoords);
+
+                // Update velocity
+                // TODOHERE
+
+                return false;
             }
             else
             {

@@ -1,6 +1,6 @@
 = Verify elasticity & friction
-	- TODO: at impact (during ray tracing), if we are on edge we do not update pos
-	- Try fix 1:
+	! TODO: at impact (during ray tracing), if we are on edge we do not update pos
+	X Try fix 1:
 		- At impact:
 			- Set velocity to classic response (N+T)
 			- If bounce is more than threshold:
@@ -16,11 +16,15 @@
 				- If on edge, we zero out gravity and apparent force (depending on normal) because of counter apparent forces
 				- We also take the eventual bounce velocity acquired during impact
 		- No more no-do on-edge case at RT
-	- Try fix 2:
+	X Try fix 2:
 		- Move impact response to intersection finding, when that edge is floor and we go through it
 		- At inital on edge, if we go through it: flatten trajectory
 			- Replacing targets (so it's also rendered)
 			- Replacing velocity
+	= At impact, after response we flatten trajectory
+		- Fix issue when at vertex
+		- Cleanup:
+			- Code: do not mix local and state variables, given that we change target now
 				
 
 - Consider alternative implementation:
