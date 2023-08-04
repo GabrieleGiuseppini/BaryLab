@@ -21,10 +21,15 @@
 		- At inital on edge, if we go through it: flatten trajectory
 			- Replacing targets (so it's also rendered)
 			- Replacing velocity
-	= At impact, after response we flatten trajectory
+	= Try fix 3: at impact, after response we flatten trajectory
 		- Fix issue when at vertex
 		- Cleanup:
 			- Code: do not mix local and state variables, given that we change target now
+	- Try fix 4:
+		- At physics we detect being on an edge/vertex and we do physics trajectory accordingly
+			- Flattening forces if on edge, doing TODO if on vertex
+		- At RT, we become tolerant of trajectory being almost-parallel to edge, and continue RT when moving along edge
+			- And we also become tolerant to being on vertex, that's a bug that should have been already there
 				
 
 - Consider alternative implementation:
