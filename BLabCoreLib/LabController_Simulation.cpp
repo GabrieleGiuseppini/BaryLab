@@ -263,6 +263,8 @@ bool LabController::UpdateParticleState(
 
                 LogMessage("  Impact");
 
+                // TODOHERE: flatten target and continue
+
                 vec2f const particleVelocity = particles.GetVelocity(particleIndex);
 
                 // Calculate edge normal (positive pointing into the floor)
@@ -310,10 +312,10 @@ bool LabController::UpdateParticleState(
             else
             {
                 //
-                // Climb over edge
+                // Not floor, climb over edge
                 //
 
-                LogMessage("  Climbing over edge");
+                LogMessage("  Climbing over non-floor edge");
 
                 // Find opposite triangle
                 ElementIndex const oppositeTriangle = edges.GetOppositeTriangle(currentEdgeElement, currentTriangle);
