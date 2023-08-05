@@ -26,10 +26,23 @@
 		- Cleanup:
 			- Code: do not mix local and state variables, given that we change target now
 	- Try fix 4:
+		- Branch first, reverting code - keeping this TODO!
 		- At physics we detect being on an edge/vertex and we do physics trajectory accordingly
 			- Flattening forces if on edge, doing TODO if on vertex
 		- At RT, we become tolerant of trajectory being almost-parallel to edge, and continue RT when moving along edge
-			- And we also become tolerant to being on vertex, that's a bug that should have been already there
+			- What do we do now if we are on edge and trajectory is strictly outside?
+				- Should not happen at entry because of physics step; could it happen during RT though?
+					- If it happens, we simply terminate - like old 
+			- We also need to become tolerant to being on vertex, that's a bug that should have been already there
+			- Also, impact (with response) only happens at real impact, i.e. when intersecting edge that is floor (& ghost condition)
+				- We first move to edge, and then check floor+ghost and do normal response
+				- TODO: what happens to the respone velocity? If we complete here, we'll end up being on edge and by definition we'll flatten, not bounce
+					- However, if after response we bounce also trajectory and continue RT, we end up bouncing all the time and never terminating - hitting edge is our termination condition
+					  for when target is unreachable
+					- A possible way out is to ensure that after the bounce we are _not_ on an edge, e.g. by moving by epsilon OR by explicitly entering a "on edge but not on edge" state before
+					  termination
+					- Another way is to make sure in the physics step to figure out, when on edge, whether current velocity would make a bounce - and thus no "opposite apparent" - or not
+
 				
 
 - Consider alternative implementation:
