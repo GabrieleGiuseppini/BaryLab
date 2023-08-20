@@ -147,7 +147,7 @@ public:
         return mSubEdgesBuffer[triangleElementIndex].EdgeIndices[2];
     }
 
-    inline ElementIndex GetSubEdgeIndex(
+    inline int GetSubEdgeOrdinal(
         ElementIndex triangleElementIndex,
         ElementIndex edgeElementIndex) const
     {
@@ -166,9 +166,9 @@ public:
      * Returns the vector representing the specified edge (ordinal), oriented
      * according to the triangle's point of view (thus CW).
      */
-    inline vec2f GetEdgeVector(
+    inline vec2f GetSubEdgeVector(
         ElementIndex triangleElementIndex,
-        std::uint32_t edgeOrdinal,
+        int edgeOrdinal,
         Vertices const & vertices) const
     {
         ElementIndex const v2 = mEndpointsBuffer[triangleElementIndex].VertexIndices[(edgeOrdinal + 1) % 3];
