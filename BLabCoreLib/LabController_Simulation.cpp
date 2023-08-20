@@ -32,14 +32,15 @@ void LabController::InitializeParticleRegime(ElementIndex particleIndex)
 
 void LabController::UpdateSimulation(LabParameters const & labParameters)
 {
-    float const dt = LabParameters::SimulationTimeStepDuration;
-
     auto & particles = mModel->GetParticles();
 
-    float const particleMass = LabParameters::ParticleMass * labParameters.MassAdjustment;
+    LogMessage("----------------");
+    LogMessage("----------------");
 
     for (auto const & p : particles)
     {
+        LogMessage("----------------");
+
         auto & particleState = particles.GetState(p);
 
         if (!particleState.TargetPosition.has_value())
@@ -47,34 +48,35 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
             //
             // We need a trajectory
             //
-            
-            vec2f targetPosition;
 
+            LogMessage("Particle ", p, ": trajectory calculation");
+
+            // Calculate target position
+            vec2f targetPosition;
             if (mCurrentParticleTrajectory.has_value()
                 && mCurrentParticleTrajectory->ParticleIndex == p)
             {
-                // Use the provided trajectory
+                // We have a user-imposed trajectory for this particle...
+                // ...use the provided trajectory
 
                 targetPosition = mCurrentParticleTrajectory->TargetPosition;
             }
             else
             {
-                // Use physics to calculate trajectory, including momentum
+                // Use physics to calculate trajectory
 
-                vec2f const forces = particles.GetWorldForce(p) * labParameters.GravityAdjustment;
-
-                vec2f const deltaPos =
-                    particles.GetVelocity(p) * dt
-                    + forces / LabParameters::ParticleMass * dt * dt;
-
-                targetPosition = particles.GetPosition(p) + deltaPos;
+                targetPosition = 
+                    particles.GetPosition(p) // Physics moves from current pos, before mesh move
+                    + CalculatePhysicsDeltaPos(p, labParameters); 
             }
 
             // Calculate source position
             vec2f sourcePosition;
             if (particleState.ConstrainedState.has_value())
             {
-                // Constrained state: trajectory is from current bary coords in cur triangle up to target position calculated by physics
+                // Constrained state: trajectory is from current bary coords in cur triangle 
+                // (i.e. in mesh's reference frame) up to target position calculated by physics
+
                 sourcePosition = mModel->GetMesh().GetTriangles().FromBarycentricCoordinates(
                     particleState.ConstrainedState->CurrentTriangleBarycentricCoords,
                     particleState.ConstrainedState->CurrentTriangle,
@@ -83,21 +85,29 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
             else
             {
                 // Free state: from current (absolute) position up to target position calculated by physics
+
                 sourcePosition = particles.GetPosition(p);
             }
 
-            // Update velocity for trajectory
-            particles.SetVelocity(p, (targetPosition - sourcePosition) / dt);
+            //
+            // Update physics for trajectory
+            //
 
-            // Transition state
-
+            particles.SetPosition(p, sourcePosition);
             particleState.TargetPosition = targetPosition;
+            particles.SetVelocity(p, (targetPosition - sourcePosition) / LabParameters::SimulationTimeStepDuration);
+
+            //
+            // Update trajectory notification
+            //
 
             mCurrentParticleTrajectory.emplace(p, targetPosition);
             mCurrentParticleTrajectoryNotification.reset();
         }
         else
         {
+            LogMessage("Particle ", p, ": state update");
+
             assert(particleState.TargetPosition.has_value());
 
             bool hasCompleted = UpdateParticleState(p, labParameters);
@@ -113,13 +123,127 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
     }
 }
 
+vec2f LabController::CalculatePhysicsDeltaPos(
+    ElementIndex particleIndex,
+    LabParameters const & labParameters) const
+{
+    float const dt = LabParameters::SimulationTimeStepDuration;
+    float const particleMass = LabParameters::ParticleMass * labParameters.MassAdjustment;
+
+    Particles const & particles = mModel->GetParticles();
+
+    Vertices const & vertices = mModel->GetMesh().GetVertices();
+    Edges const & edges = mModel->GetMesh().GetEdges();
+    Triangles const & triangles = mModel->GetMesh().GetTriangles();
+
+    vec2f forces = particles.GetWorldForce(particleIndex) * labParameters.GravityAdjustment;
+
+    //
+    // Check whether we're on a floor
+    //
+
+    auto const & particleState = particles.GetState(particleIndex);
+    if (particleState.ConstrainedState.has_value())
+    {
+        ElementIndex const currentTriangleElementIndex = particleState.ConstrainedState->CurrentTriangle;
+
+        std::int32_t currentEdgeOrdinal = -1;
+        if (particleState.ConstrainedState->CurrentTriangleBarycentricCoords.x == 0.0f)
+        {
+            currentEdgeOrdinal = 1;
+        }
+        else if (particleState.ConstrainedState->CurrentTriangleBarycentricCoords.y == 0.0f)
+        {
+            currentEdgeOrdinal = 2;
+        }
+        else if (particleState.ConstrainedState->CurrentTriangleBarycentricCoords.z == 0.0f)
+        {
+            currentEdgeOrdinal = 0;
+        }
+
+        if (currentEdgeOrdinal >= 0)
+        {
+            ElementIndex const currentEdgeElementIndex = triangles.GetSubEdges(currentTriangleElementIndex).EdgeIndices[currentEdgeOrdinal];
+
+            // Calculate ghost condition - we don't consider a surface floor (and thus allow 
+            // particle to ghost through it) if it's in a triangle made fully of floors
+            bool const isGhost =
+                edges.GetSurfaceType(triangles.GetSubEdgeAIndex(currentTriangleElementIndex)) == SurfaceType::Floor
+                && edges.GetSurfaceType(triangles.GetSubEdgeBIndex(currentTriangleElementIndex)) == SurfaceType::Floor
+                && edges.GetSurfaceType(triangles.GetSubEdgeCIndex(currentTriangleElementIndex)) == SurfaceType::Floor;
+
+            if (edges.GetSurfaceType(currentEdgeElementIndex) == SurfaceType::Floor
+                && !isGhost)
+            {
+                //
+                // On floor edge
+                //                
+
+                //
+                // Add friction
+                //
+
+                // TODO
+
+                //
+                // Integrate, including eventual bounce velocity from a previous impact
+                //
+
+                vec2f const deltaPos =
+                    particles.GetVelocity(particleIndex) * dt
+                    + forces / particleMass * dt * dt;
+
+                //
+                // If we're moving against the floor, flatten trajectory
+                //
+
+                vec2f const edgeVector = mModel->GetMesh().GetTriangles().GetEdgeVector(
+                    currentTriangleElementIndex,
+                    currentEdgeOrdinal,
+                    vertices);
+
+                if (deltaPos.dot(edgeVector.to_perpendicular()) > 0.0f) // Normal to edge is directed outside of triangle (i.e. towards floor)
+                {
+                    LogMessage("  Particle is on floor edge, moving against it");
+
+                    //
+                    // Flatten trajectory - i.e. take component of deltapos along floor
+                    //
+
+                    vec2f const edgeDir = edgeVector.normalise();
+
+                    return edgeDir * deltaPos.dot(edgeDir);
+                }
+                else
+                {
+                    LogMessage("  Particle is on floor edge, but not against it");
+
+                    return deltaPos;
+                }
+            }
+        }
+    }    
+
+    //
+    // Not on a floor edge, use pure force
+    //
+
+    LogMessage("  Particle not on floor edge; using pure force");
+
+    //
+    // Integrate, including eventual bounce velocity from a previous impact
+    //
+
+    return
+        particles.GetVelocity(particleIndex) * dt
+        + forces / particleMass * dt * dt;
+
+}
+
 bool LabController::UpdateParticleState(
     ElementIndex particleIndex,
     LabParameters const & labParameters)
 {
-    LogMessage("--------------------------------------");
-    LogMessage("P ", particleIndex);
-
     Particles & particles = mModel->GetParticles();
     Vertices const & vertices = mModel->GetMesh().GetVertices();
     Edges const & edges = mModel->GetMesh().GetEdges();
@@ -189,6 +313,11 @@ bool LabController::UpdateParticleState(
         return false; //  // We'll end at next iteration
     }
 
+    // TODOHERE
+    (void)labParameters;
+    return true;
+
+    /*
     //
     // Check whether we are on an edge
     //
@@ -456,4 +585,5 @@ bool LabController::UpdateParticleState(
     state.ConstrainedState->CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
     
     return false;
+    */
 }

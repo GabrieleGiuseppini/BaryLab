@@ -181,6 +181,10 @@ private:
 
     void UpdateSimulation(LabParameters const & labParameters);
 
+    vec2f CalculatePhysicsDeltaPos(
+        ElementIndex particleIndex,
+        LabParameters const & labParameters) const;
+
     bool UpdateParticleState(
         ElementIndex particleIndex,
         LabParameters const & labParameters);

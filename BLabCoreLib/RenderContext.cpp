@@ -563,24 +563,6 @@ void RenderContext::RenderEnd()
     }
 
     ////////////////////////////////////////////////////////////////
-    // Render particle trajectories
-    ////////////////////////////////////////////////////////////////
-
-    if (!mParticleTrajectoryVertexBuffer.empty())
-    {
-        glBindVertexArray(*mParticleTrajectoryVAO);
-
-        mShaderManager->ActivateProgram<ShaderManager::ProgramType::ParticleTrajectories>();
-
-        assert((mParticleTrajectoryVertexBuffer.size() % 6) == 0);
-        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mParticleTrajectoryVertexBuffer.size()));
-
-        CheckOpenGLError();
-
-        glBindVertexArray(0);
-    }
-
-    ////////////////////////////////////////////////////////////////
     // Render vertices
     ////////////////////////////////////////////////////////////////
 
@@ -607,6 +589,24 @@ void RenderContext::RenderEnd()
 
         assert((mParticleVertexBuffer.size() % 6) == 0);
         glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mParticleVertexBuffer.size()));
+
+        CheckOpenGLError();
+
+        glBindVertexArray(0);
+    }
+
+    ////////////////////////////////////////////////////////////////
+    // Render particle trajectories
+    ////////////////////////////////////////////////////////////////
+
+    if (!mParticleTrajectoryVertexBuffer.empty())
+    {
+        glBindVertexArray(*mParticleTrajectoryVAO);
+
+        mShaderManager->ActivateProgram<ShaderManager::ProgramType::ParticleTrajectories>();
+
+        assert((mParticleTrajectoryVertexBuffer.size() % 6) == 0);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mParticleTrajectoryVertexBuffer.size()));
 
         CheckOpenGLError();
 

@@ -42,15 +42,20 @@
 					- A possible way out is to ensure that after the bounce we are _not_ on an edge, e.g. by moving by epsilon OR by explicitly entering a "on edge but not on edge" state before
 					  termination
 					- Another way is to make sure in the physics step to figure out, when on edge, whether current velocity would make a bounce - and thus no "opposite apparent" - or not
+	- Try fix 5 (Moleskine, holidays):
+		- Consider alternative implementation:
+			- Elasticity (impact) done like now at edge
+			- Apparent forces & friction done @ physics steps iff on edge
+				- How to avoid doing impact again at RT edge however?
+		- TODO's:
+			- Test CalculatePhysicsDeltaEdge's "against floor" check for not against floor
+		
 
 				
 
-- Consider alternative implementation:
-	- Elasticity (impact) done like now at edge
-	- Apparent forces & friction done @ physics steps iff on edge
-		- How to avoid doing impact again at RT edge however?
 
 - Allow for moving mesh
+	- TODOHERE
 	- Particles::State: TargetPos becomes non-opt member of opt RayTracingState
 		- Presence of RayTracingState tells we're doing ray tracing instead of physics, in place of old TargetPos
 	- Everything "Trajectory" becomes "RayTracingTrajectory"

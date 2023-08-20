@@ -149,17 +149,32 @@ public:
 
     inline ElementIndex GetSubEdgeIndex(
         ElementIndex triangleElementIndex,
-        ElementIndex edgeIndex) const
+        ElementIndex edgeElementIndex) const
     {
-        if (mSubEdgesBuffer[triangleElementIndex].EdgeIndices[0] == edgeIndex)
+        if (mSubEdgesBuffer[triangleElementIndex].EdgeIndices[0] == edgeElementIndex)
             return 0;
-        else if (mSubEdgesBuffer[triangleElementIndex].EdgeIndices[1] == edgeIndex)
+        else if (mSubEdgesBuffer[triangleElementIndex].EdgeIndices[1] == edgeElementIndex)
             return 1;
         else
         {
-            assert(mSubEdgesBuffer[triangleElementIndex].EdgeIndices[2] == edgeIndex);
+            assert(mSubEdgesBuffer[triangleElementIndex].EdgeIndices[2] == edgeElementIndex);
             return 2;
         }
+    }
+
+    /*
+     * Returns the vector representing the specified edge (ordinal), oriented
+     * according to the triangle's point of view (thus CW).
+     */
+    inline vec2f GetEdgeVector(
+        ElementIndex triangleElementIndex,
+        std::uint32_t edgeOrdinal,
+        Vertices const & vertices) const
+    {
+        ElementIndex const v2 = mEndpointsBuffer[triangleElementIndex].VertexIndices[(edgeOrdinal + 1) % 3];
+        ElementIndex const v1 = mEndpointsBuffer[triangleElementIndex].VertexIndices[edgeOrdinal];
+
+        return vertices.GetPosition(v2) - vertices.GetPosition(v1);
     }
 
 private:
