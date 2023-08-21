@@ -317,32 +317,12 @@ bool LabController::UpdateParticleState(
     }
 
     //
-    // Calculate whether we are on an edge
-    //
-
-    // Note: if we are exactly at a vertex, we pick an arbitrary edge here;
-    // after all, if we're exactly at a vertex, at physics update we force delta pos = 0.0
-    int currentEdgeOrdinal = -1;
-    if (state.ConstrainedState->CurrentTriangleBarycentricCoords.x == 0.0f)
-    {
-        currentEdgeOrdinal = 1;
-    }
-    else if (state.ConstrainedState->CurrentTriangleBarycentricCoords.y == 0.0f)
-    {
-        currentEdgeOrdinal = 2;
-    }
-    else if (state.ConstrainedState->CurrentTriangleBarycentricCoords.z == 0.0f)
-    {
-        currentEdgeOrdinal = 0;
-    }
-
-    //
     // We're inside or on triangle, and target is outside triangle;
     // if we're on edge, trajectory is along this edge
     //
 
     //
-    // Find closest intersection with one of the edges, excluding edge we are on
+    // Find closest intersection in the direction of the trajectory
     //
     // Guaranteed to exist and within trajectory: target outside of triangle and 
     // we're inside or on an edge pointing outside, and not on two vertices
@@ -353,18 +333,22 @@ bool LabController::UpdateParticleState(
 
     for (int vi = 0; vi < 3; ++vi)
     {
-        // Skip current edge (if any)
-        if ((vi + 1) % 3 != currentEdgeOrdinal)
+        int const edgeOrdinal = (vi + 1) % 3;
+
+        // Only consider edges ahead of trajectory
+        vec2f const edgeNormal = triangles.GetSubEdgeVector(currentTriangle, edgeOrdinal, vertices).to_perpendicular();
+        if (trajectory.dot(edgeNormal) > 0.0f)
         {
             float const den = state.ConstrainedState->CurrentTriangleBarycentricCoords[vi] - targetBarycentricCoords[vi];
             float const t = IsAlmostZero(den)
                 ? std::numeric_limits<float>::max() // Parallel, meets at infinity
                 : state.ConstrainedState->CurrentTriangleBarycentricCoords[vi] / den;
 
-            LogMessage("  t[v", vi, "]=", t);
+            LogMessage("  t[v", vi, " e", edgeOrdinal, "] = ", t);
 
+            // TODOTEST
             // Cull backward intersections
-            if (t >= 0.0f)
+            //if (t >= 0.0f) // By little
             {
                 if (t < minIntersectionT)
                 {
@@ -376,7 +360,9 @@ bool LabController::UpdateParticleState(
     }
 
     assert(intersectionVertexOrdinal >= 0); // Guaranteed to exist
-    assert(minIntersectionT >= 0.0f && minIntersectionT <= 1.0f); // Guaranteed to exist, within trajectory
+    // TODOTEST
+    //assert(minIntersectionT >= 0.0f && minIntersectionT <= 1.0f); // Guaranteed to exist, within trajectory
+    assert(minIntersectionT <= 1.0f); // Guaranteed to exist, within trajectory
 
     //
     // Move to intersection
