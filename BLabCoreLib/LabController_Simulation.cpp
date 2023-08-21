@@ -210,8 +210,9 @@ vec2f LabController::CalculatePhysicsDeltaPos(
                     // Flatten trajectory - i.e. take component of deltapos along floor
                     //
 
-                    // TODOHERE: ...unless delta pos goes towards another edge that we're also on, in which case
+                    // TODOHERE: ...unless delta pos goes towards another edge that we're also on (i.e. we're in a vertex), in which case
                     // delta pos becomes zero
+                    // TODO: is it really needed though? What happens if we're going towards another edge that we're also on (i.e. we're in vertex)?
 
                     vec2f const edgeDir = edgeVector.normalise();
 
@@ -324,9 +325,11 @@ bool LabController::UpdateParticleState(
     //
     // Find closest intersection in the direction of the trajectory
     //
-    // Guaranteed to exist and within trajectory: target outside of triangle and 
-    // we're inside or on an edge pointing outside, and not on two vertices
+    // Guaranteed to exist and within trajectory, because target is outside
+    // of triangle and we're inside or on an edge
     //
+
+    float constexpr TEpsilon = 0.0001f;
 
     int intersectionVertexOrdinal = -1;
     float minIntersectionT = std::numeric_limits<float>::max();
@@ -337,32 +340,27 @@ bool LabController::UpdateParticleState(
 
         // Only consider edges ahead of trajectory
         vec2f const edgeNormal = triangles.GetSubEdgeVector(currentTriangle, edgeOrdinal, vertices).to_perpendicular();
-        if (trajectory.dot(edgeNormal) > 0.0f)
+        if (trajectory.dot(edgeNormal) > 0.0f) // Stricly positive, hence not parallel
         {
             float const den = state.ConstrainedState->CurrentTriangleBarycentricCoords[vi] - targetBarycentricCoords[vi];
             float const t = IsAlmostZero(den)
                 ? std::numeric_limits<float>::max() // Parallel, meets at infinity
                 : state.ConstrainedState->CurrentTriangleBarycentricCoords[vi] / den;
 
-            LogMessage("  t[v", vi, " e", edgeOrdinal, "] = ", t);
+            assert(t > -TEpsilon); // Some numeric slack, trajectory is here guaranteed to be pointing into this edge
 
-            // TODOTEST
-            // Cull backward intersections
-            //if (t >= 0.0f) // By little
+            LogMessage("  t[v", vi, " e", edgeOrdinal, "] = ", t);            
+
+            if (t < minIntersectionT)
             {
-                if (t < minIntersectionT)
-                {
-                    intersectionVertexOrdinal = vi;
-                    minIntersectionT = t;
-                }
+                intersectionVertexOrdinal = vi;
+                minIntersectionT = t;
             }
         }
     }
 
     assert(intersectionVertexOrdinal >= 0); // Guaranteed to exist
-    // TODOTEST
-    //assert(minIntersectionT >= 0.0f && minIntersectionT <= 1.0f); // Guaranteed to exist, within trajectory
-    assert(minIntersectionT <= 1.0f); // Guaranteed to exist, within trajectory
+    assert(minIntersectionT > -TEpsilon && minIntersectionT <= 1.0f); // Guaranteed to exist, and within trajectory
 
     //
     // Move to intersection
@@ -422,6 +420,9 @@ bool LabController::UpdateParticleState(
         // Calculate the component of the particle's velocity along the normal,
         // i.e. towards the interior of the floor...
         float const particleVelocityAlongNormal = particleVelocity.dot(edgeNormal);
+
+        // TODOHERE
+        assert(particleVelocityAlongNormal > 0.0f);
 
         // ...if positive, we have an impact
         if (particleVelocityAlongNormal > 0.0f)
@@ -501,7 +502,6 @@ bool LabController::UpdateParticleState(
             state.ConstrainedState->CurrentTriangle = oppositeTriangle;
 
             // Calculate new barycentric coords (wrt opposite triangle)
-            // TODOHERE: need to 
             vec3f newBarycentricCoords; // In new triangle
             newBarycentricCoords[(oppositeTriangleEdgeOrdinal + 2) % 3] = 0.0f;
             newBarycentricCoords[oppositeTriangleEdgeOrdinal] = state.ConstrainedState->CurrentTriangleBarycentricCoords[(intersectionEdgeOrdinal + 1) % 3];

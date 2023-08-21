@@ -47,9 +47,12 @@
 			- Elasticity (impact) done like now at edge
 			- Apparent forces & friction done @ physics steps iff on edge
 				- How to avoid doing impact again at RT edge however?
+		+ FIX:
+			+ When climbing edge @ vertex, we switch "edge we're on and thus want to ignore"  from climbed to other one, arbitrarily
+			+ Fix: remove check for current edge, & find closest intersection among those that are *strictly* away from edge (i.e. towards traj)
 		- FIX:
-			- When climbing edge @ vertex, we switch "edge we're on and thus want to ignore"  from climbed to other one, arbitrarily
-			- Fix: remove check for current edge, & find closest intersection among those that are *strictly* away from edge (i.e. towards traj)
+			- Little t: see why
+		- See if really need special handling for into-vertex
 		- TODO's:
 			- Test CalculatePhysicsDeltaEdge's "against floor" check for not against floor
 		
