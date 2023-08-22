@@ -43,13 +43,13 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
 
         auto & particleState = particles.GetState(p);
 
-        if (!particleState.TargetPosition.has_value())
+        if (!particleState.RayTracingState.has_value())
         {
             //
-            // We need a trajectory
+            // We need a ray tracing trajectory
             //
 
-            LogMessage("Particle ", p, ": trajectory calculation");
+            LogMessage("Particle ", p, ": Ray tracing state initialization");
 
             // Calculate target position
             vec2f targetPosition;
@@ -89,12 +89,14 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
                 sourcePosition = particles.GetPosition(p);
             }
 
+            particleState.RayTracingState.emplace(
+                sourcePosition,
+                targetPosition);
+
             //
-            // Update physics for trajectory
+            // Update velocity for trajectory
             //
 
-            particles.SetPosition(p, sourcePosition);
-            particleState.TargetPosition = targetPosition;
             particles.SetVelocity(p, (targetPosition - sourcePosition) / LabParameters::SimulationTimeStepDuration);
 
             //
@@ -106,17 +108,17 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
         }
         else
         {
-            LogMessage("Particle ", p, ": state update");
+            LogMessage("Particle ", p, ": Ray tracing state update");
 
-            assert(particleState.TargetPosition.has_value());
+            assert(particleState.RayTracingState.has_value());
 
-            bool hasCompleted = UpdateParticleState(p, labParameters);
+            bool hasCompleted = UpdateParticleRayTracingState(p, labParameters);
             if (hasCompleted)
             {
                 LogMessage("Particle ", p, " COMPLETED");
 
-                // Destroy state
-                particleState.TargetPosition.reset();
+                // Destroy ray tracing state
+                particleState.RayTracingState.reset();
                 mCurrentParticleTrajectory.reset();
             }
         }
@@ -244,7 +246,7 @@ vec2f LabController::CalculatePhysicsDeltaPos(
 
 }
 
-bool LabController::UpdateParticleState(
+bool LabController::UpdateParticleRayTracingState(
     ElementIndex particleIndex,
     LabParameters const & labParameters)
 {
@@ -254,19 +256,26 @@ bool LabController::UpdateParticleState(
     Triangles const & triangles = mModel->GetMesh().GetTriangles();
 
     auto & state = particles.GetState(particleIndex);
-    assert(state.TargetPosition.has_value());
-    vec2f targetPosition = *state.TargetPosition;
-    vec2f trajectory = targetPosition - particles.GetPosition(particleIndex);
+    assert(state.RayTracingState.has_value());
+    vec2f const targetPosition = state.RayTracingState->TrajectoryTargetPosition;
+    
 
     //
     // If we are at target, we're done
     //
 
-    if (particles.GetPosition(particleIndex) == targetPosition)
+    if (state.RayTracingState->CurrentPosition == targetPosition)
     {
         // Reached destination
 
         LogMessage("  Reached destination");
+
+        // Set particle's physical position
+        particles.SetPosition(particleIndex, targetPosition);
+
+        // Maintain velocity, since we've reached target
+        // (the only case where we change velocity is when we also change target 
+        //  and we've set the particle position to it)
 
         return true;
     }
@@ -280,9 +289,9 @@ bool LabController::UpdateParticleState(
         LogMessage("  Particle is free, moving to target");
 
         // ...move to target position directly
-        particles.SetPosition(particleIndex, targetPosition);
+        state.RayTracingState->CurrentPosition = targetPosition;
 
-        return false; //  // We'll end at next iteration
+        return false; // We'll end at next iteration
     }
 
     //
@@ -311,7 +320,7 @@ bool LabController::UpdateParticleState(
         LogMessage("  Target is on/in triangle, moving to target");
 
         // ...move to target position directly
-        particles.SetPosition(particleIndex, targetPosition);
+        state.RayTracingState->CurrentPosition = targetPosition;
         state.ConstrainedState->CurrentTriangleBarycentricCoords = targetBarycentricCoords;
 
         return false; //  // We'll end at next iteration
@@ -330,6 +339,8 @@ bool LabController::UpdateParticleState(
     //
 
     float constexpr TEpsilon = 0.0001f;
+
+    vec2f const trajectory = targetPosition - state.RayTracingState->TrajectorySourcePosition;
 
     int intersectionVertexOrdinal = -1;
     float minIntersectionT = std::numeric_limits<float>::max();
@@ -387,7 +398,7 @@ bool LabController::UpdateParticleState(
         currentTriangle,
         vertices);
 
-    particles.SetPosition(particleIndex, intersectionPosition);
+    state.RayTracingState->CurrentPosition = intersectionPosition;
     state.ConstrainedState->CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
 
     //
@@ -405,67 +416,49 @@ bool LabController::UpdateParticleState(
         && !isGhost)
     {
         //
-        // Check if also velocity agrees with impact (quite paranoid possibly, should always be true)
+        // Impact
+        //
 
-        vec2f particleVelocity = particles.GetVelocity(particleIndex);
+        LogMessage("  Impact");
 
-        // Calculate edge direction (from point of view of inside triangle, hence CW)
-        vec2f const edgeDir = 
+        //
+        // Update velocity with bounce response
+        //
+
+        // Decompose particle velocity into normal and tangential
+        // TODO: should we use intersection here? if not, why not using actual velocity then, since it's this one?
+        vec2f const particleVelocity = trajectory / LabParameters::SimulationTimeStepDuration;
+        vec2f const edgeDir =
             triangles.GetSubEdgeVector(currentTriangle, intersectionEdgeOrdinal, vertices)
             .normalise();
-
-        // Calculate edge normal (pointing outside the triangle, into the floor)
         vec2f const edgeNormal = edgeDir.to_perpendicular();
-
-        // Calculate the component of the particle's velocity along the normal,
-        // i.e. towards the interior of the floor...
         float const particleVelocityAlongNormal = particleVelocity.dot(edgeNormal);
+        vec2f const normalVelocity = edgeNormal * particleVelocityAlongNormal;
+        vec2f const tangentialVelocity = particleVelocity - normalVelocity;
 
-        // TODOHERE
-        assert(particleVelocityAlongNormal > 0.0f);
+        // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
+        vec2f const normalResponse =
+            -normalVelocity
+            * labParameters.Elasticity;
 
-        // ...if positive, we have an impact
-        if (particleVelocityAlongNormal > 0.0f)
-        {
-            //
-            // Impact
-            //
+        // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
+        vec2f const tangentialResponse =
+            tangentialVelocity
+            * (1.0f - labParameters.Friction);
 
-            LogMessage("  Impact");
+        // Set velocity to resultant collision velocity
+        particles.SetVelocity(
+            particleIndex,
+            normalResponse + tangentialResponse);
 
-            //
-            // Update velocity with bounce response
-            //
+        // 
+        // Conclude here
+        //
 
-            // Decompose particle velocity into normal and tangential
-            vec2f const normalVelocity = edgeNormal * particleVelocityAlongNormal;
-            vec2f const tangentialVelocity = particleVelocity - normalVelocity;
+        // Set particle's physical position
+        particles.SetPosition(particleIndex, intersectionPosition);
 
-            // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
-            vec2f const normalResponse =
-                -normalVelocity
-                * labParameters.Elasticity;
-
-            // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
-            vec2f const tangentialResponse =
-                tangentialVelocity
-                * (1.0f - labParameters.Friction);
-
-            // Set velocity to resultant collision velocity
-            particles.SetVelocity(
-                particleIndex,
-                normalResponse + tangentialResponse);
-
-            // 
-            // Conclude here
-            //
-
-            return true;
-        }
-        else
-        {
-            LogMessage("Warning: Impact with floor but velocity impacting!");
-        }
+        return true;
     }
     else
     {
@@ -514,6 +507,4 @@ bool LabController::UpdateParticleState(
             return false;
         }
     }
-    
-    return false;
 }

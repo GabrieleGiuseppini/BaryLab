@@ -155,7 +155,8 @@ public:
 
     void UploadParticle(
         vec2f const & particlePosition,
-        rgbaColor const & particleColor);
+        rgbaColor const & particleColor,
+        float alpha);
 
     void UploadParticlesEnd();
 

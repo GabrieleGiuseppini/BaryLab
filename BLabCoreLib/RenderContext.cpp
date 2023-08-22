@@ -353,14 +353,16 @@ void RenderContext::UploadParticlesStart()
 
 void RenderContext::UploadParticle(
     vec2f const & particlePosition,
-    rgbaColor const & particleColor)
+    rgbaColor const & particleColor,
+    float alpha)
 {
     float const xLeft = particlePosition.x - LabParameters::ParticleRadius;
     float const xRight = particlePosition.x + LabParameters::ParticleRadius;
     float const yTop = particlePosition.y + LabParameters::ParticleRadius;
     float const yBottom = particlePosition.y - LabParameters::ParticleRadius;
 
-    vec4f const color = particleColor.toVec4f();
+    vec4f color = particleColor.toVec4f();
+    color.w *= alpha;
 
     // Left, bottom
     mParticleVertexBuffer.emplace_back(

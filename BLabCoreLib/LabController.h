@@ -185,7 +185,7 @@ private:
         ElementIndex particleIndex,
         LabParameters const & labParameters) const;
 
-    bool UpdateParticleState(
+    bool UpdateParticleRayTracingState(
         ElementIndex particleIndex,
         LabParameters const & labParameters);
 

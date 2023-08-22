@@ -52,5 +52,5 @@ void main()
             vec3(particleColor.xyz),
             vec3(1., 1., 1.),
             reflectionRegion),
-        alpha * particleColor.w * 0.7);
+        alpha * particleColor.w);
 } 

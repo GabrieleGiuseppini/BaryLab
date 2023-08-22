@@ -17,7 +17,7 @@ void Particles::Add(
 
     mRenderColorBuffer.emplace_back(color);
 
-    mStateBuffer.emplace_back(std::nullopt, std::nullopt);
+    mStateBuffer.emplace_back(StateType());
 }
 
 void Particles::Query(ElementIndex particleElementIndex) const

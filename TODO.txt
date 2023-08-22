@@ -50,30 +50,42 @@
 		+ FIX:
 			+ When climbing edge @ vertex, we switch "edge we're on and thus want to ignore"  from climbed to other one, arbitrarily
 			+ Fix: remove check for current edge, & find closest intersection among those that are *strictly* away from edge (i.e. towards traj)
-		- FIX:
-			- Little t: see why
 		- See if really need special handling for into-vertex
-		- TODO's:
-			- Test CalculatePhysicsDeltaEdge's "against floor" check for not against floor
+			- Test it
+				- Do model change with corner bottom-right
+		= FIX:
+			+ Velocity used for calculating bounce response should be traj's, not current particle v's, as traj contains also apparent
+				+ Do RayTracingState (see below), which contains:
+					+ Whole traj (start, end)
+					+ Render position
+						+ This used for rendering when RayTracingState is present
+				+ Particle's position is only changed at exits of UpdateParticleState
+				+ At bounce:
+					+ Use trajectory (divided by dt) as velocity
+					+ No need to check velocity (against normal) anymore
+			- TODO? Rename "RayTracing" (as in Particle::State and as UpdateXXX member of controller) as "Trajectory"
+		- Friction:
+			- Take into consideration *relative* velocity
 		
 
 				
 
 
-- Allow for moving mesh
-	- TODOHERE
-	- Particles::State: TargetPos becomes non-opt member of opt RayTracingState
-		- Presence of RayTracingState tells we're doing ray tracing instead of physics, in place of old TargetPos
-	- Everything "Trajectory" becomes "RayTracingTrajectory"
-	- RayTracingState contains CurrentPosition - not absolute but in mesh coords
-		- Initialized - in constrained state - as current pos in triangle (we should be doing that already), and target as absolute target pos (should be doing that already)
-			- See code TODO's - do it also at manually-set case
-		- Particle's physical position is only set at end of particle update
-			- Set to RayTracingState::CurrentPosition
-				- Rationale: when we hit end of particle update, RayTracingState::CurrentPosition is either target position (and thus absolute),
-				  or - when hitting edge - at new mesh's edge position - THIS IS THE CRITICAL TEST: should match expected target absolute position
-		- Render:
-			- At each Render call, if we are doing RayTracing, render an additional ("shadow") particle at RayTracingState::CurrentPosition, almost transparent
-				- Real particle will move at end, and ghost disappears because of losing RayTracing state
-	- Speed UI: TODO
+= Allow for moving mesh
+	+ Particles::State: TargetPos becomes non-opt member of opt RayTracingState
+		+ Presence of RayTracingState tells we're doing ray tracing instead of physics, in place of old TargetPos
+	+ RayTracingState contains CurrentPosition - not absolute but in mesh coords
+		+ Initialized - in constrained state - as current pos in triangle (we should be doing that already), and target as absolute target pos (should be doing that already)
+			+ Do it also at manually-set case
+		+ Particle's physical position is only set at end of particle update
+			+ Set to RayTracingState::CurrentPosition
+				+ Rationale: when we hit end of particle update, RayTracingState::CurrentPosition is either target position (and thus absolute),
+				  or - when hitting edge - at new mesh's edge position
+		+ Render:
+			+ At each Render call, if we are doing RayTracing, render an additional ("shadow") particle at RayTracingState::CurrentPosition, almost transparent
+				+ Real particle will move at end, and ghost disappears because of losing RayTracing state
+	- Mesh Transformation UI:
+		- Two sliders (H/V)
+		- Slider for rotation
+		- Checkbox for "render RT" 
 	- Rendering of mesh wrt speed: TODO
