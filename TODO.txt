@@ -53,7 +53,7 @@
 		- See if really need special handling for into-vertex
 			- Test it
 				- Do model change with corner bottom-right
-		= FIX:
+		+ FIX:
 			+ Velocity used for calculating bounce response should be traj's, not current particle v's, as traj contains also apparent
 				+ Do RayTracingState (see below), which contains:
 					+ Whole traj (start, end)
@@ -63,7 +63,7 @@
 				+ At bounce:
 					+ Use trajectory (divided by dt) as velocity
 					+ No need to check velocity (against normal) anymore
-			- TODO? Rename "RayTracing" (as in Particle::State and as UpdateXXX member of controller) as "Trajectory"
+			+ Rename "RayTracing" (as in Particle::State and as UpdateXXX member of controller) as "Trajectory"
 		- Friction:
 			- Take into consideration *relative* velocity
 		

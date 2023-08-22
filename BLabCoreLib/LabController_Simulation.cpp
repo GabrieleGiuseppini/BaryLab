@@ -43,13 +43,13 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
 
         auto & particleState = particles.GetState(p);
 
-        if (!particleState.RayTracingState.has_value())
+        if (!particleState.TrajectoryState.has_value())
         {
             //
-            // We need a ray tracing trajectory
+            // We need a trajectory
             //
 
-            LogMessage("Particle ", p, ": Ray tracing state initialization");
+            LogMessage("Particle ", p, ": Trajectory state initialization");
 
             // Calculate target position
             vec2f targetPosition;
@@ -89,15 +89,9 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
                 sourcePosition = particles.GetPosition(p);
             }
 
-            particleState.RayTracingState.emplace(
+            particleState.TrajectoryState.emplace(
                 sourcePosition,
                 targetPosition);
-
-            //
-            // Update velocity for trajectory
-            //
-
-            particles.SetVelocity(p, (targetPosition - sourcePosition) / LabParameters::SimulationTimeStepDuration);
 
             //
             // Update trajectory notification
@@ -108,17 +102,21 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
         }
         else
         {
-            LogMessage("Particle ", p, ": Ray tracing state update");
+            assert(particleState.TrajectoryState.has_value());
 
-            assert(particleState.RayTracingState.has_value());
+            LogMessage("Particle ", p, ": Trajectory state update");
 
-            bool hasCompleted = UpdateParticleRayTracingState(p, labParameters);
-            if (hasCompleted)
+            auto const finalParticleState = UpdateParticleTrajectoryState(particles.GetState(p), labParameters);
+            if (finalParticleState)
             {
                 LogMessage("Particle ", p, " COMPLETED");
 
-                // Destroy ray tracing state
-                particleState.RayTracingState.reset();
+                // Finalize particle
+                particles.SetPosition(p, finalParticleState->Position);
+                particles.SetVelocity(p, finalParticleState->Velocity);
+
+                // Destroy trajectory state
+                particleState.TrajectoryState.reset();
                 mCurrentParticleTrajectory.reset();
             }
         }
@@ -246,52 +244,47 @@ vec2f LabController::CalculatePhysicsDeltaPos(
 
 }
 
-bool LabController::UpdateParticleRayTracingState(
-    ElementIndex particleIndex,
+std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTrajectoryState(
+    Particles::StateType & particleState,
     LabParameters const & labParameters)
 {
-    Particles & particles = mModel->GetParticles();
+    Particles const & particles = mModel->GetParticles();
     Vertices const & vertices = mModel->GetMesh().GetVertices();
     Edges const & edges = mModel->GetMesh().GetEdges();
     Triangles const & triangles = mModel->GetMesh().GetTriangles();
 
-    auto & state = particles.GetState(particleIndex);
-    assert(state.RayTracingState.has_value());
-    vec2f const targetPosition = state.RayTracingState->TrajectoryTargetPosition;
+    assert(particleState.TrajectoryState.has_value());
+    vec2f const targetPosition = particleState.TrajectoryState->TargetPosition;
+    vec2f const trajectory = targetPosition - particleState.TrajectoryState->SourcePosition;
     
 
     //
     // If we are at target, we're done
     //
 
-    if (state.RayTracingState->CurrentPosition == targetPosition)
+    if (particleState.TrajectoryState->CurrentPosition == targetPosition)
     {
         // Reached destination
 
         LogMessage("  Reached destination");
 
-        // Set particle's physical position
-        particles.SetPosition(particleIndex, targetPosition);
-
-        // Maintain velocity, since we've reached target
-        // (the only case where we change velocity is when we also change target 
-        //  and we've set the particle position to it)
-
-        return true;
+        return FinalPerticleState(
+            targetPosition,
+            trajectory / LabParameters::SimulationTimeStepDuration);
     }
 
     //
     // If we're free, we move to target
     //
 
-    if (!state.ConstrainedState)
+    if (!particleState.ConstrainedState)
     {
         LogMessage("  Particle is free, moving to target");
 
         // ...move to target position directly
-        state.RayTracingState->CurrentPosition = targetPosition;
+        particleState.TrajectoryState->CurrentPosition = targetPosition;
 
-        return false; // We'll end at next iteration
+        return std::nullopt; // We'll end at next iteration
     }
 
     //
@@ -300,9 +293,9 @@ bool LabController::UpdateParticleRayTracingState(
 
     LogMessage("  Particle is in constrained state");
 
-    assert(state.ConstrainedState.has_value());    
+    assert(particleState.ConstrainedState.has_value());
 
-    ElementIndex const currentTriangle = state.ConstrainedState->CurrentTriangle;
+    ElementIndex const currentTriangle = particleState.ConstrainedState->CurrentTriangle;
 
     vec3f targetBarycentricCoords = triangles.ToBarycentricCoordinates(
         targetPosition,
@@ -320,10 +313,10 @@ bool LabController::UpdateParticleRayTracingState(
         LogMessage("  Target is on/in triangle, moving to target");
 
         // ...move to target position directly
-        state.RayTracingState->CurrentPosition = targetPosition;
-        state.ConstrainedState->CurrentTriangleBarycentricCoords = targetBarycentricCoords;
+        particleState.TrajectoryState->CurrentPosition = targetPosition;
+        particleState.ConstrainedState->CurrentTriangleBarycentricCoords = targetBarycentricCoords;
 
-        return false; //  // We'll end at next iteration
+        return std::nullopt; //  // We'll end at next iteration
     }
 
     //
@@ -338,9 +331,7 @@ bool LabController::UpdateParticleRayTracingState(
     // of triangle and we're inside or on an edge
     //
 
-    float constexpr TEpsilon = 0.0001f;
-
-    vec2f const trajectory = targetPosition - state.RayTracingState->TrajectorySourcePosition;
+    float constexpr TEpsilon = 0.0001f;    
 
     int intersectionVertexOrdinal = -1;
     float minIntersectionT = std::numeric_limits<float>::max();
@@ -353,10 +344,10 @@ bool LabController::UpdateParticleRayTracingState(
         vec2f const edgeNormal = triangles.GetSubEdgeVector(currentTriangle, edgeOrdinal, vertices).to_perpendicular();
         if (trajectory.dot(edgeNormal) > 0.0f) // Stricly positive, hence not parallel
         {
-            float const den = state.ConstrainedState->CurrentTriangleBarycentricCoords[vi] - targetBarycentricCoords[vi];
+            float const den = particleState.ConstrainedState->CurrentTriangleBarycentricCoords[vi] - targetBarycentricCoords[vi];
             float const t = IsAlmostZero(den)
                 ? std::numeric_limits<float>::max() // Parallel, meets at infinity
-                : state.ConstrainedState->CurrentTriangleBarycentricCoords[vi] / den;
+                : particleState.ConstrainedState->CurrentTriangleBarycentricCoords[vi] / den;
 
             assert(t > -TEpsilon); // Some numeric slack, trajectory is here guaranteed to be pointing into this edge
 
@@ -386,7 +377,7 @@ bool LabController::UpdateParticleRayTracingState(
     vec3f intersectionBarycentricCoords;
     intersectionBarycentricCoords[intersectionVertexOrdinal] = 0.0f;
     float const lNext = // Barycentric coord of next vertex at intersection
-        state.ConstrainedState->CurrentTriangleBarycentricCoords[(intersectionVertexOrdinal + 1) % 3] * (1.0f - minIntersectionT)
+        particleState.ConstrainedState->CurrentTriangleBarycentricCoords[(intersectionVertexOrdinal + 1) % 3] * (1.0f - minIntersectionT)
         + targetBarycentricCoords[(intersectionVertexOrdinal + 1) % 3] * minIntersectionT;
     intersectionBarycentricCoords[(intersectionVertexOrdinal + 1) % 3] = lNext;
     intersectionBarycentricCoords[(intersectionVertexOrdinal + 2) % 3] = 1.0f - lNext;
@@ -398,8 +389,8 @@ bool LabController::UpdateParticleRayTracingState(
         currentTriangle,
         vertices);
 
-    state.RayTracingState->CurrentPosition = intersectionPosition;
-    state.ConstrainedState->CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
+    particleState.TrajectoryState->CurrentPosition = intersectionPosition;
+    particleState.ConstrainedState->CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
 
     //
     // Check if impacted with floor
@@ -426,7 +417,6 @@ bool LabController::UpdateParticleRayTracingState(
         //
 
         // Decompose particle velocity into normal and tangential
-        // TODO: should we use intersection here? if not, why not using actual velocity then, since it's this one?
         vec2f const particleVelocity = trajectory / LabParameters::SimulationTimeStepDuration;
         vec2f const edgeDir =
             triangles.GetSubEdgeVector(currentTriangle, intersectionEdgeOrdinal, vertices)
@@ -446,19 +436,15 @@ bool LabController::UpdateParticleRayTracingState(
             tangentialVelocity
             * (1.0f - labParameters.Friction);
 
-        // Set velocity to resultant collision velocity
-        particles.SetVelocity(
-            particleIndex,
-            normalResponse + tangentialResponse);
+        vec2f const resultantVelocity = normalResponse + tangentialResponse;
 
         // 
         // Conclude here
         //
 
-        // Set particle's physical position
-        particles.SetPosition(particleIndex, intersectionPosition);
-
-        return true;
+        return FinalPerticleState(
+            intersectionPosition,
+            resultantVelocity);
     }
     else
     {
@@ -478,9 +464,9 @@ bool LabController::UpdateParticleRayTracingState(
 
             LogMessage("  No opposite triangle found, becoming free");
 
-            state.ConstrainedState.reset();
+            particleState.ConstrainedState.reset();
 
-            return false;
+            return std::nullopt; // Will move and then stop
         }
         else
         {
@@ -492,19 +478,19 @@ bool LabController::UpdateParticleRayTracingState(
 
             LogMessage("  Moving to edge ", oppositeTriangleEdgeOrdinal, " of opposite triangle ", oppositeTriangle);
 
-            state.ConstrainedState->CurrentTriangle = oppositeTriangle;
+            particleState.ConstrainedState->CurrentTriangle = oppositeTriangle;
 
             // Calculate new barycentric coords (wrt opposite triangle)
             vec3f newBarycentricCoords; // In new triangle
             newBarycentricCoords[(oppositeTriangleEdgeOrdinal + 2) % 3] = 0.0f;
-            newBarycentricCoords[oppositeTriangleEdgeOrdinal] = state.ConstrainedState->CurrentTriangleBarycentricCoords[(intersectionEdgeOrdinal + 1) % 3];
-            newBarycentricCoords[(oppositeTriangleEdgeOrdinal + 1) % 3] = state.ConstrainedState->CurrentTriangleBarycentricCoords[intersectionEdgeOrdinal];
+            newBarycentricCoords[oppositeTriangleEdgeOrdinal] = particleState.ConstrainedState->CurrentTriangleBarycentricCoords[(intersectionEdgeOrdinal + 1) % 3];
+            newBarycentricCoords[(oppositeTriangleEdgeOrdinal + 1) % 3] = particleState.ConstrainedState->CurrentTriangleBarycentricCoords[intersectionEdgeOrdinal];
 
-            LogMessage("  B-Coords: ", state.ConstrainedState->CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
+            LogMessage("  B-Coords: ", particleState.ConstrainedState->CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
 
-            state.ConstrainedState->CurrentTriangleBarycentricCoords = newBarycentricCoords;
+            particleState.ConstrainedState->CurrentTriangleBarycentricCoords = newBarycentricCoords;
 
-            return false;
+            return std::nullopt; // Continue
         }
     }
 }

@@ -185,8 +185,21 @@ private:
         ElementIndex particleIndex,
         LabParameters const & labParameters) const;
 
-    bool UpdateParticleRayTracingState(
-        ElementIndex particleIndex,
+    struct FinalPerticleState
+    {
+        vec2f Position;
+        vec2f Velocity;
+
+        FinalPerticleState(
+            vec2f const & position,
+            vec2f const & velocity)
+            : Position(position)
+            , Velocity(velocity)
+        {}
+    };
+
+    std::optional<FinalPerticleState> UpdateParticleTrajectoryState(
+        Particles::StateType & particleState,
         LabParameters const & labParameters);
 
 private:

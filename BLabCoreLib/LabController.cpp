@@ -220,10 +220,10 @@ void LabController::Render()
                 mModel->GetParticles().GetRenderColor(p),
                 1.0f);
 
-            if (mModel->GetParticles().GetState(p).RayTracingState.has_value())
+            if (mModel->GetParticles().GetState(p).TrajectoryState.has_value())
             {
                 mRenderContext->UploadParticle(
-                    mModel->GetParticles().GetState(p).RayTracingState->CurrentPosition,
+                    mModel->GetParticles().GetState(p).TrajectoryState->CurrentPosition,
                     mModel->GetParticles().GetRenderColor(p),
                     0.5f);
             }
@@ -418,10 +418,10 @@ void LabController::MoveParticleBy(
     // Select particle
     mCurrentlySelectedParticleProbe.emplace(particleIndex);
 
-    // Reset ray tracing state
-    mModel->GetParticles().GetState(particleIndex).RayTracingState.reset();
+    // Reset trajecory state
+    mModel->GetParticles().GetState(particleIndex).TrajectoryState.reset();
     mCurrentParticleTrajectory.reset();
-    mCurrentParticleTrajectory.reset();
+    mCurrentParticleTrajectoryNotification.reset();
 }
 
 void LabController::NotifyParticleTrajectory(
@@ -446,7 +446,7 @@ void LabController::SetParticleTrajectory(
     mCurrentParticleTrajectoryNotification.reset();
 
     // Reset state to needing to calculate a trajectory
-    mModel->GetParticles().GetState(particleIndex).RayTracingState.reset();
+    mModel->GetParticles().GetState(particleIndex).TrajectoryState.reset();
 }
 
 void LabController::QueryNearestParticleAt(vec2f const & screenCoordinates) const

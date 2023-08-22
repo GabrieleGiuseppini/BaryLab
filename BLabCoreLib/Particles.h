@@ -38,27 +38,27 @@ public:
 
         std::optional<ConstrainedStateType> ConstrainedState;
 
-        struct RayTracingStateType
+        struct TrajectoryStateType
         {
-            vec2f TrajectorySourcePosition;
-            vec2f TrajectoryTargetPosition;
+            vec2f SourcePosition;
+            vec2f TargetPosition;
 
             vec2f CurrentPosition;
 
-            RayTracingStateType(
-                vec2f const & trajectorySourcePosition,
-                vec2f const & trajectoryTargetPosition)
-                : TrajectorySourcePosition(trajectorySourcePosition)
-                , TrajectoryTargetPosition(trajectoryTargetPosition)
-                , CurrentPosition(trajectorySourcePosition)
+            TrajectoryStateType(
+                vec2f const & sourcePosition,
+                vec2f const & targetPosition)
+                : SourcePosition(sourcePosition)
+                , TargetPosition(targetPosition)
+                , CurrentPosition(sourcePosition)
             {}
         };
 
-        std::optional<RayTracingStateType> RayTracingState; // When set, we have a ray tracing target; when not set, we have to calculate a target
+        std::optional<TrajectoryStateType> TrajectoryState; // When set, we have a trajectory target; when not set, we have to calculate a target
 
         StateType()
             : ConstrainedState()
-            , RayTracingState()
+            , TrajectoryState()
         {}
     };
 
