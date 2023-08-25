@@ -307,7 +307,7 @@ std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTr
 
     ElementIndex const currentTriangle = particleState.ConstrainedState->CurrentTriangle;
 
-    vec3f targetBarycentricCoords = triangles.ToBarycentricCoordinates(
+    vec3f const targetBarycentricCoords = triangles.ToBarycentricCoordinates(
         targetPosition,
         currentTriangle,
         vertices);
@@ -341,7 +341,30 @@ std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTr
     // of triangle and we're inside or on an edge
     //
 
-    float constexpr TEpsilon = 0.0001f;    
+#ifdef _DEBUG
+
+    struct EdgeIntersectionDiag
+    {
+        vec2f EdgeNormal;
+        float TrajectoryDotEdgeNormal;
+        float Den;
+        float T;
+        vec3f IntersectionPoint;
+
+        EdgeIntersectionDiag(
+            vec2f const & edgeNormal,
+            float trajectoryDotEdgeNormal)
+            : EdgeNormal(edgeNormal)
+            , TrajectoryDotEdgeNormal(trajectoryDotEdgeNormal)
+            , Den(0.0f)
+            , T(0.0f)
+            , IntersectionPoint()
+        {}
+    };
+
+    std::array<std::optional<EdgeIntersectionDiag>, 3> diags;
+
+#endif // DEBUG
 
     int intersectionVertexOrdinal = -1;
     float minIntersectionT = std::numeric_limits<float>::max();
@@ -352,6 +375,11 @@ std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTr
 
         // Only consider edges ahead of trajectory
         vec2f const edgeNormal = triangles.GetSubEdgeVector(currentTriangle, edgeOrdinal, vertices).to_perpendicular();
+
+#ifdef _DEBUG
+        diags[vi].emplace(edgeNormal, trajectory.dot(edgeNormal));
+#endif
+
         if (trajectory.dot(edgeNormal) > 0.0f) // Stricly positive, hence not parallel
         {
             float const den = particleState.ConstrainedState->CurrentTriangleBarycentricCoords[vi] - targetBarycentricCoords[vi];
@@ -359,7 +387,15 @@ std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTr
                 ? std::numeric_limits<float>::max() // Parallel, meets at infinity
                 : particleState.ConstrainedState->CurrentTriangleBarycentricCoords[vi] / den;
 
-            assert(t > -TEpsilon); // Some numeric slack, trajectory is here guaranteed to be pointing into this edge
+#ifdef _DEBUG
+            diags[vi]->Den = den;
+            diags[vi]->T = t;
+            diags[vi]->IntersectionPoint =
+                particleState.ConstrainedState->CurrentTriangleBarycentricCoords
+                + (targetBarycentricCoords - particleState.ConstrainedState->CurrentTriangleBarycentricCoords) * t;
+#endif
+
+            assert(t > -Epsilon<float>); // Some numeric slack, trajectory is here guaranteed to be pointing into this edge
 
             LogMessage("  t[v", vi, " e", edgeOrdinal, "] = ", t);            
 
@@ -372,7 +408,7 @@ std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTr
     }
 
     assert(intersectionVertexOrdinal >= 0); // Guaranteed to exist
-    assert(minIntersectionT > -TEpsilon && minIntersectionT <= 1.0f); // Guaranteed to exist, and within trajectory
+    assert(minIntersectionT > -Epsilon<float> && minIntersectionT <= 1.0f); // Guaranteed to exist, and within trajectory
 
     //
     // Move to intersection

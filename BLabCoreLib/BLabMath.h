@@ -15,6 +15,9 @@
 template<typename T>
 constexpr T Pi = T(3.1415926535897932385);
 
+template<typename T>
+constexpr T Epsilon = T(1e-7);
+
 /*
  * Converts the floating-point value to a 32-bit integer, truncating it towards zero.
  *
@@ -320,5 +323,5 @@ inline bool IsAlmostZero(float value, float epsilon)
 
 inline bool IsAlmostZero(float value)
 {
-    return IsAlmostZero(value, 0.000001f);
+    return IsAlmostZero(value, Epsilon<float>);
 }
