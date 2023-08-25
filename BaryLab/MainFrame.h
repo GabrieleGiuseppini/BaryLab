@@ -125,14 +125,16 @@ private:
 
     // Control toolbar
     void OnMoveParticle(wxCommandEvent & event);
-    void OnMoveVertex(wxCommandEvent & event);
     void OnSetParticleTrajectory(wxCommandEvent & event);
     void OnSetOriginTriangle(wxCommandEvent & event);
-    void OnSetParticleGravity(wxCommandEvent & event);    
+    void OnMoveVertex(wxCommandEvent & event);
+    void OnRotateMesh(wxCommandEvent & event);
+    void OnSetParticleGravity(wxCommandEvent & event);
     void OnSimulationControlPlay(wxCommandEvent & event);
     void OnSimulationControlPause(wxCommandEvent & event);
     void OnSimulationControlStep(wxCommandEvent & event);
     void OnViewControlGridToggled(wxCommandEvent & event);
+    void OnRenderSimulationStepsToggled(wxCommandEvent & event);
 
     // Timers
     void OnSimulationTimer(wxTimerEvent & event);

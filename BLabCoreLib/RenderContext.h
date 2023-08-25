@@ -116,6 +116,11 @@ public:
         return mViewModel.ScreenOffsetToWorldOffset(screenOffset);
     }
 
+    float ScreenOffsetToWorldOffset(float screenOffset) const
+    {
+        return mViewModel.ScreenOffsetToWorldOffset(screenOffset);
+    }
+
     vec2f WorldToScreen(vec2f const & worldCoordinates) const
     {
         return mViewModel.WorldToScreen(worldCoordinates);

@@ -142,9 +142,10 @@ MainFrame::MainFrame(wxApp * mainApp)
         // Control toolbar
         mControlToolbar = new ControlToolbar(mMainPanel);
         mControlToolbar->Connect(ControlToolbar::ID_MOVE_PARTICLE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnMoveParticle, 0, this);
-        mControlToolbar->Connect(ControlToolbar::ID_MOVE_VERTEX, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnMoveVertex, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_SET_PARTICLE_TRAJECTORY, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSetParticleTrajectory, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_SET_ORIGIN_TRIANGLE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSetOriginTriangle, 0, this);
+        mControlToolbar->Connect(ControlToolbar::ID_MOVE_VERTEX, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnMoveVertex, 0, this);
+        mControlToolbar->Connect(ControlToolbar::ID_ROTATE_MESH, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnRotateMesh, 0, this);                
         mControlToolbar->Connect(ControlToolbar::ID_SET_PARTICLE_GRAVITY, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSetParticleGravity, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_SIMULATION_CONTROL_PLAY, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSimulationControlPlay, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_SIMULATION_CONTROL_PAUSE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSimulationControlPause, 0, this);
@@ -153,6 +154,7 @@ MainFrame::MainFrame(wxApp * mainApp)
         mControlToolbar->Connect(ControlToolbar::ID_ACTION_LOAD_MESH, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnLoadMeshMenuItemSelected, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_ACTION_SETTINGS, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnOpenSettingsWindowMenuItemSelected, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_VIEW_CONTROL_GRID, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnViewControlGridToggled, 0, this);
+        mControlToolbar->Connect(ControlToolbar::ID_RENDER_SIMULATION_STEPS, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnRenderSimulationStepsToggled, 0, this);
 
         mMainPanelTopHSizer->Add(
             mControlToolbar,
@@ -654,12 +656,6 @@ void MainFrame::OnMoveParticle(wxCommandEvent & /*event*/)
     mToolController->SetTool(ToolType::MoveParticle);
 }
 
-void MainFrame::OnMoveVertex(wxCommandEvent & /*event*/)
-{
-    assert(!!mToolController);
-    mToolController->SetTool(ToolType::MoveVertex);
-}
-
 void MainFrame::OnSetParticleTrajectory(wxCommandEvent & /*event*/)
 {
     assert(!!mToolController);
@@ -670,6 +666,18 @@ void MainFrame::OnSetOriginTriangle(wxCommandEvent & /*event*/)
 {
     assert(!!mToolController);
     mToolController->SetTool(ToolType::SetOriginTriangle);
+}
+
+void MainFrame::OnMoveVertex(wxCommandEvent & /*event*/)
+{
+    assert(!!mToolController);
+    mToolController->SetTool(ToolType::MoveVertex);
+}
+
+void MainFrame::OnRotateMesh(wxCommandEvent & /*event*/)
+{
+    assert(!!mToolController);
+    mToolController->SetTool(ToolType::RotateMesh);
 }
 
 void MainFrame::OnSetParticleGravity(wxCommandEvent & event)
@@ -700,6 +708,12 @@ void MainFrame::OnViewControlGridToggled(wxCommandEvent & event)
 {
     assert(!!mLabController);
     mLabController->SetViewGridEnabled(event.GetInt() != 0);
+}
+
+void MainFrame::OnRenderSimulationStepsToggled(wxCommandEvent & event)
+{
+    assert(!!mLabController);
+    mLabController->SetRenderSimulationStepsEnabled(event.GetInt() != 0);
 }
 
 void MainFrame::OnSimulationTimer(wxTimerEvent & /*event*/)
@@ -793,7 +807,10 @@ void MainFrame::FinishInitialization()
         throw BLabException("Error during initialization of simulation controller: " + std::string(e.what()));
     }
 
-    mControlToolbar->ReconcialiteUI(mLabController->IsParticleGravityEnabled());
+    mControlToolbar->ReconcialiteUI(
+        mLabController->IsParticleGravityEnabled(),
+        mLabController->IsViewGridEnabled(),
+        mLabController->IsRenderSimulationStepsEnabled());
 
     //
     // Create Settings Manager

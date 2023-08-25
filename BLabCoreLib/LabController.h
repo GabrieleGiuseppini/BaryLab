@@ -62,6 +62,8 @@ public:
 
     void MoveVertexBy(ElementIndex vertexIndex, vec2f const & screenOffset);
 
+    void RotateMeshBy(vec2f const & centerScreenCoordinates, float screenAngle);
+
     bool TrySelectOriginTriangle(vec2f const & screenCoordinates);
 
     std::optional<ElementIndex> TryPickParticle(vec2f const & screenCoordinates) const;
@@ -77,6 +79,14 @@ public:
     bool IsParticleGravityEnabled() const;
 
     void SetParticleGravityEnabled(bool isEnabled);
+
+    vec2f const & GetMeshVelocity() const;
+
+    void SetMeshVelocity(vec2f const & velocity);
+
+    float GetMeshRotationRadians() const;
+
+    void SetMeshRotationRadians(float radians);
 
     //
     // Render controls
@@ -125,16 +135,38 @@ public:
         return mRenderContext->ScreenOffsetToWorldOffset(screenOffset);
     }
 
+    float ScreenOffsetToWorldOffset(float screenOffset) const
+    {
+        assert(!!mRenderContext);
+        return mRenderContext->ScreenOffsetToWorldOffset(screenOffset);
+    }
+
     vec2f WorldToScreen(vec2f const & worldCoordinates) const
     {
         assert(!!mRenderContext);
         return mRenderContext->WorldToScreen(worldCoordinates);
     }
 
+    bool IsViewGridEnabled() const
+    {
+        assert(!!mRenderContext);
+        return mRenderContext->IsGridEnabled();
+    }
+
     void SetViewGridEnabled(bool value)
     {
         assert(!!mRenderContext);
         mRenderContext->SetGridEnabled(value);
+    }
+
+    bool IsRenderSimulationStepsEnabled() const
+    {
+        return mRenderSimulationSteps;
+    }
+
+    void SetRenderSimulationStepsEnabled(bool value)
+    {
+        mRenderSimulationSteps = value;
     }
 
     //
@@ -170,6 +202,8 @@ private:
     void Reset(
         std::unique_ptr<Model> newModel,
         std::filesystem::path const & meshDefinitionFilepath);
+
+    void UpdateMeshTransformations();
 
     ElementIndex FindTriangleContaining(vec2f const & position) const;
 
@@ -222,16 +256,17 @@ private:
     std::optional<ParticleTrajectory> mCurrentParticleTrajectory;
     std::optional<ParticleTrajectory> mCurrentParticleTrajectoryNotification;
 
+    bool mIsGravityEnabled;
+    vec2f mCurrentMeshTranslationVelocity;
+    vec2f mCurrentMeshTranslation;
+    float mCurrentMeshRotationRadians;
+
+    bool mRenderSimulationSteps;
+
     //
     // Simulation control
     //
 
     SimulationControlStateType mSimulationControlState;
     bool mSimulationControlImpulse;
-
-    //
-    // Our parameters
-    //
-
-    bool mIsGravityEnabled;
 };

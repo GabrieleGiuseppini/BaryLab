@@ -84,8 +84,14 @@
 		+ Render:
 			+ At each Render call, if we are doing RayTracing, render an additional ("shadow") particle at RayTracingState::CurrentPosition, almost transparent
 				+ Real particle will move at end, and ghost disappears because of losing RayTracing state
-	- Mesh Transformation UI:
-		- Two sliders (H/V)
-		- Slider for rotation
-		- Checkbox for "render RT" 
+	= Mesh Transformation UI:
+		= Rotation: new tool
+			+ No LabController member, acts directly
+		- Velocity:
+			- Store just vel, update whole mesh at UpdateMeshTransformations
+				- Nuke "current translation"
+		- UI:
+			= Checkbox for "render RT" 
+			- Two sliders (H/V)
+				- Copy H/V slider flags code from FS
 	- Rendering of mesh wrt speed: TODO

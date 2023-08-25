@@ -32,6 +32,16 @@ void LabController::InitializeParticleRegime(ElementIndex particleIndex)
 
 void LabController::UpdateSimulation(LabParameters const & labParameters)
 {
+    //
+    // Update mesh transformations
+    //
+
+    UpdateMeshTransformations();
+
+    //
+    // Update particles' state
+    //
+
     auto & particles = mModel->GetParticles();
 
     LogMessage("----------------");

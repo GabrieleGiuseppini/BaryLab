@@ -7,6 +7,8 @@
 
 #include "WxHelpers.h"
 
+#include "UIControls/LinearSliderCore.h"
+
 #include <BLabCoreLib/ResourceLocator.h>
 
 #include <wx/bitmap.h>
@@ -14,14 +16,18 @@
 #include <wx/sizer.h>
 
 #include <cassert>
+#include <memory>
+#include <string>
 
 wxEventType const ControlToolbar::wxEVT_TOOLBAR_ACTION = wxNewEventType();
 
 long const ControlToolbar::ID_MOVE_PARTICLE = wxNewId();
-long const ControlToolbar::ID_SET_PARTICLE_GRAVITY = wxNewId();
 long const ControlToolbar::ID_SET_PARTICLE_TRAJECTORY = wxNewId();
-long const ControlToolbar::ID_MOVE_VERTEX = wxNewId();
 long const ControlToolbar::ID_SET_ORIGIN_TRIANGLE = wxNewId();
+long const ControlToolbar::ID_MOVE_VERTEX = wxNewId();
+long const ControlToolbar::ID_ROTATE_MESH = wxNewId();
+
+long const ControlToolbar::ID_SET_PARTICLE_GRAVITY = wxNewId();
 
 long const ControlToolbar::ID_SIMULATION_CONTROL_PLAY = wxNewId();
 long const ControlToolbar::ID_SIMULATION_CONTROL_PAUSE = wxNewId();
@@ -32,6 +38,7 @@ long const ControlToolbar::ID_ACTION_LOAD_MESH = wxNewId();
 long const ControlToolbar::ID_ACTION_SETTINGS = wxNewId();
 
 long const ControlToolbar::ID_VIEW_CONTROL_GRID = wxNewId();
+long const ControlToolbar::ID_RENDER_SIMULATION_STEPS = wxNewId();
 
 ControlToolbar::ControlToolbar(wxWindow * parent)
     : wxPanel(
@@ -71,30 +78,6 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
             mMoveParticleButton->SetToolTip("Move a particle");
 
             gridSizer->Add(mMoveParticleButton);
-        }
-
-        // Move vertex
-        {
-            mMoveVertexButton = new wxBitmapToggleButton(
-                this,
-                ID_MOVE_VERTEX,
-                wxBitmap(
-                (ResourceLocator::GetResourcesFolderPath() / "move_vertex_icon.png").string(),
-                wxBITMAP_TYPE_PNG),
-                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-
-            mMoveVertexButton->Bind(wxEVT_TOGGLEBUTTON,
-                [this](wxCommandEvent & /*event*/)
-                {
-                    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_MOVE_VERTEX);
-                    ProcessEvent(evt);
-
-                    ReconciliateUIWithTool(ToolType::MoveVertex);
-                });
-
-            mMoveVertexButton->SetToolTip("Move a mesh vertex");
-
-            gridSizer->Add(mMoveVertexButton);
         }
 
         // Set particle trajectory
@@ -145,6 +128,62 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
             gridSizer->Add(mSetOriginTriangleButton);
         }
 
+        // Move vertex
+        {
+            mMoveVertexButton = new wxBitmapToggleButton(
+                this,
+                ID_MOVE_VERTEX,
+                wxBitmap(
+                (ResourceLocator::GetResourcesFolderPath() / "move_vertex_icon.png").string(),
+                wxBITMAP_TYPE_PNG),
+                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+
+            mMoveVertexButton->Bind(wxEVT_TOGGLEBUTTON,
+                [this](wxCommandEvent & /*event*/)
+                {
+                    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_MOVE_VERTEX);
+                    ProcessEvent(evt);
+
+                    ReconciliateUIWithTool(ToolType::MoveVertex);
+                });
+
+            mMoveVertexButton->SetToolTip("Move a mesh vertex");
+
+            gridSizer->Add(mMoveVertexButton);
+        }
+
+        // Rotate mesh
+        {
+            mRotateMeshButton = new wxBitmapToggleButton(
+                this,
+                ID_ROTATE_MESH,
+                wxBitmap(
+                    (ResourceLocator::GetResourcesFolderPath() / "rotate_mesh_icon.png").string(),
+                    wxBITMAP_TYPE_PNG),
+                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+
+            mRotateMeshButton->Bind(wxEVT_TOGGLEBUTTON,
+                [this](wxCommandEvent & /*event*/)
+                {
+                    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_ROTATE_MESH);
+                    ProcessEvent(evt);
+
+                    ReconciliateUIWithTool(ToolType::RotateMesh);
+                });
+
+            mMoveVertexButton->SetToolTip("Rotate the mesh");
+
+            gridSizer->Add(mRotateMeshButton);
+        }
+
+        vSizer->Add(gridSizer, 0, wxALIGN_CENTER | wxALL, 5);
+    }
+
+    vSizer->AddSpacer(10);
+
+    {
+        wxGridSizer * gridSizer = new wxGridSizer(2, 2, 2);
+
         // Set particle gravity
         {
             mSetParticleGravityButton = new wxBitmapToggleButton(
@@ -153,7 +192,7 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
                 wxBitmap(
                     (ResourceLocator::GetResourcesFolderPath() / "gravity_icon.png").string(),
                     wxBITMAP_TYPE_PNG),
-                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);            
+                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 
             mSetParticleGravityButton->Bind(wxEVT_TOGGLEBUTTON,
                 [this](wxCommandEvent & /*event*/)
@@ -167,7 +206,7 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
 
             gridSizer->Add(mSetParticleGravityButton);
         }
-        
+
         vSizer->Add(gridSizer, 0, wxALIGN_CENTER | wxALL, 5);
     }
 
@@ -342,7 +381,61 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
             gridSizer->Add(mViewControlGridButton);
         }
 
+        // Render simulation steps
+        {
+            mRenderSimulationStepsButton = new wxBitmapToggleButton(
+                this,
+                ID_RENDER_SIMULATION_STEPS,
+                wxBitmap(
+                    (ResourceLocator::GetResourcesFolderPath() / "render_simulation_steps.png").string(),
+                    wxBITMAP_TYPE_PNG),
+                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+
+            mRenderSimulationStepsButton->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent & /*event*/) { OnViewControlButton(mRenderSimulationStepsButton); });
+
+            mRenderSimulationStepsButton->SetToolTip("Toggles rendering of simulation steps");
+
+            gridSizer->Add(mRenderSimulationStepsButton);
+        }
+
         vSizer->Add(gridSizer, 0, wxALIGN_CENTER | wxALL, 5);
+    }
+
+    vSizer->AddSpacer(10);
+
+    // Mesh transformation
+    {
+        static int constexpr SliderWidth = 40;
+        static int constexpr SliderHeight = 140;
+
+        // Horizontal velocity
+        {
+            // TODO: copy FS code for H/V flags
+            mHorizonalMeshVelocitySlider = new SliderControl<float>(
+                this,
+                SliderWidth,
+                SliderHeight,
+                "H Vel",
+                "The horizontal velocity of the mesh.",
+                [this](float value)
+                {
+                    // TODOHERE
+                    (void)value;
+                },
+                std::make_unique<LinearSliderCore>(
+                   -30.0f,
+                    30.0f));
+
+            mHorizonalMeshVelocitySlider->SetValue(0.0f); // TODO: from recon
+
+            vSizer->Add(
+                mHorizonalMeshVelocitySlider, 
+                0, 
+                wxALIGN_CENTER_HORIZONTAL | wxALL, 
+                5);
+        }
+
+        // TODOHERE
     }
 
     vSizer->AddSpacer(10);
@@ -350,9 +443,14 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
     this->SetSizer(vSizer);
 }
 
-void ControlToolbar::ReconcialiteUI(bool isGravityEnabled)
+void ControlToolbar::ReconcialiteUI(
+    bool isGravityEnabled,
+    bool isViewGridEnabled,
+    bool isRenderSimulationStepsEnabled)
 {
     mSetParticleGravityButton->SetValue(isGravityEnabled);
+    mViewControlGridButton->SetValue(isViewGridEnabled);
+    mRenderSimulationStepsButton->SetValue(isRenderSimulationStepsEnabled);
 }
 
 void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
@@ -363,6 +461,7 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
         {
             mMoveParticleButton->SetValue(true);
             mMoveVertexButton->SetValue(false);
+            mRotateMeshButton->SetValue(false);
             mSetParticleTrajectoryButton->SetValue(false);
             mSetOriginTriangleButton->SetValue(false);
 
@@ -373,7 +472,30 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
         {
             mMoveParticleButton->SetValue(false);
             mMoveVertexButton->SetValue(true);
+            mRotateMeshButton->SetValue(false);
             mSetParticleTrajectoryButton->SetValue(false);
+            mSetOriginTriangleButton->SetValue(false);
+
+            break;
+        }
+
+        case ToolType::RotateMesh:
+        {
+            mMoveParticleButton->SetValue(false);
+            mMoveVertexButton->SetValue(false);
+            mRotateMeshButton->SetValue(true);
+            mSetParticleTrajectoryButton->SetValue(false);
+            mSetOriginTriangleButton->SetValue(false);
+
+            break;
+        }
+
+        case ToolType::SetParticleTrajectory:
+        {
+            mMoveParticleButton->SetValue(false);
+            mMoveVertexButton->SetValue(false);
+            mRotateMeshButton->SetValue(false);
+            mSetParticleTrajectoryButton->SetValue(true);
             mSetOriginTriangleButton->SetValue(false);
 
             break;
@@ -383,18 +505,9 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
         {
             mMoveParticleButton->SetValue(false);
             mMoveVertexButton->SetValue(false);
+            mRotateMeshButton->SetValue(false);
             mSetParticleTrajectoryButton->SetValue(false);
             mSetOriginTriangleButton->SetValue(true);
-
-            break;
-        }
-
-        case ToolType::SetParticleTrajectory:
-        {
-            mMoveParticleButton->SetValue(false);
-            mMoveVertexButton->SetValue(false);
-            mSetParticleTrajectoryButton->SetValue(true);
-            mSetOriginTriangleButton->SetValue(false);
 
             break;
         }
@@ -524,6 +637,13 @@ void ControlToolbar::OnViewControlButton(wxBitmapToggleButton * button)
     {
         // Fire event
         wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_VIEW_CONTROL_GRID);
+        evt.SetInt(button->GetValue() ? 1 : 0);
+        ProcessEvent(evt);
+    }
+    else if (button->GetId() == ID_RENDER_SIMULATION_STEPS)
+    {
+        // Fire event
+        wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_RENDER_SIMULATION_STEPS);
         evt.SetInt(button->GetValue() ? 1 : 0);
         ProcessEvent(evt);
     }

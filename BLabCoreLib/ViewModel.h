@@ -158,6 +158,11 @@ public:
             -screenOffset.y / static_cast<float>(mCanvasHeight) * mVisibleWorldHeight);
     }
 
+    inline float ScreenOffsetToWorldOffset(float screenOffset) const
+    {
+        return screenOffset / static_cast<float>(mCanvasHeight) * mVisibleWorldHeight;
+    }
+
     inline vec2f WorldToScreen(vec2f const & worldCoordinates) const
     {
         return vec2f(

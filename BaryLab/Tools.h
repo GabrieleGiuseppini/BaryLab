@@ -20,8 +20,9 @@ enum class ToolType
 {
     MoveParticle = 0,
     MoveVertex = 1,
-    SetParticleTrajectory = 2,
-    SetOriginTriangle = 3,
+    RotateMesh = 2,
+    SetParticleTrajectory = 3,
+    SetOriginTriangle = 4,
 };
 
 struct InputState
@@ -307,6 +308,85 @@ private:
     };
 
     std::optional<EngagementState> mCurrentEngagementState; // When set, indicates it's engaged
+
+    // The cursors
+    wxCursor const mUpCursor;
+    wxCursor const mDownCursor;
+};
+
+class RotateMeshTool final : public Tool
+{
+public:
+
+    RotateMeshTool(
+        wxWindow * cursorWindow,
+        std::shared_ptr<LabController> labController);
+
+public:
+
+    virtual void Initialize(InputState const & /*inputState*/) override
+    {
+        // Reset state
+        mCurrentEngagementState.reset();
+
+        SetCurrentCursor();
+    }
+
+    virtual void Deinitialize(InputState const & /*inputState*/) override
+    {
+    }
+
+    virtual void SetCurrentCursor() override
+    {
+        mCursorWindow->SetCursor(!!mCurrentEngagementState ? mDownCursor : mUpCursor);
+    }
+
+    virtual void Update(InputState const & inputState) override
+    {
+        if (mCurrentEngagementState.has_value())
+        {
+            if (inputState.IsLeftMouseDown)
+            {
+                // Rotate
+                mLabController->RotateMeshBy(
+                    mCurrentEngagementState->RotationCenter,
+                    inputState.MousePosition.y - mCurrentEngagementState->LastPosition.y);
+
+                mCurrentEngagementState->LastPosition = inputState.MousePosition;
+            }
+            else
+            {
+                // Disengage
+                mCurrentEngagementState.reset();
+            }
+        }
+        else
+        {
+            if (inputState.IsLeftMouseDown)
+            {
+                // Engage
+                mCurrentEngagementState.emplace(inputState.MousePosition);
+            }
+        }
+
+        SetCurrentCursor();
+    }
+
+private:
+
+    struct EngagementData
+    {
+        vec2f RotationCenter;
+        vec2f LastPosition;
+
+        EngagementData(vec2f const initialPosition)
+            : RotationCenter(initialPosition)
+            , LastPosition(initialPosition)
+        {}
+    };
+
+    // When set, we're rotating
+    std::optional<EngagementData> mCurrentEngagementState;
 
     // The cursors
     wxCursor const mUpCursor;

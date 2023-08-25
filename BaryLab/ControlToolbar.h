@@ -7,12 +7,11 @@
 
 #include "Tools.h"
 
+#include "UIControls/SliderControl.h"
+
 #include <wx/bmpbuttn.h>
 #include <wx/panel.h>
 #include <wx/tglbtn.h>
-
-#include <memory>
-#include <string>
 
 class ControlToolbar final : public wxPanel
 {
@@ -21,11 +20,13 @@ public:
     static wxEventType const wxEVT_TOOLBAR_ACTION;
 
     static long const ID_MOVE_PARTICLE;    
-    static long const ID_SET_PARTICLE_GRAVITY;
     static long const ID_SET_PARTICLE_TRAJECTORY;
+    static long const ID_SET_ORIGIN_TRIANGLE;    
     static long const ID_MOVE_VERTEX;
-    static long const ID_SET_ORIGIN_TRIANGLE;
-    
+    static long const ID_ROTATE_MESH;
+
+    static long const ID_SET_PARTICLE_GRAVITY;
+
     static long const ID_SIMULATION_CONTROL_PLAY;
     static long const ID_SIMULATION_CONTROL_PAUSE;
     static long const ID_SIMULATION_CONTROL_STEP;
@@ -35,6 +36,7 @@ public:
     static long const ID_ACTION_SETTINGS;
 
     static long const ID_VIEW_CONTROL_GRID;
+    static long const ID_RENDER_SIMULATION_STEPS;
 
 public:
 
@@ -42,7 +44,10 @@ public:
 
     virtual ~ControlToolbar() = default;
 
-    void ReconcialiteUI(bool isGravityEnabled);
+    void ReconcialiteUI(
+        bool isGravityEnabled,
+        bool isViewGridEnabled,
+        bool isRenderSimulationStepsEnabled);
 
     void ReconciliateUIWithTool(ToolType tool);
 
@@ -62,9 +67,11 @@ private:
 private:
 
     wxBitmapToggleButton * mMoveParticleButton;
-    wxBitmapToggleButton * mMoveVertexButton;
     wxBitmapToggleButton * mSetParticleTrajectoryButton;
-    wxBitmapToggleButton * mSetOriginTriangleButton;
+    wxBitmapToggleButton * mSetOriginTriangleButton;    
+    wxBitmapToggleButton * mMoveVertexButton;
+    wxBitmapToggleButton * mRotateMeshButton;
+
     wxBitmapToggleButton * mSetParticleGravityButton;
 
     wxBitmapToggleButton * mSimulationControlPlayButton;
@@ -72,4 +79,9 @@ private:
     wxBitmapButton * mSimulationControlStepButton;
 
     wxBitmapToggleButton * mViewControlGridButton;
+    wxBitmapToggleButton * mRenderSimulationStepsButton;
+
+    SliderControl<float> * mHorizonalMeshVelocitySlider;
+    SliderControl<float> * mVerticalMeshVelocitySlider;
+    SliderControl<float> * mMeshRotationSlider;
 };

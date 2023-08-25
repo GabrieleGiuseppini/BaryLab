@@ -10,6 +10,7 @@
 #include "MeshBuilder.h"
 #include "ResourceLocator.h"
 
+#include <cmath>
 #include <sstream>
 
 std::unique_ptr<LabController> LabController::Create(
@@ -49,11 +50,14 @@ LabController::LabController(
     , mCurrentOriginTriangle()
     , mCurrentParticleTrajectory()
     , mCurrentParticleTrajectoryNotification()
+    , mIsGravityEnabled(false)
+    , mCurrentMeshTranslationVelocity(vec2f::zero())
+    , mCurrentMeshTranslation(vec2f::zero())
+    , mCurrentMeshRotationRadians(0.0f)
+    , mRenderSimulationSteps(true)
     // Simulation control
     , mSimulationControlState(SimulationControlStateType::Paused)
     , mSimulationControlImpulse(false)
-    // Our own parameters
-    , mIsGravityEnabled(false)
 {    
 }
 
@@ -294,6 +298,17 @@ void LabController::Reset()
     LoadMesh(*mCurrentMeshFilePath);
 }
 
+void LabController::UpdateMeshTransformations()
+{
+    mCurrentMeshTranslation += mCurrentMeshTranslationVelocity * LabParameters::SimulationTimeStepDuration;
+
+    //
+    // Transform mesh
+    //
+
+    // TODOHERE
+}
+
 std::optional<ElementIndex> LabController::TryPickVertex(vec2f const & screenCoordinates) const
 {
     assert(!!mModel);
@@ -341,6 +356,38 @@ void LabController::MoveVertexBy(
 
     assert(mModel->GetParticles().GetElementCount() >= 1);
     InitializeParticleRegime(0);
+}
+
+void LabController::RotateMeshBy(
+    vec2f const & centerScreenCoordinates, 
+    float screenAngle)
+{
+    assert(!!mModel);
+
+    vec2f const worldCenter = ScreenToWorld(centerScreenCoordinates);
+    float const worldAngle = ScreenOffsetToWorldOffset(screenAngle);
+
+    float const cosAngle = std::cos(worldAngle);
+    float const sinAngle = std::sin(worldAngle);
+
+    auto & vertices = mModel->GetMesh().GetVertices();
+    for (auto v : vertices)
+    {
+        vec2f const centeredPos = vertices.GetPosition(v) - worldCenter;
+        vec2f const rotatedPos = vec2f(
+            centeredPos.x * cosAngle - centeredPos.y * sinAngle,
+            centeredPos.x * sinAngle + centeredPos.y * cosAngle);
+
+        vertices.SetPosition(v, rotatedPos + worldCenter);
+    }
+
+    assert(mModel->GetParticles().GetElementCount() >= 1);
+
+    // Reset regime
+    InitializeParticleRegime(0);
+
+    // Reset trajectory state
+    mModel->GetParticles().GetState(0).TrajectoryState.reset();
 }
 
 bool LabController::TrySelectOriginTriangle(vec2f const & screenCoordinates)
@@ -418,7 +465,7 @@ void LabController::MoveParticleBy(
     // Select particle
     mCurrentlySelectedParticleProbe.emplace(particleIndex);
 
-    // Reset trajecory state
+    // Reset trajectory state
     mModel->GetParticles().GetState(particleIndex).TrajectoryState.reset();
     mCurrentParticleTrajectory.reset();
     mCurrentParticleTrajectoryNotification.reset();
@@ -469,6 +516,27 @@ void LabController::SetParticleGravityEnabled(bool isEnabled)
 {
     mIsGravityEnabled = isEnabled;
 }
+
+vec2f const & LabController::GetMeshVelocity() const
+{
+    return mCurrentMeshTranslationVelocity;
+}
+
+void LabController::SetMeshVelocity(vec2f const & velocity)
+{
+    mCurrentMeshTranslationVelocity = velocity;
+}
+
+float LabController::GetMeshRotationRadians() const
+{
+    return mCurrentMeshRotationRadians;
+}
+
+void LabController::SetMeshRotationRadians(float radians)
+{
+    mCurrentMeshRotationRadians = radians;
+}
+
 
 ////////////////////////////////////////////////
 
