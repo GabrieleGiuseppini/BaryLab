@@ -17,7 +17,7 @@ void LabController::InitializeParticleRegime(ElementIndex particleIndex)
     ElementIndex const triangleIndex = FindTriangleContaining(mModel->GetParticles().GetPosition(particleIndex));
     if (triangleIndex != NoneElementIndex)
     {
-        vec3f const barycentricCoords = mModel->GetMesh().GetTriangles().ToBarycentricCoordinates(
+        vec3f const barycentricCoords = mModel->GetMesh().GetTriangles().ToBarycentricCoordinatesFromWithinTriangle(
             mModel->GetParticles().GetPosition(particleIndex),
             triangleIndex,
             mModel->GetMesh().GetVertices());
@@ -187,106 +187,196 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
     {
         ElementIndex const currentTriangleElementIndex = particleState.ConstrainedState->CurrentTriangle;
 
-        int currentEdgeOrdinal = -1;
-        if (particleState.ConstrainedState->CurrentTriangleBarycentricCoords.x == 0.0f)
-        {
-            currentEdgeOrdinal = 1;
-        }
-        else if (particleState.ConstrainedState->CurrentTriangleBarycentricCoords.y == 0.0f)
-        {
-            currentEdgeOrdinal = 2;
-        }
-        else if (particleState.ConstrainedState->CurrentTriangleBarycentricCoords.z == 0.0f)
-        {
-            currentEdgeOrdinal = 0;
-        }
+        // Calculate ghost condition - we don't consider a surface floor (and thus allow 
+        // particle to ghost through it) if it's in a triangle made fully of floors
+        bool const isGhost =
+            edges.GetSurfaceType(triangles.GetSubEdgeAIndex(currentTriangleElementIndex)) == SurfaceType::Floor
+            && edges.GetSurfaceType(triangles.GetSubEdgeBIndex(currentTriangleElementIndex)) == SurfaceType::Floor
+            && edges.GetSurfaceType(triangles.GetSubEdgeCIndex(currentTriangleElementIndex)) == SurfaceType::Floor;
 
-        if (currentEdgeOrdinal >= 0)
+        if (!isGhost)
         {
-            ElementIndex const currentEdgeElementIndex = triangles.GetSubEdges(currentTriangleElementIndex).EdgeIndices[currentEdgeOrdinal];
-
-            // Calculate ghost condition - we don't consider a surface floor (and thus allow 
-            // particle to ghost through it) if it's in a triangle made fully of floors
-            bool const isGhost =
-                edges.GetSurfaceType(triangles.GetSubEdgeAIndex(currentTriangleElementIndex)) == SurfaceType::Floor
-                && edges.GetSurfaceType(triangles.GetSubEdgeBIndex(currentTriangleElementIndex)) == SurfaceType::Floor
-                && edges.GetSurfaceType(triangles.GetSubEdgeCIndex(currentTriangleElementIndex)) == SurfaceType::Floor;
-
-            if (edges.GetSurfaceType(currentEdgeElementIndex) == SurfaceType::Floor
-                && !isGhost)
+            // Check all edges, stop at first one that is floor
+            for (int vi = 0; vi < 3; ++vi)
             {
-                //
-                // On floor edge
-                //                
-
-                //
-                // Add friction
-                //
-
-                // TODO
-
-                //
-                // Integrate, including eventual bounce velocity from a previous impact
-                //
-
-                vec2f const deltaPos =
-                    particles.GetVelocity(particleIndex) * dt
-                    + forces / particleMass * dt * dt;
-
-                //
-                // If we're moving *against* the floor, flatten trajectory
-                //
-
-                vec2f const edgeVector = mModel->GetMesh().GetTriangles().GetSubEdgeVector(
-                    currentTriangleElementIndex,
-                    currentEdgeOrdinal,
-                    vertices);
-
-                if (deltaPos.dot(edgeVector.to_perpendicular()) > 0.0f) // Normal to edge is directed outside of triangle (i.e. towards floor)
+                if (particleState.ConstrainedState->CurrentTriangleBarycentricCoords[vi] == 0.0f)
                 {
-                    //
-                    // Flatten trajectory - i.e. take component of deltapos along floor
-                    //
+                    int const edgeOrdinal = (vi + 1) % 3;
+                    ElementIndex const currentEdgeElementIndex = triangles.GetSubEdges(currentTriangleElementIndex).EdgeIndices[edgeOrdinal];
 
-                    vec2f const edgeDir = edgeVector.normalise();
-                    vec2f const flattenedDeltaPos = edgeDir * deltaPos.dot(edgeDir);
+                    if (edges.GetSurfaceType(currentEdgeElementIndex) == SurfaceType::Floor)
+                    {
+                        //
+                        // On floor edge
+                        //                
 
-                    // Due to numerical slack, ensure target barycentric coords are along edge
+                        //
+                        // Add friction
+                        //
 
-                    vec3f targetBarycentricCoords = triangles.ToBarycentricCoordinates(
-                        particles.GetPosition(particleIndex) + flattenedDeltaPos,
-                        currentTriangleElementIndex,
-                        vertices);
+                        // TODO
 
-                    // Force on edge
-                    int const vertexOrdinal = (currentEdgeOrdinal + 2) % 3;
-                    targetBarycentricCoords[vertexOrdinal] = 0.0f;
-                    targetBarycentricCoords[(vertexOrdinal + 1) % 3] = 1.0f - targetBarycentricCoords[(vertexOrdinal + 2) % 3];
+                        //
+                        // Integrate, including eventual bounce velocity from a previous impact
+                        //
 
-                    LogMessage("  Particle is on floor edge ", currentEdgeOrdinal, ", moving against it; flattened target coords : ", targetBarycentricCoords);
+                        vec2f const deltaPos =
+                            particles.GetVelocity(particleIndex) * dt
+                            + forces / particleMass * dt * dt;
 
-                    return TrajectoryTarget(
-                        triangles.FromBarycentricCoordinates(
-                            targetBarycentricCoords,
+                        //
+                        // If we're moving *against* the floor, flatten trajectory
+                        //
+
+                        vec2f const edgeVector = mModel->GetMesh().GetTriangles().GetSubEdgeVector(
                             currentTriangleElementIndex,
-                            vertices),
-                        targetBarycentricCoords);
-                }
-                else
-                {
-                    LogMessage("  Particle is on floor edge, but not against it");
+                            edgeOrdinal,
+                            vertices);
 
-                    vec2f const targetPosition = particles.GetPosition(particleIndex) + deltaPos;
+                        if (deltaPos.dot(edgeVector.to_perpendicular()) > 0.0f) // Normal to edge is directed outside of triangle (i.e. towards floor)
+                        {
+                            //
+                            // Flatten trajectory - i.e. take component of deltapos along floor
+                            //
 
-                    return TrajectoryTarget(
-                        targetPosition,
-                        triangles.ToBarycentricCoordinates(
-                            targetPosition,
-                            currentTriangleElementIndex,
-                            vertices));
+                            vec2f const edgeDir = edgeVector.normalise();
+                            vec2f const flattenedDeltaPos = edgeDir * deltaPos.dot(edgeDir);
+
+                            // Due to numerical slack, ensure target barycentric coords are along edge
+
+                            vec3f targetBarycentricCoords = triangles.ToBarycentricCoordinates(
+                                particles.GetPosition(particleIndex) + flattenedDeltaPos,
+                                currentTriangleElementIndex,
+                                vertices);
+
+                            // Force to be on edge
+                            int const vertexOrdinal = (edgeOrdinal + 2) % 3;
+                            targetBarycentricCoords[vertexOrdinal] = 0.0f;
+                            targetBarycentricCoords[(vertexOrdinal + 1) % 3] = 1.0f - targetBarycentricCoords[(vertexOrdinal + 2) % 3];
+
+                            LogMessage("  Particle is on floor edge ", edgeOrdinal, ", moving against it; flattened target coords : ", targetBarycentricCoords);
+
+                            return TrajectoryTarget(
+                                triangles.FromBarycentricCoordinates(
+                                    targetBarycentricCoords,
+                                    currentTriangleElementIndex,
+                                    vertices),
+                                targetBarycentricCoords);
+                        }
+                        else
+                        {
+                            LogMessage("  Particle is on floor edge, but not moving against it");
+
+                            vec2f const targetPosition = particles.GetPosition(particleIndex) + deltaPos;
+
+                            return TrajectoryTarget(
+                                targetPosition,
+                                triangles.ToBarycentricCoordinates(
+                                    targetPosition,
+                                    currentTriangleElementIndex,
+                                    vertices));
+                        }
+                    }
                 }
             }
         }
+
+        // No floor, continue
+
+        // TODOOLD
+        ////int currentEdgeOrdinal = -1;
+        ////if (particleState.ConstrainedState->CurrentTriangleBarycentricCoords.x == 0.0f)
+        ////{
+        ////    currentEdgeOrdinal = 1;
+        ////}
+        ////else if (particleState.ConstrainedState->CurrentTriangleBarycentricCoords.y == 0.0f)
+        ////{
+        ////    currentEdgeOrdinal = 2;
+        ////}
+        ////else if (particleState.ConstrainedState->CurrentTriangleBarycentricCoords.z == 0.0f)
+        ////{
+        ////    currentEdgeOrdinal = 0;
+        ////}
+
+        ////if (currentEdgeOrdinal >= 0)
+        ////{
+        ////    ElementIndex const currentEdgeElementIndex = triangles.GetSubEdges(currentTriangleElementIndex).EdgeIndices[currentEdgeOrdinal];
+
+        ////    if (edges.GetSurfaceType(currentEdgeElementIndex) == SurfaceType::Floor
+        ////        && !isGhost)
+        ////    {
+        ////        //
+        ////        // On floor edge
+        ////        //                
+
+        ////        //
+        ////        // Add friction
+        ////        //
+
+        ////        // TODO
+
+        ////        //
+        ////        // Integrate, including eventual bounce velocity from a previous impact
+        ////        //
+
+        ////        vec2f const deltaPos =
+        ////            particles.GetVelocity(particleIndex) * dt
+        ////            + forces / particleMass * dt * dt;
+
+        ////        //
+        ////        // If we're moving *against* the floor, flatten trajectory
+        ////        //
+
+        ////        vec2f const edgeVector = mModel->GetMesh().GetTriangles().GetSubEdgeVector(
+        ////            currentTriangleElementIndex,
+        ////            currentEdgeOrdinal,
+        ////            vertices);
+
+        ////        if (deltaPos.dot(edgeVector.to_perpendicular()) > 0.0f) // Normal to edge is directed outside of triangle (i.e. towards floor)
+        ////        {
+        ////            //
+        ////            // Flatten trajectory - i.e. take component of deltapos along floor
+        ////            //
+
+        ////            vec2f const edgeDir = edgeVector.normalise();
+        ////            vec2f const flattenedDeltaPos = edgeDir * deltaPos.dot(edgeDir);
+
+        ////            // Due to numerical slack, ensure target barycentric coords are along edge
+
+        ////            vec3f targetBarycentricCoords = triangles.ToBarycentricCoordinates(
+        ////                particles.GetPosition(particleIndex) + flattenedDeltaPos,
+        ////                currentTriangleElementIndex,
+        ////                vertices);
+
+        ////            // Force on edge
+        ////            int const vertexOrdinal = (currentEdgeOrdinal + 2) % 3;
+        ////            targetBarycentricCoords[vertexOrdinal] = 0.0f;
+        ////            targetBarycentricCoords[(vertexOrdinal + 1) % 3] = 1.0f - targetBarycentricCoords[(vertexOrdinal + 2) % 3];
+
+        ////            LogMessage("  Particle is on floor edge ", currentEdgeOrdinal, ", moving against it; flattened target coords : ", targetBarycentricCoords);
+
+        ////            return TrajectoryTarget(
+        ////                triangles.FromBarycentricCoordinates(
+        ////                    targetBarycentricCoords,
+        ////                    currentTriangleElementIndex,
+        ////                    vertices),
+        ////                targetBarycentricCoords);
+        ////        }
+        ////        else
+        ////        {
+        ////            LogMessage("  Particle is on floor edge, but not against it");
+
+        ////            vec2f const targetPosition = particles.GetPosition(particleIndex) + deltaPos;
+
+        ////            return TrajectoryTarget(
+        ////                targetPosition,
+        ////                triangles.ToBarycentricCoordinates(
+        ////                    targetPosition,
+        ////                    currentTriangleElementIndex,
+        ////                    vertices));
+        ////        }
+        ////    }
+        ////}
     }
 
     //
