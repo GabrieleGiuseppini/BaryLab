@@ -215,16 +215,16 @@ private:
 
     void UpdateSimulation(LabParameters const & labParameters);
 
-    vec2f CalculatePhysicsDeltaPos(
+    vec2f CalculatePhysicsTarget(
         ElementIndex particleIndex,
         LabParameters const & labParameters) const;
 
-    struct FinalPerticleState
+    struct FinalParticleState
     {
         vec2f Position;
         vec2f Velocity;
 
-        FinalPerticleState(
+        FinalParticleState(
             vec2f const & position,
             vec2f const & velocity)
             : Position(position)
@@ -232,7 +232,7 @@ private:
         {}
     };
 
-    std::optional<FinalPerticleState> UpdateParticleTrajectoryState(
+    std::optional<FinalParticleState> UpdateParticleTrajectoryState(
         Particles::StateType & particleState,
         LabParameters const & labParameters);
 

@@ -50,9 +50,9 @@
 		+ FIX:
 			+ When climbing edge @ vertex, we switch "edge we're on and thus want to ignore"  from climbed to other one, arbitrarily
 			+ Fix: remove check for current edge, & find closest intersection among those that are *strictly* away from edge (i.e. towards traj)
-		- See if really need special handling for into-vertex
-			- Test it
-				- Do model change with corner bottom-right
+		+ See if really need special handling for into-vertex
+			+ Test it
+				X Do model change with corner bottom-right
 		+ FIX:
 			+ Velocity used for calculating bounce response should be traj's, not current particle v's, as traj contains also apparent
 				+ Do RayTracingState (see below), which contains:
@@ -64,6 +64,16 @@
 					+ Use trajectory (divided by dt) as velocity
 					+ No need to check velocity (against normal) anymore
 			+ Rename "RayTracing" (as in Particle::State and as UpdateXXX member of controller) as "Trajectory"
+		= FIX: slowing down when on edge
+			+ Hide trajectory
+			- Commit
+			- Multi-frame rendering
+			- Commit
+			- CalculatePhysicsTrajEnd calcs also target bary coords
+			- UpdateState: do not calc target bary coords
+				- Recalc them when changing triangle: TODO algo
+				- Recalc them any other time we change target coords
+				- Recalc them any other time we change triangle
 		- Friction:
 			- Take into consideration *relative* velocity
 		

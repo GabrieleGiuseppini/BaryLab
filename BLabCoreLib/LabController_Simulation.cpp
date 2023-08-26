@@ -81,9 +81,7 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
             {
                 // Use physics to calculate trajectory
 
-                targetPosition = 
-                    particles.GetPosition(p) // Physics moves from current pos, before mesh move
-                    + CalculatePhysicsDeltaPos(p, labParameters); 
+                targetPosition = CalculatePhysicsTarget(p, labParameters); 
             }
 
             // Calculate source position
@@ -139,7 +137,7 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
     }
 }
 
-vec2f LabController::CalculatePhysicsDeltaPos(
+vec2f LabController::CalculatePhysicsTarget(
     ElementIndex particleIndex,
     LabParameters const & labParameters) const
 {
@@ -220,25 +218,37 @@ vec2f LabController::CalculatePhysicsDeltaPos(
 
                 if (deltaPos.dot(edgeVector.to_perpendicular()) > 0.0f) // Normal to edge is directed outside of triangle (i.e. towards floor)
                 {
-                    LogMessage("  Particle is on floor edge, moving against it");
-
                     //
                     // Flatten trajectory - i.e. take component of deltapos along floor
                     //
 
-                    // TODOHERE: ...unless delta pos goes towards another edge that we're also on (i.e. we're in a vertex), in which case
-                    // delta pos becomes zero
-                    // TODO: is it really needed though? What happens if we're going towards another edge that we're also on (i.e. we're in vertex)?
-
                     vec2f const edgeDir = edgeVector.normalise();
+                    vec2f const flattenedDeltaPos = edgeDir * deltaPos.dot(edgeDir);
 
-                    return edgeDir * deltaPos.dot(edgeDir);
+                    // Due to numerical slack, ensure target barycentric coords are along edge
+
+                    vec3f targetBarycentricCoords = triangles.ToBarycentricCoordinates(
+                        particles.GetPosition(particleIndex) + flattenedDeltaPos,
+                        currentTriangleElementIndex,
+                        vertices);
+
+                    // Force on edge
+                    int const vertexOrdinal = (currentEdgeOrdinal + 2) % 3;
+                    targetBarycentricCoords[vertexOrdinal] = 0.0f;
+                    targetBarycentricCoords[(vertexOrdinal + 1) % 3] = 1.0f - targetBarycentricCoords[(vertexOrdinal + 2) % 3];
+
+                    LogMessage("  Particle is on floor edge ", currentEdgeOrdinal, ", moving against it; flattened target coords : ", targetBarycentricCoords);
+
+                    return triangles.FromBarycentricCoordinates(
+                        targetBarycentricCoords,
+                        currentTriangleElementIndex,
+                        vertices);
                 }
                 else
                 {
                     LogMessage("  Particle is on floor edge, but not against it");
 
-                    return deltaPos;
+                    return particles.GetPosition(particleIndex) + deltaPos;
                 }
             }
         }
@@ -255,12 +265,13 @@ vec2f LabController::CalculatePhysicsDeltaPos(
     //
 
     return
-        particles.GetVelocity(particleIndex) * dt
+        particles.GetPosition(particleIndex) 
+        + particles.GetVelocity(particleIndex) * dt
         + forces / particleMass * dt * dt;
 
 }
 
-std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTrajectoryState(
+std::optional<LabController::FinalParticleState> LabController::UpdateParticleTrajectoryState(
     Particles::StateType & particleState,
     LabParameters const & labParameters)
 {
@@ -271,7 +282,6 @@ std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTr
 
     assert(particleState.TrajectoryState.has_value());
     vec2f const targetPosition = particleState.TrajectoryState->TargetPosition;
-    vec2f const trajectory = targetPosition - particleState.TrajectoryState->SourcePosition;
     
     //
     // If we are at target, we're done
@@ -283,9 +293,9 @@ std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTr
 
         LogMessage("  Reached destination");
 
-        return FinalPerticleState(
+        return FinalParticleState(
             targetPosition,
-            trajectory / LabParameters::SimulationTimeStepDuration);
+            (targetPosition - particleState.TrajectoryState->SourcePosition) / LabParameters::SimulationTimeStepDuration);
     }
 
     //
@@ -331,7 +341,7 @@ std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTr
         && targetBarycentricCoords.y >= 0.0f && targetBarycentricCoords.y <= 1.0f
         && targetBarycentricCoords.z >= 0.0f && targetBarycentricCoords.z <= 1.0f)
     {
-        LogMessage("  Target is on/in triangle, moving to target");
+        LogMessage("  Target is on/in triangle (", targetBarycentricCoords, "), moving to target");
 
         // ...move to target position directly
         particleState.TrajectoryState->CurrentPosition = targetPosition;
@@ -344,6 +354,8 @@ std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTr
     // We're inside or on triangle, and target is outside triangle;
     // if we're on edge, trajectory is along this edge
     //
+
+    LogMessage("  Target is outside triangle (", targetBarycentricCoords, ")");
 
     //
     // Find closest intersection in the direction of the trajectory
@@ -473,6 +485,7 @@ std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTr
         //
 
         // Decompose particle velocity into normal and tangential
+        vec2f const trajectory = targetPosition - particleState.TrajectoryState->SourcePosition;
         vec2f const particleVelocity = trajectory / LabParameters::SimulationTimeStepDuration;
         vec2f const edgeDir =
             triangles.GetSubEdgeVector(currentTriangle, intersectionEdgeOrdinal, vertices)
@@ -498,7 +511,7 @@ std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTr
         // Conclude here
         //
 
-        return FinalPerticleState(
+        return FinalParticleState(
             intersectionPosition,
             resultantVelocity);
     }
