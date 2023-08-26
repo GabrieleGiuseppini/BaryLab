@@ -215,7 +215,20 @@ private:
 
     void UpdateSimulation(LabParameters const & labParameters);
 
-    vec2f CalculatePhysicsTarget(
+    struct TrajectoryTarget
+    {
+        vec2f Position;
+        std::optional<vec3f> CurrentTriangleBarycentricCoords; // Returned when in constrained state
+
+        TrajectoryTarget(
+            vec2f const & position,
+            std::optional<vec3f> currentTriangleBarycentricCoords)
+            : Position(position)
+            , CurrentTriangleBarycentricCoords(std::move(currentTriangleBarycentricCoords))
+        {}
+    };
+
+    TrajectoryTarget CalculatePhysicsTarget(
         ElementIndex particleIndex,
         LabParameters const & labParameters) const;
 

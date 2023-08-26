@@ -42,14 +42,17 @@ public:
         {
             vec2f SourcePosition;
             vec2f TargetPosition;
+            std::optional<vec3f> TargetPositionCurrentTriangleBarycentricCoords; // Always set when in constrained state; updated when current triangle changes
 
             vec2f CurrentPosition;
 
             TrajectoryStateType(
                 vec2f const & sourcePosition,
-                vec2f const & targetPosition)
+                vec2f const & targetPosition,
+                std::optional<vec3f> targetPositionCurrentTriangleBarycentricCoords)
                 : SourcePosition(sourcePosition)
                 , TargetPosition(targetPosition)
+                , TargetPositionCurrentTriangleBarycentricCoords(std::move(targetPositionCurrentTriangleBarycentricCoords))
                 , CurrentPosition(sourcePosition)
             {}
         };

@@ -69,6 +69,7 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
 
             // Calculate target position
             vec2f targetPosition;
+            std::optional<vec3f> targetPositionCurrentTriangleBarycentricCoords;
             if (mCurrentParticleTrajectory.has_value()
                 && mCurrentParticleTrajectory->ParticleIndex == p)
             {
@@ -76,12 +77,22 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
                 // ...use the provided trajectory
 
                 targetPosition = mCurrentParticleTrajectory->TargetPosition;
+
+                if (particleState.ConstrainedState.has_value())
+                {
+                    targetPositionCurrentTriangleBarycentricCoords = mModel->GetMesh().GetTriangles().ToBarycentricCoordinates(
+                        targetPosition,
+                        particleState.ConstrainedState->CurrentTriangle,
+                        mModel->GetMesh().GetVertices());
+                }
             }
             else
             {
                 // Use physics to calculate trajectory
 
-                targetPosition = CalculatePhysicsTarget(p, labParameters); 
+                auto const trajectoryTarget = CalculatePhysicsTarget(p, labParameters); 
+                targetPosition = trajectoryTarget.Position;
+                targetPositionCurrentTriangleBarycentricCoords = trajectoryTarget.CurrentTriangleBarycentricCoords;
             }
 
             // Calculate source position
@@ -105,7 +116,8 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
 
             particleState.TrajectoryState.emplace(
                 sourcePosition,
-                targetPosition);
+                targetPosition,
+                targetPositionCurrentTriangleBarycentricCoords);
 
             //
             // Update trajectory notification
@@ -151,7 +163,7 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
     }
 }
 
-vec2f LabController::CalculatePhysicsTarget(
+LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
     ElementIndex particleIndex,
     LabParameters const & labParameters) const
 {
@@ -222,7 +234,7 @@ vec2f LabController::CalculatePhysicsTarget(
                     + forces / particleMass * dt * dt;
 
                 //
-                // If we're moving against the floor, flatten trajectory
+                // If we're moving *against* the floor, flatten trajectory
                 //
 
                 vec2f const edgeVector = mModel->GetMesh().GetTriangles().GetSubEdgeVector(
@@ -253,20 +265,29 @@ vec2f LabController::CalculatePhysicsTarget(
 
                     LogMessage("  Particle is on floor edge ", currentEdgeOrdinal, ", moving against it; flattened target coords : ", targetBarycentricCoords);
 
-                    return triangles.FromBarycentricCoordinates(
-                        targetBarycentricCoords,
-                        currentTriangleElementIndex,
-                        vertices);
+                    return TrajectoryTarget(
+                        triangles.FromBarycentricCoordinates(
+                            targetBarycentricCoords,
+                            currentTriangleElementIndex,
+                            vertices),
+                        targetBarycentricCoords);
                 }
                 else
                 {
                     LogMessage("  Particle is on floor edge, but not against it");
 
-                    return particles.GetPosition(particleIndex) + deltaPos;
+                    vec2f const targetPosition = particles.GetPosition(particleIndex) + deltaPos;
+
+                    return TrajectoryTarget(
+                        targetPosition,
+                        triangles.ToBarycentricCoordinates(
+                            targetPosition,
+                            currentTriangleElementIndex,
+                            vertices));
                 }
             }
         }
-    }    
+    }
 
     //
     // Not on a floor edge, use pure force
@@ -275,14 +296,26 @@ vec2f LabController::CalculatePhysicsTarget(
     LogMessage("  Particle not on floor edge; using pure force");
 
     //
-    // Integrate, including eventual bounce velocity from a previous impact
+    // Integrate simply, including eventual bounce velocity from a previous impact
     //
 
-    return
-        particles.GetPosition(particleIndex) 
+    vec2f const targetPosition =
+        particles.GetPosition(particleIndex)
         + particles.GetVelocity(particleIndex) * dt
         + forces / particleMass * dt * dt;
 
+    std::optional<vec3f> targetPositionCurrentTriangleBarycentricCoords;
+    if (particleState.ConstrainedState.has_value())
+    {
+        targetPositionCurrentTriangleBarycentricCoords = triangles.ToBarycentricCoordinates(
+            targetPosition,
+            particleState.ConstrainedState->CurrentTriangle,
+            vertices);
+    }
+
+    return TrajectoryTarget(
+        targetPosition,
+        targetPositionCurrentTriangleBarycentricCoords);
 }
 
 std::optional<LabController::FinalParticleState> LabController::UpdateParticleTrajectoryState(
@@ -295,21 +328,20 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
     Triangles const & triangles = mModel->GetMesh().GetTriangles();
 
     assert(particleState.TrajectoryState.has_value());
-    vec2f const targetPosition = particleState.TrajectoryState->TargetPosition;
     
     //
     // If we are at target, we're done
     //
 
-    if (particleState.TrajectoryState->CurrentPosition == targetPosition)
+    if (particleState.TrajectoryState->CurrentPosition == particleState.TrajectoryState->TargetPosition)
     {
         // Reached destination
 
         LogMessage("  Reached destination");
 
         return FinalParticleState(
-            targetPosition,
-            (targetPosition - particleState.TrajectoryState->SourcePosition) / LabParameters::SimulationTimeStepDuration);
+            particleState.TrajectoryState->TargetPosition,
+            (particleState.TrajectoryState->TargetPosition - particleState.TrajectoryState->SourcePosition) / LabParameters::SimulationTimeStepDuration);
     }
 
     //
@@ -321,7 +353,7 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
         LogMessage("  Particle is free, moving to target");
 
         // ...move to target position directly
-        particleState.TrajectoryState->CurrentPosition = targetPosition;
+        particleState.TrajectoryState->CurrentPosition = particleState.TrajectoryState->TargetPosition;
 
         return std::nullopt; // We'll end at next iteration
     }
@@ -333,6 +365,7 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
     LogMessage("  Particle is in constrained state");
 
     assert(particleState.ConstrainedState.has_value());
+    assert(particleState.TrajectoryState->TargetPositionCurrentTriangleBarycentricCoords.has_value());
 
     {
         assert(particleState.ConstrainedState->CurrentTriangleBarycentricCoords[0] >= 0.0f && particleState.ConstrainedState->CurrentTriangleBarycentricCoords[0] <= 1.0f);
@@ -342,10 +375,7 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
 
     ElementIndex const currentTriangle = particleState.ConstrainedState->CurrentTriangle;
 
-    vec3f const targetBarycentricCoords = triangles.ToBarycentricCoordinates(
-        targetPosition,
-        currentTriangle,
-        vertices);
+    vec3f const & targetBarycentricCoords = *particleState.TrajectoryState->TargetPositionCurrentTriangleBarycentricCoords;
 
     //
     // If target is on/in triangle, we move to target
@@ -358,7 +388,7 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
         LogMessage("  Target is on/in triangle (", targetBarycentricCoords, "), moving to target");
 
         // ...move to target position directly
-        particleState.TrajectoryState->CurrentPosition = targetPosition;
+        particleState.TrajectoryState->CurrentPosition = particleState.TrajectoryState->TargetPosition;
         particleState.ConstrainedState->CurrentTriangleBarycentricCoords = targetBarycentricCoords;
 
         return std::nullopt; //  // We'll end at next iteration
@@ -499,7 +529,7 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
         //
 
         // Decompose particle velocity into normal and tangential
-        vec2f const trajectory = targetPosition - particleState.TrajectoryState->SourcePosition;
+        vec2f const trajectory = particleState.TrajectoryState->TargetPosition - particleState.TrajectoryState->SourcePosition;
         vec2f const particleVelocity = trajectory / LabParameters::SimulationTimeStepDuration;
         vec2f const edgeDir =
             triangles.GetSubEdgeVector(currentTriangle, intersectionEdgeOrdinal, vertices)
@@ -562,6 +592,12 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
             LogMessage("  Moving to edge ", oppositeTriangleEdgeOrdinal, " of opposite triangle ", oppositeTriangle);
 
             particleState.ConstrainedState->CurrentTriangle = oppositeTriangle;
+
+            // TODOHERE: calc new target bary coords using simpler algo based on current target bary coords
+            particleState.TrajectoryState->TargetPositionCurrentTriangleBarycentricCoords = triangles.ToBarycentricCoordinates(
+                particleState.TrajectoryState->TargetPosition,
+                oppositeTriangle,
+                vertices);
 
             // Calculate new barycentric coords (wrt opposite triangle)
             vec3f newBarycentricCoords; // In new triangle
