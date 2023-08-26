@@ -113,7 +113,17 @@ public:
             || (GetVertexCIndex(triangleElementIndex) == vertex1Index && GetVertexAIndex(triangleElementIndex) == vertex2Index);
     }
 
+    bool ContainsPoint(
+        vec2f const & position,
+        ElementIndex triangleElementIndex,
+        Vertices const & vertices) const;
+
     vec3f ToBarycentricCoordinates(
+        vec2f const & position,
+        ElementIndex triangleElementIndex,
+        Vertices const & vertices) const;
+
+    vec3f ToBarycentricCoordinatesFromWithinTriangle(
         vec2f const & position,
         ElementIndex triangleElementIndex,
         Vertices const & vertices) const;
@@ -176,6 +186,13 @@ public:
 
         return vertices.GetPosition(v2) - vertices.GetPosition(v1);
     }
+
+private:
+
+    inline vec2f InternalToBarycentricCoordinates(
+        vec2f const & position,
+        ElementIndex triangleElementIndex,
+        Vertices const & vertices) const;
 
 private:
 

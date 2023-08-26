@@ -28,7 +28,6 @@ set  (SOURCES
 	FileSystem.h
 	FixedSizeVector.h
 	FloatingPoint.h
-	Geometry.h
 	IEventHandler.h
 	ImageData.h
 	ImageFileTools.cpp

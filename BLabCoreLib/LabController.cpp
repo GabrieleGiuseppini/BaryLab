@@ -6,7 +6,6 @@
 #include "LabController.h"
 
 #include "AABB.h"
-#include "Geometry.h"
 #include "MeshBuilder.h"
 #include "ResourceLocator.h"
 
@@ -594,11 +593,7 @@ ElementIndex LabController::FindTriangleContaining(vec2f const & position) const
 {
     for (auto const t : mModel->GetMesh().GetTriangles())
     {
-        if (Geometry::IsPointInTriangle(
-            position,
-            mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexAIndex(t)),
-            mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexBIndex(t)),
-            mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexCIndex(t))))
+        if (mModel->GetMesh().GetTriangles().ContainsPoint(position, t, mModel->GetMesh().GetVertices()))
         {
             return t;
         }

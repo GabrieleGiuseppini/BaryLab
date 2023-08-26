@@ -76,7 +76,7 @@
 				X Recalc them any other time we change target coords
 		- FIX: when particle on vertex, we choose the wrong one at CalculatePhysicsTarget to check if we need to flatten
 			- Should check all and flatten on first?
-		- FIX: initial coords calc'd at regime change are not always fully within boundaries
+		+ FIX: initial coords calc'd at regime change are not always fully within boundaries
 		- Friction:
 			- Take into consideration *relative* velocity
 		
