@@ -113,13 +113,19 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
 
             mCurrentParticleTrajectory.emplace(p, targetPosition);
             mCurrentParticleTrajectoryNotification.reset();
+
+            if (mRenderSimulationSteps)
+            {
+                continue;
+            }
         }
-        else
+
+        assert(particleState.TrajectoryState.has_value());
+
+        LogMessage("Particle ", p, ": Trajectory state update");
+
+        while (true)
         {
-            assert(particleState.TrajectoryState.has_value());
-
-            LogMessage("Particle ", p, ": Trajectory state update");
-
             auto const finalParticleState = UpdateParticleTrajectoryState(particles.GetState(p), labParameters);
             if (finalParticleState)
             {
@@ -132,6 +138,14 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
                 // Destroy trajectory state
                 particleState.TrajectoryState.reset();
                 mCurrentParticleTrajectory.reset();
+
+                // We're done
+                break;
+            }
+
+            if (mRenderSimulationSteps)
+            {
+                break;
             }
         }
     }
