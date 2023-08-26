@@ -588,13 +588,13 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
 
             particleState.ConstrainedState->CurrentTriangle = oppositeTriangle;
 
-            // TODOHERE: calc new target bary coords using simpler algo based on current target bary coords
+            // Calculate new target barycentric coords (wrt opposite triangle)
             particleState.TrajectoryState->TargetPositionCurrentTriangleBarycentricCoords = triangles.ToBarycentricCoordinates(
                 particleState.TrajectoryState->TargetPosition,
                 oppositeTriangle,
                 vertices);
 
-            // Calculate new barycentric coords (wrt opposite triangle)
+            // Calculate new current barycentric coords (wrt opposite triangle)
             vec3f newBarycentricCoords; // In new triangle
             newBarycentricCoords[(oppositeTriangleEdgeOrdinal + 2) % 3] = 0.0f;
             newBarycentricCoords[oppositeTriangleEdgeOrdinal] = particleState.ConstrainedState->CurrentTriangleBarycentricCoords[(intersectionEdgeOrdinal + 1) % 3];

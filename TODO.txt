@@ -44,9 +44,8 @@
 					- Another way is to make sure in the physics step to figure out, when on edge, whether current velocity would make a bounce - and thus no "opposite apparent" - or not
 	= Try fix 5 (Moleskine, holidays):
 		= Consider alternative implementation:
-			- Elasticity (impact) done like now at edge
+			+ Elasticity (impact) done like now at edge
 			- Apparent forces & friction done @ physics steps iff on edge
-				- How to avoid doing impact again at RT edge however?
 		+ FIX:
 			+ When climbing edge @ vertex, we switch "edge we're on and thus want to ignore"  from climbed to other one, arbitrarily
 			+ Fix: remove check for current edge, & find closest intersection among those that are *strictly* away from edge (i.e. towards traj)
@@ -64,21 +63,22 @@
 					+ Use trajectory (divided by dt) as velocity
 					+ No need to check velocity (against normal) anymore
 			+ Rename "RayTracing" (as in Particle::State and as UpdateXXX member of controller) as "Trajectory"
-		= FIX: slowing down when on edge
+		+ FIX: slowing down when on edge
 			+ Hide trajectory
 			+ Commit
 			+ Multi-frame rendering
 			+ Commit
 			+ CalculatePhysicsTrajEnd calcs also target bary coords
-			- UpdateState: 
+			+ UpdateState: 
 				+ Do not calc target bary coords
-				- Recalc them any time we change triangle: TODO algo
+				+ Recalc them any time we change triangle
 				X Recalc them any other time we change target coords
 		+ FIX: when particle on vertex, we choose the wrong one at CalculatePhysicsTarget to check if we need to flatten
 			+ Should check all and flatten on first
 		+ FIX: initial coords calc'd at regime change are not always fully within boundaries
-		- Friction:
-			- Take into consideration *relative* velocity
+		- Friction & apparent forces:
+			- First, do moving mesh
+			- TODOHERE: Take into consideration *relative* velocity
 		
 
 				
