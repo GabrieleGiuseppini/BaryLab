@@ -22,6 +22,12 @@ void LabController::InitializeParticleRegime(ElementIndex particleIndex)
             triangleIndex,
             mModel->GetMesh().GetVertices());
 
+        {
+            assert(barycentricCoords[0] >= 0.0f && barycentricCoords[0] <= 1.0f);
+            assert(barycentricCoords[1] >= 0.0f && barycentricCoords[1] <= 1.0f);
+            assert(barycentricCoords[2] >= 0.0f && barycentricCoords[2] <= 1.0f);
+        }
+
         constrainedState.emplace(
             triangleIndex,
             barycentricCoords);
@@ -267,7 +273,6 @@ std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTr
     vec2f const targetPosition = particleState.TrajectoryState->TargetPosition;
     vec2f const trajectory = targetPosition - particleState.TrajectoryState->SourcePosition;
     
-
     //
     // If we are at target, we're done
     //
@@ -304,6 +309,12 @@ std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTr
     LogMessage("  Particle is in constrained state");
 
     assert(particleState.ConstrainedState.has_value());
+
+    {
+        assert(particleState.ConstrainedState->CurrentTriangleBarycentricCoords[0] >= 0.0f && particleState.ConstrainedState->CurrentTriangleBarycentricCoords[0] <= 1.0f);
+        assert(particleState.ConstrainedState->CurrentTriangleBarycentricCoords[1] >= 0.0f && particleState.ConstrainedState->CurrentTriangleBarycentricCoords[1] <= 1.0f);
+        assert(particleState.ConstrainedState->CurrentTriangleBarycentricCoords[2] >= 0.0f && particleState.ConstrainedState->CurrentTriangleBarycentricCoords[2] <= 1.0f);
+    }
 
     ElementIndex const currentTriangle = particleState.ConstrainedState->CurrentTriangle;
 
@@ -345,19 +356,15 @@ std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTr
 
     struct EdgeIntersectionDiag
     {
-        vec2f EdgeNormal;
-        float TrajectoryDotEdgeNormal;
         float Den;
         float T;
         vec3f IntersectionPoint;
 
         EdgeIntersectionDiag(
-            vec2f const & edgeNormal,
-            float trajectoryDotEdgeNormal)
-            : EdgeNormal(edgeNormal)
-            , TrajectoryDotEdgeNormal(trajectoryDotEdgeNormal)
-            , Den(0.0f)
-            , T(0.0f)
+            float den,
+            float t)
+            : Den(den)
+            , T(t)
             , IntersectionPoint()
         {}
     };
@@ -373,23 +380,18 @@ std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTr
     {
         int const edgeOrdinal = (vi + 1) % 3;
 
-        // Only consider edges ahead of trajectory
-        vec2f const edgeNormal = triangles.GetSubEdgeVector(currentTriangle, edgeOrdinal, vertices).to_perpendicular();
-
-#ifdef _DEBUG
-        diags[vi].emplace(edgeNormal, trajectory.dot(edgeNormal));
-#endif
-
-        if (trajectory.dot(edgeNormal) > 0.0f) // Stricly positive, hence not parallel
+        // Only consider edges that we ancounter ahead along the trajectory
+        if (targetBarycentricCoords[vi] < 0.0f)
         {
             float const den = particleState.ConstrainedState->CurrentTriangleBarycentricCoords[vi] - targetBarycentricCoords[vi];
-            float const t = IsAlmostZero(den)
-                ? std::numeric_limits<float>::max() // Parallel, meets at infinity
-                : particleState.ConstrainedState->CurrentTriangleBarycentricCoords[vi] / den;
+            // TODOTEST
+            ////float const t = IsAlmostZero(den)
+            ////    ? std::numeric_limits<float>::max() // Parallel, meets at infinity
+            ////    : particleState.ConstrainedState->CurrentTriangleBarycentricCoords[vi] / den;
+            float const t = particleState.ConstrainedState->CurrentTriangleBarycentricCoords[vi] / den;
 
 #ifdef _DEBUG
-            diags[vi]->Den = den;
-            diags[vi]->T = t;
+            diags[vi].emplace(den, t);
             diags[vi]->IntersectionPoint =
                 particleState.ConstrainedState->CurrentTriangleBarycentricCoords
                 + (targetBarycentricCoords - particleState.ConstrainedState->CurrentTriangleBarycentricCoords) * t;
@@ -422,11 +424,19 @@ std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTr
     // Calculate intersection barycentric coordinates
     vec3f intersectionBarycentricCoords;
     intersectionBarycentricCoords[intersectionVertexOrdinal] = 0.0f;
-    float const lNext = // Barycentric coord of next vertex at intersection
+    float const lNext = Clamp( // Barycentric coord of next vertex at intersection; enforcing it's within triangle
         particleState.ConstrainedState->CurrentTriangleBarycentricCoords[(intersectionVertexOrdinal + 1) % 3] * (1.0f - minIntersectionT)
-        + targetBarycentricCoords[(intersectionVertexOrdinal + 1) % 3] * minIntersectionT;
+        + targetBarycentricCoords[(intersectionVertexOrdinal + 1) % 3] * minIntersectionT,
+        0.0f,
+        1.0f); 
     intersectionBarycentricCoords[(intersectionVertexOrdinal + 1) % 3] = lNext;
     intersectionBarycentricCoords[(intersectionVertexOrdinal + 2) % 3] = 1.0f - lNext;
+
+    {
+        assert(intersectionBarycentricCoords[0] >= 0.0f && intersectionBarycentricCoords[0] <= 1.0f);
+        assert(intersectionBarycentricCoords[1] >= 0.0f && intersectionBarycentricCoords[1] <= 1.0f);
+        assert(intersectionBarycentricCoords[2] >= 0.0f && intersectionBarycentricCoords[2] <= 1.0f);
+    }
 
     // Move to intersection
 
@@ -533,6 +543,12 @@ std::optional<LabController::FinalPerticleState> LabController::UpdateParticleTr
             newBarycentricCoords[(oppositeTriangleEdgeOrdinal + 1) % 3] = particleState.ConstrainedState->CurrentTriangleBarycentricCoords[intersectionEdgeOrdinal];
 
             LogMessage("  B-Coords: ", particleState.ConstrainedState->CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
+
+            {
+                assert(newBarycentricCoords[0] >= 0.0f && newBarycentricCoords[0] <= 1.0f);
+                assert(newBarycentricCoords[1] >= 0.0f && newBarycentricCoords[1] <= 1.0f);
+                assert(newBarycentricCoords[2] >= 0.0f && newBarycentricCoords[2] <= 1.0f);
+            }
 
             particleState.ConstrainedState->CurrentTriangleBarycentricCoords = newBarycentricCoords;
 
