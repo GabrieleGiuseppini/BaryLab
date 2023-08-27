@@ -135,6 +135,7 @@ private:
     void OnSimulationControlStep(wxCommandEvent & event);
     void OnViewControlGridToggled(wxCommandEvent & event);
     void OnRenderSimulationStepsToggled(wxCommandEvent & event);
+    void OnMeshTransformationChanged(ControlToolbar::meshTransformationChangedEvent & event);
 
     // Timers
     void OnSimulationTimer(wxTimerEvent & event);

@@ -84,10 +84,6 @@ public:
 
     void SetMeshVelocity(vec2f const & velocity);
 
-    float GetMeshRotationRadians() const;
-
-    void SetMeshRotationRadians(float radians);
-
     //
     // Render controls
     //
@@ -271,9 +267,6 @@ private:
 
     bool mIsGravityEnabled;
     vec2f mCurrentMeshTranslationVelocity;
-    vec2f mCurrentMeshTranslation;
-    float mCurrentMeshRotationRadians;
-
     bool mRenderSimulationSteps;
 
     //

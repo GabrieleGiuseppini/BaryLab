@@ -40,6 +40,8 @@ long const ControlToolbar::ID_ACTION_SETTINGS = wxNewId();
 long const ControlToolbar::ID_VIEW_CONTROL_GRID = wxNewId();
 long const ControlToolbar::ID_RENDER_SIMULATION_STEPS = wxNewId();
 
+wxDEFINE_EVENT(EVT_MESH_TRANSFORMATION_CHANGED, ControlToolbar::meshTransformationChangedEvent);
+
 ControlToolbar::ControlToolbar(wxWindow * parent)
     : wxPanel(
         parent,
@@ -405,37 +407,66 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
 
     // Mesh transformation
     {
-        static int constexpr SliderWidth = 40;
+        wxBoxSizer * hSizer = new wxBoxSizer(wxHORIZONTAL);
+
+        static int constexpr SliderWidth = 20;
         static int constexpr SliderHeight = 140;
 
         // Horizontal velocity
         {
-            // TODO: copy FS code for H/V flags
-            mHorizonalMeshVelocitySlider = new SliderControl<float>(
+            mHorizontalMeshVelocitySlider = new SliderControl<float>(
                 this,
                 SliderWidth,
                 SliderHeight,
                 "H Vel",
-                "The horizontal velocity of the mesh.",
+                "The horizontal velocity of the mesh",
                 [this](float value)
                 {
-                    // TODOHERE
-                    (void)value;
+                    meshTransformationChangedEvent evt(EVT_MESH_TRANSFORMATION_CHANGED, this->GetId(), 
+                        vec2f(value, mVerticalMeshVelocitySlider->GetValue()));
+                    ProcessWindowEvent(evt);
                 },
                 std::make_unique<LinearSliderCore>(
                    -30.0f,
                     30.0f));
 
-            mHorizonalMeshVelocitySlider->SetValue(0.0f); // TODO: from recon
+            mHorizontalMeshVelocitySlider->SetValue(0.0f);
 
-            vSizer->Add(
-                mHorizonalMeshVelocitySlider, 
+            hSizer->Add(
+                mHorizontalMeshVelocitySlider,
                 0, 
-                wxALIGN_CENTER_HORIZONTAL | wxALL, 
-                5);
+                wxALL, 
+                1);
         }
 
-        // TODOHERE
+        // Vertical velocity
+        {
+            mVerticalMeshVelocitySlider = new SliderControl<float>(
+                this,
+                SliderWidth,
+                SliderHeight,
+                "V Vel",
+                "The vertical velocity of the mesh",
+                [this](float value)
+                {
+                    meshTransformationChangedEvent evt(EVT_MESH_TRANSFORMATION_CHANGED, this->GetId(),
+                        vec2f(mHorizontalMeshVelocitySlider->GetValue(), value));
+                    ProcessWindowEvent(evt);
+                },
+                std::make_unique<LinearSliderCore>(
+                    -30.0f,
+                    30.0f));
+
+            mVerticalMeshVelocitySlider->SetValue(0.0f);
+
+            hSizer->Add(
+                mVerticalMeshVelocitySlider,
+                0,
+                wxALL,
+                1);
+        }
+
+        vSizer->Add(hSizer, 0, wxALIGN_CENTER | wxALL, 5);
     }
 
     vSizer->AddSpacer(10);

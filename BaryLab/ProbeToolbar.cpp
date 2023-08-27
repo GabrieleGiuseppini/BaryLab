@@ -126,7 +126,7 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
 
         hSizer->AddSpacer(HMargin);
 
-        // Probe
+        // Constrained State Probe
         {
             wxGridBagSizer * gridSizer = new wxGridBagSizer(0, 0);
 
@@ -201,6 +201,38 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                 gridSizer->Add(
                     mProbeBarycentricCoordinateL3TextCtrl,
                     wxGBPosition(3, 1),
+                    wxGBSpan(1, 1),
+                    wxEXPAND,
+                    0);
+            }
+
+            hSizer->Add(
+                gridSizer,
+                0,
+                0,
+                0);
+        }
+
+        hSizer->AddSpacer(HMargin);
+
+        // Physics Probe
+        {
+            wxGridBagSizer * gridSizer = new wxGridBagSizer(0, 0);
+
+            // Velocity
+            {
+                auto label = new wxStaticText(this, wxID_ANY, _("v:"));
+                gridSizer->Add(
+                    label,
+                    wxGBPosition(0, 0),
+                    wxGBSpan(1, 1),
+                    wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
+                    0);
+
+                mParticleVelocityTextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
+                gridSizer->Add(
+                    mParticleVelocityTextCtrl,
+                    wxGBPosition(0, 1),
                     wxGBSpan(1, 1),
                     wxEXPAND,
                     0);
@@ -333,18 +365,18 @@ void ProbeToolbar::OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChang
     mOriginTriangleBarycentricCoordinateL3TextCtrl->SetValue(l3);
 }
 
-void ProbeToolbar::OnSubjectParticleUpdated(std::optional<ParticleProbe> const & particleProbe)
+void ProbeToolbar::OnSubjectParticleConstrainedRegimeUpdated(std::optional<ConstrainedRegimeParticleProbe> const & constrainedRegimeParticleProbe)
 {
     std::string tIndex;
     std::string l1;
     std::string l2;
     std::string l3;
 
-    if (particleProbe)
+    if (constrainedRegimeParticleProbe)
     {
         {
             std::ostringstream ss;
-            ss << particleProbe->CurrentTriangle;
+            ss << constrainedRegimeParticleProbe->CurrentTriangle;
 
             tIndex = ss.str();
         }
@@ -352,7 +384,7 @@ void ProbeToolbar::OnSubjectParticleUpdated(std::optional<ParticleProbe> const &
         {
             std::ostringstream ss;
             ss.fill('0');
-            ss << std::fixed << std::setprecision(2) << particleProbe->CurrentTriangleBarycentricCoords.x;
+            ss << std::fixed << std::setprecision(2) << constrainedRegimeParticleProbe->CurrentTriangleBarycentricCoords.x;
 
             l1 = ss.str();
         }
@@ -360,7 +392,7 @@ void ProbeToolbar::OnSubjectParticleUpdated(std::optional<ParticleProbe> const &
         {
             std::ostringstream ss;
             ss.fill('0');
-            ss << std::fixed << std::setprecision(2) << particleProbe->CurrentTriangleBarycentricCoords.y;
+            ss << std::fixed << std::setprecision(2) << constrainedRegimeParticleProbe->CurrentTriangleBarycentricCoords.y;
 
             l2 = ss.str();
         }
@@ -368,7 +400,7 @@ void ProbeToolbar::OnSubjectParticleUpdated(std::optional<ParticleProbe> const &
         {
             std::ostringstream ss;
             ss.fill('0');
-            ss << std::fixed << std::setprecision(2) << particleProbe->CurrentTriangleBarycentricCoords.z;
+            ss << std::fixed << std::setprecision(2) << constrainedRegimeParticleProbe->CurrentTriangleBarycentricCoords.z;
 
             l3 = ss.str();
         }
@@ -380,6 +412,18 @@ void ProbeToolbar::OnSubjectParticleUpdated(std::optional<ParticleProbe> const &
     mProbeBarycentricCoordinateL3TextCtrl->SetValue(l3);
 }
 
+void ProbeToolbar::OnSubjectParticlePhysicsUpdated(std::optional<PhysicsParticleProbe> const & physicsParticleProbe)
+{
+    std::ostringstream ss;
+
+    if (physicsParticleProbe)
+    {
+        ss.fill('0');
+        ss << std::fixed << std::setprecision(2) << physicsParticleProbe->Velocity.x << ", " << physicsParticleProbe->Velocity.y;
+    }
+
+    mParticleVelocityTextCtrl->SetValue(ss.str());
+}
 
 void ProbeToolbar::OnCustomProbe(
     std::string const & name,

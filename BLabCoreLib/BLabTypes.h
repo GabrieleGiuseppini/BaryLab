@@ -53,16 +53,26 @@ enum class SimulationControlStateType
     Play
 };
 
-struct ParticleProbe
+struct ConstrainedRegimeParticleProbe
 {
     ElementIndex CurrentTriangle;
     vec3f CurrentTriangleBarycentricCoords;
 
-    ParticleProbe(
+    ConstrainedRegimeParticleProbe(
         ElementIndex currentTriangle,
         vec3f const & currentTriangleBarycentricCoords)
         : CurrentTriangle(currentTriangle)
         , CurrentTriangleBarycentricCoords(currentTriangleBarycentricCoords)
+    {}
+};
+
+struct PhysicsParticleProbe
+{
+    vec2f Velocity;
+
+    PhysicsParticleProbe(
+        vec2f const & velocity)
+        : Velocity(velocity)
     {}
 };
 

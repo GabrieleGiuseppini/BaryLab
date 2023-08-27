@@ -51,8 +51,6 @@ LabController::LabController(
     , mCurrentParticleTrajectoryNotification()
     , mIsGravityEnabled(false)
     , mCurrentMeshTranslationVelocity(vec2f::zero())
-    , mCurrentMeshTranslation(vec2f::zero())
-    , mCurrentMeshRotationRadians(0.0f)
     , mRenderSimulationSteps(true)
     // Simulation control
     , mSimulationControlState(SimulationControlStateType::Paused)
@@ -141,16 +139,16 @@ void LabController::Update()
 
     // Publish particle probe, if constrained
 
-    std::optional<ParticleProbe> particleProbe;
+    std::optional<ConstrainedRegimeParticleProbe> constrainedRegimeParticleProbe;
     if (mCurrentlySelectedParticleProbe.has_value()
         && mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).ConstrainedState.has_value())
     {
-        particleProbe.emplace(
+        constrainedRegimeParticleProbe.emplace(
             mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).ConstrainedState->CurrentTriangle,
             mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).ConstrainedState->CurrentTriangleBarycentricCoords);
     }
 
-    mEventDispatcher.OnSubjectParticleUpdated(particleProbe);
+    mEventDispatcher.OnSubjectParticleConstrainedRegimeUpdated(constrainedRegimeParticleProbe);
 
     // Publish barycentric coords wrt origin
 
@@ -164,6 +162,16 @@ void LabController::Update()
     }
 
     mEventDispatcher.OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(barycentricCoordinates);
+
+    // Publish particle physics
+
+    std::optional<PhysicsParticleProbe> physicsParticleProbe;
+    if (mCurrentlySelectedParticleProbe.has_value())
+    {
+        physicsParticleProbe.emplace(mModel->GetParticles().GetVelocity(0));
+    }
+
+    mEventDispatcher.OnSubjectParticlePhysicsUpdated(physicsParticleProbe);
 }
 
 void LabController::Render()
@@ -299,13 +307,19 @@ void LabController::Reset()
 
 void LabController::UpdateMeshTransformations()
 {
-    mCurrentMeshTranslation += mCurrentMeshTranslationVelocity * LabParameters::SimulationTimeStepDuration;
+    LogMessage("UpdateMeshTransformations()");
 
-    //
-    // Transform mesh
-    //
+    vec2f const translation = mCurrentMeshTranslationVelocity * LabParameters::SimulationTimeStepDuration;
 
-    // TODOHERE
+    // Update mesh
+    auto & vertices = mModel->GetMesh().GetVertices();
+    for (auto v : vertices)
+    {
+        vertices.SetPosition(v, vertices.GetPosition(v) + translation);
+    }
+
+    // Update pan
+    mRenderContext->SetCameraWorldPosition(mRenderContext->GetCameraWorldPosition() + translation);
 }
 
 std::optional<ElementIndex> LabController::TryPickVertex(vec2f const & screenCoordinates) const
@@ -525,17 +539,6 @@ void LabController::SetMeshVelocity(vec2f const & velocity)
 {
     mCurrentMeshTranslationVelocity = velocity;
 }
-
-float LabController::GetMeshRotationRadians() const
-{
-    return mCurrentMeshRotationRadians;
-}
-
-void LabController::SetMeshRotationRadians(float radians)
-{
-    mCurrentMeshRotationRadians = radians;
-}
-
 
 ////////////////////////////////////////////////
 

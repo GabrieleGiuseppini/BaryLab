@@ -155,6 +155,7 @@ MainFrame::MainFrame(wxApp * mainApp)
         mControlToolbar->Connect(ControlToolbar::ID_ACTION_SETTINGS, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnOpenSettingsWindowMenuItemSelected, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_VIEW_CONTROL_GRID, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnViewControlGridToggled, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_RENDER_SIMULATION_STEPS, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnRenderSimulationStepsToggled, 0, this);
+        mControlToolbar->Bind(EVT_MESH_TRANSFORMATION_CHANGED, &MainFrame::OnMeshTransformationChanged, this);
 
         mMainPanelTopHSizer->Add(
             mControlToolbar,
@@ -714,6 +715,12 @@ void MainFrame::OnRenderSimulationStepsToggled(wxCommandEvent & event)
 {
     assert(!!mLabController);
     mLabController->SetRenderSimulationStepsEnabled(event.GetInt() != 0);
+}
+
+void MainFrame::OnMeshTransformationChanged(ControlToolbar::meshTransformationChangedEvent & event)
+{
+    assert(!!mLabController);
+    mLabController->SetMeshVelocity(event.GetVelocity());
 }
 
 void MainFrame::OnSimulationTimer(wxTimerEvent & /*event*/)

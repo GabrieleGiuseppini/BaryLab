@@ -31,7 +31,12 @@ struct IEventHandler
         // Default implemented
     }
 
-    virtual void OnSubjectParticleUpdated(std::optional<ParticleProbe> const & /*particleProbe*/)
+    virtual void OnSubjectParticleConstrainedRegimeUpdated(std::optional<ConstrainedRegimeParticleProbe> const & /*constrainedRegimeParticleProbe*/)
+    {
+        // Default implemented
+    }
+
+    virtual void OnSubjectParticlePhysicsUpdated(std::optional<PhysicsParticleProbe> const & /*physicsParticleProbe*/)
     {
         // Default implemented
     }

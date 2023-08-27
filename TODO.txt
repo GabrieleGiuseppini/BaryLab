@@ -77,8 +77,12 @@
 			+ Should check all and flatten on first
 		+ FIX: initial coords calc'd at regime change are not always fully within boundaries
 		- Friction & apparent forces:
-			- First, do moving mesh
-			- TODOHERE: Take into consideration *relative* velocity
+			- First, do moving mesh below
+			- Algo - when on floor:
+				- f1=Calc world forces
+				- f2=Floor reponse apparent forces: calv relative vel of particles wrt mesh (mesh vel - particle) and take normal component
+				- f3=Friction: TODOHERE
+				- TODOHERE: Take into consideration *relative* velocity
 		
 
 				
@@ -98,13 +102,12 @@
 			+ At each Render call, if we are doing RayTracing, render an additional ("shadow") particle at RayTracingState::CurrentPosition, almost transparent
 				+ Real particle will move at end, and ghost disappears because of losing RayTracing state
 	= Mesh Transformation UI:
-		= Rotation: new tool
+		+ Rotation: new tool
 			+ No LabController member, acts directly
 		- Velocity:
 			- Store just vel, update whole mesh at UpdateMeshTransformations
-				- Nuke "current translation"
+				+ Nuke "current translation"
 		- UI:
-			= Checkbox for "render RT" 
-			- Two sliders (H/V)
-				- Copy H/V slider flags code from FS
+			+ Checkbox for "render RT" 
+			- Two sliders (x, y)
 	- Rendering of mesh wrt speed: TODO

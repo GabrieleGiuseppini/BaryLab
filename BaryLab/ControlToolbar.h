@@ -9,7 +9,10 @@
 
 #include "UIControls/SliderControl.h"
 
+#include <BLabCoreLib/Vectors.h>
+
 #include <wx/bmpbuttn.h>
+#include <wx/event.h>
 #include <wx/panel.h>
 #include <wx/tglbtn.h>
 
@@ -37,6 +40,42 @@ public:
 
     static long const ID_VIEW_CONTROL_GRID;
     static long const ID_RENDER_SIMULATION_STEPS;
+
+    class meshTransformationChangedEvent : public wxEvent
+    {
+    public:
+
+        meshTransformationChangedEvent(
+            wxEventType eventType,
+            int winid,
+            vec2f velocity)
+            : wxEvent(winid, eventType)
+            , mVelocity(velocity)
+        {
+            m_propagationLevel = wxEVENT_PROPAGATE_MAX;
+        }
+
+        meshTransformationChangedEvent(meshTransformationChangedEvent const & other)
+            : wxEvent(other)
+            , mVelocity(other.mVelocity)
+        {
+            m_propagationLevel = wxEVENT_PROPAGATE_MAX;
+        }
+
+        virtual wxEvent * Clone() const override
+        {
+            return new meshTransformationChangedEvent(*this);
+        }
+
+        vec2f const & GetVelocity() const
+        {
+            return mVelocity;
+        }
+
+    private:
+
+        vec2f const mVelocity;
+    };
 
 public:
 
@@ -81,7 +120,8 @@ private:
     wxBitmapToggleButton * mViewControlGridButton;
     wxBitmapToggleButton * mRenderSimulationStepsButton;
 
-    SliderControl<float> * mHorizonalMeshVelocitySlider;
+    SliderControl<float> * mHorizontalMeshVelocitySlider;
     SliderControl<float> * mVerticalMeshVelocitySlider;
-    SliderControl<float> * mMeshRotationSlider;
 };
+
+wxDECLARE_EVENT(EVT_MESH_TRANSFORMATION_CHANGED, ControlToolbar::meshTransformationChangedEvent);

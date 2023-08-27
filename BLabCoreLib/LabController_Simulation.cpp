@@ -39,12 +39,6 @@ void LabController::InitializeParticleRegime(ElementIndex particleIndex)
 void LabController::UpdateSimulation(LabParameters const & labParameters)
 {
     //
-    // Update mesh transformations
-    //
-
-    UpdateMeshTransformations();
-
-    //
     // Update particles' state
     //
 
@@ -66,6 +60,9 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
             //
 
             LogMessage("Particle ", p, ": Trajectory state initialization");
+
+            // Update mesh transformations
+            UpdateMeshTransformations();
 
             // Calculate target position
             vec2f targetPosition;

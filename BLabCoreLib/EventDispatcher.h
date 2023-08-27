@@ -36,11 +36,19 @@ public:
         }
     }
 
-    void OnSubjectParticleUpdated(std::optional<ParticleProbe> const & particleProbe) override
+    void OnSubjectParticleConstrainedRegimeUpdated(std::optional<ConstrainedRegimeParticleProbe> const & constrainedRegimeParticleProbe) override
     {
         for (auto sink : mSinks)
         {
-            sink->OnSubjectParticleUpdated(particleProbe);
+            sink->OnSubjectParticleConstrainedRegimeUpdated(constrainedRegimeParticleProbe);
+        }
+    }
+
+    void OnSubjectParticlePhysicsUpdated(std::optional<PhysicsParticleProbe> const & physicsParticleProbe) override
+    {
+        for (auto sink : mSinks)
+        {
+            sink->OnSubjectParticlePhysicsUpdated(physicsParticleProbe);
         }
     }
 
