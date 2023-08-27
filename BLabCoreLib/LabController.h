@@ -174,10 +174,15 @@ public:
     float GetMinElasticity() const { return LabParameters::MinElasticity; }
     float GetMaxElasticity() const { return LabParameters::MaxElasticity; }
 
-    float GetFriction() const { return mLabParameters.Friction; }
-    void SetFriction(float value) { mLabParameters.Friction = value; }
-    float GetMinFriction() const { return LabParameters::MinFriction; }
-    float GetMaxFriction() const { return LabParameters::MaxFriction; }
+    float GetStaticFriction() const { return mLabParameters.StaticFriction; }
+    void SetStaticFriction(float value) { mLabParameters.StaticFriction = value; }
+    float GetMinStaticFriction() const { return LabParameters::MinStaticFriction; }
+    float GetMaxStaticFriction() const { return LabParameters::MaxStaticFriction; }
+
+    float GetKineticFriction() const { return mLabParameters.KineticFriction; }
+    void SetKineticFriction(float value) { mLabParameters.KineticFriction = value; }
+    float GetMinKineticFriction() const { return LabParameters::MinKineticFriction; }
+    float GetMaxKineticFriction() const { return LabParameters::MaxKineticFriction; }
 
     float GetMassAdjustment() const { return mLabParameters.MassAdjustment; }
     void SetMassAdjustment(float value) { mLabParameters.MassAdjustment = value; }

@@ -50,9 +50,13 @@ struct LabParameters
     static float constexpr MinElasticity = 0.0f;
     static float constexpr MaxElasticity = 1.0f;
 
-    float Friction;
-    static float constexpr MinFriction = 0.0f;
-    static float constexpr MaxFriction = 1.0f;
+    float StaticFriction;
+    static float constexpr MinStaticFriction = 0.0f;
+    static float constexpr MaxStaticFriction = 1.0f;
+
+    float KineticFriction;
+    static float constexpr MinKineticFriction = 0.0f;
+    static float constexpr MaxKineticFriction = 1.0f;
 
     // Misc
 
