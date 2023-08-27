@@ -530,8 +530,8 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
         LogMessage("  Impact");
 
         //
-        // Update velocity with bounce response, considering the theoretical (trajectory) 
-        // velocity - TODOHERE: prove
+        // Update velocity with bounce response, using the *theoretical* (trajectory) 
+        // velocity - since this one includes the mesh velocity
         //
 
         // Decompose theoretical particle velocity into normal and tangential

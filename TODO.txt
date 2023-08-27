@@ -76,21 +76,23 @@
 		+ FIX: when particle on vertex, we choose the wrong one at CalculatePhysicsTarget to check if we need to flatten
 			+ Should check all and flatten on first
 		+ FIX: initial coords calc'd at regime change are not always fully within boundaries
-		= FIX: even when in triangle, particle gains speed due to apparent velocity
+		+ FIX: even when in triangle, particle gains speed due to apparent velocity
 			! Because at end of UpdateParticleState we set velocity to whole trajectory, which unfortunately also contains *apparent* travel
 			+ When leaving UpdateParticleState because of completed trajectory: set velocity by *absolute* delta pos traveled (not by trajectory)
-			= When leaving UpdateParticleState because of impact: calculate incident velocity taking by full trajectory traveled
-				- See below: this *should* include distance traveled due to apparent wall push
+			+ When leaving UpdateParticleState because of impact: calculate incident velocity taking by full trajectory traveled
+				+ See below: this *should* include distance traveled due to apparent wall push
 		- Friction & apparent forces:
-			- First, do moving mesh below
-			- Note: when on edge, absolute delta pos traveled (thus not trajectory) after frame *should* include distance traveled due to apparent wall push
-				- Prove this
-				- If so: this is the velocity we impart to the particle at the end
+			+ First, do moving mesh below
+			! Note: when on edge, absolute delta pos traveled (thus not trajectory) after frame includes distance traveled due to apparent wall push
+				! So: this must be the velocity that we set for the particle at the end
 			- Algo - when on floor:
 				- f1=Calc world forces
 				- f2=Floor reponse apparent forces: calc relative vel of particles wrt mesh (mesh vel - particle) and take normal component
+					- TODO: we we really need to calc floor response here? See above: after all, in absolute terms, doesn't the absolute distance traveled
+					  (thus including the forced move of the particles because of the edge moving) include this push?
 				- f3=Friction: TODOHERE
 				- TODOHERE: Take into consideration *relative* velocity
+				- Make sure we set velocity to absolute delta pos traveled after the frame
 		
 
 				
