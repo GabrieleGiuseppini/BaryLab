@@ -20,9 +20,11 @@
 
 #include <cassert>
 #include <functional>
+#include <iomanip>
 #include <limits>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <type_traits>
 
@@ -210,7 +212,7 @@ public:
                     wxID_ANY,
                     _(""),
                     wxDefaultPosition,
-                    wxDefaultSize,
+                    wxSize(width, -1),
                     wxTE_CENTRE | wxTE_PROCESS_ENTER,
                     *mTextCtrlValidator);
 
@@ -258,7 +260,7 @@ public:
         auto const tickValue = mSliderCore->ValueToTick(value);
 
         mSlider->SetValue(tickValue);
-        mTextCtrl->SetValue(std::to_string(value));
+        mTextCtrl->SetValue(ValueToString(value));
         mSpinButton->SetValue(tickValue);
     }
 
@@ -301,7 +303,7 @@ private:
             mSlider->SetValue(tickValue);
 
             // Set text ctrl back to value
-            mTextCtrl->SetValue(std::to_string(value));
+            mTextCtrl->SetValue(ValueToString(value));
 
             // Set SpinButton to value
             mSpinButton->SetValue(tickValue);
@@ -319,13 +321,21 @@ private:
         mSlider->SetValue(tickValue);
     }
 
+    static std::string ValueToString(TValue const & value)
+    {
+        std::stringstream ss;
+        ss.fill('0');
+        ss << std::setprecision(2) << value;
+        return ss.str();
+    }
+
 private:
 
     void SetTickValue(int tick)
     {
         TValue const value = mSliderCore->TickToValue(tick);
 
-        mTextCtrl->SetValue(std::to_string(value));
+        mTextCtrl->SetValue(ValueToString(value));
 
         // Notify value
         mOnValueChanged(value);

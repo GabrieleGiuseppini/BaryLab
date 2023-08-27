@@ -76,6 +76,7 @@
 		+ FIX: when particle on vertex, we choose the wrong one at CalculatePhysicsTarget to check if we need to flatten
 			+ Should check all and flatten on first
 		+ FIX: initial coords calc'd at regime change are not always fully within boundaries
+		- FIX: particle gains speed due to apparent velocity
 		- Friction & apparent forces:
 			- First, do moving mesh below
 			- Algo - when on floor:
@@ -101,13 +102,13 @@
 		+ Render:
 			+ At each Render call, if we are doing RayTracing, render an additional ("shadow") particle at RayTracingState::CurrentPosition, almost transparent
 				+ Real particle will move at end, and ghost disappears because of losing RayTracing state
-	= Mesh Transformation UI:
+	+ Mesh Transformation UI:
 		+ Rotation: new tool
 			+ No LabController member, acts directly
-		- Velocity:
-			- Store just vel, update whole mesh at UpdateMeshTransformations
+		+ Velocity:
+			+ Store just vel, update whole mesh at UpdateMeshTransformations
 				+ Nuke "current translation"
-		- UI:
+		+ UI:
 			+ Checkbox for "render RT" 
-			- Two sliders (x, y)
+			+ Two sliders (x, y)
 	- Rendering of mesh wrt speed: TODO

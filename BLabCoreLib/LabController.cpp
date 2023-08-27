@@ -258,8 +258,18 @@ void LabController::Render()
 
         if (mCurrentParticleTrajectory)
         {
+            vec2f sourcePosition;
+            if (mModel->GetParticles().GetState(mCurrentParticleTrajectory->ParticleIndex).TrajectoryState.has_value())
+            {
+                sourcePosition = mModel->GetParticles().GetState(mCurrentParticleTrajectory->ParticleIndex).TrajectoryState->CurrentPosition;
+            }
+            else
+            {
+                sourcePosition = mModel->GetParticles().GetPosition(mCurrentParticleTrajectory->ParticleIndex);
+            }
+
             mRenderContext->UploadParticleTrajectory(
-                mModel->GetParticles().GetPosition(mCurrentParticleTrajectory->ParticleIndex),
+                sourcePosition,
                 mCurrentParticleTrajectory->TargetPosition,
                 rgbaColor(0x99, 0x99, 0x99, 0xff));
         }

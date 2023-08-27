@@ -409,7 +409,7 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
     {
         wxBoxSizer * hSizer = new wxBoxSizer(wxHORIZONTAL);
 
-        static int constexpr SliderWidth = 20;
+        static int constexpr SliderWidth = 50;
         static int constexpr SliderHeight = 140;
 
         // Horizontal velocity
