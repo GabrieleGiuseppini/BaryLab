@@ -231,13 +231,13 @@ private:
     struct FinalParticleState
     {
         vec2f Position;
-        vec2f Velocity;
+        std::optional<vec2f> Velocity;
 
         FinalParticleState(
             vec2f const & position,
-            vec2f const & velocity)
+            std::optional<vec2f> velocity)
             : Position(position)
-            , Velocity(velocity)
+            , Velocity(std::move(velocity))
         {}
     };
 

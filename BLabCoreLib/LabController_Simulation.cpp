@@ -141,8 +141,19 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
                 LogMessage("Particle ", p, " COMPLETED");
 
                 // Finalize particle
+                if (finalParticleState->Velocity.has_value())
+                {
+                    particles.SetVelocity(
+                        p, 
+                        *(finalParticleState->Velocity));
+                }
+                else
+                {
+                    particles.SetVelocity(
+                        p,
+                        (finalParticleState->Position - particles.GetPosition(p)) / LabParameters::SimulationTimeStepDuration);
+                }
                 particles.SetPosition(p, finalParticleState->Position);
-                particles.SetVelocity(p, finalParticleState->Velocity);
 
                 // Destroy trajectory state
                 particleState.TrajectoryState.reset();
@@ -333,7 +344,9 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
 
         return FinalParticleState(
             particleState.TrajectoryState->TargetPosition,
-            (particleState.TrajectoryState->TargetPosition - particleState.TrajectoryState->SourcePosition) / LabParameters::SimulationTimeStepDuration);
+            // TODOTEST
+            //(particleState.TrajectoryState->TargetPosition - particleState.TrajectoryState->SourcePosition) / LabParameters::SimulationTimeStepDuration);
+            std::nullopt);
     }
 
     //
@@ -517,19 +530,20 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
         LogMessage("  Impact");
 
         //
-        // Update velocity with bounce response
+        // Update velocity with bounce response, considering the theoretical (trajectory) 
+        // velocity - TODOHERE: prove
         //
 
-        // Decompose particle velocity into normal and tangential
+        // Decompose theoretical particle velocity into normal and tangential
         vec2f const trajectory = particleState.TrajectoryState->TargetPosition - particleState.TrajectoryState->SourcePosition;
-        vec2f const particleVelocity = trajectory / LabParameters::SimulationTimeStepDuration;
+        vec2f const theoreticalParticleVelocity = trajectory / LabParameters::SimulationTimeStepDuration;
         vec2f const edgeDir =
             triangles.GetSubEdgeVector(currentTriangle, intersectionEdgeOrdinal, vertices)
             .normalise();
         vec2f const edgeNormal = edgeDir.to_perpendicular();
-        float const particleVelocityAlongNormal = particleVelocity.dot(edgeNormal);
-        vec2f const normalVelocity = edgeNormal * particleVelocityAlongNormal;
-        vec2f const tangentialVelocity = particleVelocity - normalVelocity;
+        float const theoreticalParticleVelocityAlongNormal = theoreticalParticleVelocity.dot(edgeNormal);
+        vec2f const normalVelocity = edgeNormal * theoreticalParticleVelocityAlongNormal;
+        vec2f const tangentialVelocity = theoreticalParticleVelocity - normalVelocity;
 
         // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
         vec2f const normalResponse =
@@ -541,7 +555,7 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
             tangentialVelocity
             * (1.0f - labParameters.Friction);
 
-        vec2f const resultantVelocity = normalResponse + tangentialResponse;
+        vec2f const resultantResponseVelocity = normalResponse + tangentialResponse;
 
         // 
         // Conclude here
@@ -549,7 +563,7 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
 
         return FinalParticleState(
             intersectionPosition,
-            resultantVelocity);
+            resultantResponseVelocity);
     }
     else
     {
