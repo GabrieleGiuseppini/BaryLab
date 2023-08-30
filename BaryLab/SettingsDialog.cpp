@@ -28,7 +28,7 @@
 #include "Resources/SLabBBB.xpm"
 #endif
 
-static int constexpr SliderWidth = 40;
+static int constexpr SliderWidth = 80;
 static int constexpr SliderHeight = 140;
 
 static int constexpr StaticBoxTopMargin = 7;

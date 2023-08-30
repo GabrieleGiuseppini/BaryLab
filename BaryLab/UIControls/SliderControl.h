@@ -224,7 +224,7 @@ public:
                 if (!toolTipLabel.empty())
                     mTextCtrl->SetToolTip(toolTipLabel);
 
-                hSizer->Add(mTextCtrl, 0, wxALIGN_CENTER_VERTICAL);
+                hSizer->Add(mTextCtrl, 1, wxALIGN_CENTER_VERTICAL);
             }
 
             // Spin button
@@ -244,7 +244,7 @@ public:
                 hSizer->Add(mSpinButton, 0, wxALIGN_CENTRE_VERTICAL);
             }
 
-            vSizer->Add(hSizer, 0, wxALIGN_CENTER_HORIZONTAL);
+            vSizer->Add(hSizer, 0, wxEXPAND);
         }
 
         this->SetSizerAndFit(vSizer);

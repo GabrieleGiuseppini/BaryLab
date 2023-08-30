@@ -834,7 +834,7 @@ void MainFrame::FinishInitialization()
     // Create Tool Controller
     //
 
-    ToolType constexpr InitialToolType = ToolType::MoveVertex;
+    ToolType constexpr InitialToolType = ToolType::MoveParticle;
 
     try
     {

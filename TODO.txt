@@ -81,6 +81,14 @@
 			+ When leaving UpdateParticleState because of completed trajectory: set velocity by *absolute* delta pos traveled (not by trajectory)
 			+ When leaving UpdateParticleState because of impact: calculate incident velocity taking by full trajectory traveled
 				+ See below: this *should* include distance traveled due to apparent wall push
+		- FIX: when on edge, particle does not acquire wall push
+			! Technically absolute displacement would contain push, but here we override the final particle's velocity with *impact* velocity
+			- Aren't we flattening trajectory here?
+				! No, because deltaPos is physics' and thus it's zero now
+					! We need to take into account wall
+				= Should we then calc deltaPos based on "trajectory" (where triangle is now - (cur pos + target physics deltaPos)) and check that one instead?
+					- But then: case of velocity already there and mesh augmenting
+					- Fix: we should flattened deltaPos (after verifying traj is against wall)
 		- Friction & apparent forces:
 			+ First, do moving mesh below
 			! Note: when on edge, absolute delta pos traveled (thus not trajectory) after frame includes distance traveled due to apparent wall push

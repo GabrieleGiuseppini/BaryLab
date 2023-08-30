@@ -229,11 +229,40 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                         //
 
                         vec2f const deltaPos =
-                            particles.GetVelocity(particleIndex) * dt
+                            particles.GetVelocity(particleIndex) * dt // TODOHERE: when and if we should include current particle's velocity
                             + forces / particleMass * dt * dt;
 
+                        vec2f const targetPhysicsPosition = particles.GetPosition(particleIndex) + deltaPos;
+
                         //
-                        // If we're moving *against* the floor, flatten trajectory
+                        // Calculate trajectory
+                        //
+                        // Trajectory is mesh move plus physics move, i.e., given that we are on a floor,
+                        // it's the full, absolute move that would be traveled, if it were not for the floor
+                        //
+                        // Note: when there's no physics deltaPos, this amounts to pure mesh move in this frame
+                        // (PartPos - FromBary(PartPosBary))
+                        //
+
+                        // TODOTEST
+                        vec2f const meshDisplacement_test = 
+                            particles.GetPosition(particleIndex)
+                            - triangles.FromBarycentricCoordinates(
+                                particleState.ConstrainedState->CurrentTriangleBarycentricCoords,
+                                currentTriangleElementIndex,
+                                vertices);
+
+                        (void)meshDisplacement_test;
+
+                        vec2f const trajectory = 
+                            targetPhysicsPosition
+                            - triangles.FromBarycentricCoordinates(
+                                particleState.ConstrainedState->CurrentTriangleBarycentricCoords,
+                                currentTriangleElementIndex,
+                                vertices);
+
+                        //
+                        // Check whether we're moving *against* the floor
                         //
 
                         vec2f const edgeVector = mModel->GetMesh().GetTriangles().GetSubEdgeVector(
@@ -241,10 +270,14 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                             edgeOrdinal,
                             vertices);
 
-                        if (deltaPos.dot(edgeVector.to_perpendicular()) > 0.0f) // Normal to edge is directed outside of triangle (i.e. towards floor)
+                        if (trajectory.dot(edgeVector.to_perpendicular()) > 0.0f) // Normal to edge is directed outside of triangle (i.e. towards floor)
                         {
                             //
-                            // Flatten trajectory - i.e. take component of deltapos along floor
+                            // We're moving against the floor, so flatten the physical move
+                            // (i.e. take component of move along floor)
+                            //
+                            // Note that staying on the edge is equivalent to having traveled
+                            // the mesh move, so all that's left here is the *physical* move
                             //
 
                             vec2f const edgeDir = edgeVector.normalise();
@@ -553,7 +586,7 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
         // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
         vec2f const tangentialResponse =
             tangentialVelocity
-            * (1.0f - labParameters.Friction);
+            * (1.0f - labParameters.KineticFriction);
 
         vec2f const resultantResponseVelocity = normalResponse + tangentialResponse;
 
