@@ -123,7 +123,7 @@ void LabController::Update()
     auto & particles = mModel->GetParticles();
     for (auto p : particles)
     {
-        particles.SetWorldForce(p, gravity);
+        particles.SetWorldForce(p, gravity * mLabParameters.ParticleMass * mLabParameters.MassAdjustment);
     }
 
     // Update simulation

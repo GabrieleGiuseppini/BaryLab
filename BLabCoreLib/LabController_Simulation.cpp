@@ -216,13 +216,61 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                     {
                         //
                         // On floor edge
-                        //                
+                        //
+
+                        vec2f const edgeVector = mModel->GetMesh().GetTriangles().GetSubEdgeVector(
+                            currentTriangleElementIndex,
+                            edgeOrdinal,
+                            vertices);
+
+                        vec2f const edgeDir = edgeVector.normalise();
+
+                        // New position of particle in moved triangle (i.e. sourcePos + non-inertial displacement)
+                        vec2f const newTheoreticalPositionAfterMeshDisplacement = triangles.FromBarycentricCoordinates(
+                            particleState.ConstrainedState->CurrentTriangleBarycentricCoords,
+                            currentTriangleElementIndex,
+                            vertices);
 
                         //
                         // Add friction
                         //
+                        
+                        {
+                            //
+                            // Calculate total apparent force against edge and along edge: sum of these: 
+                            //  - world forces
+                            //  - (apparent) force that generates mesh displacement
+                            //
 
-                        // TODO
+                            vec2f const edgeNormal = edgeDir.to_perpendicular(); // Points outside of triangle (into floor)
+
+                            // TODO: add forces first then project
+
+                            float const worldForcesNormal = forces.dot(edgeNormal);
+                            float const worldForcesTangent = forces.dot(edgeDir);
+
+                            vec2f const meshDisplacement = particles.GetPosition(particleIndex) - newTheoreticalPositionAfterMeshDisplacement;
+                            vec2f const meshApparentForce = meshDisplacement / (dt * dt) * particleMass;
+                            float const meshApparentForceNormal = meshApparentForce.dot(edgeNormal);
+                            float const meshApparentForceTangent = -meshApparentForce.dot(edgeDir);
+
+                            float const fn = worldForcesNormal + meshApparentForceNormal;
+                            float const ft = worldForcesTangent + meshApparentForceTangent;
+
+                            LogMessage("  Friction: Fn=(", worldForcesNormal, " + ", meshApparentForceNormal, ")=", fn,
+                                " Ft=(", worldForcesTangent, " + ", meshApparentForceTangent, ")=", ft);
+
+                            //
+                            // Calculate max static friction
+                            //
+
+                            float const fs = labParameters.StaticFriction * std::max(fn, 0.0f); // Friction exists only if incident
+
+                            // TODOHERE
+
+                            // TODO
+                            //forces += frictionResponseForce;
+                        }                        
 
                         //
                         // Integrate, including eventual bounce velocity from a previous impact
@@ -246,28 +294,17 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
 
                         vec2f const meshDisplacement_test = 
                             particles.GetPosition(particleIndex)
-                            - triangles.FromBarycentricCoordinates(
-                                particleState.ConstrainedState->CurrentTriangleBarycentricCoords,
-                                currentTriangleElementIndex,
-                                vertices);
+                            - newTheoreticalPositionAfterMeshDisplacement;
 
                         vec2f const trajectory = 
                             targetPhysicsPosition
-                            - triangles.FromBarycentricCoordinates(
-                                particleState.ConstrainedState->CurrentTriangleBarycentricCoords,
-                                currentTriangleElementIndex,
-                                vertices);
+                            - newTheoreticalPositionAfterMeshDisplacement;
 
                         LogMessage("  startPos=", particles.GetPosition(particleIndex), " deltaPos=", deltaPos, " meshDispl=", meshDisplacement_test, " traj=", trajectory);
 
                         //
                         // Check whether we're moving *against* the floor
                         //
-
-                        vec2f const edgeVector = mModel->GetMesh().GetTriangles().GetSubEdgeVector(
-                            currentTriangleElementIndex,
-                            edgeOrdinal,
-                            vertices);
 
                         if (trajectory.dot(edgeVector.to_perpendicular()) > 0.0f) // Normal to edge is directed outside of triangle (i.e. towards floor)
                         {
@@ -279,16 +316,16 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                             // the mesh move, so all that's left here is the *physical* move
                             //
 
-                            vec2f const edgeDir = edgeVector.normalise();
                             vec2f const flattenedDeltaPos = edgeDir * deltaPos.dot(edgeDir);
 
                             // Due to numerical slack, ensure target barycentric coords are along edge
 
-                            // TODOHERE: mistake: if deltaPos is zero, here we take target bary coords of current position which,
+                            // TODOHERE: mistake? if deltaPos is zero, here we take target bary coords of current position which,
                             // if triangle is moving, would be fully outside of triangle. For example, if we start at (-1.5, -1.5) (b=(0.5, 0.0, 0.5))
                             // and mesh moves by (dm, 0.0), new target bary coords are (0.5+dm, -dm, 0.5), which if flattened by means
                             // of setting 0 coord to 0 makes new target bary coords as (0.5+dm, 0.0, 0.5-dm), yields a target pos of
-                            // (-1.5, -1.484375), yielding v=(0.0, dm)
+                            // (-1.5, -1.484375), yielding v=(0.0, dm).
+                            // If not a mistake, fix comment above.
 
                             vec3f targetBarycentricCoords = triangles.ToBarycentricCoordinates(
                                 particles.GetPosition(particleIndex) + flattenedDeltaPos,
