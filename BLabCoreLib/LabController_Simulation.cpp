@@ -588,6 +588,8 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
             tangentialVelocity
             * (1.0f - labParameters.KineticFriction);
 
+        LogMessage("    traje=", trajectory, " pv = ", theoreticalParticleVelocity, " nr = ", normalResponse, " tr = ", tangentialResponse);
+
         vec2f const resultantResponseVelocity = normalResponse + tangentialResponse;
 
         // 
