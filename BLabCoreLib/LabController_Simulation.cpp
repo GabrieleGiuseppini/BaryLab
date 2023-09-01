@@ -229,7 +229,7 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                         //
 
                         vec2f const deltaPos =
-                            particles.GetVelocity(particleIndex) * dt // TODOHERE: when and if we should include current particle's velocity
+                            particles.GetVelocity(particleIndex) * dt
                             + forces / particleMass * dt * dt;
 
                         vec2f const targetPhysicsPosition = particles.GetPosition(particleIndex) + deltaPos;
@@ -244,7 +244,6 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                         // (PartPos - FromBary(PartPosBary))
                         //
 
-                        // TODOTEST
                         vec2f const meshDisplacement_test = 
                             particles.GetPosition(particleIndex)
                             - triangles.FromBarycentricCoordinates(
@@ -252,14 +251,14 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                                 currentTriangleElementIndex,
                                 vertices);
 
-                        (void)meshDisplacement_test;
-
                         vec2f const trajectory = 
                             targetPhysicsPosition
                             - triangles.FromBarycentricCoordinates(
                                 particleState.ConstrainedState->CurrentTriangleBarycentricCoords,
                                 currentTriangleElementIndex,
                                 vertices);
+
+                        LogMessage("  startPos=", particles.GetPosition(particleIndex), " deltaPos=", deltaPos, " meshDispl=", meshDisplacement_test, " traj=", trajectory);
 
                         //
                         // Check whether we're moving *against* the floor
@@ -285,6 +284,12 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
 
                             // Due to numerical slack, ensure target barycentric coords are along edge
 
+                            // TODOHERE: mistake: if deltaPos is zero, here we take target bary coords of current position which,
+                            // if triangle is moving, would be fully outside of triangle. For example, if we start at (-1.5, -1.5) (b=(0.5, 0.0, 0.5))
+                            // and mesh moves by (dm, 0.0), new target bary coords are (0.5+dm, -dm, 0.5), which if flattened by means
+                            // of setting 0 coord to 0 makes new target bary coords as (0.5+dm, 0.0, 0.5-dm), yields a target pos of
+                            // (-1.5, -1.484375), yielding v=(0.0, dm)
+
                             vec3f targetBarycentricCoords = triangles.ToBarycentricCoordinates(
                                 particles.GetPosition(particleIndex) + flattenedDeltaPos,
                                 currentTriangleElementIndex,
@@ -295,13 +300,16 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                             targetBarycentricCoords[vertexOrdinal] = 0.0f;
                             targetBarycentricCoords[(vertexOrdinal + 1) % 3] = 1.0f - targetBarycentricCoords[(vertexOrdinal + 2) % 3];
 
-                            LogMessage("  Particle is on floor edge ", edgeOrdinal, ", moving against it; flattened target coords : ", targetBarycentricCoords);
+                            vec2f const targetCoords = triangles.FromBarycentricCoordinates(
+                                targetBarycentricCoords,
+                                currentTriangleElementIndex,
+                                vertices);
+
+                            LogMessage("  Particle is on floor edge ", edgeOrdinal, ", moving against it; flattened target coords: ", targetBarycentricCoords,
+                                " actual target pos : ", targetCoords);
 
                             return TrajectoryTarget(
-                                triangles.FromBarycentricCoordinates(
-                                    targetBarycentricCoords,
-                                    currentTriangleElementIndex,
-                                    vertices),
+                                targetCoords,
                                 targetBarycentricCoords);
                         }
                         else
