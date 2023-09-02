@@ -184,7 +184,7 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
     Edges const & edges = mModel->GetMesh().GetEdges();
     Triangles const & triangles = mModel->GetMesh().GetTriangles();
 
-    vec2f forces = particles.GetWorldForce(particleIndex) * labParameters.GravityAdjustment;
+    vec2f const physicalForces = particles.GetWorldForce(particleIndex) * labParameters.GravityAdjustment;
 
     //
     // Check whether we're on a floor
@@ -215,7 +215,51 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                     if (edges.GetSurfaceType(currentEdgeElementIndex) == SurfaceType::Floor)
                     {
                         //
-                        // On floor edge
+                        // On floor edge - so potentially in a non-inertial frame
+                        //
+
+                        //
+                        // Integrate physical forces, including eventual bounce velocity from a previous impact
+                        //
+
+                        vec2f const physicsDeltaPos =
+                            particles.GetVelocity(particleIndex) * dt
+                            + physicalForces / particleMass * dt * dt;
+
+                        //
+                        // Calculate trajectory
+                        //
+                        // Trajectory is the apparent displacement, i.e. the displacement of the particle
+                        // *from the point of view of the mesh*.
+                        //
+                        // Given that trajectory discounts physics move, trajectory is the displacement
+                        // cased by the apparent forces. In fact, we've verified that when the particle has
+                        // the same velocity as the mesh. trajectory is zero.
+                        //
+                        // Note: when there's no physics displacement, this amounts to pure mesh move
+                        // (PartPos - FromBary(PartPosBary)). On the other hand, when the mesh is at rest, this
+                        // amounts to pure physical displacement.
+                        //
+
+                        // New position of particle in moved triangle (i.e. sourcePos + non-inertial displacement)
+                        // - does not include physics delta pos
+                        vec2f const newTheoreticalPositionAfterMeshDisplacement = triangles.FromBarycentricCoordinates(
+                            particleState.ConstrainedState->CurrentTriangleBarycentricCoords,
+                            currentTriangleElementIndex,
+                            vertices);
+
+                        vec2f const meshDisplacement_test = 
+                            particles.GetPosition(particleIndex)
+                            - newTheoreticalPositionAfterMeshDisplacement;
+
+                        vec2f const trajectory = particles.GetPosition(particleIndex) 
+                            + physicsDeltaPos
+                            - newTheoreticalPositionAfterMeshDisplacement;
+
+                        LogMessage("  startPos=", particles.GetPosition(particleIndex), " physicsDeltaPos=", physicsDeltaPos, " meshDispl=", meshDisplacement_test, " traj=", trajectory);
+
+                        //
+                        // Check whether we're moving *against* the floor
                         //
 
                         vec2f const edgeVector = mModel->GetMesh().GetTriangles().GetSubEdgeVector(
@@ -223,92 +267,53 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                             edgeOrdinal,
                             vertices);
 
-                        vec2f const edgeDir = edgeVector.normalise();
-
-                        // New position of particle in moved triangle (i.e. sourcePos + non-inertial displacement)
-                        vec2f const newTheoreticalPositionAfterMeshDisplacement = triangles.FromBarycentricCoordinates(
-                            particleState.ConstrainedState->CurrentTriangleBarycentricCoords,
-                            currentTriangleElementIndex,
-                            vertices);
-
-                        //
-                        // Add friction
-                        //
-                        
+                        if (trajectory.dot(edgeVector.to_perpendicular()) > 0.0f) // Normal to edge is directed outside of triangle (i.e. towards floor)
                         {
                             //
-                            // Calculate total apparent force against edge and along edge: sum of these: 
-                            //  - world forces
-                            //  - (apparent) force that generates mesh displacement
-                            //      - TODO: should we consider relative velocity here?
+                            // We're moving against the floor, hence we are in a non-inertial frame
                             //
 
-                            vec2f const edgeNormal = edgeDir.to_perpendicular(); // Points outside of triangle (into floor)
+                            LogMessage("  Particle is on floor edge ", edgeOrdinal, ", moving against it");
 
-                            // TODO: add forces first then project
-
-                            float const worldForcesNormal = forces.dot(edgeNormal);
-                            float const worldForcesTangent = forces.dot(edgeDir);
-
-                            vec2f const meshDisplacement = particles.GetPosition(particleIndex) - newTheoreticalPositionAfterMeshDisplacement;
-                            vec2f const meshApparentForce = meshDisplacement / (dt * dt) * particleMass;
-                            float const meshApparentForceNormal = meshApparentForce.dot(edgeNormal);
-                            float const meshApparentForceTangent = -meshApparentForce.dot(edgeDir);
-
-                            float const fn = worldForcesNormal + meshApparentForceNormal;
-                            float const ft = worldForcesTangent + meshApparentForceTangent;
-
-                            LogMessage("  Friction: Fn=(", worldForcesNormal, " + ", meshApparentForceNormal, ")=", fn,
-                                " Ft=(", worldForcesTangent, " + ", meshApparentForceTangent, ")=", ft);
+                            vec2f const edgeDir = edgeVector.normalise();
 
                             //
-                            // Calculate max static friction
+                            // Calculate friction
                             //
 
-                            float const fs = labParameters.StaticFriction * std::max(fn, 0.0f); // Friction exists only if incident
+                            {
+                                vec2f const edgeNormal = edgeDir.to_perpendicular(); // Points outside
+
+                                // Normal force: apparent force against the floor.
+                                // Rather than force we use displacement as a proxy for it
+                                // TODO: verify ok
+
+                                float const fn =
+                                    trajectory.dot(edgeNormal)
+                                    * particleMass
+                                    / (dt * dt);
+
+                                // Tangential force: apparent force tangential to the floor
+                                // (flattened trajectory)
+
+                                float const ft = 
+                                    trajectory.dot(edgeDir)
+                                    * particleMass
+                                    / (dt * dt);
+
+                                // TODO: detect if kinetic by checking relative velocity,
+                                // i.e. current particle's velocity - mesh velocity
+
+                                // Static friction force: applies if there's no relative velocity
+                                float const fs = labParameters.StaticFriction * std::abs(fn);
+
+                                // TODOHERE
+
+                                LogMessage("    friction: fn=", fn, " => fs=", fs, "; ft=", ft);
+                            }
 
                             // TODOHERE
 
-                            // TODO
-                            //forces += frictionResponseForce;
-                        }                        
-
-                        //
-                        // Integrate, including eventual bounce velocity from a previous impact
-                        //
-
-                        vec2f const deltaPos =
-                            particles.GetVelocity(particleIndex) * dt
-                            + forces / particleMass * dt * dt;
-
-                        vec2f const targetPhysicsPosition = particles.GetPosition(particleIndex) + deltaPos;
-
-                        //
-                        // Calculate trajectory
-                        //
-                        // Trajectory is mesh move plus physics move, i.e., given that we are on a floor,
-                        // it's the full, absolute move that would be traveled, if it were not for the floor
-                        //
-                        // Note: when there's no physics deltaPos, this amounts to pure mesh move in this frame
-                        // (PartPos - FromBary(PartPosBary))
-                        //
-
-                        vec2f const meshDisplacement_test = 
-                            particles.GetPosition(particleIndex)
-                            - newTheoreticalPositionAfterMeshDisplacement;
-
-                        vec2f const trajectory = 
-                            targetPhysicsPosition
-                            - newTheoreticalPositionAfterMeshDisplacement;
-
-                        LogMessage("  startPos=", particles.GetPosition(particleIndex), " deltaPos=", deltaPos, " meshDispl=", meshDisplacement_test, " traj=", trajectory);
-
-                        //
-                        // Check whether we're moving *against* the floor
-                        //
-
-                        if (trajectory.dot(edgeVector.to_perpendicular()) > 0.0f) // Normal to edge is directed outside of triangle (i.e. towards floor)
-                        {
                             //
                             // We're moving against the floor, so flatten the physical move
                             // (i.e. take component of move along floor)
@@ -317,7 +322,7 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                             // the mesh move, so all that's left here is the *physical* move
                             //
 
-                            vec2f const flattenedDeltaPos = edgeDir * deltaPos.dot(edgeDir);
+                            vec2f const flattenedDeltaPos = edgeDir * physicsDeltaPos.dot(edgeDir);
 
                             // Due to numerical slack, ensure target barycentric coords are along edge
 
@@ -343,8 +348,7 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                                 currentTriangleElementIndex,
                                 vertices);
 
-                            LogMessage("  Particle is on floor edge ", edgeOrdinal, ", moving against it; flattened target coords: ", targetBarycentricCoords,
-                                " actual target pos : ", targetCoords);
+                            LogMessage("    flattened target coords: ", targetBarycentricCoords," actual target pos : ", targetCoords);
 
                             return TrajectoryTarget(
                                 targetCoords,
@@ -354,7 +358,7 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                         {
                             LogMessage("  Particle is on floor edge, but not moving against it");
 
-                            vec2f const targetPosition = particles.GetPosition(particleIndex) + deltaPos;
+                            vec2f const targetPosition = particles.GetPosition(particleIndex) + physicsDeltaPos;
 
                             return TrajectoryTarget(
                                 targetPosition,
@@ -372,19 +376,21 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
     }
 
     //
-    // Not on a floor edge, use pure force
+    // Not on a floor edge - fully inertial frame
+    //
+    // Just use pure physical forces
     //
 
-    LogMessage("  Particle not on floor edge; using pure force");
+    LogMessage("  Particle not on floor edge; using pure physical forces");
 
     //
-    // Integrate simply, including eventual bounce velocity from a previous impact
+    // Integrate world forces simply, including eventual bounce velocity from a previous impact
     //
 
     vec2f const targetPosition =
         particles.GetPosition(particleIndex)
         + particles.GetVelocity(particleIndex) * dt
-        + forces / particleMass * dt * dt;
+        + physicalForces / particleMass * dt * dt;
 
     std::optional<vec3f> targetPositionCurrentTriangleBarycentricCoords;
     if (particleState.ConstrainedState.has_value())
