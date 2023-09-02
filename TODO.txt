@@ -98,13 +98,12 @@
 				- f2=Friction: we calculate this when flattening
 					- Need to take into account both *relative* velocity and apparent wall forces; hence,
 					  we calculate friction force by calculating Fn and Ft on entire *trajectory* *flattened*
-						- 1. Flatten trajectory
-						- 2. Calculate Fn, Ft, and decide which friction takes place
-							- Calculate Fa as trajectory-producing force, and decompose into Fn and Ft
+						= 1. Calculate Fn, Ft, and decide which friction takes place
+							+ Calculate Fa as trajectory-producing force, and decompose into Fn and Ft
 							- TODO: for kinetic we need to calc relative velocity; are we sure we want to do kinetic?
-						- 3. Integrate friction (which is tangential hence already flattened) and add its effect
+						- 2. Integrate friction (which is tangential hence already flattened) and add its effect
 						     onto deltaPos
-						- 4. We still flatten deltaPos (old plus friction-induced) (instead of trajectory) for the purposes of calculating end position
+						- 3. We still flatten deltaPos (old plus friction-induced) (instead of trajectory) for the purposes of calculating end position
 					- Can keep check for against as > 0, since == 0 means no Fn anyway and thus no friction
 					- Remove old friction code
 				+ Make sure we set velocity to absolute delta pos traveled after the frame

@@ -267,7 +267,10 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                             edgeOrdinal,
                             vertices);
 
-                        if (trajectory.dot(edgeVector.to_perpendicular()) > 0.0f) // Normal to edge is directed outside of triangle (i.e. towards floor)
+                        vec2f const edgeDir = edgeVector.normalise();
+                        vec2f const edgeNormal = edgeDir.to_perpendicular(); // Points outside of triangle (i.e. towards floor)
+
+                        if (trajectory.dot(edgeNormal) > 0.0f) // If 0, no friction - hence no friction
                         {
                             //
                             // We're moving against the floor, hence we are in a non-inertial frame
@@ -275,18 +278,13 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
 
                             LogMessage("  Particle is on floor edge ", edgeOrdinal, ", moving against it");
 
-                            vec2f const edgeDir = edgeVector.normalise();
-
                             //
                             // Calculate friction
                             //
 
                             {
-                                vec2f const edgeNormal = edgeDir.to_perpendicular(); // Points outside
-
                                 // Normal force: apparent force against the floor.
-                                // Rather than force we use displacement as a proxy for it
-                                // TODO: verify ok
+                                // TODO perf: use a proxy, adjusting all dimensions
 
                                 float const fn =
                                     trajectory.dot(edgeNormal)
