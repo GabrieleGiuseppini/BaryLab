@@ -240,6 +240,7 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                             // Calculate total apparent force against edge and along edge: sum of these: 
                             //  - world forces
                             //  - (apparent) force that generates mesh displacement
+                            //      - TODO: should we consider relative velocity here?
                             //
 
                             vec2f const edgeNormal = edgeDir.to_perpendicular(); // Points outside of triangle (into floor)
