@@ -143,12 +143,16 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
                 // Finalize particle
                 if (finalParticleState->Velocity.has_value())
                 {
+                    LogMessage("  FinalV: delivered: ", *(finalParticleState->Velocity));
+
                     particles.SetVelocity(
                         p, 
                         *(finalParticleState->Velocity));
                 }
                 else
                 {
+                    LogMessage("  FinalV: calculated: deltaV=", (finalParticleState->Position - particles.GetPosition(p)));
+
                     particles.SetVelocity(
                         p,
                         (finalParticleState->Position - particles.GetPosition(p)) / LabParameters::SimulationTimeStepDuration);
@@ -234,7 +238,7 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                         //
                         // Given that trajectory discounts physics move, trajectory is the displacement
                         // cased by the apparent forces. In fact, we've verified that when the particle has
-                        // the same velocity as the mesh. trajectory is zero.
+                        // the same velocity as the mesh, trajectory is zero.
                         //
                         // Note: when there's no physics displacement, this amounts to pure mesh move
                         // (PartPos - FromBary(PartPosBary)). On the other hand, when the mesh is at rest, this
@@ -322,7 +326,9 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                             // the mesh move, so all that's left here is the *physical* move
                             //
 
-                            vec2f const flattenedPhysicsDeltaPos = edgeDir * physicsDeltaPos.dot(edgeDir);
+                            // TODOTEST
+                            //vec2f const flattenedPhysicsDeltaPos = edgeDir * physicsDeltaPos.dot(edgeDir);
+                            vec2f const flattenedTrajectory = edgeDir * trajectory.dot(edgeDir);
 
                             // Due to numerical slack, ensure target barycentric coords are along edge
 
@@ -333,12 +339,16 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                             // (-1.5, -1.484375), yielding v=(0.0, dm).
                             // If not a mistake, fix comment above.
 
-                            vec3f targetBarycentricCoords = triangles.ToBarycentricCoordinates(
-                                particles.GetPosition(particleIndex) + flattenedPhysicsDeltaPos,
+                            vec2f const targetPos = newTheoreticalPositionAfterMeshDisplacement + flattenedTrajectory;
+
+                            vec3f targetBarycentricCoords = triangles.ToBarycentricCoordinates(                                
+                                // TODOTEST
+                                //particles.GetPosition(particleIndex) + flattenedPhysicsDeltaPos,
+                                targetPos,
                                 currentTriangleElementIndex,
                                 vertices);
 
-                            LogMessage("    targetBarycentricCoords before forcing: ", targetBarycentricCoords);
+                            LogMessage("    targetPos: ", targetPos, " targetBarycentricCoords before forcing : ", targetBarycentricCoords);
 
                             // Force to be on edge
                             int const vertexOrdinal = (edgeOrdinal + 2) % 3;
@@ -350,7 +360,7 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                                 currentTriangleElementIndex,
                                 vertices);
 
-                            LogMessage("    flattened phys. delta pos: ", flattenedPhysicsDeltaPos, " flattened target coords : ", targetBarycentricCoords," actual target pos : ", targetCoords);
+                            LogMessage("    flattened traj: ", flattenedTrajectory, " flattened target coords : ", targetBarycentricCoords," actual target pos : ", targetCoords);
 
                             return TrajectoryTarget(
                                 targetCoords,
@@ -642,7 +652,7 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
             tangentialVelocity
             * (1.0f - labParameters.KineticFriction);
 
-        LogMessage("    traje=", trajectory, " pv = ", theoreticalParticleVelocity, " nr = ", normalResponse, " tr = ", tangentialResponse);
+        LogMessage("    traj=", trajectory, " pv=", theoreticalParticleVelocity, " nr=", normalResponse, " tr=", tangentialResponse);
 
         vec2f const resultantResponseVelocity = normalResponse + tangentialResponse;
 
