@@ -270,7 +270,9 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                         vec2f const edgeDir = edgeVector.normalise();
                         vec2f const edgeNormal = edgeDir.to_perpendicular(); // Points outside of triangle (i.e. towards floor)
 
-                        if (trajectory.dot(edgeNormal) > 0.0f) // If 0, no friction - hence no friction
+                        // TODOTEST
+                        //if (trajectory.dot(edgeNormal) > 0.0f) // If 0, no friction - hence no friction
+                        if (trajectory.dot(edgeNormal) >= 0.0f) // If 0, no friction - hence no friction
                         {
                             //
                             // We're moving against the floor, hence we are in a non-inertial frame
@@ -320,7 +322,7 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                             // the mesh move, so all that's left here is the *physical* move
                             //
 
-                            vec2f const flattenedDeltaPos = edgeDir * physicsDeltaPos.dot(edgeDir);
+                            vec2f const flattenedPhysicsDeltaPos = edgeDir * physicsDeltaPos.dot(edgeDir);
 
                             // Due to numerical slack, ensure target barycentric coords are along edge
 
@@ -332,9 +334,11 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                             // If not a mistake, fix comment above.
 
                             vec3f targetBarycentricCoords = triangles.ToBarycentricCoordinates(
-                                particles.GetPosition(particleIndex) + flattenedDeltaPos,
+                                particles.GetPosition(particleIndex) + flattenedPhysicsDeltaPos,
                                 currentTriangleElementIndex,
                                 vertices);
+
+                            LogMessage("    targetBarycentricCoords before forcing: ", targetBarycentricCoords);
 
                             // Force to be on edge
                             int const vertexOrdinal = (edgeOrdinal + 2) % 3;
@@ -346,7 +350,7 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                                 currentTriangleElementIndex,
                                 vertices);
 
-                            LogMessage("    flattened target coords: ", targetBarycentricCoords," actual target pos : ", targetCoords);
+                            LogMessage("    flattened phys. delta pos: ", flattenedPhysicsDeltaPos, " flattened target coords : ", targetBarycentricCoords," actual target pos : ", targetCoords);
 
                             return TrajectoryTarget(
                                 targetCoords,
