@@ -219,13 +219,14 @@ private:
     struct TrajectoryTarget
     {
         vec2f Position;
-        std::optional<vec3f> CurrentTriangleBarycentricCoords; // Returned when in constrained state
+
+        std::optional<Particles::StateType::TrajectoryStateType::ConstrainedStateType> ConstrainedStateInfo; // Returned when in constrained state
 
         TrajectoryTarget(
             vec2f const & position,
-            std::optional<vec3f> currentTriangleBarycentricCoords)
+            std::optional<Particles::StateType::TrajectoryStateType::ConstrainedStateType> constrainedStateInfo)
             : Position(position)
-            , CurrentTriangleBarycentricCoords(std::move(currentTriangleBarycentricCoords))
+            , ConstrainedStateInfo(std::move(constrainedStateInfo))
         {}
     };
 
