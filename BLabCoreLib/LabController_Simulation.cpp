@@ -292,9 +292,7 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                         vec2f const edgeDir = edgeVector.normalise();
                         vec2f const edgeNormal = edgeDir.to_perpendicular(); // Points outside of triangle (i.e. towards floor)
 
-                        // TODOTEST
-                        //if (trajectory.dot(edgeNormal) > 0.0f) // If 0, no friction - hence no friction
-                        if (trajectory.dot(edgeNormal) >= 0.0f) // If 0, no friction - hence no friction
+                        if (trajectory.dot(edgeNormal) >= 0.0f) // If 0, no normal force - hence no friction; however we want to take this codepath anyways for consistency
                         {
                             //
                             // We're moving against the floor, hence we are in a non-inertial frame
@@ -337,31 +335,16 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                             // TODOHERE: use friction
 
                             //
-                            // We're moving against the floor, so flatten the physical move
-                            // (i.e. take component of move along floor) - TODO: reword
-                            //
-                            // Note that staying on the edge is equivalent to having traveled
-                            // the mesh move, so all that's left here is the *physical* move
+                            // We're moving against the floor, so flatten the apparent move
+                            // (i.e. take component of move along floor)
                             //
 
-                            // TODOTEST
-                            //vec2f const flattenedPhysicsDeltaPos = edgeDir * physicsDeltaPos.dot(edgeDir);
                             vec2f const flattenedTrajectory = edgeDir * trajectory.dot(edgeDir);
 
                             // Due to numerical slack, ensure target barycentric coords are along edge
 
-                            // TODOHERE: mistake? if deltaPos is zero, here we take target bary coords of current position which,
-                            // if triangle is moving, would be fully outside of triangle. For example, if we start at (-1.5, -1.5) (b=(0.5, 0.0, 0.5))
-                            // and mesh moves by (dm, 0.0), new target bary coords are (0.5+dm, -dm, 0.5), which if flattened by means
-                            // of setting 0 coord to 0 makes new target bary coords as (0.5+dm, 0.0, 0.5-dm), yields a target pos of
-                            // (-1.5, -1.484375), yielding v=(0.0, dm).
-                            // If not a mistake, fix comment above.
-
                             vec2f const targetPos = newTheoreticalPositionAfterMeshDisplacement + flattenedTrajectory;
-
                             vec3f targetBarycentricCoords = triangles.ToBarycentricCoordinates(                                
-                                // TODOTEST
-                                //particles.GetPosition(particleIndex) + flattenedPhysicsDeltaPos,
                                 targetPos,
                                 currentTriangleElementIndex,
                                 vertices);
@@ -655,20 +638,20 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
         LogMessage("  Impact");
 
         //
-        // Update velocity with bounce response, using the *theoretical* (trajectory) 
+        // Update velocity with bounce response, using the *apparent* (trajectory) 
         // velocity - since this one includes the mesh velocity
         //
 
-        // Decompose theoretical particle velocity into normal and tangential
+        // Decompose apparent particle velocity into normal and tangential
         vec2f const trajectory = particleState.TrajectoryState->TargetPosition - particleState.TrajectoryState->SourcePosition;
-        vec2f const theoreticalParticleVelocity = trajectory / LabParameters::SimulationTimeStepDuration;
+        vec2f const apparentParticleVelocity = trajectory / LabParameters::SimulationTimeStepDuration;
         vec2f const edgeDir =
             triangles.GetSubEdgeVector(currentTriangle, intersectionEdgeOrdinal, vertices)
             .normalise();
         vec2f const edgeNormal = edgeDir.to_perpendicular();
-        float const theoreticalParticleVelocityAlongNormal = theoreticalParticleVelocity.dot(edgeNormal);
-        vec2f const normalVelocity = edgeNormal * theoreticalParticleVelocityAlongNormal;
-        vec2f const tangentialVelocity = theoreticalParticleVelocity - normalVelocity;
+        float const apparentParticleVelocityAlongNormal = apparentParticleVelocity.dot(edgeNormal);
+        vec2f const normalVelocity = edgeNormal * apparentParticleVelocityAlongNormal;
+        vec2f const tangentialVelocity = apparentParticleVelocity - normalVelocity;
 
         // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
         vec2f const normalResponse =
@@ -680,25 +663,11 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
             tangentialVelocity
             * (1.0f - labParameters.KineticFriction);
 
-        LogMessage("    traj=", trajectory, " pv=", theoreticalParticleVelocity, " nr=", normalResponse, " tr=", tangentialResponse);
-
-        // TODOTEST2
-        ////// TODOHERE: given that we calc the collision response to *trajectory* (i.e. trajectory from the point of view of the particle),
-        ////// we are not imparting mesh velocity as absolute particle velocity; 
-        ////// to fix this, we should add the mesh velocity component along the normal to the edge - TODO: any other way?
-        ////assert(particleState.TrajectoryState->MeshDisplacement.has_value());
-        ////vec2f const meshNormalResponse =
-        ////    -edgeNormal * (*particleState.TrajectoryState->MeshDisplacement / LabParameters::SimulationTimeStepDuration).dot(edgeNormal);
-        ////LogMessage("    meshNormalResponse=", meshNormalResponse);
-
-        ////// TODOTEST
-        //////vec2f const resultantResponseVelocity = normalResponse + tangentialResponse;
-        ////vec2f const resultantResponseVelocity = normalResponse + meshNormalResponse + tangentialResponse;
+        LogMessage("    traj=", trajectory, " apv=", apparentParticleVelocity, " nr=", normalResponse, " tr=", tangentialResponse);
 
         // Given that we calc the collision response to *trajectory* (i.e. apparent trajectory),
-        // we need to impart mesh velocity now in order to get an absolute particle velocity;
+        // we need to transform it to absolute particle velocity
         vec2f const meshVelocity = particleState.TrajectoryState->ConstrainedState->MeshDisplacement / LabParameters::SimulationTimeStepDuration;
-
         vec2f const resultantResponseVelocity = normalResponse + tangentialResponse - meshVelocity;
 
         LogMessage("    meshVelocity=", meshVelocity, " res=", resultantResponseVelocity);
