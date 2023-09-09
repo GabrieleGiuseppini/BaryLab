@@ -89,11 +89,11 @@
 				+ Should we then calc deltaPos based on "trajectory" (where triangle is now - (cur pos + target physics deltaPos)) and check that one instead?
 					+ But then: case of velocity already there and mesh augmenting
 					+ Fix: we should flattened deltaPos (after verifying traj is against wall)
-		- Friction & apparent forces:
+		+ Friction & apparent forces:
 			+ First, do moving mesh below
 			! Note: when on edge, absolute delta pos traveled (thus not trajectory) after frame includes distance traveled due to apparent wall push
 				! So: this must be the velocity that we set for the particle at the end
-			- Algo - when on floor:
+			+ Algo - when on floor:
 				+ f1=Calc world forces
 				+ f2=Friction: we calculate this when flattening
 					+ Need to take into account both *relative* velocity and apparent wall forces; hence,
@@ -101,9 +101,11 @@
 					+ 1. Calculate Fn, Ft, and decide which friction takes place
 						+ Use relative velocity to determine whether static or kinetic
 					+ 2. Integrate friction (which is tangential hence already flattened) and add its effect to trajectory
-				- TODO: ain't Ft integrated the flattened trajectory? ain't all here doable in terms of displacements instead of forces?
+				
 				+ Make sure we set velocity to absolute delta pos traveled after the frame
 		- Cleanup CalculatePhysicsTarget
+			- Ain't Ft integrated the flattened trajectory? ain't all here doable in terms of displacements instead of forces?
+		- Fix bounce against moving wall (3): transfer is too much
 		
 
 				
