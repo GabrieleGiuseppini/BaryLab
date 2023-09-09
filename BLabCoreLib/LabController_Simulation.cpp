@@ -201,7 +201,15 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
     Edges const & edges = mModel->GetMesh().GetEdges();
     Triangles const & triangles = mModel->GetMesh().GetTriangles();
 
+    //
+    // Integrate physical forces, including eventual bounce velocity from a previous impact
+    //
+
     vec2f const physicalForces = particles.GetWorldForce(particleIndex) * labParameters.GravityAdjustment;
+
+    vec2f const physicsDeltaPos =
+        particles.GetVelocity(particleIndex) * dt
+        + physicalForces / particleMass * dt * dt;
 
     //
     // Check whether we're on a floor
@@ -251,14 +259,6 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                         //
 
                         //
-                        // Integrate physical forces, including eventual bounce velocity from a previous impact
-                        //
-
-                        vec2f const physicsDeltaPos =
-                            particles.GetVelocity(particleIndex) * dt
-                            + physicalForces / particleMass * dt * dt;
-
-                        //
                         // Calculate trajectory
                         //
                         // Trajectory is the apparent displacement, i.e. the displacement of the particle
@@ -273,7 +273,7 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                         // amounts to pure physical displacement.
                         //
 
-                        // TODO: rewrite as physicsDeltaPos + meshDisplacement
+                        // Note: this is the same as physicsDeltaPos + meshDisplacement
                         vec2f const trajectory = particles.GetPosition(particleIndex) 
                             + physicsDeltaPos
                             - newTheoreticalPositionAfterMeshDisplacement;
@@ -304,8 +304,12 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                             // Calculate friction
                             //
 
+                            float ff;
+                            vec2f frictionForce;
+
                             {
-                                // Normal force: apparent force against the floor.
+                                // Normal force: apparent force against the floor;
+                                // positive when against the floor
                                 // TODO perf: use a proxy, adjusting all dimensions
 
                                 float const fn =
@@ -314,32 +318,60 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                                     / (dt * dt);
 
                                 // Tangential force: apparent force tangential to the floor
-                                // (flattened trajectory)
+                                // (flattened trajectory); positive when in the direction of
+                                // the edge
 
                                 float const ft = 
                                     trajectory.dot(edgeDir)
                                     * particleMass
                                     / (dt * dt);
 
-                                // TODO: detect if kinetic by checking relative velocity,
-                                // i.e. current particle's velocity - mesh velocity
+                                // Choose between kinetic and static friction
+                                //
+                                // Note that we want to check actual velocity here, not
+                                // *intention* to move (which is trajectory)
+                                vec2f const relativeVelocity =
+                                    particles.GetVelocity(particleIndex)
+                                    + meshDisplacement / dt;
 
-                                // Static friction force: applies if there's no relative velocity
-                                float const fs = labParameters.StaticFriction * std::abs(fn);
+                                // TODOHERE: watch out: mesh displacement now is also *intent*, not reality
+                                // TODO: set relative velocity in particle's constrained state, @ final call to update state
+                                // where we also calc velocity
+                                
+                                float frictionCoefficient;
+                                if (std::abs(relativeVelocity.dot(edgeDir)) > 0.01f) // Magic number
+                                {
+                                    // Kinetic friction
+                                    frictionCoefficient = labParameters.KineticFriction;
+                                }
+                                else
+                                {
+                                    // Static friction
+                                    frictionCoefficient = labParameters.StaticFriction;
+                                }
 
-                                // TODOHERE
+                                // Calculate friction force magnitude (along edgeDir)
+                                ff = std::min(std::abs(ft), frictionCoefficient * std::max(fn, 0.0f));
+                                if (ft >= 0.0f)
+                                {
+                                    ff *= -1.0f;
+                                }
 
-                                LogMessage("    friction: fn=", fn, " => fs=", fs, "; ft=", ft);
+                                // Calculate friction force
+                                frictionForce = edgeDir * ff;
+
+                                LogMessage("    friction: fn=", fn, " relVel=", relativeVelocity, " ft=", ft, " ff=", ff, " => frictionForce=", frictionForce);
                             }
-
-                            // TODOHERE: use friction
 
                             //
                             // We're moving against the floor, so flatten the apparent move
                             // (i.e. take component of move along floor)
                             //
 
-                            vec2f const flattenedTrajectory = edgeDir * trajectory.dot(edgeDir);
+                            // TODOHERE: if ok, update comment above
+                            //vec2f const flattenedTrajectory = edgeDir * trajectory.dot(edgeDir);
+                            float const ffIntegrated = ff * dt * dt / particleMass;
+                            vec2f const flattenedTrajectory = edgeDir * (trajectory.dot(edgeDir) + ffIntegrated);
 
                             // Due to numerical slack, ensure target barycentric coords are along edge
 
@@ -406,14 +438,9 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
 
     LogMessage("  Particle not on floor edge; using pure physical forces");
 
-    //
-    // Integrate world forces simply, including eventual bounce velocity from a previous impact
-    //
-
     vec2f const targetPosition =
         particles.GetPosition(particleIndex)
-        + particles.GetVelocity(particleIndex) * dt
-        + physicalForces / particleMass * dt * dt;
+        + physicsDeltaPos;
     
     std::optional<Particles::StateType::TrajectoryStateType::ConstrainedStateType> constrainedState;
     if (particleState.ConstrainedState.has_value())

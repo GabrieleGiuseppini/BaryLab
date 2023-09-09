@@ -91,9 +91,10 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
         ////    mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexAIndex(0))
         ////    + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexBIndex(0))
         ////    + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexCIndex(0))) / 3.0f;
-        vec2f const center =
-            mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexBIndex(0))
-            - vec2f(0.5f, 0.5f);
+        ////vec2f const center =
+        ////    mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexBIndex(0))
+        ////    - vec2f(0.5f, 0.5f);
+        vec2f const center = vec2f(0.5f, -2.0f);
 
         particles->Add(center, rgbaColor(0x60, 0x60, 0x60, 0xff));
     }    
