@@ -327,30 +327,20 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                             LogMessage("  Particle is on floor edge ", edgeOrdinal, ", moving against it");
 
                             //
-                            // Calculate friction
+                            // Update trajectory with friction
                             //
 
-                            float ff;
-                            vec2f frictionForce;
-
                             {
-                                // Normal force: apparent force against the floor;
+                                // Normal trajectory: apparent (integrated) force against the floor;
                                 // positive when against the floor
-                                // TODO perf: use a proxy, adjusting all dimensions
 
-                                float const fn =
-                                    trajectory.dot(edgeNormal)
-                                    * particleMass
-                                    / (dt * dt);
+                                float const tn = trajectory.dot(edgeNormal);
 
-                                // Tangential force: apparent force tangential to the floor
+                                // Tangential trajectory: apparent (integrated) force tangential to the floor
                                 // (flattened trajectory); positive when in the direction of
                                 // the edge
 
-                                float const ft = 
-                                    trajectory.dot(edgeDir)
-                                    * particleMass
-                                    / (dt * dt);
+                                float const tt = trajectory.dot(edgeDir);
 
                                 //
                                 // Choose between kinetic and static friction
@@ -372,25 +362,18 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                                 }
 
                                 // Calculate friction force magnitude (along edgeDir)
-                                ff = std::min(std::abs(ft), frictionCoefficient * std::max(fn, 0.0f));
-                                if (ft >= 0.0f)
+                                float tFriction = std::min(std::abs(tt), frictionCoefficient * std::max(tn, 0.0f));
+                                if (tt >= 0.0f)
                                 {
-                                    ff *= -1.0f;
+                                    tFriction *= -1.0f;
                                 }
 
-                                // Calculate friction force
-                                frictionForce = edgeDir * ff;
+                                LogMessage("    friction: tn=", tn, " relVel=", particleState.ConstrainedState->MeshRelativeVelocity, " tt=", tt, 
+                                    " tFriction=", tFriction);
 
-                                LogMessage("    friction: fn=", fn, " relVel=", particleState.ConstrainedState->MeshRelativeVelocity, " ft=", ft, 
-                                    " ff=", ff, " => frictionForce=", frictionForce);
+                                // Update trajectory with friction
+                                trajectory += edgeDir * tFriction;
                             }
-
-                            //
-                            // Update trajectory with friction
-                            //
-
-                            float const ffIntegrated = ff * dt * dt / particleMass;
-                            trajectory += edgeDir * ffIntegrated;
 
                             //
                             // We're moving against the floor, so flatten the apparent move
