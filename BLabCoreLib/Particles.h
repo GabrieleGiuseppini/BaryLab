@@ -27,12 +27,14 @@ public:
         {
             ElementIndex CurrentTriangle;
             vec3f CurrentTriangleBarycentricCoords;
+            vec2f MeshRelativeVelocity; // Velocity of particle (as in velocity buffer), but relative to mesh at the moment velocity was calculated
 
             ConstrainedStateType(
                 ElementIndex currentTriangle,
                 vec3f const & currentTriangleBarycentricCoords)
                 : CurrentTriangle(currentTriangle)
                 , CurrentTriangleBarycentricCoords(currentTriangleBarycentricCoords)
+                , MeshRelativeVelocity(vec2f::zero())
             {}
         };
 

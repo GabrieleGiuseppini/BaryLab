@@ -153,23 +153,49 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
             {
                 LogMessage("Particle ", p, " COMPLETED");
 
-                // Finalize particle
+                //
+                // Finalize particle's velocities
+                //
+
+                vec2f absoluteVelocity;
                 if (finalParticleState->Velocity.has_value())
                 {
                     LogMessage("  FinalV: delivered: ", *(finalParticleState->Velocity));
 
-                    particles.SetVelocity(
-                        p, 
-                        *(finalParticleState->Velocity));
+                    absoluteVelocity = *(finalParticleState->Velocity);
                 }
                 else
                 {
                     LogMessage("  FinalV: calculated: deltaV=", (finalParticleState->Position - particles.GetPosition(p)) / LabParameters::SimulationTimeStepDuration);
 
-                    particles.SetVelocity(
-                        p,
-                        (finalParticleState->Position - particles.GetPosition(p)) / LabParameters::SimulationTimeStepDuration);
+                    absoluteVelocity = (finalParticleState->Position - particles.GetPosition(p)) / LabParameters::SimulationTimeStepDuration;
                 }
+
+                particles.SetVelocity(
+                    p,
+                    absoluteVelocity);
+
+                if (particleState.TrajectoryState->ConstrainedState.has_value())
+                { 
+                    vec2f const meshRelativeVelocity = 
+                        absoluteVelocity
+                        + particleState.TrajectoryState->ConstrainedState->MeshDisplacement / LabParameters::SimulationTimeStepDuration;
+
+                    LogMessage("  FinalMRV: meshRelativeVelocity=", meshRelativeVelocity);
+
+                    assert(particleState.ConstrainedState.has_value());
+                    particleState.ConstrainedState->MeshRelativeVelocity = meshRelativeVelocity;
+                }
+                else
+                {
+                    // We're free
+                    assert(!particleState.ConstrainedState.has_value());
+                }                
+
+                //
+                // Finalize particle's position
+                //
+
                 particles.SetPosition(p, finalParticleState->Position);
 
                 // Destroy trajectory state
@@ -274,7 +300,7 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                         //
 
                         // Note: this is the same as physicsDeltaPos + meshDisplacement
-                        vec2f const trajectory = particles.GetPosition(particleIndex) 
+                        vec2f trajectory = particles.GetPosition(particleIndex) 
                             + physicsDeltaPos
                             - newTheoreticalPositionAfterMeshDisplacement;
 
@@ -326,20 +352,15 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                                     * particleMass
                                     / (dt * dt);
 
+                                //
                                 // Choose between kinetic and static friction
                                 //
                                 // Note that we want to check actual velocity here, not
                                 // *intention* to move (which is trajectory)
-                                vec2f const relativeVelocity =
-                                    particles.GetVelocity(particleIndex)
-                                    + meshDisplacement / dt;
-
-                                // TODOHERE: watch out: mesh displacement now is also *intent*, not reality
-                                // TODO: set relative velocity in particle's constrained state, @ final call to update state
-                                // where we also calc velocity
+                                //
                                 
                                 float frictionCoefficient;
-                                if (std::abs(relativeVelocity.dot(edgeDir)) > 0.01f) // Magic number
+                                if (std::abs(particleState.ConstrainedState->MeshRelativeVelocity.dot(edgeDir)) > 0.01f) // Magic number
                                 {
                                     // Kinetic friction
                                     frictionCoefficient = labParameters.KineticFriction;
@@ -360,20 +381,27 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                                 // Calculate friction force
                                 frictionForce = edgeDir * ff;
 
-                                LogMessage("    friction: fn=", fn, " relVel=", relativeVelocity, " ft=", ft, " ff=", ff, " => frictionForce=", frictionForce);
+                                LogMessage("    friction: fn=", fn, " relVel=", particleState.ConstrainedState->MeshRelativeVelocity, " ft=", ft, 
+                                    " ff=", ff, " => frictionForce=", frictionForce);
                             }
+
+                            //
+                            // Update trajectory with friction
+                            //
+
+                            float const ffIntegrated = ff * dt * dt / particleMass;
+                            trajectory += edgeDir * ffIntegrated;
 
                             //
                             // We're moving against the floor, so flatten the apparent move
                             // (i.e. take component of move along floor)
                             //
 
-                            // TODOHERE: if ok, update comment above
-                            //vec2f const flattenedTrajectory = edgeDir * trajectory.dot(edgeDir);
-                            float const ffIntegrated = ff * dt * dt / particleMass;
-                            vec2f const flattenedTrajectory = edgeDir * (trajectory.dot(edgeDir) + ffIntegrated);
+                            vec2f const flattenedTrajectory = edgeDir * trajectory.dot(edgeDir);
 
+                            //
                             // Due to numerical slack, ensure target barycentric coords are along edge
+                            //
 
                             vec2f const targetPos = newTheoreticalPositionAfterMeshDisplacement + flattenedTrajectory;
                             vec3f targetBarycentricCoords = triangles.ToBarycentricCoordinates(                                
@@ -726,6 +754,7 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
             LogMessage("  No opposite triangle found, becoming free");
 
             particleState.ConstrainedState.reset();
+            particleState.TrajectoryState->ConstrainedState.reset();
 
             return std::nullopt; // Will move and then stop
         }

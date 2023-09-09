@@ -95,18 +95,13 @@
 				! So: this must be the velocity that we set for the particle at the end
 			- Algo - when on floor:
 				+ f1=Calc world forces
-				- f2=Friction: we calculate this when flattening
-					- Need to take into account both *relative* velocity and apparent wall forces; hence,
+				+ f2=Friction: we calculate this when flattening
+					+ Need to take into account both *relative* velocity and apparent wall forces; hence,
 					  we calculate friction force by calculating Fn and Ft on entire *trajectory* *flattened*
-						= 1. Calculate Fn, Ft, and decide which friction takes place
-							+ Calculate Fa as trajectory-producing force, and decompose into Fn and Ft
-							- TODO: for kinetic we need to calc relative velocity; are we sure we want to do kinetic?
-							- TODO: ain't relative V trajectory?
-								- No, trajectory is *intention* of movement; we really need tangential component of V
-						- 2. Integrate friction (which is tangential hence already flattened) and add its effect
-						     onto deltaPos
-						- 3. We still flatten deltaPos (old plus friction-induced) (instead of trajectory) for the purposes of calculating end position
-					- TODO: ain't Ft integrated the flattened trajectory? ain't all here doable in terms of displacements instead of forces?
+					+ 1. Calculate Fn, Ft, and decide which friction takes place
+						+ Use relative velocity to determine whether static or kinetic
+					+ 2. Integrate friction (which is tangential hence already flattened) and add its effect to trajectory
+				- TODO: ain't Ft integrated the flattened trajectory? ain't all here doable in terms of displacements instead of forces?
 				+ Make sure we set velocity to absolute delta pos traveled after the frame
 		- Cleanup CalculatePhysicsTarget
 		
