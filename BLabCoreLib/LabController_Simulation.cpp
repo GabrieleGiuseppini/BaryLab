@@ -300,7 +300,7 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                         //
 
                         // Note: this is the same as physicsDeltaPos + meshDisplacement
-                        vec2f trajectory = particles.GetPosition(particleIndex) 
+                        vec2f const trajectory = particles.GetPosition(particleIndex) 
                             + physicsDeltaPos
                             - newTheoreticalPositionAfterMeshDisplacement;
 
@@ -326,21 +326,23 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
 
                             LogMessage("  Particle is on floor edge ", edgeOrdinal, ", moving against it");
 
+                            // 
+                            // Calculate magnitude of flattened trajectory - i.e. component of trajectory 
+                            // along (tangent) edge, appi.e. arent (integrated) force tangential to the floor;
+                            // positive when in the direction of the edge
                             //
-                            // Update trajectory with friction
+
+                            float trajectoryT = trajectory.dot(edgeDir);
+
+                            //
+                            // Update tangential component of trajectory with friction
                             //
 
                             {
                                 // Normal trajectory: apparent (integrated) force against the floor;
                                 // positive when against the floor
 
-                                float const tn = trajectory.dot(edgeNormal);
-
-                                // Tangential trajectory: apparent (integrated) force tangential to the floor
-                                // (flattened trajectory); positive when in the direction of
-                                // the edge
-
-                                float const tt = trajectory.dot(edgeDir);
+                                float const trajectoryN = trajectory.dot(edgeNormal);
 
                                 //
                                 // Choose between kinetic and static friction
@@ -361,26 +363,26 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                                     frictionCoefficient = labParameters.StaticFriction;
                                 }
 
-                                // Calculate friction force magnitude (along edgeDir)
-                                float tFriction = std::min(std::abs(tt), frictionCoefficient * std::max(tn, 0.0f));
-                                if (tt >= 0.0f)
+                                // Calculate friction (integrated) force magnitude (along edgeDir),
+                                // which is the same as apparent force, up to max friction threshold
+                                float tFriction = std::min(std::abs(trajectoryT), frictionCoefficient * std::max(trajectoryN, 0.0f));
+                                if (trajectoryT >= 0.0f)
                                 {
                                     tFriction *= -1.0f;
                                 }
 
-                                LogMessage("    friction: tn=", tn, " relVel=", particleState.ConstrainedState->MeshRelativeVelocity, " tt=", tt, 
+                                LogMessage("    friction: trajectoryN=", trajectoryN, " relVel=", particleState.ConstrainedState->MeshRelativeVelocity, " trajectoryT=", trajectoryT,
                                     " tFriction=", tFriction);
 
                                 // Update trajectory with friction
-                                trajectory += edgeDir * tFriction;
+                                trajectoryT += tFriction;
                             }
 
                             //
-                            // We're moving against the floor, so flatten the apparent move
-                            // (i.e. take component of move along floor)
+                            // Recovered flattened trajectory as a vector
                             //
 
-                            vec2f const flattenedTrajectory = edgeDir * trajectory.dot(edgeDir);
+                            vec2f const flattenedTrajectory = edgeDir * trajectoryT;
 
                             //
                             // Due to numerical slack, ensure target barycentric coords are along edge

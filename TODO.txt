@@ -103,34 +103,9 @@
 					+ 2. Integrate friction (which is tangential hence already flattened) and add its effect to trajectory
 				
 				+ Make sure we set velocity to absolute delta pos traveled after the frame
-		- Cleanup CalculatePhysicsTarget
-			- Ain't Ft integrated the flattened trajectory? ain't all here doable in terms of displacements instead of forces?
-		- Fix bounce against moving wall (3): transfer is too much
+		+ Cleanup CalculatePhysicsTarget
+			+ Ain't Ft integrated the flattened trajectory? ain't all here doable in terms of displacements instead of forces
+		- Fix bounce against moving wall (v=+3): transfer is too much
 		
 
 				
-
-
-= Allow for moving mesh
-	+ Particles::State: TargetPos becomes non-opt member of opt RayTracingState
-		+ Presence of RayTracingState tells we're doing ray tracing instead of physics, in place of old TargetPos
-	+ RayTracingState contains CurrentPosition - not absolute but in mesh coords
-		+ Initialized - in constrained state - as current pos in triangle (we should be doing that already), and target as absolute target pos (should be doing that already)
-			+ Do it also at manually-set case
-		+ Particle's physical position is only set at end of particle update
-			+ Set to RayTracingState::CurrentPosition
-				+ Rationale: when we hit end of particle update, RayTracingState::CurrentPosition is either target position (and thus absolute),
-				  or - when hitting edge - at new mesh's edge position
-		+ Render:
-			+ At each Render call, if we are doing RayTracing, render an additional ("shadow") particle at RayTracingState::CurrentPosition, almost transparent
-				+ Real particle will move at end, and ghost disappears because of losing RayTracing state
-	+ Mesh Transformation UI:
-		+ Rotation: new tool
-			+ No LabController member, acts directly
-		+ Velocity:
-			+ Store just vel, update whole mesh at UpdateMeshTransformations
-				+ Nuke "current translation"
-		+ UI:
-			+ Checkbox for "render RT" 
-			+ Two sliders (x, y)
-	- Rendering of mesh wrt speed: TODO
