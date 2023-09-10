@@ -106,6 +106,9 @@
 		+ Cleanup CalculatePhysicsTarget
 			+ Ain't Ft integrated the flattened trajectory? ain't all here doable in terms of displacements instead of forces
 		- Fix bounce against moving wall (v=+3): transfer is too much
-		
+			+ Test:
+				+ A: particle v = (+4, 0), mesh hv=0
+				+ B: particle v = (+7, 0), mesh hv=3
+				+ Bounces should be the same
 
 				

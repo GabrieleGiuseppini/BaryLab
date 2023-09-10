@@ -427,7 +427,7 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
                                         targetPosition,
                                         currentTriangleElementIndex,
                                         vertices),
-                                    vec2f::zero()));
+                                    meshDisplacement));
                         }
                     }
                 }
@@ -552,7 +552,7 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
     // if we're on edge, trajectory is along this edge
     //
 
-    LogMessage("  Target is outside triangle (", targetBarycentricCoords, ")");
+    LogMessage("  Target is outside triangle ", targetBarycentricCoords, "");
 
     //
     // Find closest intersection in the direction of the trajectory
