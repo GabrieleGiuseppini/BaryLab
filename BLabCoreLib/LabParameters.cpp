@@ -10,6 +10,6 @@ LabParameters::LabParameters()
 	, GravityAdjustment(1.0f)
 	, Elasticity(0.5f)
 	, StaticFriction(0.5f)
-	, KineticFriction(0.1f)
+	, KineticFriction(0.075f)
 {
 }

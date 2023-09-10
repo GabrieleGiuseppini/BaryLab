@@ -35,7 +35,12 @@ ToolController::ToolController(
             mLabController));
 
     mAllTools.emplace_back(
-        std::make_unique<RotateMeshTool>(
+        std::make_unique<RotateMeshByPositionTool>(
+            mCursorWindow,
+            mLabController));
+
+    mAllTools.emplace_back(
+        std::make_unique<RotateMeshByParticleTool>(
             mCursorWindow,
             mLabController));
 

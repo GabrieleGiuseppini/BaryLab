@@ -414,6 +414,75 @@ void LabController::RotateMeshBy(
     mModel->GetParticles().GetState(0).TrajectoryState.reset();
 }
 
+void LabController::RotateMeshBy(
+    ElementIndex particleIndex, 
+    float screenAngle)
+{
+    assert(!!mModel);
+
+    assert(particleIndex < mModel->GetParticles().GetElementCount());
+
+    //
+    // Rotate mesh
+    //
+
+    vec2f const worldCenter = mModel->GetParticles().GetPosition(particleIndex);
+    float const worldAngle = ScreenOffsetToWorldOffset(screenAngle);
+
+    float const cosAngle = std::cos(worldAngle);
+    float const sinAngle = std::sin(worldAngle);
+
+    auto & vertices = mModel->GetMesh().GetVertices();
+    for (auto v : vertices)
+    {
+        vec2f const centeredPos = vertices.GetPosition(v) - worldCenter;
+        vec2f const rotatedPos = vec2f(
+            centeredPos.x * cosAngle - centeredPos.y * sinAngle,
+            centeredPos.x * sinAngle + centeredPos.y * cosAngle);
+
+        vertices.SetPosition(v, rotatedPos + worldCenter);
+    }
+
+    assert(mModel->GetParticles().GetElementCount() >= 1);
+
+    //
+    // Make sure that on-edgeness of particle, if any, is maintained
+    //
+
+    if (mModel->GetParticles().GetState(particleIndex).ConstrainedState.has_value())
+    {
+        ElementIndex const triangleIndex = mModel->GetParticles().GetState(particleIndex).ConstrainedState->CurrentTriangle;
+
+        vec3f const oldBarycentricCoords = mModel->GetParticles().GetState(particleIndex).ConstrainedState->CurrentTriangleBarycentricCoords;
+        int edgeOrdinal = -1;
+        if (oldBarycentricCoords[0] == 0.0f)
+        {
+            edgeOrdinal = 0;
+        }
+        else if (oldBarycentricCoords[1] == 0.0f)
+        {
+            edgeOrdinal = 1;
+        }
+        else if (oldBarycentricCoords[2] == 0.0f)
+        {
+            edgeOrdinal = 2;
+        }
+
+        if (edgeOrdinal >= 0)
+        {
+            vec3f newBarycentricCoords = mModel->GetMesh().GetTriangles().ToBarycentricCoordinates(
+                mModel->GetParticles().GetPosition(particleIndex),
+                triangleIndex,
+                mModel->GetMesh().GetVertices());
+
+            newBarycentricCoords[edgeOrdinal] = 0.0f;
+            newBarycentricCoords[(edgeOrdinal + 1) % 3] = 1.0f - newBarycentricCoords[(edgeOrdinal + 2) % 3];
+
+            mModel->GetParticles().GetState(particleIndex).ConstrainedState->CurrentTriangleBarycentricCoords = newBarycentricCoords;
+        }
+    }
+}
+
 bool LabController::TrySelectOriginTriangle(vec2f const & screenCoordinates)
 {
     assert(!!mModel);

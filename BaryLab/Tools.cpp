@@ -33,11 +33,24 @@ MoveVertexTool::MoveVertexTool(
 {
 }
 
-RotateMeshTool::RotateMeshTool(
+RotateMeshByPositionTool::RotateMeshByPositionTool(
     wxWindow * cursorWindow,
     std::shared_ptr<LabController> labController)
     : Tool(
-        ToolType::RotateMesh,
+        ToolType::RotateMeshByPosition,
+        cursorWindow,
+        std::move(labController))
+    , mCurrentEngagementState()
+    , mUpCursor(WxHelpers::MakeCursor("rotate_mesh_cursor_up", 13, 5))
+    , mDownCursor(WxHelpers::MakeCursor("rotate_mesh_cursor_down", 13, 5))
+{
+}
+
+RotateMeshByParticleTool::RotateMeshByParticleTool(
+    wxWindow * cursorWindow,
+    std::shared_ptr<LabController> labController)
+    : Tool(
+        ToolType::RotateMeshByParticle,
         cursorWindow,
         std::move(labController))
     , mCurrentEngagementState()

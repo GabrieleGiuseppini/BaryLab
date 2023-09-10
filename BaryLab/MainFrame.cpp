@@ -145,7 +145,8 @@ MainFrame::MainFrame(wxApp * mainApp)
         mControlToolbar->Connect(ControlToolbar::ID_SET_PARTICLE_TRAJECTORY, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSetParticleTrajectory, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_SET_ORIGIN_TRIANGLE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSetOriginTriangle, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_MOVE_VERTEX, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnMoveVertex, 0, this);
-        mControlToolbar->Connect(ControlToolbar::ID_ROTATE_MESH, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnRotateMesh, 0, this);                
+        mControlToolbar->Connect(ControlToolbar::ID_ROTATE_MESH_BY_POSITION, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnRotateMeshByPosition, 0, this);
+        mControlToolbar->Connect(ControlToolbar::ID_ROTATE_MESH_BY_PARTICLE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnRotateMeshByParticle, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_SET_PARTICLE_GRAVITY, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSetParticleGravity, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_SIMULATION_CONTROL_PLAY, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSimulationControlPlay, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_SIMULATION_CONTROL_PAUSE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSimulationControlPause, 0, this);
@@ -675,10 +676,16 @@ void MainFrame::OnMoveVertex(wxCommandEvent & /*event*/)
     mToolController->SetTool(ToolType::MoveVertex);
 }
 
-void MainFrame::OnRotateMesh(wxCommandEvent & /*event*/)
+void MainFrame::OnRotateMeshByPosition(wxCommandEvent & /*event*/)
 {
     assert(!!mToolController);
-    mToolController->SetTool(ToolType::RotateMesh);
+    mToolController->SetTool(ToolType::RotateMeshByPosition);
+}
+
+void MainFrame::OnRotateMeshByParticle(wxCommandEvent & /*event*/)
+{
+    assert(!!mToolController);
+    mToolController->SetTool(ToolType::RotateMeshByParticle);
 }
 
 void MainFrame::OnSetParticleGravity(wxCommandEvent & event)

@@ -128,7 +128,8 @@ private:
     void OnSetParticleTrajectory(wxCommandEvent & event);
     void OnSetOriginTriangle(wxCommandEvent & event);
     void OnMoveVertex(wxCommandEvent & event);
-    void OnRotateMesh(wxCommandEvent & event);
+    void OnRotateMeshByPosition(wxCommandEvent & event);
+    void OnRotateMeshByParticle(wxCommandEvent & event);
     void OnSetParticleGravity(wxCommandEvent & event);
     void OnSimulationControlPlay(wxCommandEvent & event);
     void OnSimulationControlPause(wxCommandEvent & event);

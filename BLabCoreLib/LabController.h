@@ -64,6 +64,8 @@ public:
 
     void RotateMeshBy(vec2f const & centerScreenCoordinates, float screenAngle);
 
+    void RotateMeshBy(ElementIndex particleIndex, float screenAngle);
+
     bool TrySelectOriginTriangle(vec2f const & screenCoordinates);
 
     std::optional<ElementIndex> TryPickParticle(vec2f const & screenCoordinates) const;
