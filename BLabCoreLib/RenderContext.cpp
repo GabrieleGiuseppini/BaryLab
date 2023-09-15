@@ -568,7 +568,7 @@ void RenderContext::UploadMeshVelocity(
         float const vectorMagnitude = meshVelocity.length();
         vec2f const vectorDir = meshVelocity.normalise(vectorMagnitude);
         vec2f const vectorNormal = vectorDir.to_perpendicular();
-        float constexpr ArrowHeadWidth = 0.2f; // To be kept inline with shader
+        float constexpr ArrowHeadWidth = 0.3f; // To be kept inline with shader
         float constexpr MinVectorLength = ArrowHeadWidth + 0.04f; // Room for border & anti-aliasing, plus a portion of body
         float constexpr MaxVectorLength = 1.0f;
         float constexpr VectorWidth = ArrowHeadWidth;
@@ -608,12 +608,12 @@ void RenderContext::UploadMeshVelocity(
 
         mMeshVelocityVertexBuffer.emplace_back(
             j,
-            vec2f(-0.5f + LeftPortionWidth, 0.5f),
+            vec2f(-0.25f, 0.5f),
             highlight);
 
         mMeshVelocityVertexBuffer.emplace_back(
             k,
-            vec2f(-0.5f + LeftPortionWidth, -0.5f),
+            vec2f(-0.25f, -0.5f),
             highlight);
 
         // Middle portion
@@ -624,15 +624,13 @@ void RenderContext::UploadMeshVelocity(
 
         mMeshVelocityVertexBuffer.emplace_back(
             l,
-            vec2f(-0.5f + LeftPortionWidth + middlePortionWidth, 0.5f),
+            vec2f(0.0f, 0.5f),
             highlight);
 
         mMeshVelocityVertexBuffer.emplace_back(
             m,
-            vec2f(-0.5f + LeftPortionWidth + middlePortionWidth, -0.5f),
+            vec2f(0.0f, -0.5f),
             highlight);
-
-        LogMessage("-0.5   ", -0.5f + LeftPortionWidth, "   ", -0.5f + LeftPortionWidth + middlePortionWidth, "   ", 0.5f);
 
         // Right portion
 

@@ -90,7 +90,7 @@ float arrow_triangle(
     //
     // Negative distance is inside of arrow
     
-    float HeadWidth = 0.2;
+    float HeadWidth = 0.3;
     
     float d_BA = line_distance(
         texcoord,
@@ -104,14 +104,14 @@ float arrow_triangle(
         
     float d_AC = (end.x - HeadWidth) - texcoord.x;
     
-    float BodyHeight = HeadWidth * 2.0;
+    float BodyHeight = HeadWidth * 1.5;
 
     float d_Body_v = -min(
         BodyHeight/2.0 - texcoord.y,
         texcoord.y + BodyHeight/2.0);
         
     float d_Body_h = max(
-        texcoord.x - (end.x - HeadWidth + 0.02),
+        texcoord.x - (end.x - HeadWidth + 0.08),
         -(texcoord.x + Width / 2.0 - strokeWidth / 2.0));
         
     float d = min(max(max(d_BA, d_CB), d_AC), max(d_Body_v, d_Body_h));
