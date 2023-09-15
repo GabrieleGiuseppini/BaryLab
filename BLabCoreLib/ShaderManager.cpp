@@ -466,6 +466,8 @@ ShaderManager::ProgramType ShaderManager::ShaderFilenameToProgramType(std::strin
         return ProgramType::Edges;
     else if (Utils::CaseInsensitiveEquals(str, "Grid"))
         return ProgramType::Grid;
+    else if (Utils::CaseInsensitiveEquals(str, "MeshVelocity"))
+        return ProgramType::MeshVelocity;
     else if (Utils::CaseInsensitiveEquals(str, "ParticleTrajectories"))
         return ProgramType::ParticleTrajectories;
     else if (Utils::CaseInsensitiveEquals(str, "Particles"))
@@ -486,6 +488,8 @@ std::string ShaderManager::ProgramTypeToStr(ProgramType program)
             return "Edges";
         case ProgramType::Grid:
             return "Grid";
+        case ProgramType::MeshVelocity:
+            return "MeshVelocity";
         case ProgramType::ParticleTrajectories:
             return "ParticleTrajectories";
         case ProgramType::Particles:
@@ -536,6 +540,10 @@ ShaderManager::VertexAttributeType ShaderManager::StrToVertexAttributeType(std::
         return VertexAttributeType::EdgeAttributeGroup1;
     else if (Utils::CaseInsensitiveEquals(str, "EdgeAttributeGroup2"))
         return VertexAttributeType::EdgeAttributeGroup2;
+    else if (Utils::CaseInsensitiveEquals(str, "MeshVelocityAttributeGroup1"))
+        return VertexAttributeType::MeshVelocityAttributeGroup1;
+    else if (Utils::CaseInsensitiveEquals(str, "MeshVelocityAttributeGroup2"))
+        return VertexAttributeType::MeshVelocityAttributeGroup2;
     else if (Utils::CaseInsensitiveEquals(str, "ParticleAttributeGroup1"))
         return VertexAttributeType::ParticleAttributeGroup1;
     else if (Utils::CaseInsensitiveEquals(str, "ParticleAttributeGroup2"))

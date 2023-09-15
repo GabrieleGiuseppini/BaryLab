@@ -142,6 +142,26 @@ RenderContext::RenderContext(
     glBindVertexArray(0);
 
     //
+    // Mesh velocity
+    //
+
+    glGenVertexArrays(1, &tmpGLuint);
+    mMeshVelocityVAO = tmpGLuint;
+    glBindVertexArray(*mMeshVelocityVAO);
+
+    glGenBuffers(1, &tmpGLuint);
+    mMeshVelocityVertexVBO = tmpGLuint;
+    glBindBuffer(GL_ARRAY_BUFFER, *mMeshVelocityVertexVBO);
+
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::MeshVelocityAttributeGroup1));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::MeshVelocityAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(MeshVelocityVertex), (void *)0);
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::MeshVelocityAttributeGroup2));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::MeshVelocityAttributeGroup2), 1, GL_FLOAT, GL_FALSE, sizeof(MeshVelocityVertex), (void *)(4 * sizeof(float)));
+    static_assert(sizeof(MeshVelocityVertex) == (4 + 1) * sizeof(float));
+
+    glBindVertexArray(0);
+
+    //
     // Grid
     //
 
@@ -526,6 +546,96 @@ void RenderContext::UploadSelectedTrianglesEnd()
     }
 }
 
+void RenderContext::UploadMeshVelocity(
+    vec2f const & meshVelocity,
+    float highlight)
+{
+    //
+    // Create vertices
+    //
+
+    mMeshVelocityVertexBuffer.clear();
+
+    if (meshVelocity != vec2f::zero())
+    {
+        // Dimensions - NDC
+        float const quadrantWidth = 0.4f;
+        float const quadrantHeight = quadrantWidth * mViewModel.GetAspectRatio();
+        vec2f const halfQuadrantSize = vec2f(quadrantWidth / 2.0f, quadrantHeight / 2.0f);
+        vec2f const center = vec2f(1.0f - quadrantWidth / 2.0f, -1.0f + quadrantHeight / 2.0f);
+
+        // Vector - in normalized space
+        float const vectorMagnitude = meshVelocity.length();
+        vec2f const vectorDir = meshVelocity.normalise(vectorMagnitude);
+        vec2f const vectorNormal = vectorDir.to_perpendicular();
+        float constexpr ArrowHeadWidth = 0.2f; // To be kept inline with shader
+        float constexpr MinVectorLength = ArrowHeadWidth + 0.04f; // Room for border & anti-aliasing, plus a portion of body
+        float constexpr MaxVectorLength = 1.0f;
+        float constexpr VectorWidth = ArrowHeadWidth;
+        // 0.2 + (1.0-0.2)*(1.0 - e^(-x/5.0))  // Almost 1.0 at 30.0
+        float const scaledVectorLength = MinVectorLength + (MaxVectorLength - MinVectorLength) * (1.0f - std::exp(-vectorMagnitude * 0.2f));
+
+        //
+        // A     J   L   MinLen    B
+        // -------------------------
+        // |     |   |             |
+        // |center   |             |
+        // |     |   |             |
+        // -------------------------
+        // C     K   M             D
+        //
+
+        // In NDC space
+        vec2f const a = center + vectorNormal * VectorWidth / 2.0f * halfQuadrantSize;
+        vec2f const b = a + vectorDir * scaledVectorLength * halfQuadrantSize;
+        vec2f const c = center - vectorNormal * VectorWidth / 2.0f * halfQuadrantSize;
+        vec2f const d = c + vectorDir * scaledVectorLength * halfQuadrantSize;
+
+        // TODO: portions
+
+        mMeshVelocityVertexBuffer.emplace_back(
+            a,
+            vec2f(-0.5f, 0.5f),
+            highlight);
+
+        mMeshVelocityVertexBuffer.emplace_back(
+            c,
+            vec2f(-0.5f, -0.5f),
+            highlight);
+
+        mMeshVelocityVertexBuffer.emplace_back(
+            b,
+            vec2f(0.5f, 0.5f),
+            highlight);
+
+        mMeshVelocityVertexBuffer.emplace_back(
+            c,
+            vec2f(-0.5f, -0.5f),
+            highlight);
+
+        mMeshVelocityVertexBuffer.emplace_back(
+            b,
+            vec2f(0.5f, 0.5f),
+            highlight);
+
+        mMeshVelocityVertexBuffer.emplace_back(
+            d,
+            vec2f(0.5f, -0.5f),
+            highlight);
+    }
+
+    //
+    // Upload buffer, if needed
+    //
+
+    if (!mMeshVelocityVertexBuffer.empty())
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, *mMeshVelocityVertexVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(MeshVelocityVertex) * mMeshVelocityVertexBuffer.size(), mMeshVelocityVertexBuffer.data(), GL_STREAM_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+}
+
 void RenderContext::RenderEnd()
 {
     ////////////////////////////////////////////////////////////////
@@ -626,6 +736,24 @@ void RenderContext::RenderEnd()
         mShaderManager->ActivateProgram<ShaderManager::ProgramType::Grid>();
 
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+        CheckOpenGLError();
+
+        glBindVertexArray(0);
+    }
+
+    ////////////////////////////////////////////////////////////////
+    // Mesh velocity
+    ////////////////////////////////////////////////////////////////
+
+    if (!mMeshVelocityVertexBuffer.empty())
+    {
+        glBindVertexArray(*mMeshVelocityVAO);
+
+        mShaderManager->ActivateProgram<ShaderManager::ProgramType::MeshVelocity>();
+
+        assert((mMeshVelocityVertexBuffer.size() % 3) == 0);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mMeshVelocityVertexBuffer.size()));
 
         CheckOpenGLError();
 

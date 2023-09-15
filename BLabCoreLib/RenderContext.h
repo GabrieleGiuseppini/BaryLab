@@ -184,6 +184,10 @@ public:
 
     void UploadSelectedTrianglesEnd();
 
+    void UploadMeshVelocity(
+        vec2f const & meshVelocity,
+        float highlight);
+
     void RenderEnd();
 
 private:
@@ -351,6 +355,35 @@ private:
 
     std::vector<SelectedTriangleVertex> mSelectedTriangleVertexBuffer;
     BLabOpenGLVBO mSelectedTriangleVertexVBO;
+
+    ////////////////////////////////////////////////////////////////
+    // Mesh velocity
+    ////////////////////////////////////////////////////////////////
+
+#pragma pack(push)
+
+    struct MeshVelocityVertex
+    {
+        vec2f PositionNdc;
+        vec2f VertexSpacePosition;
+        float Highlight;
+
+        MeshVelocityVertex(
+            vec2f const & positionNdc,
+            vec2f const & vertexSpacePosition,
+            float highlight)
+            : PositionNdc(positionNdc)
+            , VertexSpacePosition(vertexSpacePosition)
+            , Highlight(highlight)
+        {}
+    };
+
+#pragma pack(pop)
+
+    BLabOpenGLVAO mMeshVelocityVAO;
+
+    std::vector<MeshVelocityVertex> mMeshVelocityVertexBuffer;
+    BLabOpenGLVBO mMeshVelocityVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // Grid

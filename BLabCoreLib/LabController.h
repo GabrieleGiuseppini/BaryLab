@@ -275,6 +275,7 @@ private:
 
     bool mIsGravityEnabled;
     vec2f mCurrentMeshTranslationVelocity;
+    float mCurrentMeshTranslationAccelerationIndicator;
     bool mRenderSimulationSteps;
 
     //

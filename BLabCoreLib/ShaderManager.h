@@ -32,7 +32,8 @@ public:
         Particles = 2,
         ParticleTrajectories = 3,
         SelectedTriangles = 4,
-        Grid = 5,
+        MeshVelocity = 5,
+        Grid = 6,
 
         _Last = Grid
     };
@@ -59,6 +60,9 @@ public:
 
         SelectedTriangleAttributeGroup1 = 0,
         SelectedTriangleAttributeGroup2 = 1,
+
+        MeshVelocityAttributeGroup1 = 0,
+        MeshVelocityAttributeGroup2 = 1,
 
         GridAttributeGroup1 = 0
     };

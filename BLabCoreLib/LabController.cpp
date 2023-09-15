@@ -51,6 +51,7 @@ LabController::LabController(
     , mCurrentParticleTrajectoryNotification()
     , mIsGravityEnabled(false)
     , mCurrentMeshTranslationVelocity(vec2f::zero())
+    , mCurrentMeshTranslationAccelerationIndicator(0.0f)
     , mRenderSimulationSteps(true)
     // Simulation control
     , mSimulationControlState(SimulationControlStateType::Paused)
@@ -133,6 +134,8 @@ void LabController::Update()
         || mSimulationControlImpulse)
     {
         UpdateSimulation(mLabParameters);
+
+        mCurrentMeshTranslationAccelerationIndicator *= 0.98f;
 
         // Update state
         mSimulationControlImpulse = false;
@@ -304,7 +307,15 @@ void LabController::Render()
                 rgbaColor(107, 227, 107, 77));
         }
 
-        mRenderContext->UploadSelectedTrianglesEnd();        
+        mRenderContext->UploadSelectedTrianglesEnd();
+
+        //
+        // Mesh velocity
+        //
+
+        mRenderContext->UploadMeshVelocity(
+            mCurrentMeshTranslationVelocity,
+            mCurrentMeshTranslationAccelerationIndicator);
     }
 
     mRenderContext->RenderEnd();    
@@ -618,6 +629,7 @@ vec2f const & LabController::GetMeshVelocity() const
 void LabController::SetMeshVelocity(vec2f const & velocity)
 {
     mCurrentMeshTranslationVelocity = velocity;
+    mCurrentMeshTranslationAccelerationIndicator = 1.0f;
 }
 
 ////////////////////////////////////////////////
