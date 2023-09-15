@@ -576,22 +576,25 @@ void RenderContext::UploadMeshVelocity(
         float const scaledVectorLength = MinVectorLength + (MaxVectorLength - MinVectorLength) * (1.0f - std::exp(-vectorMagnitude * 0.2f));
 
         //
-        // A     J   L   MinLen    B
-        // -------------------------
-        // |     |   |             |
-        // |center   |             |
-        // |     |   |             |
-        // -------------------------
-        // C     K   M             D
+        // A     J         L   MinLen    B
+        // -------------------------------
+        // |     |         |             |
+        // |center         |             |
+        // |     |         |             |
+        // -------------------------------
+        // C     K         M             D
         //
 
         // In NDC space
-        vec2f const a = center + vectorNormal * VectorWidth / 2.0f * halfQuadrantSize;
-        vec2f const b = a + vectorDir * scaledVectorLength * halfQuadrantSize;
-        vec2f const c = center - vectorNormal * VectorWidth / 2.0f * halfQuadrantSize;
-        vec2f const d = c + vectorDir * scaledVectorLength * halfQuadrantSize;
 
-        // TODO: portions
+        vec2f const a = center + vectorNormal * VectorWidth / 2.0f * halfQuadrantSize;
+        vec2f const c = center - vectorNormal * VectorWidth / 2.0f * halfQuadrantSize;
+
+        // Left portion
+        
+        float constexpr LeftPortionWidth = MinVectorLength * 0.2f;
+        vec2f const j = a + vectorDir * LeftPortionWidth * halfQuadrantSize;
+        vec2f const k = c + vectorDir * LeftPortionWidth * halfQuadrantSize;
 
         mMeshVelocityVertexBuffer.emplace_back(
             a,
@@ -604,14 +607,37 @@ void RenderContext::UploadMeshVelocity(
             highlight);
 
         mMeshVelocityVertexBuffer.emplace_back(
-            b,
-            vec2f(0.5f, 0.5f),
+            j,
+            vec2f(-0.5f + LeftPortionWidth, 0.5f),
             highlight);
 
         mMeshVelocityVertexBuffer.emplace_back(
-            c,
-            vec2f(-0.5f, -0.5f),
+            k,
+            vec2f(-0.5f + LeftPortionWidth, -0.5f),
             highlight);
+
+        // Middle portion
+
+        float const middlePortionWidth = scaledVectorLength - LeftPortionWidth - MinVectorLength;
+        vec2f const l = a + vectorDir * (LeftPortionWidth + middlePortionWidth) * halfQuadrantSize;
+        vec2f const m = c + vectorDir * (LeftPortionWidth + middlePortionWidth) * halfQuadrantSize;
+
+        mMeshVelocityVertexBuffer.emplace_back(
+            l,
+            vec2f(-0.5f + LeftPortionWidth + middlePortionWidth, 0.5f),
+            highlight);
+
+        mMeshVelocityVertexBuffer.emplace_back(
+            m,
+            vec2f(-0.5f + LeftPortionWidth + middlePortionWidth, -0.5f),
+            highlight);
+
+        LogMessage("-0.5   ", -0.5f + LeftPortionWidth, "   ", -0.5f + LeftPortionWidth + middlePortionWidth, "   ", 0.5f);
+
+        // Right portion
+
+        vec2f const b = a + vectorDir * scaledVectorLength * halfQuadrantSize;
+        vec2f const d = c + vectorDir * scaledVectorLength * halfQuadrantSize;
 
         mMeshVelocityVertexBuffer.emplace_back(
             b,
@@ -752,8 +778,7 @@ void RenderContext::RenderEnd()
 
         mShaderManager->ActivateProgram<ShaderManager::ProgramType::MeshVelocity>();
 
-        assert((mMeshVelocityVertexBuffer.size() % 3) == 0);
-        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mMeshVelocityVertexBuffer.size()));
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, static_cast<GLsizei>(mMeshVelocityVertexBuffer.size()));
 
         CheckOpenGLError();
 

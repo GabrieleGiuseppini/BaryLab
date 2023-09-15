@@ -433,7 +433,7 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
 
     // Mesh transformation
     {
-        wxBoxSizer * hSizer = new wxBoxSizer(wxHORIZONTAL);
+        wxGridSizer * gridSizer = new wxGridSizer(2, 2, 2);
 
         static int constexpr SliderWidth = 50;
         static int constexpr SliderHeight = 140;
@@ -458,9 +458,9 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
 
             mHorizontalMeshVelocitySlider->SetValue(0.0f);
 
-            hSizer->Add(
+            gridSizer->Add(
                 mHorizontalMeshVelocitySlider,
-                0, 
+                1, 
                 wxALL, 
                 1);
         }
@@ -485,14 +485,66 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
 
             mVerticalMeshVelocitySlider->SetValue(0.0f);
 
-            hSizer->Add(
+            gridSizer->Add(
                 mVerticalMeshVelocitySlider,
+                1,
+                wxALL,
+                1);
+        }
+
+        // Horizontal velocity zero
+        {
+            auto * button = new wxButton(
+                this,
+                wxID_ANY,
+                "Zero",
+                wxDefaultPosition,
+                wxSize(-1, -1));
+
+            button->Bind(wxEVT_BUTTON,
+                [this](wxCommandEvent & /*event*/)
+                {
+                    meshTransformationChangedEvent evt(EVT_MESH_TRANSFORMATION_CHANGED, this->GetId(),
+                        vec2f(0.0f, mVerticalMeshVelocitySlider->GetValue()));
+                    ProcessEvent(evt);
+
+                    mHorizontalMeshVelocitySlider->SetValue(0.0f);
+                });
+
+            gridSizer->Add(
+                button,
                 0,
                 wxALL,
                 1);
         }
 
-        vSizer->Add(hSizer, 0, wxALIGN_CENTER | wxALL, 5);
+        // Vertical velocity zero
+        {
+            auto * button = new wxButton(
+                this,
+                wxID_ANY,
+                "Zero",
+                wxDefaultPosition,
+                wxSize(-1, -1));
+
+            button->Bind(wxEVT_BUTTON,
+                [this](wxCommandEvent & /*event*/)
+                {
+                    meshTransformationChangedEvent evt(EVT_MESH_TRANSFORMATION_CHANGED, this->GetId(),
+                        vec2f(mHorizontalMeshVelocitySlider->GetValue(), 0.0f));
+                    ProcessEvent(evt);
+
+                    mVerticalMeshVelocitySlider->SetValue(0.0f);
+                });
+
+            gridSizer->Add(
+                button,
+                0,
+                wxALL,
+                1);
+        }
+
+        vSizer->Add(gridSizer, 0, wxALIGN_CENTER | wxALL, 5);
     }
 
     vSizer->AddSpacer(10);
