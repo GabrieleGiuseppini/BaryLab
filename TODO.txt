@@ -1,2 +1,0 @@
-= Mesh velocity arrow rendering
-	- Change color of arrow

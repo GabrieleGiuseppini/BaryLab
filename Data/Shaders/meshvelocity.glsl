@@ -32,11 +32,10 @@ in float highlight;
 
 // From https://jcgt.org/published/0003/04/01/paper.pdf
 
-vec4 outline(
+vec4 filled(
     float distance, // Signed distance to line
     float linewidth, // Stroke line width
     float antialias, // Stroke antialiased area
-    vec4 stroke, // Stroke color
     vec4 fill) // Fill color
 {
     float t = linewidth / 2.0 - antialias;
@@ -45,14 +44,12 @@ vec4 outline(
     float alpha = border_distance / antialias;
     alpha = exp(-alpha * alpha);
     if( border_distance < 0.0 )
-        // Full stroke
-        return stroke;
+        return fill;
     else if( signed_distance < 0.0 )
-        // Stroke->Body
-        return mix(fill, stroke, alpha);
+        return fill;
     else
         // Anti-alias
-        return vec4(stroke.rgb, stroke.a * alpha);
+        return vec4(fill.rgb, alpha * fill.a);
 }
 
 // Positive on the R side, negative on the other
@@ -120,30 +117,19 @@ float arrow_triangle(
 
 void main()
 {
-    float StrokeWidth = 0.02;
-    float AntiAlias =  0.01;
+    float StrokeWidth = 0.024;
+    float AntiAlias =  0.015;
         
     float d = arrow_triangle(
         vertexSpace,
         StrokeWidth);
      
-    vec4 color = outline(
+    gl_FragColor = filled(
         d, 
         StrokeWidth, 
         AntiAlias,
-        vec4(0.2, 0.2, 0.75, 1.0), // Stroke
         mix(
-            vec4(0.0, 0.0, 0.0, 1.0),
+            vec4(0.45, 0.45, 0.5, 1.0),
             vec4(0.75, 0.2, 0.2, 1.0),
-            highlight)); // Fill
-
-    //color = vec4(0.0, 0.0, 0.0, 1.0);
-
-    /////////////////////////
-
-    // Output to screen
-    gl_FragColor = mix(
-        vec4(1.0),
-        color,
-        color.a);
+            highlight));
 } 

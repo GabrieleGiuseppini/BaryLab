@@ -22,7 +22,7 @@ LinearSliderCore::LinearSliderCore(
     //
 
     // Start with an approximate number of ticks
-    float n = std::floor(std::log(100.0f / (maxValue - minValue)) / std::log(2.0f));
+    float n = std::floor(std::log(200.0f / (maxValue - minValue)) / std::log(2.0f));
     mTickSize = 1.0f / std::pow(2.0f, n);
 
     // Now calculate the real number of ticks

@@ -663,7 +663,7 @@ void RenderContext::UploadMeshVelocity(
 void RenderContext::RenderEnd()
 {
     ////////////////////////////////////////////////////////////////
-    // Render selected triangles
+    // Selected triangles
     ////////////////////////////////////////////////////////////////
 
     if (!mSelectedTriangleVertexBuffer.empty())
@@ -681,7 +681,24 @@ void RenderContext::RenderEnd()
     }
 
     ////////////////////////////////////////////////////////////////
-    // Render edges
+    // Mesh velocity
+    ////////////////////////////////////////////////////////////////
+
+    if (!mMeshVelocityVertexBuffer.empty())
+    {
+        glBindVertexArray(*mMeshVelocityVAO);
+
+        mShaderManager->ActivateProgram<ShaderManager::ProgramType::MeshVelocity>();
+
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, static_cast<GLsizei>(mMeshVelocityVertexBuffer.size()));
+
+        CheckOpenGLError();
+
+        glBindVertexArray(0);
+    }
+
+    ////////////////////////////////////////////////////////////////
+    // Edges
     ////////////////////////////////////////////////////////////////
 
     if (!mEdgeVertexBuffer.empty())
@@ -699,7 +716,7 @@ void RenderContext::RenderEnd()
     }
 
     ////////////////////////////////////////////////////////////////
-    // Render vertices
+    // Vertices
     ////////////////////////////////////////////////////////////////
 
     glBindVertexArray(*mVertexVAO);
@@ -714,7 +731,7 @@ void RenderContext::RenderEnd()
     glBindVertexArray(0);
 
     ////////////////////////////////////////////////////////////////
-    // Render particles
+    // Particles
     ////////////////////////////////////////////////////////////////
 
     if (!mParticleVertexBuffer.empty())
@@ -732,7 +749,7 @@ void RenderContext::RenderEnd()
     }
 
     ////////////////////////////////////////////////////////////////
-    // Render particle trajectories
+    // Particle trajectories
     ////////////////////////////////////////////////////////////////
 
     if (!mParticleTrajectoryVertexBuffer.empty())
@@ -760,23 +777,6 @@ void RenderContext::RenderEnd()
         mShaderManager->ActivateProgram<ShaderManager::ProgramType::Grid>();
 
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-        CheckOpenGLError();
-
-        glBindVertexArray(0);
-    }
-
-    ////////////////////////////////////////////////////////////////
-    // Mesh velocity
-    ////////////////////////////////////////////////////////////////
-
-    if (!mMeshVelocityVertexBuffer.empty())
-    {
-        glBindVertexArray(*mMeshVelocityVAO);
-
-        mShaderManager->ActivateProgram<ShaderManager::ProgramType::MeshVelocity>();
-
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, static_cast<GLsizei>(mMeshVelocityVertexBuffer.size()));
 
         CheckOpenGLError();
 
