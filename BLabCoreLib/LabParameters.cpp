@@ -8,8 +8,8 @@
 LabParameters::LabParameters()
 	: MassAdjustment(1.0f)
 	, GravityAdjustment(1.0f)
-	, Elasticity(0.5f)
-	, StaticFriction(0.5f)
-	, KineticFriction(0.075f)
+	, Elasticity(0.6f)
+	, StaticFriction(0.4f)
+	, KineticFriction(0.031f)
 {
 }

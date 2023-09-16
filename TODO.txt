@@ -1,0 +1,7 @@
+Video:
++ mesh: wide, with spikes L and R, and small opening
+- intro: bouncy ball, no mesh vel
+- H velocity: friction makes ball stop; then when zero V ball continues
+	- show how ball gains speed via friction
+- V fall:
+- V acceleration:

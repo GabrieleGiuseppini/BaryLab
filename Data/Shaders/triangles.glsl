@@ -6,8 +6,8 @@
 #define out varying
 
 // Inputs
-in vec2 inSelectedTriangleAttributeGroup1; // Position
-in vec4 inSelectedTriangleAttributeGroup2; // Color
+in vec2 inTriangleAttributeGroup1; // Position
+in vec4 inTriangleAttributeGroup2; // Color
 
 // Outputs
 out vec4 color;
@@ -17,8 +17,8 @@ uniform mat4 paramOrthoMatrix;
 
 void main()
 {  
-    color = inSelectedTriangleAttributeGroup2;
-    gl_Position = paramOrthoMatrix * vec4(inSelectedTriangleAttributeGroup1.xy, -1.0, 1.0);
+    color = inTriangleAttributeGroup2;
+    gl_Position = paramOrthoMatrix * vec4(inTriangleAttributeGroup1.xy, -1.0, 1.0);
 }
 
 ###FRAGMENT

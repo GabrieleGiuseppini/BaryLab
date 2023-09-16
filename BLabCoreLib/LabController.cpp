@@ -186,13 +186,17 @@ void LabController::Render()
 
     if (mModel)
     {
+        auto const & vertices = mModel->GetMesh().GetVertices();
+        auto const & edges = mModel->GetMesh().GetEdges();
+        auto const & triangles = mModel->GetMesh().GetTriangles();
+
         //
         // Vertices
         //
 
         mRenderContext->UploadVertices(
-            mModel->GetMesh().GetVertices().GetElementCount(),
-            mModel->GetMesh().GetVertices().GetPositionBuffer());
+            vertices.GetElementCount(),
+            vertices.GetPositionBuffer());
 
         //
         // Edges (of triangles)
@@ -202,25 +206,65 @@ void LabController::Render()
 
         mRenderContext->UploadEdgesStart();
 
-        for (auto t : mModel->GetMesh().GetTriangles())
+        for (auto t : triangles)
         {
             mRenderContext->UploadEdge(
-                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexAIndex(t)),
-                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexBIndex(t)),
-                mModel->GetMesh().GetEdges().GetRenderColor(mModel->GetMesh().GetTriangles().GetSubEdgeAIndex(t)));
+                vertices.GetPosition(triangles.GetVertexAIndex(t)),
+                vertices.GetPosition(triangles.GetVertexBIndex(t)),
+                edges.GetRenderColor(triangles.GetSubEdgeAIndex(t)));
 
             mRenderContext->UploadEdge(
-                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexBIndex(t)),
-                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexCIndex(t)),
-                mModel->GetMesh().GetEdges().GetRenderColor(mModel->GetMesh().GetTriangles().GetSubEdgeBIndex(t)));
+                vertices.GetPosition(triangles.GetVertexBIndex(t)),
+                vertices.GetPosition(triangles.GetVertexCIndex(t)),
+                edges.GetRenderColor(triangles.GetSubEdgeBIndex(t)));
 
             mRenderContext->UploadEdge(
-                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexCIndex(t)),
-                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexAIndex(t)),
-                mModel->GetMesh().GetEdges().GetRenderColor(mModel->GetMesh().GetTriangles().GetSubEdgeCIndex(t)));
+                vertices.GetPosition(triangles.GetVertexCIndex(t)),
+                vertices.GetPosition(triangles.GetVertexAIndex(t)),
+                edges.GetRenderColor(triangles.GetSubEdgeCIndex(t)));
         }
 
         mRenderContext->UploadEdgesEnd();
+
+        //
+        // Triangles
+        //
+
+        mRenderContext->UploadTrianglesStart();
+
+        for (auto t : triangles)
+        {
+            std::optional<rgbaColor> color;
+
+            if (mCurrentlySelectedParticleProbe.has_value()
+                && mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).ConstrainedState.has_value()
+                && t == mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).ConstrainedState->CurrentTriangle)
+            {
+                color = rgbaColor(107, 227, 107, 77);
+            }
+            else if (t == mCurrentOriginTriangle)
+            {
+                color = rgbaColor(227, 107, 107, 77);
+            }
+            else if (
+                edges.GetSurfaceType(triangles.GetSubEdgeAIndex(t)) == SurfaceType::Floor
+                && edges.GetSurfaceType(triangles.GetSubEdgeBIndex(t)) == SurfaceType::Floor
+                && edges.GetSurfaceType(triangles.GetSubEdgeCIndex(t)) == SurfaceType::Floor)
+            {
+                color = rgbaColor(35, 35, 35, 77);
+            }
+
+            if (color)
+            {
+                mRenderContext->UploadTriangle(
+                    vertices.GetPosition(triangles.GetVertexAIndex(t)),
+                    vertices.GetPosition(triangles.GetVertexBIndex(t)),
+                    vertices.GetPosition(triangles.GetVertexCIndex(t)),
+                    *color);
+            }
+        }
+
+        mRenderContext->UploadTrianglesEnd();
 
         //
         // Particles
@@ -279,35 +323,6 @@ void LabController::Render()
         }
 
         mRenderContext->UploadParticleTrajectoriesEnd();
-
-        //
-        // Selected triangles
-        //
-
-        mRenderContext->UploadSelectedTrianglesStart();
-
-        if (mCurrentOriginTriangle)
-        {
-            mRenderContext->UploadSelectedTriangle(
-                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexAIndex(*mCurrentOriginTriangle)),
-                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexBIndex(*mCurrentOriginTriangle)),
-                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexCIndex(*mCurrentOriginTriangle)),
-                rgbaColor(227, 107, 107, 77));
-        }
-
-        if (mCurrentlySelectedParticleProbe.has_value()
-            && mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).ConstrainedState.has_value())
-        {
-            auto const t = mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).ConstrainedState->CurrentTriangle;
-
-            mRenderContext->UploadSelectedTriangle(
-                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexAIndex(t)),
-                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexBIndex(t)),
-                mModel->GetMesh().GetVertices().GetPosition(mModel->GetMesh().GetTriangles().GetVertexCIndex(t)),
-                rgbaColor(107, 227, 107, 77));
-        }
-
-        mRenderContext->UploadSelectedTrianglesEnd();
 
         //
         // Mesh velocity

@@ -174,15 +174,15 @@ public:
 
     void UploadParticleTrajectoriesEnd();
 
-    void UploadSelectedTrianglesStart();
+    void UploadTrianglesStart();
 
-    void UploadSelectedTriangle(
+    void UploadTriangle(
         vec2f const & endpointAPosition,
         vec2f const & endpointBPosition,
         vec2f const & endpointCPosition,
         rgbaColor const & particleColor);
 
-    void UploadSelectedTrianglesEnd();
+    void UploadTrianglesEnd();
 
     void UploadMeshVelocity(
         vec2f const & meshVelocity,
@@ -331,17 +331,17 @@ private:
     BLabOpenGLVBO mParticleTrajectoryVertexVBO;
 
     ////////////////////////////////////////////////////////////////
-    // Selected triangles
+    // Triangles
     ////////////////////////////////////////////////////////////////
 
 #pragma pack(push)
 
-    struct SelectedTriangleVertex
+    struct TriangleVertex
     {
         vec2f Position;
         vec4f Color;
 
-        SelectedTriangleVertex(
+        TriangleVertex(
             vec2f const & position,
             vec4f const & color)
             : Position(position)
@@ -351,10 +351,10 @@ private:
 
 #pragma pack(pop)
 
-    BLabOpenGLVAO mSelectedTriangleVAO;
+    BLabOpenGLVAO mTriangleVAO;
 
-    std::vector<SelectedTriangleVertex> mSelectedTriangleVertexBuffer;
-    BLabOpenGLVBO mSelectedTriangleVertexVBO;
+    std::vector<TriangleVertex> mTriangleVertexBuffer;
+    BLabOpenGLVBO mTriangleVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // Mesh velocity

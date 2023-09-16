@@ -31,7 +31,7 @@ public:
         Edges = 1,
         Particles = 2,
         ParticleTrajectories = 3,
-        SelectedTriangles = 4,
+        Triangles = 4,
         MeshVelocity = 5,
         Grid = 6,
 
@@ -58,8 +58,8 @@ public:
         ParticleTrajectoryAttributeGroup1 = 0,
         ParticleTrajectoryAttributeGroup2 = 1,
 
-        SelectedTriangleAttributeGroup1 = 0,
-        SelectedTriangleAttributeGroup2 = 1,
+        TriangleAttributeGroup1 = 0,
+        TriangleAttributeGroup2 = 1,
 
         MeshVelocityAttributeGroup1 = 0,
         MeshVelocityAttributeGroup2 = 1,

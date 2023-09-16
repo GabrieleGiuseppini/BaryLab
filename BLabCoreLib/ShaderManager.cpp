@@ -472,8 +472,8 @@ ShaderManager::ProgramType ShaderManager::ShaderFilenameToProgramType(std::strin
         return ProgramType::ParticleTrajectories;
     else if (Utils::CaseInsensitiveEquals(str, "Particles"))
         return ProgramType::Particles;
-    else if (Utils::CaseInsensitiveEquals(str, "SelectedTriangles"))
-        return ProgramType::SelectedTriangles;
+    else if (Utils::CaseInsensitiveEquals(str, "Triangles"))
+        return ProgramType::Triangles;
     else if (Utils::CaseInsensitiveEquals(str, "Vertices"))
         return ProgramType::Vertices;
     else
@@ -494,8 +494,8 @@ std::string ShaderManager::ProgramTypeToStr(ProgramType program)
             return "ParticleTrajectories";
         case ProgramType::Particles:
             return "Particles";
-        case ProgramType::SelectedTriangles:
-            return "SelectedTriangles";
+        case ProgramType::Triangles:
+            return "Triangles";
         case ProgramType::Vertices:
             return "Vertices";
         default:
@@ -552,10 +552,10 @@ ShaderManager::VertexAttributeType ShaderManager::StrToVertexAttributeType(std::
         return VertexAttributeType::ParticleTrajectoryAttributeGroup1;
     else if (Utils::CaseInsensitiveEquals(str, "ParticleTrajectoryAttributeGroup2"))
         return VertexAttributeType::ParticleTrajectoryAttributeGroup2;
-    else if (Utils::CaseInsensitiveEquals(str, "SelectedTriangleAttributeGroup1"))
-        return VertexAttributeType::SelectedTriangleAttributeGroup1;
-    else if (Utils::CaseInsensitiveEquals(str, "SelectedTriangleAttributeGroup2"))
-        return VertexAttributeType::SelectedTriangleAttributeGroup2;
+    else if (Utils::CaseInsensitiveEquals(str, "TriangleAttributeGroup1"))
+        return VertexAttributeType::TriangleAttributeGroup1;
+    else if (Utils::CaseInsensitiveEquals(str, "TriangleAttributeGroup2"))
+        return VertexAttributeType::TriangleAttributeGroup2;
     else if (Utils::CaseInsensitiveEquals(str, "VertexAttributeGroup1"))
         return VertexAttributeType::VertexAttributeGroup1;
     else
