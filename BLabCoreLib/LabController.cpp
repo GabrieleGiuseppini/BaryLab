@@ -420,6 +420,10 @@ void LabController::RotateMeshBy(
     float const cosAngle = std::cos(worldAngle);
     float const sinAngle = std::sin(worldAngle);
 
+    //
+    // Rotate mesh
+    //
+
     auto & vertices = mModel->GetMesh().GetVertices();
     for (auto v : vertices)
     {
@@ -431,13 +435,36 @@ void LabController::RotateMeshBy(
         vertices.SetPosition(v, rotatedPos + worldCenter);
     }
 
-    assert(mModel->GetParticles().GetElementCount() >= 1);
+    //
+    // Rotate particles
+    //
 
-    // Reset regime
-    InitializeParticleRegime(0);
+    auto & particles = mModel->GetParticles();
+    for (auto p : particles)
+    {        
+        if (particles.GetState(p).ConstrainedState.has_value())
+        {
+            // Simply set position from current bary coords
 
-    // Reset trajectory state
-    mModel->GetParticles().GetState(0).TrajectoryState.reset();
+            vec2f const newPosition = mModel->GetMesh().GetTriangles().FromBarycentricCoordinates(
+                particles.GetState(p).ConstrainedState->CurrentTriangleBarycentricCoords,
+                particles.GetState(p).ConstrainedState->CurrentTriangle,
+                vertices);
+
+            particles.SetPosition(p, newPosition);
+        }
+        else
+        {
+            // Rotate particle
+
+            vec2f const centeredPos = particles.GetPosition(p) - worldCenter;
+            vec2f const rotatedPos = vec2f(
+                centeredPos.x * cosAngle - centeredPos.y * sinAngle,
+                centeredPos.x * sinAngle + centeredPos.y * cosAngle);
+
+            particles.SetPosition(p, rotatedPos + worldCenter);
+        }
+    }
 }
 
 void LabController::RotateMeshBy(
@@ -467,45 +494,24 @@ void LabController::RotateMeshBy(
             centeredPos.x * sinAngle + centeredPos.y * cosAngle);
 
         vertices.SetPosition(v, rotatedPos + worldCenter);
-    }
-
-    assert(mModel->GetParticles().GetElementCount() >= 1);
+    }    
 
     //
     // Make sure that on-edgeness of particle, if any, is maintained
     //
 
-    if (mModel->GetParticles().GetState(particleIndex).ConstrainedState.has_value())
+    auto & particles = mModel->GetParticles();
+
+    if (particles.GetState(particleIndex).ConstrainedState.has_value())
     {
-        ElementIndex const triangleIndex = mModel->GetParticles().GetState(particleIndex).ConstrainedState->CurrentTriangle;
+        // Reinforce position from current bary coords
 
-        vec3f const oldBarycentricCoords = mModel->GetParticles().GetState(particleIndex).ConstrainedState->CurrentTriangleBarycentricCoords;
-        int edgeOrdinal = -1;
-        if (oldBarycentricCoords[0] == 0.0f)
-        {
-            edgeOrdinal = 0;
-        }
-        else if (oldBarycentricCoords[1] == 0.0f)
-        {
-            edgeOrdinal = 1;
-        }
-        else if (oldBarycentricCoords[2] == 0.0f)
-        {
-            edgeOrdinal = 2;
-        }
+        vec2f const newPosition = mModel->GetMesh().GetTriangles().FromBarycentricCoordinates(
+            particles.GetState(particleIndex).ConstrainedState->CurrentTriangleBarycentricCoords,
+            particles.GetState(particleIndex).ConstrainedState->CurrentTriangle,
+            vertices);
 
-        if (edgeOrdinal >= 0)
-        {
-            vec3f newBarycentricCoords = mModel->GetMesh().GetTriangles().ToBarycentricCoordinates(
-                mModel->GetParticles().GetPosition(particleIndex),
-                triangleIndex,
-                mModel->GetMesh().GetVertices());
-
-            newBarycentricCoords[edgeOrdinal] = 0.0f;
-            newBarycentricCoords[(edgeOrdinal + 1) % 3] = 1.0f - newBarycentricCoords[(edgeOrdinal + 2) % 3];
-
-            mModel->GetParticles().GetState(particleIndex).ConstrainedState->CurrentTriangleBarycentricCoords = newBarycentricCoords;
-        }
+        particles.SetPosition(particleIndex, newPosition);
     }
 }
 
