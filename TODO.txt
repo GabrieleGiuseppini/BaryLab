@@ -1,9 +1,40 @@
-Video:
-+ mesh: wide, with spikes L and R, and small opening
-+ intro: bouncy ball, no mesh vel
-+ H velocity: friction makes ball stop; then when zero V ball continues
-	- show how ball gains speed via friction
-+ V fall:
-+ V acceleration:
-- rotation
-	+ redo rotation code
+- Dipole:
+	- Npcs (take capitalization from FS)
+		- simple vector of NpcStateType
+			- Regime
+		- NpcParticleStateType
+			- ElementIndex ParticleIndex (index in NpcParticles)
+			- opt<ConstrainedStateType> ConstrainedState
+				- TriangleElementIndex
+				- BaryCoords
+				- opt<OnFloorStateType> OnFloorState
+					- EdgeOrdinal
+					- SimulationTime startTime - TODO: dynamics of when reset
+		- NpcParticleStateType PrimaryParticleState (i.e. feet)
+		- opt<NpcParticleStateType> SecondaryParticleState (i.e. head)
+	- NpcParticles (take capitalization from FS)
+		- buffer of current physical quantities
+
+	- Single-particle state update (like now)
+
+	- Dipole state update:
+		- Misc notes:
+			- Transitions to free state/regime management:
+				- Free when both are free (mostly used for stats)
+				- When primary is constrained, secondary:
+					- If free, allowed to re-enter constrained - checked and transitioned into at end of ray-tracing
+					- If constrained, allowed to become free as normal
+			- Physics:
+				- Attempt 1:
+					- Normal physics: calc spring forces first (in new particle's buffer) and include those forces when calculating trajectory
+					- However, when on an edge, friction might get in the way of reunification of the particles, hence: attempt 2
+				- Attempt 2:
+					- If both not on edge: normal physics: calc spring forces first (in new particle's buffer) and include those forces when calculating (non-edge) trajectory
+					- Else:
+						- Each particle for which other is on edge: after calculating flattened traj which includes friction and all, calc how much extra movement is needed to reach rest length,
+						  and add particle's portion of that to traj (half or whole, depending on whether both are on edge or only one)
+							- The important part here is that this happens _after_ friction
+
+	- Tools: two tools for single-particle and dual-particle NPC placement
+
+	
