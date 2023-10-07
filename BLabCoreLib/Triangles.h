@@ -118,6 +118,10 @@ public:
         ElementIndex triangleElementIndex,
         Vertices const & vertices) const;
 
+    ElementIndex FindContaining(
+        vec2f const & position,
+        Vertices const & vertices) const;
+
     vec3f ToBarycentricCoordinates(
         vec2f const & position,
         ElementIndex triangleElementIndex,

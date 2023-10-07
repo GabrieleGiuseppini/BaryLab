@@ -46,9 +46,6 @@ LabController::LabController(
     , mLabParameters()
     , mModel()
     , mCurrentMeshFilePath()
-    , mCurrentOriginTriangle()
-    , mCurrentParticleTrajectory()
-    , mCurrentParticleTrajectoryNotification()
     , mIsGravityEnabled(false)
     , mCurrentMeshTranslationVelocity(vec2f::zero())
     , mCurrentMeshTranslationAccelerationIndicator(0.0f)
@@ -75,6 +72,7 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
     auto meshDefinition = MeshDefinition::Load(meshDefinitionFilepath);
 
     // Make mesh
+
     std::unique_ptr<Mesh> mesh = MeshBuilder::BuildMesh(
         std::move(meshDefinition),
         mStructuralMaterialDatabase);
@@ -84,8 +82,10 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
         throw BLabException("Mesh must contain at least one triangle");
     }
 
-    // Create particle
-    std::unique_ptr<Particles> particles = std::make_unique<Particles>(1);
+    // Create NPCs
+
+    std::unique_ptr<Npcs> npcs = std::make_unique<Npcs>(mEventDispatcher, mIsGravityEnabled);
+
     {
         // TODOTEST
         ////vec2f const center = (
@@ -95,15 +95,18 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
         ////vec2f const center =
         ////    mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexBIndex(0))
         ////    - vec2f(0.5f, 0.5f);
-        vec2f const center = vec2f(0.5f, -2.0f);
+        vec2f const position = vec2f(0.5f, -2.0f);
 
-        particles->Add(center, rgbaColor(0x60, 0x60, 0x60, 0xff));
+        npcs->Add(
+            Npcs::NpcType::Furniture,
+            position,
+            *mesh);
     }    
 
     // Create a new model
     std::unique_ptr<Model> newModel = std::make_unique<Model>(
         std::move(mesh),
-        std::move(particles),
+        std::move(npcs),
         mEventDispatcher);
 
     //
@@ -119,15 +122,6 @@ void LabController::Update()
 {
     assert(mModel);
 
-    // Reconcile gravity
-
-    vec2f const gravity = mIsGravityEnabled ? LabParameters::Gravity : vec2f::zero();
-    auto & particles = mModel->GetParticles();
-    for (auto p : particles)
-    {
-        particles.SetWorldForce(p, gravity * mLabParameters.ParticleMass * mLabParameters.MassAdjustment);
-    }
-
     // Update simulation
 
     if (mSimulationControlState == SimulationControlStateType::Play
@@ -140,42 +134,6 @@ void LabController::Update()
         // Update state
         mSimulationControlImpulse = false;
     }
-
-    // Publish particle probe, if constrained
-
-    std::optional<ConstrainedRegimeParticleProbe> constrainedRegimeParticleProbe;
-    if (mCurrentlySelectedParticleProbe.has_value()
-        && mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).ConstrainedState.has_value())
-    {
-        constrainedRegimeParticleProbe.emplace(
-            mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).ConstrainedState->CurrentTriangle,
-            mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).ConstrainedState->CurrentTriangleBarycentricCoords);
-    }
-
-    mEventDispatcher.OnSubjectParticleConstrainedRegimeUpdated(constrainedRegimeParticleProbe);
-
-    // Publish barycentric coords wrt origin
-
-    std::optional<vec3f> barycentricCoordinates;
-    if (mCurrentOriginTriangle)
-    {
-        barycentricCoordinates = mModel->GetMesh().GetTriangles().ToBarycentricCoordinates(
-            mModel->GetParticles().GetPosition(0),
-            *mCurrentOriginTriangle, 
-            mModel->GetMesh().GetVertices());
-    }
-
-    mEventDispatcher.OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(barycentricCoordinates);
-
-    // Publish particle physics
-
-    std::optional<PhysicsParticleProbe> physicsParticleProbe;
-    if (mCurrentlySelectedParticleProbe.has_value())
-    {
-        physicsParticleProbe.emplace(mModel->GetParticles().GetVelocity(0));
-    }
-
-    mEventDispatcher.OnSubjectParticlePhysicsUpdated(physicsParticleProbe);
 }
 
 void LabController::Render()
@@ -236,13 +194,11 @@ void LabController::Render()
         {
             std::optional<rgbaColor> color;
 
-            if (mCurrentlySelectedParticleProbe.has_value()
-                && mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).ConstrainedState.has_value()
-                && t == mModel->GetParticles().GetState(*mCurrentlySelectedParticleProbe).ConstrainedState->CurrentTriangle)
+            if (mModel->GetNpcs().IsTriangleConstrainingCurrentlySelectedParticle(t, mModel->GetMesh()))
             {
                 color = rgbaColor(107, 227, 107, 77);
             }
-            else if (t == mCurrentOriginTriangle)
+            else if (t == mModel->GetNpcs().GetCurrentOriginTriangle())
             {
                 color = rgbaColor(227, 107, 107, 77);
             }
@@ -267,62 +223,10 @@ void LabController::Render()
         mRenderContext->UploadTrianglesEnd();
 
         //
-        // Particles
+        // Npcs
         //
 
-        mRenderContext->UploadParticlesStart();
-
-        for (auto p : mModel->GetParticles())
-        {
-            mRenderContext->UploadParticle(
-                mModel->GetParticles().GetPosition(p),
-                mModel->GetParticles().GetRenderColor(p),
-                1.0f);
-
-            if (mModel->GetParticles().GetState(p).TrajectoryState.has_value())
-            {
-                mRenderContext->UploadParticle(
-                    mModel->GetParticles().GetState(p).TrajectoryState->CurrentPosition,
-                    mModel->GetParticles().GetRenderColor(p),
-                    0.5f);
-            }
-        }
-
-        mRenderContext->UploadParticlesEnd();
-
-        //
-        // Particle trajectory
-        //
-
-        mRenderContext->UploadParticleTrajectoriesStart();
-
-        if (mCurrentParticleTrajectoryNotification)
-        {
-            mRenderContext->UploadParticleTrajectory(
-                mModel->GetParticles().GetPosition(mCurrentParticleTrajectoryNotification->ParticleIndex),
-                mCurrentParticleTrajectoryNotification->TargetPosition,
-                rgbaColor(0xc0, 0xc0, 0xc0, 0xff));
-        }
-
-        if (mCurrentParticleTrajectory)
-        {
-            vec2f sourcePosition;
-            if (mModel->GetParticles().GetState(mCurrentParticleTrajectory->ParticleIndex).TrajectoryState.has_value())
-            {
-                sourcePosition = mModel->GetParticles().GetState(mCurrentParticleTrajectory->ParticleIndex).TrajectoryState->CurrentPosition;
-            }
-            else
-            {
-                sourcePosition = mModel->GetParticles().GetPosition(mCurrentParticleTrajectory->ParticleIndex);
-            }
-
-            mRenderContext->UploadParticleTrajectory(
-                sourcePosition,
-                mCurrentParticleTrajectory->TargetPosition,
-                rgbaColor(0x99, 0x99, 0x99, 0xff));
-        }
-
-        mRenderContext->UploadParticleTrajectoriesEnd();
+        mModel->GetNpcs().Render(*mRenderContext);
 
         //
         // Mesh velocity
@@ -521,20 +425,20 @@ bool LabController::TrySelectOriginTriangle(vec2f const & screenCoordinates)
 
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
-    ElementIndex const t = FindTriangleContaining(worldCoordinates);
+    ElementIndex const t = mModel->GetMesh().GetTriangles().FindContaining(worldCoordinates);
     if (t != NoneElementIndex)
     {
-        mCurrentOriginTriangle = t;
+        mModel->GetNpcs().SelectOriginTriangle(t);
         return true;
     }
     else
     {
-        mCurrentOriginTriangle.reset();
+        mModel->GetNpcs().ResetOriginTriangle();
         return false;
     }
 }
 
-std::optional<ElementIndex> LabController::TryPickParticle(vec2f const & screenCoordinates) const
+std::optional<ElementIndex> LabController::TryPickNpcParticle(vec2f const & screenCoordinates) const
 {
     assert(!!mModel);
 
@@ -567,8 +471,8 @@ std::optional<ElementIndex> LabController::TryPickParticle(vec2f const & screenC
         return std::nullopt;
 }
 
-void LabController::MoveParticleBy(
-    ElementIndex particleIndex, 
+void LabController::MoveNpcParticleBy(
+    ElementIndex npcParticleIndex, 
     vec2f const & screenOffset,
     vec2f const & inertialStride)
 {
@@ -588,7 +492,7 @@ void LabController::MoveParticleBy(
     InitializeParticleRegime(particleIndex);
 
     // Select particle
-    mCurrentlySelectedParticleProbe.emplace(particleIndex);
+    mModel->GetNpcs().SelectParticle(particleIndex);
 
     // Reset trajectory state
     mModel->GetParticles().GetState(particleIndex).TrajectoryState.reset();
@@ -596,8 +500,8 @@ void LabController::MoveParticleBy(
     mCurrentParticleTrajectoryNotification.reset();
 }
 
-void LabController::NotifyParticleTrajectory(
-    ElementIndex particleIndex,
+void LabController::NotifyNpcParticleTrajectory(
+    ElementIndex npcParticleIndex,
     vec2f const & targetScreenCoordinates)
 {
     mCurrentParticleTrajectoryNotification.emplace(
@@ -607,8 +511,8 @@ void LabController::NotifyParticleTrajectory(
     mCurrentParticleTrajectory.reset();
 }
 
-void LabController::SetParticleTrajectory(
-    ElementIndex particleIndex,
+void LabController::SetNpcParticleTrajectory(
+    ElementIndex npcParticleIndex,
     vec2f const & targetScreenCoordinates)
 {
     mCurrentParticleTrajectory.emplace(
@@ -621,25 +525,30 @@ void LabController::SetParticleTrajectory(
     mModel->GetParticles().GetState(particleIndex).TrajectoryState.reset();
 }
 
-void LabController::QueryNearestParticleAt(vec2f const & screenCoordinates) const
+void LabController::QueryNearestNpcParticleAt(vec2f const & screenCoordinates) const
 {
     assert(!!mModel);
 
-    auto const nearestParticle = TryPickParticle(screenCoordinates);
-    if (nearestParticle.has_value())
+    auto const nearestNpcParticle = TryPickNpcParticle(screenCoordinates);
+    if (nearestNpcParticle.has_value())
     {
-        mModel->GetParticles().Query(*nearestParticle);
+        mModel->GetNpcs().GetParticles().Query(*nearestNpcParticle);
     }
 }
 
-bool LabController::IsParticleGravityEnabled() const
+bool LabController::IsGravityEnabled() const
 {
     return mIsGravityEnabled;
 }
 
-void LabController::SetParticleGravityEnabled(bool isEnabled)
+void LabController::SetGravityEnabled(bool isEnabled)
 {
     mIsGravityEnabled = isEnabled;
+
+    if (mModel)
+    {
+        mModel->GetNpcs().SetGravityEnabled(isEnabled);
+    }
 }
 
 vec2f const & LabController::GetMeshVelocity() const
@@ -666,14 +575,6 @@ void LabController::Reset(
     mModel.reset();
     mModel = std::move(newModel);
     mCurrentMeshFilePath = meshDefinitionFilepath;    
-
-    // Reset state
-    assert(mModel->GetParticles().GetElementCount() == 1);
-    InitializeParticleRegime(0);
-    mCurrentlySelectedParticleProbe.emplace(0);
-    mCurrentOriginTriangle.reset();
-    mCurrentParticleTrajectory.reset();
-    mCurrentParticleTrajectoryNotification.reset();    
 
     //
     // Auto-zoom & center
@@ -703,17 +604,4 @@ void LabController::Reset(
     //
 
     mEventDispatcher.OnReset();
-}
-
-ElementIndex LabController::FindTriangleContaining(vec2f const & position) const
-{
-    for (auto const t : mModel->GetMesh().GetTriangles())
-    {
-        if (mModel->GetMesh().GetTriangles().ContainsPoint(position, t, mModel->GetMesh().GetVertices()))
-        {
-            return t;
-        }
-    }
-
-    return NoneElementIndex;
 }

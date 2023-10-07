@@ -10,32 +10,6 @@
 
 #include <limits>
 
-void LabController::InitializeParticleRegime(ElementIndex particleIndex)
-{
-    std::optional<Particles::StateType::ConstrainedStateType> constrainedState;
-
-    ElementIndex const triangleIndex = FindTriangleContaining(mModel->GetParticles().GetPosition(particleIndex));
-    if (triangleIndex != NoneElementIndex)
-    {
-        vec3f const barycentricCoords = mModel->GetMesh().GetTriangles().ToBarycentricCoordinatesFromWithinTriangle(
-            mModel->GetParticles().GetPosition(particleIndex),
-            triangleIndex,
-            mModel->GetMesh().GetVertices());
-
-        {
-            assert(barycentricCoords[0] >= 0.0f && barycentricCoords[0] <= 1.0f);
-            assert(barycentricCoords[1] >= 0.0f && barycentricCoords[1] <= 1.0f);
-            assert(barycentricCoords[2] >= 0.0f && barycentricCoords[2] <= 1.0f);
-        }
-
-        constrainedState.emplace(
-            triangleIndex,
-            barycentricCoords);
-    }
-
-    mModel->GetParticles().GetState(particleIndex).ConstrainedState = constrainedState;
-}
-
 void LabController::UpdateSimulation(LabParameters const & labParameters)
 {
     //
@@ -231,6 +205,7 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
     // Integrate physical forces, including eventual bounce velocity from a previous impact
     //
 
+    // TODOHERE: use gravity directly - together with gate
     vec2f const physicalForces = particles.GetWorldForce(particleIndex) * labParameters.GravityAdjustment;
 
     vec2f const physicsDeltaPos =
@@ -471,8 +446,8 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
         constrainedState);
 }
 
-std::optional<LabController::FinalParticleState> LabController::UpdateParticleTrajectoryState(
-    Particles::StateType & particleState,
+std::optional<LabController::FinalParticleState> LabController::UpdateParticleTrajectoryTrace(
+    Npcs::StateType::NpcParticleStateType & particleState,
     LabParameters const & labParameters)
 {
     Particles const & particles = mModel->GetParticles();

@@ -1,8 +1,8 @@
 - Dipole:
-	- Npcs (take capitalization from FS)
-		- simple vector of NpcStateType
-			- Regime
-		- NpcParticleStateType
+	+ Npcs
+		+ simple vector of NpcStateType
+			+ Regime
+		+ NpcParticleStateType
 			- ElementIndex ParticleIndex (index in NpcParticles)
 			- opt<ConstrainedStateType> ConstrainedState
 				- TriangleElementIndex
@@ -10,12 +10,42 @@
 				- opt<OnFloorStateType> OnFloorState
 					- EdgeOrdinal
 					- SimulationTime startTime - TODO: dynamics of when reset
-		- NpcParticleStateType PrimaryParticleState (i.e. feet)
-		- opt<NpcParticleStateType> SecondaryParticleState (i.e. head)
-	- NpcParticles (take capitalization from FS)
+		+ NpcParticleStateType PrimaryParticleState (i.e. feet)
+		+ opt<NpcParticleStateType> SecondaryParticleState (i.e. head)
+	+ NpcParticles (take capitalization from FS)
 		- buffer of current physical quantities
 
-	- Single-particle state update (like now)
+	+ Npcs::Add
+
+	= LabController:
+		+ Publishing:
+			+ OnSubjectParticleConstrainedRegimeUpdated(): given mCurrentSubjectParticle and its constrained state
+			+ OnSubjectParticlePhysicsUpdated(): given mCurrentSubjectParticle
+			+ OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged: given mCurrentOriginTriangle and mCurrentSubjectParticle
+		- SimulationState:
+			- Simulation now needs to become a state machine:
+				- For each particle
+					- if needs traj => do traj (picking up eventual user trajectory)
+					- do all of its ray tracing steps
+						- interrupt is here
+				- Externalize trajectory state into SimulationState
+			- State machine contains:
+				- CurNpc (index)
+				- CurIsPrimaryParticle (bool)
+				- CurrentTrajectoryState			
+		- Rendering:
+			+ Triangle color: based on mCurrentSubjectParticle and its constrained state, but also based on mCurrentOriginTriangle
+			- Particle trajectory: given trajectoryStartIndex and endPos, and particle's current trajectory state
+		- Moving particles:
+			- TODO: done by whom?
+		= Npcs:
+			+ mCurrentSubjectParticle, forwarded by LabController
+			+ mCurrentOriginTriangle
+			- mCurrentParticleTrajectory and mCurrentParticleTrajectoryNotification
+		- TODO: re-initialization of Npc (its particles') state (which is invoked after MoveVertex, etc.)
+
+	- Move simulation to Npcs
+		- Single-particle state update (like now)
 
 	- Dipole state update:
 		- Misc notes:

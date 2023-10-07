@@ -3,11 +3,11 @@
 * Created:              2020-05-15
 * Copyright:            Gabriele Giuseppini  (https://github.com/GabrieleGiuseppini)
 ***************************************************************************************/
-#include "Particles.h"
+#include "NpcParticles.h"
 
 #include "Log.h"
 
-void Particles::Add(
+void NpcParticles::Add(
     vec2f const & position,
     rgbaColor const & color)
 {
@@ -16,11 +16,9 @@ void Particles::Add(
     mWorldForceBuffer.emplace_back(vec2f::zero());
 
     mRenderColorBuffer.emplace_back(color);
-
-    mStateBuffer.emplace_back(StateType());
 }
 
-void Particles::Query(ElementIndex particleElementIndex) const
+void NpcParticles::Query(ElementIndex particleElementIndex) const
 {
     LogMessage("ParticleIndex: ", particleElementIndex);
     LogMessage("P=", mPositionBuffer[particleElementIndex].toString(), " V=", mVelocityBuffer[particleElementIndex].toString());

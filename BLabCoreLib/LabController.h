@@ -68,19 +68,19 @@ public:
 
     bool TrySelectOriginTriangle(vec2f const & screenCoordinates);
 
-    std::optional<ElementIndex> TryPickParticle(vec2f const & screenCoordinates) const;
+    std::optional<ElementIndex> TryPickNpcParticle(vec2f const & screenCoordinates) const;
 
-    void MoveParticleBy(ElementIndex particleIndex, vec2f const & screenOffset, vec2f const & inertialStride);
+    void MoveNpcParticleBy(ElementIndex npcParticleIndex, vec2f const & screenOffset, vec2f const & inertialStride);
 
-    void NotifyParticleTrajectory(ElementIndex particleIndex, vec2f const & targetScreenCoordinates);
+    void NotifyNpcParticleTrajectory(ElementIndex npcParticleIndex, vec2f const & targetScreenCoordinates);
 
-    void SetParticleTrajectory(ElementIndex particleIndex, vec2f const & targetScreenCoordinates);
+    void SetNpcParticleTrajectory(ElementIndex npcParticleIndex, vec2f const & targetScreenCoordinates);
 
-    void QueryNearestParticleAt(vec2f const & screenCoordinates) const;
+    void QueryNearestNpcParticleAt(vec2f const & screenCoordinates) const;
 
-    bool IsParticleGravityEnabled() const;
+    bool IsGravityEnabled() const;
 
-    void SetParticleGravityEnabled(bool isEnabled);
+    void SetGravityEnabled(bool isEnabled);
 
     vec2f const & GetMeshVelocity() const;
 
@@ -206,27 +206,31 @@ private:
         std::unique_ptr<Model> newModel,
         std::filesystem::path const & meshDefinitionFilepath);
 
-    void UpdateMeshTransformations();
+    Npcs CreateNpcs();
 
-    ElementIndex FindTriangleContaining(vec2f const & position) const;
+    void UpdateMeshTransformations();
 
     //
     // Simulation
     //
 
-    void InitializeParticleRegime(ElementIndex particleIndex);
-
     void UpdateSimulation(LabParameters const & labParameters);
+
+    void UpdateParticle(
+        Npcs::StateType::NpcParticleStateType & particleState,
+        std::optional<Npcs::StateType::NpcParticleStateType> const & secondaryParticleState,
+        bool isPrimaryParticle,
+        LabParameters const & labParameters);
 
     struct TrajectoryTarget
     {
         vec2f Position;
 
-        std::optional<Particles::StateType::TrajectoryStateType::ConstrainedStateType> ConstrainedStateInfo; // Returned when in constrained state
+        std::optional<Npcs::StateType::NpcParticleStateType::TrajectoryStateType::ConstrainedStateType> ConstrainedStateInfo; // Returned when in constrained state
 
         TrajectoryTarget(
             vec2f const & position,
-            std::optional<Particles::StateType::TrajectoryStateType::ConstrainedStateType> constrainedStateInfo)
+            std::optional<Npcs::StateType::NpcParticleStateType::TrajectoryStateType::ConstrainedStateType> constrainedStateInfo)
             : Position(position)
             , ConstrainedStateInfo(std::move(constrainedStateInfo))
         {}
@@ -249,8 +253,8 @@ private:
         {}
     };
 
-    std::optional<FinalParticleState> UpdateParticleTrajectoryState(
-        Particles::StateType & particleState,
+    std::optional<FinalParticleState> UpdateParticleTrajectoryTrace(
+        Npcs::StateType::NpcParticleStateType & particleState,
         LabParameters const & labParameters);
 
 private:
@@ -266,12 +270,6 @@ private:
     LabParameters mLabParameters;
     std::unique_ptr<Model> mModel;
     std::optional<std::filesystem::path> mCurrentMeshFilePath;
-
-    std::optional<ElementIndex> mCurrentlySelectedParticleProbe;
-    std::optional<ElementIndex> mCurrentOriginTriangle;
-
-    std::optional<ParticleTrajectory> mCurrentParticleTrajectory;
-    std::optional<ParticleTrajectory> mCurrentParticleTrajectoryNotification;
 
     bool mIsGravityEnabled;
     vec2f mCurrentMeshTranslationVelocity;

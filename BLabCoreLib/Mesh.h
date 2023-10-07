@@ -43,6 +43,11 @@ public:
         return mEdges;
     }
 
+    Triangles const & GetTriangles() const
+    {
+        return mTriangles;
+    }
+
     Triangles & GetTriangles()
     {
         return mTriangles;

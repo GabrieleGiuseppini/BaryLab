@@ -49,8 +49,10 @@ set  (SOURCES
 	MeshDefinition.h
 	Model.cpp
 	Model.h
-	Particles.cpp
-	Particles.h
+	NpcParticles.cpp
+	NpcParticles.h
+	Npcs.cpp
+	Npcs.h
 	RenderContext.cpp
 	RenderContext.h
 	ResourceLocator.h

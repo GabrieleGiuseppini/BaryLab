@@ -7,7 +7,7 @@
 
 #include "EventDispatcher.h"
 #include "Mesh.h"
-#include "Particles.h"
+#include "Npcs.h"
 #include "Vectors.h"
 
 #include <memory>
@@ -19,10 +19,10 @@ public:
 
 	Model(		
 		std::unique_ptr<Mesh> mesh,
-		std::unique_ptr<Particles> particles,
+		std::unique_ptr<Npcs> npcs,
 		EventDispatcher & eventDispatcher)
 		: mMesh(std::move(mesh))
-		, mParticles(std::move(particles))
+		, mNpcs(std::move(npcs))
 		, mOriginTriangle()
 		, mTrajectoryDestination()
 		, mEventDispatcher(eventDispatcher)
@@ -38,14 +38,14 @@ public:
 		return *mMesh;
 	}
 
-	Particles const & GetParticles() const
+	Npcs const & GetNpcs() const
 	{
-		return *mParticles;
+		return *mNpcs;
 	}
 
-	Particles & GetParticles()
+	Npcs & GetNpcs()
 	{
-		return *mParticles;
+		return *mNpcs;
 	}
 
 	void SetOriginTriangle(ElementIndex triangleIndex)
@@ -65,7 +65,7 @@ private:
 	EventDispatcher & mEventDispatcher;
 
 	std::unique_ptr<Mesh> mMesh;
-	std::unique_ptr<Particles> mParticles;
+	std::unique_ptr<Npcs> mNpcs;
 	
 	// Simulation state
 	std::optional<ElementIndex> mOriginTriangle;

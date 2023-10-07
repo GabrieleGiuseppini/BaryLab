@@ -35,6 +35,21 @@ bool Triangles::ContainsPoint(
         && (position - cPosition).cross(aPosition - cPosition) >= 0.0f;
 }
 
+ElementIndex Triangles::FindContaining(
+    vec2f const & position,
+    Vertices const & vertices) const
+{
+    for (auto const t : *this)
+    {
+        if (ContainsPoint(position, t, vertices))
+        {
+            return t;
+        }
+    }
+
+    return NoneElementIndex;
+}
+
 vec3f Triangles::ToBarycentricCoordinates(
     vec2f const & position,
     ElementIndex triangleElementIndex,

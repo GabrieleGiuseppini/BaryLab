@@ -88,6 +88,7 @@ struct ParticleTrajectory
         , TargetPosition(targetPosition)
     {}
 };
+
 enum class SurfaceType
 {
     Floor,

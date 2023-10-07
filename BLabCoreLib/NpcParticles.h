@@ -17,73 +17,11 @@
 #include <cassert>
 #include <optional>
 
-class Particles : public ElementContainer
+class NpcParticles final : public ElementContainer
 {
 public:
 
-    struct StateType
-    {
-        struct ConstrainedStateType
-        {
-            ElementIndex CurrentTriangle;
-            vec3f CurrentTriangleBarycentricCoords;
-            vec2f MeshRelativeVelocity; // Velocity of particle (as in velocity buffer), but relative to mesh at the moment velocity was calculated
-
-            ConstrainedStateType(
-                ElementIndex currentTriangle,
-                vec3f const & currentTriangleBarycentricCoords)
-                : CurrentTriangle(currentTriangle)
-                , CurrentTriangleBarycentricCoords(currentTriangleBarycentricCoords)
-                , MeshRelativeVelocity(vec2f::zero())
-            {}
-        };
-
-        std::optional<ConstrainedStateType> ConstrainedState;
-
-        struct TrajectoryStateType
-        {
-            vec2f SourcePosition;
-            vec2f TargetPosition;
-
-            struct ConstrainedStateType
-            {
-                vec3f TargetPositionCurrentTriangleBarycentricCoords;
-                vec2f MeshDisplacement;
-
-                ConstrainedStateType(
-                    vec3f const & targetPositionCurrentTriangleBarycentricCoords,
-                    vec2f const & meshDisplacement)
-                    : TargetPositionCurrentTriangleBarycentricCoords(targetPositionCurrentTriangleBarycentricCoords)
-                    , MeshDisplacement(meshDisplacement)
-                {}
-            };
-
-            std::optional<ConstrainedStateType> ConstrainedState; // Always set when in constrained state; updated when current triangle changes
-
-            vec2f CurrentPosition;
-
-            TrajectoryStateType(
-                vec2f const & sourcePosition,
-                vec2f const & targetPosition,
-                std::optional<ConstrainedStateType> constrainedState)
-                : SourcePosition(sourcePosition)
-                , TargetPosition(targetPosition)
-                , ConstrainedState(std::move(constrainedState))
-                , CurrentPosition(sourcePosition)
-            {}
-        };
-
-        std::optional<TrajectoryStateType> TrajectoryState; // When set, we have a trajectory target; when not set, we have to calculate a target
-
-        StateType()
-            : ConstrainedState()
-            , TrajectoryState()
-        {}
-    };
-
-public:
-
-    Particles(ElementCount particleCount)
+    NpcParticles(ElementCount particleCount)
         : ElementContainer(particleCount)
         //////////////////////////////////
         // Buffers
@@ -94,12 +32,10 @@ public:
         , mWorldForceBuffer(mBufferElementCount, particleCount, vec2f::zero())
         // Render
         , mRenderColorBuffer(mBufferElementCount, particleCount, rgbaColor::zero())
-        // State
-        , mStateBuffer(mBufferElementCount, particleCount, StateType())
     {
     }
 
-    Particles(Particles && other) = default;
+    NpcParticles(NpcParticles && other) = default;
 
     void Add(
         vec2f const & position,
@@ -195,20 +131,6 @@ public:
         return mRenderColorBuffer.data();
     }
 
-    //
-    // State
-    //
-
-    StateType const & GetState(ElementIndex particleElementIndex) const
-    {
-        return mStateBuffer[particleElementIndex];
-    }
-
-    StateType & GetState(ElementIndex particleElementIndex)
-    {
-        return mStateBuffer[particleElementIndex];
-    }
-
 private:
 
     //////////////////////////////////////////////////////////
@@ -228,10 +150,4 @@ private:
     //
 
     Buffer<rgbaColor> mRenderColorBuffer;
-
-    //
-    // State
-    //
-
-    Buffer<StateType> mStateBuffer;
 };
