@@ -159,12 +159,14 @@ public:
 
     bool IsRenderSimulationStepsEnabled() const
     {
-        return mRenderSimulationSteps;
+        assert(!!mModel);
+        return mModel->GetNpcs().GetIsStepByStepMode();
     }
 
     void SetRenderSimulationStepsEnabled(bool value)
     {
-        mRenderSimulationSteps = value;
+        assert(!!mModel);
+        mModel->GetNpcs().SetIsStepByStepMode(value);
     }
 
     //
@@ -225,7 +227,6 @@ private:
     bool mIsGravityEnabled;
     vec2f mCurrentMeshTranslationVelocity;
     float mCurrentMeshTranslationAccelerationIndicator;
-    bool mRenderSimulationSteps;
 
     //
     // Simulation control

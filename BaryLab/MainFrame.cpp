@@ -385,7 +385,7 @@ void MainFrame::OnKeyDown(wxKeyEvent & event)
 
         LogMessage(worldCoords.toString(), ":");
 
-        mLabController->QueryNearestParticleAt(screenCoords);
+        mLabController->QueryNearestNpcParticleAt(screenCoords);
     }
     else if (mControlToolbar->ProcessKeyDown(event.GetKeyCode(), event.GetModifiers()))
     {
@@ -691,7 +691,7 @@ void MainFrame::OnRotateMeshByParticle(wxCommandEvent & /*event*/)
 void MainFrame::OnSetParticleGravity(wxCommandEvent & event)
 {
     assert(!!mLabController);
-    mLabController->SetParticleGravityEnabled(event.GetInt() != 0);
+    mLabController->SetGravityEnabled(event.GetInt() != 0);
 }
 
 void MainFrame::OnSimulationControlPlay(wxCommandEvent & /*event*/)
@@ -821,11 +821,6 @@ void MainFrame::FinishInitialization()
         throw BLabException("Error during initialization of simulation controller: " + std::string(e.what()));
     }
 
-    mControlToolbar->ReconcialiteUI(
-        mLabController->IsParticleGravityEnabled(),
-        mLabController->IsViewGridEnabled(),
-        mLabController->IsRenderSimulationStepsEnabled());
-
     //
     // Create Settings Manager
     //
@@ -868,6 +863,15 @@ void MainFrame::FinishInitialization()
     //
 
     mLabController->LoadMesh(ResourceLocator::GetDefaultMeshDefinitionFilePath());
+
+    //
+    // Reconciliate UI
+    //
+
+    mControlToolbar->ReconcialiteUI(
+        mLabController->IsGravityEnabled(),
+        mLabController->IsViewGridEnabled(),
+        mLabController->IsRenderSimulationStepsEnabled());
 }
 
 void MainFrame::OnError(

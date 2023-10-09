@@ -14,13 +14,13 @@ void Npcs::Add(
 	vec2f const & primaryPosition,
 	Mesh const & mesh)
 {
-	assert(mParticles.GetElementCount() < LabParameters::MaxNpcs);
+	assert(mParticles.GetParticleCount() < LabParameters::MaxNpcs);
 
 	//
 	// Add primary particle
 	//
 
-	ElementIndex const primaryParticleIndex = mParticles.GetElementCount();
+	ElementIndex const primaryParticleIndex = mParticles.GetParticleCount();
 	mParticles.Add(primaryPosition, rgbaColor(0x60, 0x60, 0x60, 0xff));
 	auto primaryParticleState = MaterializeParticleState(
 		primaryPosition,
@@ -163,9 +163,11 @@ void Npcs::Update(
 	Mesh const & mesh,
 	LabParameters const & labParameters)
 {
-	// TODO
-	(void)mesh;
-	(void)labParameters;
+	//
+	// Update NPCs' state
+	//
+
+	UpdateNpcs(mesh, labParameters);
 
 	//
 	// Publish
@@ -283,7 +285,34 @@ void Npcs::Render(RenderContext & renderContext)
 	}
 
 	renderContext.UploadParticleTrajectoriesEnd();
+}
 
+bool Npcs::IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangleIndex) const
+{
+	if (mCurrentlySelectedParticle.has_value())
+	{
+		for (auto const i : *this)
+		{
+			auto const & state = mStateBuffer[i];
+
+			if (state.PrimaryParticleState.ParticleIndex == *mCurrentlySelectedParticle
+				&& state.PrimaryParticleState.ConstrainedState.has_value()
+				&& triangleIndex == state.PrimaryParticleState.ConstrainedState->CurrentTriangle)
+			{
+				return true;
+			}
+
+			if (state.SecondaryParticleState.has_value()
+				&& state.SecondaryParticleState->ParticleIndex == *mCurrentlySelectedParticle
+				&& state.SecondaryParticleState->ConstrainedState.has_value()
+				&& triangleIndex == state.SecondaryParticleState->ConstrainedState->CurrentTriangle)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -338,32 +367,4 @@ void Npcs::RenderParticle(
 			mParticles.GetRenderColor(particleState.ParticleIndex),
 			0.5f);
 	}
-}
-
-bool Npcs::IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangleIndex) const
-{
-	if (mCurrentlySelectedParticle.has_value())
-	{
-		for (auto const i : *this)
-		{
-			auto const & state = mStateBuffer[i];
-
-			if (state.PrimaryParticleState.ParticleIndex == *mCurrentlySelectedParticle
-				&& state.PrimaryParticleState.ConstrainedState.has_value()
-				&& triangleIndex == state.PrimaryParticleState.ConstrainedState->CurrentTriangle)
-			{
-				return true;
-			}
-
-			if (state.SecondaryParticleState.has_value()
-				&& state.SecondaryParticleState->ParticleIndex == *mCurrentlySelectedParticle
-				&& state.SecondaryParticleState->ConstrainedState.has_value()
-				&& triangleIndex == state.SecondaryParticleState->ConstrainedState->CurrentTriangle)
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
 }

@@ -17,18 +17,18 @@
 
 	+ Npcs::Add
 
-	= LabController:
+	+ LabController:
 		+ Publishing:
 			+ OnSubjectParticleConstrainedRegimeUpdated(): given mCurrentSubjectParticle and its constrained state
 			+ OnSubjectParticlePhysicsUpdated(): given mCurrentSubjectParticle
 			+ OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged: given mCurrentOriginTriangle and mCurrentSubjectParticle
-		= SimulationState:
-			- Simulation now needs to become a state machine:
-				- For each particle
-					- if needs traj => do traj (picking up eventual user trajectory)
-					- do all of its ray tracing steps
-						- interrupt is here
-				- Externalize trajectory state into SimulationState
+		+ SimulationState:
+			+ Simulation now needs to become a state machine:
+				+ For each particle
+					+ if needs traj => do traj (picking up eventual user trajectory)
+					+ do all of its ray tracing steps
+						+ interrupt is here
+				+ Externalize trajectory state into SimulationState
 			+ Nuke old LabController_Simulation.cpp
 			+ State machine contains:
 				+ CurNpc (index)

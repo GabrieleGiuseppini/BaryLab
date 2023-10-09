@@ -23,6 +23,7 @@ public:
 
     NpcParticles(ElementCount particleCount)
         : ElementContainer(particleCount)
+        , mParticleCount(0)
         //////////////////////////////////
         // Buffers
         //////////////////////////////////
@@ -36,6 +37,11 @@ public:
     }
 
     NpcParticles(NpcParticles && other) = default;
+
+    ElementCount GetParticleCount() const
+    {
+        return mParticleCount;
+    }
 
     void Add(
         vec2f const & position,
@@ -132,6 +138,8 @@ public:
     }
 
 private:
+
+    ElementCount mParticleCount;
 
     //////////////////////////////////////////////////////////
     // Buffers

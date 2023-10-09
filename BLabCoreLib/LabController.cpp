@@ -49,7 +49,6 @@ LabController::LabController(
     , mIsGravityEnabled(false)
     , mCurrentMeshTranslationVelocity(vec2f::zero())
     , mCurrentMeshTranslationAccelerationIndicator(0.0f)
-    , mRenderSimulationSteps(true)
     // Simulation control
     , mSimulationControlState(SimulationControlStateType::Paused)
     , mSimulationControlImpulse(false)
@@ -122,19 +121,26 @@ void LabController::Update()
 {
     assert(mModel);
 
-    // Update simulation
-
     if (mSimulationControlState == SimulationControlStateType::Play
         || mSimulationControlImpulse)
     {
+        if (mModel->GetNpcs().IsAtBeginningOfSimulationStep())
+        {
+            // Beginning of a simulation step...
+            // ...update mesh transformations
+
+            UpdateMeshTransformations();            
+        }
+
         mModel->GetNpcs().Update(
             mModel->GetMesh(),
-            mLabParameters);
-
-        mCurrentMeshTranslationAccelerationIndicator *= 0.98f;
+            mLabParameters);        
 
         // Update state
         mSimulationControlImpulse = false;
+
+        // Update rendering
+        mCurrentMeshTranslationAccelerationIndicator *= 0.98f;
     }
 }
 
@@ -357,7 +363,7 @@ void LabController::RotateMeshBy(
 {
     assert(!!mModel);
 
-    assert(particleIndex < mModel->GetNpcs().GetParticles().GetElementCount());
+    assert(particleIndex < mModel->GetNpcs().GetParticles().GetParticleCount());
 
     //
     // Rotate mesh

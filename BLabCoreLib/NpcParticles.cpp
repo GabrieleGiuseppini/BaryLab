@@ -16,6 +16,8 @@ void NpcParticles::Add(
     mWorldForceBuffer.emplace_back(vec2f::zero());
 
     mRenderColorBuffer.emplace_back(color);
+
+    ++mParticleCount;
 }
 
 void NpcParticles::Query(ElementIndex particleElementIndex) const

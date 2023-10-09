@@ -48,6 +48,7 @@ public:
 				vec3f CurrentTriangleBarycentricCoords;
 
 				// Not in FS - only used because of step-by-step ray tracing
+				// TODO: really? If not, need to make sure we initialize it each time we initialize particle state
 				vec2f MeshRelativeVelocity; // Velocity of particle (as in velocity buffer), but relative to mesh at the moment velocity was calculated
 
 				ConstrainedStateType(
@@ -90,6 +91,7 @@ public:
 		, mStateBuffer()
 		, mParticles(LabParameters::MaxNpcs * LabParameters::MaxParticlesPerNpc)
 		// Parameters
+		, mIsStepByStepMode(true)
 		, mGravityGate(isGravityEnabled ? 1.0f : 0.0f)
 	{}
 
@@ -110,6 +112,11 @@ public:
 		Mesh const & mesh);
 
 	void OnVertexMoved(Mesh const & mesh);
+
+	bool IsAtBeginningOfSimulationStep() const
+	{
+		return mSimulationStepState.IsInitial();
+	}
 
 	void Update(
 		Mesh const & mesh,
@@ -145,6 +152,16 @@ public:
 	NpcParticles & GetParticles()
 	{
 		return mParticles;
+	}
+
+	bool GetIsStepByStepMode() const
+	{
+		return mIsStepByStepMode;
+	}
+
+	void SetIsStepByStepMode(bool isStepByStepMode)
+	{
+		mIsStepByStepMode = isStepByStepMode;
 	}
 
 	bool IsGravityEnabled() const
@@ -203,6 +220,8 @@ public:
 		mCurrentParticleTrajectoryNotification.reset();
 	}
 
+	bool IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangleIndex) const;
+
 private:
 
 	void RotateParticleWithMesh(
@@ -214,9 +233,7 @@ private:
 
 	void RenderParticle(
 		StateType::NpcParticleStateType const & particleState,
-		RenderContext & renderContext);
-
-	bool IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangleIndex) const;
+		RenderContext & renderContext);	
 
 private:
 
@@ -253,7 +270,7 @@ private:
 
 			std::optional<ConstrainedStateType> ConstrainedState; // Always set when in constrained state; updated when current triangle changes
 
-			vec2f CurrentPosition;
+			vec2f CurrentPosition; // This is the only position we modify during the sub-steps; actual position is calculated when sub-steps are complete
 
 			TrajectoryStateType(
 				vec2f const & sourcePosition,
@@ -274,11 +291,20 @@ private:
 			, CurrentIsPrimaryParticle(true)
 			, TrajectoryState()
 		{}
+
+		bool IsInitial() const
+		{
+			return CurrentNpcIndex == 0
+				&& CurrentIsPrimaryParticle == true
+				&& !TrajectoryState.has_value();
+		}
 	};
 
 	SimulationStepStateType mSimulationStepState;
 
-	// TODOHERE
+	void UpdateNpcs(
+		Mesh const & mesh,
+		LabParameters const & labParameters);
 
 	struct CalculatedTrajectoryTarget final
 	{
@@ -295,7 +321,10 @@ private:
 	};
 
 	CalculatedTrajectoryTarget CalculateTrajectoryTarget(
-		ElementIndex particleIndex,
+		StateType::NpcParticleStateType & particle,
+		StateType::NpcParticleStateType * otherParticle,
+		bool isPrimaryParticle,
+		Mesh const & mesh,
 		LabParameters const & labParameters) const;
 
 	struct FinalParticleState final
@@ -311,8 +340,11 @@ private:
 		{}
 	};
 
+	// When returns a final particle state, the simulation of this particle has completed
 	std::optional<FinalParticleState> UpdateParticleTrajectoryTrace(
 		Npcs::StateType::NpcParticleStateType & particleState,
+		SimulationStepStateType::TrajectoryStateType & trajectoryState,
+		Mesh const & mesh,
 		LabParameters const & labParameters);
 
 	StateType MaterializeNpcState(
@@ -355,10 +387,11 @@ private:
 	std::optional<ParticleTrajectory> mCurrentParticleTrajectory;
 	std::optional<ParticleTrajectory> mCurrentParticleTrajectoryNotification;
 
-
 	//
 	// Simulation parameters
 	//
+
+	bool mIsStepByStepMode;
 
 	float mGravityGate;
 };

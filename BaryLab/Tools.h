@@ -127,7 +127,7 @@ public:
                 // ...see if we're able to pick a particle and thus start engagement
                 //
 
-                auto const particleId = mLabController->TryPickParticle(newPosition);
+                auto const particleId = mLabController->TryPickNpcParticle(newPosition);
                 if (particleId.has_value())
                 {
                     //
@@ -145,7 +145,7 @@ public:
 
                 vec2f const stride = newPosition - mCurrentEngagementState->LastPosition;
 
-                mLabController->MoveParticleBy(
+                mLabController->MoveNpcParticleBy(
                     mCurrentEngagementState->ParticleIndex,
                     stride,
                     vec2f::zero());
@@ -160,7 +160,7 @@ public:
             if (mCurrentEngagementState)
             {
                 // Impart intertia
-                mLabController->MoveParticleBy(
+                mLabController->MoveNpcParticleBy(
                     mCurrentEngagementState->ParticleIndex,
                     vec2f::zero(),
                     mCurrentEngagementState->LastStride);
@@ -511,7 +511,7 @@ public:
                 // ...see if we're able to pick a particle and thus start engagement
                 //
 
-                auto const particleId = mLabController->TryPickParticle(mousePosition);
+                auto const particleId = mLabController->TryPickNpcParticle(mousePosition);
                 if (particleId.has_value())
                 {
                     //
@@ -527,7 +527,7 @@ public:
                 // Engaged
                 //
 
-                mLabController->NotifyParticleTrajectory(
+                mLabController->NotifyNpcParticleTrajectory(
                     *mCurrentSelectedParticle,
                     mousePosition);
             }
@@ -537,7 +537,7 @@ public:
             if (mCurrentSelectedParticle)
             {
                 // Set trajectory
-                mLabController->SetParticleTrajectory(
+                mLabController->SetNpcParticleTrajectory(
                     *mCurrentSelectedParticle,
                     mousePosition);
 
