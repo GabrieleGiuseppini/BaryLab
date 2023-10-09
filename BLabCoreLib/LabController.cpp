@@ -194,7 +194,7 @@ void LabController::Render()
         {
             std::optional<rgbaColor> color;
 
-            if (mModel->GetNpcs().IsTriangleConstrainingCurrentlySelectedParticle(t, mModel->GetMesh()))
+            if (mModel->GetNpcs().IsTriangleConstrainingCurrentlySelectedParticle(t))
             {
                 color = rgbaColor(107, 227, 107, 77);
             }
@@ -259,7 +259,7 @@ void LabController::UpdateMeshTransformations()
         vertices.SetPosition(v, vertices.GetPosition(v) + translation);
     }
 
-    // Update pan
+    // Update camera pan
     mRenderContext->SetCameraWorldPosition(mRenderContext->GetCameraWorldPosition() + translation);
 }
 
@@ -308,8 +308,7 @@ void LabController::MoveVertexBy(
         vertexIndex,
         mModel->GetMesh().GetVertices().GetPosition(vertexIndex) + worldOffset);
 
-    assert(mModel->GetParticles().GetElementCount() >= 1);
-    InitializeParticleRegime(0);
+    mModel->GetNpcs().OnVertexMoved(mModel->GetMesh());
 }
 
 void LabController::RotateMeshBy(
@@ -343,32 +342,11 @@ void LabController::RotateMeshBy(
     // Rotate particles
     //
 
-    auto & particles = mModel->GetParticles();
-    for (auto p : particles)
-    {        
-        if (particles.GetState(p).ConstrainedState.has_value())
-        {
-            // Simply set position from current bary coords
-
-            vec2f const newPosition = mModel->GetMesh().GetTriangles().FromBarycentricCoordinates(
-                particles.GetState(p).ConstrainedState->CurrentTriangleBarycentricCoords,
-                particles.GetState(p).ConstrainedState->CurrentTriangle,
-                vertices);
-
-            particles.SetPosition(p, newPosition);
-        }
-        else
-        {
-            // Rotate particle
-
-            vec2f const centeredPos = particles.GetPosition(p) - worldCenter;
-            vec2f const rotatedPos = vec2f(
-                centeredPos.x * cosAngle - centeredPos.y * sinAngle,
-                centeredPos.x * sinAngle + centeredPos.y * cosAngle);
-
-            particles.SetPosition(p, rotatedPos + worldCenter);
-        }
-    }
+    mModel->GetNpcs().RotateParticlesWithMesh(
+        worldCenter,
+        cosAngle,
+        sinAngle,
+        mModel->GetMesh());
 }
 
 void LabController::RotateMeshBy(
@@ -377,13 +355,13 @@ void LabController::RotateMeshBy(
 {
     assert(!!mModel);
 
-    assert(particleIndex < mModel->GetParticles().GetElementCount());
+    assert(particleIndex < mModel->GetNpcs().GetParticles().GetElementCount());
 
     //
     // Rotate mesh
     //
 
-    vec2f const worldCenter = mModel->GetParticles().GetPosition(particleIndex);
+    vec2f const worldCenter = mModel->GetNpcs().GetParticles().GetPosition(particleIndex);
     float const worldAngle = ScreenOffsetToWorldOffset(screenAngle);
 
     float const cosAngle = std::cos(worldAngle);
@@ -401,22 +379,14 @@ void LabController::RotateMeshBy(
     }    
 
     //
-    // Make sure that on-edgeness of particle, if any, is maintained
+    // Rotate particles
     //
 
-    auto & particles = mModel->GetParticles();
-
-    if (particles.GetState(particleIndex).ConstrainedState.has_value())
-    {
-        // Reinforce position from current bary coords
-
-        vec2f const newPosition = mModel->GetMesh().GetTriangles().FromBarycentricCoordinates(
-            particles.GetState(particleIndex).ConstrainedState->CurrentTriangleBarycentricCoords,
-            particles.GetState(particleIndex).ConstrainedState->CurrentTriangle,
-            vertices);
-
-        particles.SetPosition(particleIndex, newPosition);
-    }
+    mModel->GetNpcs().RotateParticlesWithMesh(
+        worldCenter,
+        cosAngle,
+        sinAngle,
+        mModel->GetMesh());
 }
 
 bool LabController::TrySelectOriginTriangle(vec2f const & screenCoordinates)
@@ -425,7 +395,7 @@ bool LabController::TrySelectOriginTriangle(vec2f const & screenCoordinates)
 
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
-    ElementIndex const t = mModel->GetMesh().GetTriangles().FindContaining(worldCoordinates);
+    ElementIndex const t = mModel->GetMesh().GetTriangles().FindContaining(worldCoordinates, mModel->GetMesh().GetVertices());
     if (t != NoneElementIndex)
     {
         mModel->GetNpcs().SelectOriginTriangle(t);
@@ -453,7 +423,7 @@ std::optional<ElementIndex> LabController::TryPickNpcParticle(vec2f const & scre
     float bestSquareDistance = std::numeric_limits<float>::max();
     ElementIndex bestParticle = NoneElementIndex;
 
-    auto const & particles = mModel->GetParticles();
+    auto const & particles = mModel->GetNpcs().GetParticles();
     for (auto p : particles)
     {
         float const squareDistance = (particles.GetPosition(p) - worldCoordinates).squareLength();
@@ -476,53 +446,36 @@ void LabController::MoveNpcParticleBy(
     vec2f const & screenOffset,
     vec2f const & inertialStride)
 {
+    (void)inertialStride;
+
     assert(!!mModel);
 
     vec2f const worldOffset = ScreenOffsetToWorldOffset(screenOffset);
-    vec2f const worldStride = ScreenOffsetToWorldOffset(inertialStride);
 
-    mModel->GetParticles().SetPosition(
-        particleIndex, 
-        mModel->GetParticles().GetPosition(particleIndex) + worldOffset);
-
-    mModel->GetParticles().SetVelocity(
-        particleIndex,
-        vec2f::zero()); // Zero-out velocity
-
-    InitializeParticleRegime(particleIndex);
-
-    // Select particle
-    mModel->GetNpcs().SelectParticle(particleIndex);
-
-    // Reset trajectory state
-    mModel->GetParticles().GetState(particleIndex).TrajectoryState.reset();
-    mCurrentParticleTrajectory.reset();
-    mCurrentParticleTrajectoryNotification.reset();
+    mModel->GetNpcs().MoveParticleBy(
+        npcParticleIndex,
+        worldOffset,
+        mModel->GetMesh());
 }
 
 void LabController::NotifyNpcParticleTrajectory(
     ElementIndex npcParticleIndex,
     vec2f const & targetScreenCoordinates)
 {
-    mCurrentParticleTrajectoryNotification.emplace(
-        particleIndex,
-        ScreenToWorld(targetScreenCoordinates));
+    assert(!!mModel);
 
-    mCurrentParticleTrajectory.reset();
+    mModel->GetNpcs().NotifyParticleTrajectory(
+        npcParticleIndex,
+        ScreenToWorld(targetScreenCoordinates));
 }
 
 void LabController::SetNpcParticleTrajectory(
     ElementIndex npcParticleIndex,
     vec2f const & targetScreenCoordinates)
 {
-    mCurrentParticleTrajectory.emplace(
-        particleIndex,
+    mModel->GetNpcs().SetParticleTrajectory(
+        npcParticleIndex,
         ScreenToWorld(targetScreenCoordinates));
-    
-    mCurrentParticleTrajectoryNotification.reset();
-
-    // Reset state to needing to calculate a trajectory
-    mModel->GetParticles().GetState(particleIndex).TrajectoryState.reset();
 }
 
 void LabController::QueryNearestNpcParticleAt(vec2f const & screenCoordinates) const

@@ -61,49 +61,11 @@ public:
 
 			std::optional<ConstrainedStateType> ConstrainedState;
 
-			// Not in FS - only used because of step-by-step ray tracing
-			struct TrajectoryStateType
-			{
-				vec2f SourcePosition;
-				vec2f TargetPosition;
-
-				struct ConstrainedStateType
-				{
-					vec3f TargetPositionCurrentTriangleBarycentricCoords;
-					vec2f MeshDisplacement;
-
-					ConstrainedStateType(
-						vec3f const & targetPositionCurrentTriangleBarycentricCoords,
-						vec2f const & meshDisplacement)
-						: TargetPositionCurrentTriangleBarycentricCoords(targetPositionCurrentTriangleBarycentricCoords)
-						, MeshDisplacement(meshDisplacement)
-					{}
-				};
-
-				std::optional<ConstrainedStateType> ConstrainedState; // Always set when in constrained state; updated when current triangle changes
-
-				vec2f CurrentPosition;
-
-				TrajectoryStateType(
-					vec2f const & sourcePosition,
-					vec2f const & targetPosition,
-					std::optional<ConstrainedStateType> constrainedState)
-					: SourcePosition(sourcePosition)
-					, TargetPosition(targetPosition)
-					, ConstrainedState(std::move(constrainedState))
-					, CurrentPosition(sourcePosition)
-				{}
-			};
-
-			// Not in FS - only used because of step-by-step ray tracing
-			std::optional<TrajectoryStateType> TrajectoryState; // When set, we have a trajectory target; when not set, we have to calculate a target
-
 			NpcParticleStateType(
 				ElementIndex particleIndex,
 				std::optional<ConstrainedStateType> && constrainedState)
 				: ParticleIndex(particleIndex)
 				, ConstrainedState(std::move(constrainedState))
-				, TrajectoryState()
 			{}
 		};
 
@@ -128,13 +90,26 @@ public:
 		, mStateBuffer()
 		, mParticles(LabParameters::MaxNpcs * LabParameters::MaxParticlesPerNpc)
 		// Parameters
-		, mGravityGate(0.0f)
+		, mGravityGate(isGravityEnabled ? 1.0f : 0.0f)
 	{}
 
 	void Add(
 		NpcType npcType,
 		vec2f const & primaryPosition,
 		Mesh const & mesh);
+
+	void MoveParticleBy(
+		ElementIndex particleIndex,
+		vec2f const & offset,
+		Mesh const & mesh);
+
+	void RotateParticlesWithMesh(
+		vec2f const & centerPos,
+		float cosAngle,
+		float sinAngle,
+		Mesh const & mesh);
+
+	void OnVertexMoved(Mesh const & mesh);
 
 	void Update(Mesh const & mesh);
 
@@ -189,9 +164,7 @@ public:
 		mCurrentlySelectedParticle = particleIndex;
 	}
 
-	bool IsTriangleConstrainingCurrentlySelectedParticle(
-		ElementIndex triangleIndex,
-		Mesh const & mesh);
+	bool IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangleIndex) const;
 
 	std::optional<ElementIndex> GetCurrentOriginTriangle() const
 	{
@@ -208,7 +181,36 @@ public:
 		mCurrentOriginTriangle.reset();
 	}
 
+	void NotifyParticleTrajectory(
+		ElementIndex particleIndex,
+		vec2f const & targetPosition)
+	{
+		mCurrentParticleTrajectoryNotification.emplace(
+			particleIndex,
+			targetPosition);
+
+		mCurrentParticleTrajectory.reset();
+	}
+
+	void SetParticleTrajectory(
+		ElementIndex particleIndex, 
+		vec2f const & targetPosition)
+	{
+		mCurrentParticleTrajectory.emplace(
+			particleIndex,
+			targetPosition);
+
+		mCurrentParticleTrajectoryNotification.reset();
+	}
+
 private:
+
+	void RotateParticleWithMesh(
+		StateType::NpcParticleStateType const & npcParticleState,
+		vec2f const & centerPos,
+		float cosAngle,
+		float sinAngle,
+		Mesh const & mesh);
 
 	void RenderParticle(
 		StateType::NpcParticleStateType const & particleState,
@@ -219,19 +221,76 @@ private:
 	//
 
 	// This struct maintains the state of a simulation step, so that we can run the whole step a sub-step at a time
-	struct SimulationStepState final
+	struct SimulationStepStateType final
 	{
 		// The NPC we are simulating
 		ElementIndex CurrentNpcIndex;
-
+		
 		// Whether the current NPC's particle being simulated is the primary or the secondary one
-		bool CurrentIsPrimaryParticle;
+		bool CurrentIsPrimaryParticle; 
+
+		struct TrajectoryStateType
+		{
+			vec2f SourcePosition;
+			vec2f TargetPosition;
+
+			struct ConstrainedStateType
+			{
+				vec3f TargetPositionCurrentTriangleBarycentricCoords;
+				vec2f MeshDisplacement;
+
+				ConstrainedStateType(
+					vec3f const & targetPositionCurrentTriangleBarycentricCoords,
+					vec2f const & meshDisplacement)
+					: TargetPositionCurrentTriangleBarycentricCoords(targetPositionCurrentTriangleBarycentricCoords)
+					, MeshDisplacement(meshDisplacement)
+				{}
+			};
+
+			std::optional<ConstrainedStateType> ConstrainedState; // Always set when in constrained state; updated when current triangle changes
+
+			vec2f CurrentPosition;
+
+			TrajectoryStateType(
+				vec2f const & sourcePosition,
+				vec2f const & targetPosition,
+				std::optional<ConstrainedStateType> constrainedState)
+				: SourcePosition(sourcePosition)
+				, TargetPosition(targetPosition)
+				, ConstrainedState(std::move(constrainedState))
+				, CurrentPosition(sourcePosition)
+			{}
+		};
+
+		// When set, we have a trajectory target for the particle; when not set, we have to calculate a target
+		std::optional<TrajectoryStateType> TrajectoryState; 
+
+		SimulationStepStateType()
+			: CurrentNpcIndex(0)
+			, CurrentIsPrimaryParticle(true)
+			, TrajectoryState()
+		{}
 	};
 
-	StateType::NpcParticleStateType CalculateInitialParticleState(		
+	SimulationStepStateType mSimulationStepState;	
+
+	StateType CalculateNpcState(
+		ElementIndex npcIndex,
+		Mesh const & mesh) const;
+
+	StateType::NpcParticleStateType CalculateParticleState(
 		vec2f const & position,
 		ElementIndex particleIndex,
-		Mesh const & mesh);
+		Mesh const & mesh) const;
+
+	void ResetSimulationStepState();
+
+	bool IsParticleBeingRayTraced(ElementIndex particleIndex) const
+	{
+		return mSimulationStepState.TrajectoryState.has_value()
+			&& ((mSimulationStepState.CurrentIsPrimaryParticle && mStateBuffer[mSimulationStepState.CurrentNpcIndex].PrimaryParticleState.ParticleIndex == particleIndex)
+				|| (!mSimulationStepState.CurrentIsPrimaryParticle && mStateBuffer[mSimulationStepState.CurrentNpcIndex].SecondaryParticleState->ParticleIndex == particleIndex));
+	}
 
 private:
 

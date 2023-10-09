@@ -22,12 +22,10 @@ void Npcs::Add(
 
 	ElementIndex const primaryParticleIndex = mParticles.GetElementCount();
 	mParticles.Add(primaryPosition, rgbaColor(0x60, 0x60, 0x60, 0xff));
-	auto primaryParticleState = CalculateInitialParticleState(
+	auto primaryParticleState = CalculateParticleState(
 		primaryPosition,
 		primaryParticleIndex,
 		mesh);
-
-	auto regime = primaryParticleState.ConstrainedState ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
 
 	//
 	// Add secondary particle
@@ -41,10 +39,124 @@ void Npcs::Add(
 		assert(false);
 	}
 	
+	//
+	// Calculate regime
+	//
+
+	auto const regime = primaryParticleState.ConstrainedState.has_value()
+		? StateType::RegimeType::Constrained
+		: (secondaryParticleState.has_value() && secondaryParticleState->ConstrainedState.has_value()) ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
+
 	mStateBuffer.emplace_back(
 		regime,
 		std::move(primaryParticleState),
 		std::move(secondaryParticleState));
+}
+
+void Npcs::MoveParticleBy(
+	ElementIndex particleIndex,
+	vec2f const & offset,
+	Mesh const & mesh)
+{
+	mParticles.SetPosition(
+		particleIndex,
+		mParticles.GetPosition(particleIndex) + offset);
+
+	mParticles.SetVelocity(
+		particleIndex,
+		vec2f::zero()); // Zero-out velocity
+
+	//
+	// Initialize NPC state
+	//
+
+	for (auto const n : *this)
+	{
+		auto & state = mStateBuffer[n];
+
+		if (state.PrimaryParticleState.ParticleIndex == particleIndex
+			|| (state.SecondaryParticleState.has_value() && state.SecondaryParticleState->ParticleIndex == particleIndex))
+		{
+			state = CalculateNpcState(n, mesh);
+			break;
+		}
+	}
+
+	//
+	// Reset simulation
+	//
+
+	ResetSimulationStepState();
+
+	//
+	// Select particle
+	//
+
+	SelectParticle(particleIndex);
+
+	//
+	// Reset trajectories
+	//
+
+	mCurrentParticleTrajectory.reset();
+	mCurrentParticleTrajectoryNotification.reset();
+}
+
+void Npcs::RotateParticlesWithMesh(
+	vec2f const & centerPos,
+	float cosAngle,
+	float sinAngle,
+	Mesh const & mesh)
+{
+	//
+	// Rotate particles
+	//
+
+	for (auto const n : *this)
+	{
+		auto & state = mStateBuffer[n];
+
+		RotateParticleWithMesh(
+			state.PrimaryParticleState,
+			centerPos,
+			cosAngle,
+			sinAngle,
+			mesh);
+
+		if (state.SecondaryParticleState.has_value())
+		{
+			RotateParticleWithMesh(
+				*state.SecondaryParticleState,
+				centerPos,
+				cosAngle,
+				sinAngle,
+				mesh);
+		}
+	}
+
+	//
+	// Reset simulation
+	//
+
+	ResetSimulationStepState();
+}
+
+void Npcs::OnVertexMoved(Mesh const & mesh)
+{
+	//
+	// Recalculate state of all NPCs
+	//
+
+	for (auto const n : *this)
+	{
+		mStateBuffer[n] = CalculateNpcState(n, mesh);
+	}
+
+	//
+	// Reset simulation
+	//
+
+	ResetSimulationStepState();
 }
 
 void Npcs::Update(Mesh const & mesh)
@@ -62,9 +174,9 @@ void Npcs::Update(Mesh const & mesh)
 
 	if (mCurrentlySelectedParticle.has_value())
 	{
-		for (auto const i : *this)
+		for (auto const n : *this)
 		{
-			auto const & state = mStateBuffer[i];
+			auto const & state = mStateBuffer[n];
 
 			if (state.PrimaryParticleState.ParticleIndex == *mCurrentlySelectedParticle
 				&& state.PrimaryParticleState.ConstrainedState.has_value())
@@ -149,14 +261,16 @@ void Npcs::Render(RenderContext & renderContext)
 	if (mCurrentParticleTrajectory)
 	{
 		vec2f sourcePosition;
-		// TODOHERE: from mSimulationState, is current particle is particle of mCurrentParticleTrajectory
-		if (mModel->GetParticles().GetState(mCurrentParticleTrajectory->ParticleIndex).TrajectoryState.has_value())
+
+		// If the trajectory's particle is being ray-traced, use its current position in its quest to the trajectory;
+		// otherwise, use its real position
+		if (IsParticleBeingRayTraced(mCurrentParticleTrajectory->ParticleIndex))
 		{
-			sourcePosition = mModel->GetParticles().GetState(mCurrentParticleTrajectory->ParticleIndex).TrajectoryState->CurrentPosition;
+			sourcePosition = mSimulationStepState.TrajectoryState->CurrentPosition;
 		}
 		else
 		{
-			sourcePosition = mModel->GetParticles().GetPosition(mCurrentParticleTrajectory->ParticleIndex);
+			mParticles.GetPosition(mCurrentParticleTrajectory->ParticleIndex);
 		}
 
 		renderContext.UploadParticleTrajectory(
@@ -171,6 +285,39 @@ void Npcs::Render(RenderContext & renderContext)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void Npcs::RotateParticleWithMesh(
+	StateType::NpcParticleStateType const & npcParticleState,
+	vec2f const & centerPos,
+	float cosAngle,
+	float sinAngle,
+	Mesh const & mesh)
+{
+	vec2f newPosition;
+
+	if (npcParticleState.ConstrainedState.has_value())
+	{
+		// Simply set position from current bary coords
+
+		newPosition = mesh.GetTriangles().FromBarycentricCoordinates(
+			npcParticleState.ConstrainedState->CurrentTriangleBarycentricCoords,
+			npcParticleState.ConstrainedState->CurrentTriangle,
+			mesh.GetVertices());
+	}
+	else
+	{
+		// Rotate particle
+
+		vec2f const centeredPos = mParticles.GetPosition(npcParticleState.ParticleIndex) - centerPos;
+		vec2f const rotatedPos = vec2f(
+			centeredPos.x * cosAngle - centeredPos.y * sinAngle,
+			centeredPos.x * sinAngle + centeredPos.y * cosAngle);
+
+		newPosition = rotatedPos + centeredPos;
+	}
+
+	mParticles.SetPosition(npcParticleState.ParticleIndex, newPosition);
+}
+
 void Npcs::RenderParticle(
 	StateType::NpcParticleStateType const & particleState,
 	RenderContext & renderContext)
@@ -180,20 +327,60 @@ void Npcs::RenderParticle(
 		mParticles.GetRenderColor(particleState.ParticleIndex),
 		1.0f);
 
-	// Render end of trajectory
-	if (particleState.TrajectoryState.has_value())
+	// Render shadow at end of trajectory, it this particle is being ray-traced
+	if (IsParticleBeingRayTraced(particleState.ParticleIndex))
 	{
 		renderContext.UploadParticle(
-			particleState.TrajectoryState->CurrentPosition,
+			mSimulationStepState.TrajectoryState->CurrentPosition,
 			mParticles.GetRenderColor(particleState.ParticleIndex),
 			0.5f);
 	}
 }
 
-Npcs::StateType::NpcParticleStateType Npcs::CalculateInitialParticleState(
+
+Npcs::StateType Npcs::CalculateNpcState(
+	ElementIndex npcIndex,
+	Mesh const & mesh) const
+{
+	auto const & state = mStateBuffer[npcIndex];
+
+	// Primary particle
+
+	auto primaryParticleState = CalculateParticleState(
+		mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
+		state.PrimaryParticleState.ParticleIndex,
+		mesh);
+
+	// Secondary particle
+
+	std::optional<StateType::NpcParticleStateType> secondaryParticleState;
+
+	if (state.SecondaryParticleState.has_value())
+	{
+		secondaryParticleState = CalculateParticleState(
+			mParticles.GetPosition(state.SecondaryParticleState->ParticleIndex),
+			state.SecondaryParticleState->ParticleIndex,
+			mesh);
+	}
+
+	//
+	// Regime
+	//
+
+	auto const regime = primaryParticleState.ConstrainedState.has_value()
+		? StateType::RegimeType::Constrained
+		: (secondaryParticleState.has_value() && secondaryParticleState->ConstrainedState.has_value()) ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
+
+	return StateType(
+		regime,
+		std::move(primaryParticleState),
+		std::move(secondaryParticleState));
+}
+
+Npcs::StateType::NpcParticleStateType Npcs::CalculateParticleState(
 	vec2f const & position,
 	ElementIndex particleIndex,
-	Mesh const & mesh)
+	Mesh const & mesh) const
 {
 	std::optional<StateType::NpcParticleStateType::ConstrainedStateType> constrainedState;
 
@@ -221,9 +408,12 @@ Npcs::StateType::NpcParticleStateType Npcs::CalculateInitialParticleState(
 		std::move(constrainedState));
 }
 
-bool Npcs::IsTriangleConstrainingCurrentlySelectedParticle(
-	ElementIndex triangleIndex,
-	Mesh const & mesh)
+void Npcs::ResetSimulationStepState()
+{
+	mSimulationStepState = SimulationStepStateType();
+}
+
+bool Npcs::IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangleIndex) const
 {
 	if (mCurrentlySelectedParticle.has_value())
 	{

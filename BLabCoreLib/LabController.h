@@ -206,12 +206,14 @@ private:
         std::unique_ptr<Model> newModel,
         std::filesystem::path const & meshDefinitionFilepath);
 
-    Npcs CreateNpcs();
-
     void UpdateMeshTransformations();
 
     //
     // Simulation
+    //
+
+    //
+    // TODO: all of the below moves to NPCs
     //
 
     void UpdateSimulation(LabParameters const & labParameters);

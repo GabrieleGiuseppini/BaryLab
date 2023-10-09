@@ -22,30 +22,28 @@
 			+ OnSubjectParticleConstrainedRegimeUpdated(): given mCurrentSubjectParticle and its constrained state
 			+ OnSubjectParticlePhysicsUpdated(): given mCurrentSubjectParticle
 			+ OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged: given mCurrentOriginTriangle and mCurrentSubjectParticle
-		- SimulationState:
+		= SimulationState:
 			- Simulation now needs to become a state machine:
 				- For each particle
 					- if needs traj => do traj (picking up eventual user trajectory)
 					- do all of its ray tracing steps
 						- interrupt is here
 				- Externalize trajectory state into SimulationState
-			- State machine contains:
-				- CurNpc (index)
-				- CurIsPrimaryParticle (bool)
-				- CurrentTrajectoryState			
-		- Rendering:
+			+ State machine contains:
+				+ CurNpc (index)
+				+ CurIsPrimaryParticle (bool)
+				+ CurrentTrajectoryState			
+		+ Rendering:
 			+ Triangle color: based on mCurrentSubjectParticle and its constrained state, but also based on mCurrentOriginTriangle
-			- Particle trajectory: given trajectoryStartIndex and endPos, and particle's current trajectory state
-		- Moving particles:
-			- TODO: done by whom?
-		= Npcs:
+			+ Particle trajectory: given trajectoryStartIndex and endPos, and particle's current trajectory state
+		+ Npcs:
 			+ mCurrentSubjectParticle, forwarded by LabController
 			+ mCurrentOriginTriangle
-			- mCurrentParticleTrajectory and mCurrentParticleTrajectoryNotification
-		- TODO: re-initialization of Npc (its particles') state (which is invoked after MoveVertex, etc.)
+			+ mCurrentParticleTrajectory and mCurrentParticleTrajectoryNotification
 
 	- Move simulation to Npcs
-		- Single-particle state update (like now)
+		- Npcs_Simulation.cpp
+		- Goal 1: Single-particle state update (like now)
 
 	- Dipole state update:
 		- Misc notes:
