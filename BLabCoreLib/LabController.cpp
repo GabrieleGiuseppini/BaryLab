@@ -127,7 +127,9 @@ void LabController::Update()
     if (mSimulationControlState == SimulationControlStateType::Play
         || mSimulationControlImpulse)
     {
-        UpdateSimulation(mLabParameters);
+        mModel->GetNpcs().Update(
+            mModel->GetMesh(),
+            mLabParameters);
 
         mCurrentMeshTranslationAccelerationIndicator *= 0.98f;
 

@@ -29,6 +29,7 @@
 					- do all of its ray tracing steps
 						- interrupt is here
 				- Externalize trajectory state into SimulationState
+			+ Nuke old LabController_Simulation.cpp
 			+ State machine contains:
 				+ CurNpc (index)
 				+ CurIsPrimaryParticle (bool)
@@ -41,8 +42,8 @@
 			+ mCurrentOriginTriangle
 			+ mCurrentParticleTrajectory and mCurrentParticleTrajectoryNotification
 
-	- Move simulation to Npcs
-		- Npcs_Simulation.cpp
+	= Move simulation to Npcs
+		= Npcs_Simulation.cpp
 		- Goal 1: Single-particle state update (like now)
 
 	- Dipole state update:

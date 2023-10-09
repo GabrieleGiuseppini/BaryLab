@@ -3,14 +3,14 @@
  * Created:				2023-07-23
  * Copyright:			Gabriele Giuseppini  (https://github.com/GabrieleGiuseppini)
  ***************************************************************************************/
-#include "LabController.h"
+#include "Npcs.h"
 
 #include "BLabMath.h"
 #include "Log.h"
 
 #include <limits>
 
-void LabController::UpdateSimulation(LabParameters const & labParameters)
+void Npcs::UpdateSimulation(LabParameters const & labParameters)
 {
     //
     // Update particles' state
@@ -188,7 +188,7 @@ void LabController::UpdateSimulation(LabParameters const & labParameters)
     }
 }
 
-LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
+Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
     ElementIndex particleIndex,
     LabParameters const & labParameters) const
 {
@@ -446,7 +446,7 @@ LabController::TrajectoryTarget LabController::CalculatePhysicsTarget(
         constrainedState);
 }
 
-std::optional<LabController::FinalParticleState> LabController::UpdateParticleTrajectoryTrace(
+std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
     Npcs::StateType::NpcParticleStateType & particleState,
     LabParameters const & labParameters)
 {
@@ -755,4 +755,79 @@ std::optional<LabController::FinalParticleState> LabController::UpdateParticleTr
             return std::nullopt; // Continue
         }
     }
+}
+
+Npcs::StateType Npcs::MaterializeNpcState(
+    ElementIndex npcIndex,
+    Mesh const & mesh) const
+{
+    auto const & state = mStateBuffer[npcIndex];
+
+    // Primary particle
+
+    auto primaryParticleState = MaterializeParticleState(
+        mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
+        state.PrimaryParticleState.ParticleIndex,
+        mesh);
+
+    // Secondary particle
+
+    std::optional<StateType::NpcParticleStateType> secondaryParticleState;
+
+    if (state.SecondaryParticleState.has_value())
+    {
+        secondaryParticleState = MaterializeParticleState(
+            mParticles.GetPosition(state.SecondaryParticleState->ParticleIndex),
+            state.SecondaryParticleState->ParticleIndex,
+            mesh);
+    }
+
+    //
+    // Regime
+    //
+
+    auto const regime = primaryParticleState.ConstrainedState.has_value()
+        ? StateType::RegimeType::Constrained
+        : (secondaryParticleState.has_value() && secondaryParticleState->ConstrainedState.has_value()) ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
+
+    return StateType(
+        regime,
+        std::move(primaryParticleState),
+        std::move(secondaryParticleState));
+}
+
+Npcs::StateType::NpcParticleStateType Npcs::MaterializeParticleState(
+    vec2f const & position,
+    ElementIndex particleIndex,
+    Mesh const & mesh) const
+{
+    std::optional<StateType::NpcParticleStateType::ConstrainedStateType> constrainedState;
+
+    ElementIndex const triangleIndex = mesh.GetTriangles().FindContaining(position, mesh.GetVertices());
+    if (triangleIndex != NoneElementIndex)
+    {
+        vec3f const barycentricCoords = mesh.GetTriangles().ToBarycentricCoordinatesFromWithinTriangle(
+            position,
+            triangleIndex,
+            mesh.GetVertices());
+
+        {
+            assert(barycentricCoords[0] >= 0.0f && barycentricCoords[0] <= 1.0f);
+            assert(barycentricCoords[1] >= 0.0f && barycentricCoords[1] <= 1.0f);
+            assert(barycentricCoords[2] >= 0.0f && barycentricCoords[2] <= 1.0f);
+        }
+
+        constrainedState.emplace(
+            triangleIndex,
+            barycentricCoords);
+    }
+
+    return StateType::NpcParticleStateType(
+        particleIndex,
+        std::move(constrainedState));
+}
+
+void Npcs::ResetSimulationStepState()
+{
+    mSimulationStepState = SimulationStepStateType();
 }

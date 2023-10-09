@@ -22,7 +22,7 @@ void Npcs::Add(
 
 	ElementIndex const primaryParticleIndex = mParticles.GetElementCount();
 	mParticles.Add(primaryPosition, rgbaColor(0x60, 0x60, 0x60, 0xff));
-	auto primaryParticleState = CalculateParticleState(
+	auto primaryParticleState = MaterializeParticleState(
 		primaryPosition,
 		primaryParticleIndex,
 		mesh);
@@ -77,7 +77,7 @@ void Npcs::MoveParticleBy(
 		if (state.PrimaryParticleState.ParticleIndex == particleIndex
 			|| (state.SecondaryParticleState.has_value() && state.SecondaryParticleState->ParticleIndex == particleIndex))
 		{
-			state = CalculateNpcState(n, mesh);
+			state = MaterializeNpcState(n, mesh);
 			break;
 		}
 	}
@@ -149,7 +149,7 @@ void Npcs::OnVertexMoved(Mesh const & mesh)
 
 	for (auto const n : *this)
 	{
-		mStateBuffer[n] = CalculateNpcState(n, mesh);
+		mStateBuffer[n] = MaterializeNpcState(n, mesh);
 	}
 
 	//
@@ -159,10 +159,13 @@ void Npcs::OnVertexMoved(Mesh const & mesh)
 	ResetSimulationStepState();
 }
 
-void Npcs::Update(Mesh const & mesh)
+void Npcs::Update(
+	Mesh const & mesh,
+	LabParameters const & labParameters)
 {
 	// TODO
 	(void)mesh;
+	(void)labParameters;
 
 	//
 	// Publish
@@ -335,82 +338,6 @@ void Npcs::RenderParticle(
 			mParticles.GetRenderColor(particleState.ParticleIndex),
 			0.5f);
 	}
-}
-
-
-Npcs::StateType Npcs::CalculateNpcState(
-	ElementIndex npcIndex,
-	Mesh const & mesh) const
-{
-	auto const & state = mStateBuffer[npcIndex];
-
-	// Primary particle
-
-	auto primaryParticleState = CalculateParticleState(
-		mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
-		state.PrimaryParticleState.ParticleIndex,
-		mesh);
-
-	// Secondary particle
-
-	std::optional<StateType::NpcParticleStateType> secondaryParticleState;
-
-	if (state.SecondaryParticleState.has_value())
-	{
-		secondaryParticleState = CalculateParticleState(
-			mParticles.GetPosition(state.SecondaryParticleState->ParticleIndex),
-			state.SecondaryParticleState->ParticleIndex,
-			mesh);
-	}
-
-	//
-	// Regime
-	//
-
-	auto const regime = primaryParticleState.ConstrainedState.has_value()
-		? StateType::RegimeType::Constrained
-		: (secondaryParticleState.has_value() && secondaryParticleState->ConstrainedState.has_value()) ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
-
-	return StateType(
-		regime,
-		std::move(primaryParticleState),
-		std::move(secondaryParticleState));
-}
-
-Npcs::StateType::NpcParticleStateType Npcs::CalculateParticleState(
-	vec2f const & position,
-	ElementIndex particleIndex,
-	Mesh const & mesh) const
-{
-	std::optional<StateType::NpcParticleStateType::ConstrainedStateType> constrainedState;
-
-	ElementIndex const triangleIndex = mesh.GetTriangles().FindContaining(position, mesh.GetVertices());
-	if (triangleIndex != NoneElementIndex)
-	{
-		vec3f const barycentricCoords = mesh.GetTriangles().ToBarycentricCoordinatesFromWithinTriangle(
-			position,
-			triangleIndex,
-			mesh.GetVertices());
-
-		{
-			assert(barycentricCoords[0] >= 0.0f && barycentricCoords[0] <= 1.0f);
-			assert(barycentricCoords[1] >= 0.0f && barycentricCoords[1] <= 1.0f);
-			assert(barycentricCoords[2] >= 0.0f && barycentricCoords[2] <= 1.0f);
-		}
-
-		constrainedState.emplace(
-			triangleIndex,
-			barycentricCoords);
-	}
-
-	return StateType::NpcParticleStateType(
-		particleIndex,
-		std::move(constrainedState));
-}
-
-void Npcs::ResetSimulationStepState()
-{
-	mSimulationStepState = SimulationStepStateType();
 }
 
 bool Npcs::IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangleIndex) const

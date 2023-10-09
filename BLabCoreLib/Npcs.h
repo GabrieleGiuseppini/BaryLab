@@ -111,7 +111,9 @@ public:
 
 	void OnVertexMoved(Mesh const & mesh);
 
-	void Update(Mesh const & mesh);
+	void Update(
+		Mesh const & mesh,
+		LabParameters const & labParameters);
 
 	void Render(RenderContext & renderContext);
 
@@ -162,9 +164,7 @@ public:
 	void SelectParticle(ElementIndex particleIndex)
 	{
 		mCurrentlySelectedParticle = particleIndex;
-	}
-
-	bool IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangleIndex) const;
+	}	
 
 	std::optional<ElementIndex> GetCurrentOriginTriangle() const
 	{
@@ -215,6 +215,10 @@ private:
 	void RenderParticle(
 		StateType::NpcParticleStateType const & particleState,
 		RenderContext & renderContext);
+
+	bool IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangleIndex) const;
+
+private:
 
 	//
 	// Simulation
@@ -272,13 +276,50 @@ private:
 		{}
 	};
 
-	SimulationStepStateType mSimulationStepState;	
+	SimulationStepStateType mSimulationStepState;
 
-	StateType CalculateNpcState(
+	// TODOHERE
+
+	struct CalculatedTrajectoryTarget final
+	{
+		vec2f Position;
+
+		std::optional<SimulationStepStateType::TrajectoryStateType::ConstrainedStateType> ConstrainedStateInfo; // Returned when in constrained state
+
+		CalculatedTrajectoryTarget(
+			vec2f const & position,
+			std::optional<SimulationStepStateType::TrajectoryStateType::ConstrainedStateType> constrainedStateInfo)
+			: Position(position)
+			, ConstrainedStateInfo(std::move(constrainedStateInfo))
+		{}
+	};
+
+	CalculatedTrajectoryTarget CalculateTrajectoryTarget(
+		ElementIndex particleIndex,
+		LabParameters const & labParameters) const;
+
+	struct FinalParticleState final
+	{
+		vec2f Position;
+		std::optional<vec2f> Velocity;
+
+		FinalParticleState(
+			vec2f const & position,
+			std::optional<vec2f> velocity)
+			: Position(position)
+			, Velocity(std::move(velocity))
+		{}
+	};
+
+	std::optional<FinalParticleState> UpdateParticleTrajectoryTrace(
+		Npcs::StateType::NpcParticleStateType & particleState,
+		LabParameters const & labParameters);
+
+	StateType MaterializeNpcState(
 		ElementIndex npcIndex,
 		Mesh const & mesh) const;
 
-	StateType::NpcParticleStateType CalculateParticleState(
+	StateType::NpcParticleStateType MaterializeParticleState(
 		vec2f const & position,
 		ElementIndex particleIndex,
 		Mesh const & mesh) const;

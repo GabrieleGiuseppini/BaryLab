@@ -208,57 +208,6 @@ private:
 
     void UpdateMeshTransformations();
 
-    //
-    // Simulation
-    //
-
-    //
-    // TODO: all of the below moves to NPCs
-    //
-
-    void UpdateSimulation(LabParameters const & labParameters);
-
-    void UpdateParticle(
-        Npcs::StateType::NpcParticleStateType & particleState,
-        std::optional<Npcs::StateType::NpcParticleStateType> const & secondaryParticleState,
-        bool isPrimaryParticle,
-        LabParameters const & labParameters);
-
-    struct TrajectoryTarget
-    {
-        vec2f Position;
-
-        std::optional<Npcs::StateType::NpcParticleStateType::TrajectoryStateType::ConstrainedStateType> ConstrainedStateInfo; // Returned when in constrained state
-
-        TrajectoryTarget(
-            vec2f const & position,
-            std::optional<Npcs::StateType::NpcParticleStateType::TrajectoryStateType::ConstrainedStateType> constrainedStateInfo)
-            : Position(position)
-            , ConstrainedStateInfo(std::move(constrainedStateInfo))
-        {}
-    };
-
-    TrajectoryTarget CalculatePhysicsTarget(
-        ElementIndex particleIndex,
-        LabParameters const & labParameters) const;
-
-    struct FinalParticleState
-    {
-        vec2f Position;
-        std::optional<vec2f> Velocity;
-
-        FinalParticleState(
-            vec2f const & position,
-            std::optional<vec2f> velocity)
-            : Position(position)
-            , Velocity(std::move(velocity))
-        {}
-    };
-
-    std::optional<FinalParticleState> UpdateParticleTrajectoryTrace(
-        Npcs::StateType::NpcParticleStateType & particleState,
-        LabParameters const & labParameters);
-
 private:
     
     StructuralMaterialDatabase mStructuralMaterialDatabase;
