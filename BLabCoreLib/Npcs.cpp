@@ -275,7 +275,7 @@ void Npcs::Render(RenderContext & renderContext)
 		}
 		else
 		{
-			mParticles.GetPosition(mCurrentParticleTrajectory->ParticleIndex);
+			sourcePosition = mParticles.GetPosition(mCurrentParticleTrajectory->ParticleIndex);
 		}
 
 		renderContext.UploadParticleTrajectory(

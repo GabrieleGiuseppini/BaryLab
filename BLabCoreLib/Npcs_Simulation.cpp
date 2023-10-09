@@ -56,8 +56,6 @@ void Npcs::UpdateNpcs(
             // Calculate a trajectory for this particle
             //
 
-            // TODOHERE
-
             LogMessage("  Trajectory calculation");
 
             // Calculate target position
@@ -159,6 +157,8 @@ void Npcs::UpdateNpcs(
         //
         // Do a trajectory tracing step for the current particle
         //
+
+        LogMessage("  Trajectory step");
 
         auto const finalParticleState = UpdateParticleTrajectoryTrace(*npcParticleState, *mSimulationStepState.TrajectoryState, mesh, labParameters);
         if (finalParticleState)
@@ -484,9 +484,9 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
     // Integrate physical forces, including eventual bounce velocity from a previous impact
     //
 
-    vec2f const physicalForces = 
+    vec2f const physicalForces =
         mParticles.GetWorldForce(particle.ParticleIndex)
-        + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate;
+        + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * labParameters.ParticleMass * labParameters.MassAdjustment;
 
     vec2f const physicsDeltaPos =
         mParticles.GetVelocity(particle.ParticleIndex) * dt
@@ -558,7 +558,7 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
                             + physicsDeltaPos
                             - newTheoreticalPositionAfterMeshDisplacement;
 
-                        LogMessage("    startPos=", mParticles.GetPosition(particle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos, 
+                        LogMessage("      startPos=", mParticles.GetPosition(particle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos, 
                             " meshDispl=", meshDisplacement, " traj=", trajectory);
 
                         //
@@ -579,7 +579,7 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
                             // We're moving against the floor, hence we are in a non-inertial frame
                             //
 
-                            LogMessage("  Particle is on floor edge ", edgeOrdinal, ", moving against it");
+                            LogMessage("    Particle is on floor edge ", edgeOrdinal, ", moving against it");
 
                             // 
                             // Calculate magnitude of flattened trajectory - i.e. component of trajectory 
@@ -626,7 +626,7 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
                                     tFriction *= -1.0f;
                                 }
 
-                                LogMessage("    friction: trajectoryN=", trajectoryN, " relVel=", particle.ConstrainedState->MeshRelativeVelocity, " trajectoryT=", trajectoryT,
+                                LogMessage("      friction: trajectoryN=", trajectoryN, " relVel=", particle.ConstrainedState->MeshRelativeVelocity, " trajectoryT=", trajectoryT,
                                     " tFriction=", tFriction);
 
                                 // Update trajectory with friction
@@ -649,7 +649,7 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
                                 currentTriangleElementIndex,
                                 vertices);
 
-                            LogMessage("    targetPos=", targetPos, " targetBarycentricCoords before forcing=", targetBarycentricCoords);
+                            LogMessage("      targetPos=", targetPos, " targetBarycentricCoords before forcing=", targetBarycentricCoords);
 
                             // Force to be on edge
                             int const vertexOrdinal = (edgeOrdinal + 2) % 3;
@@ -661,7 +661,7 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
                                 currentTriangleElementIndex,
                                 vertices);
 
-                            LogMessage("    flattened traj=", flattenedTrajectory, " flattened target coords=", targetBarycentricCoords," actual target pos=", targetCoords);
+                            LogMessage("      flattened traj=", flattenedTrajectory, " flattened target coords=", targetBarycentricCoords," actual target pos=", targetCoords);
 
                             return CalculatedTrajectoryTarget(
                                 targetCoords,
@@ -671,7 +671,7 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
                         }
                         else
                         {
-                            LogMessage("  Particle is on floor edge, but not moving against it");
+                            LogMessage("    Particle is on floor edge, but not moving against it");
 
                             vec2f const targetPosition = mParticles.GetPosition(particle.ParticleIndex) + physicsDeltaPos;
 
@@ -704,7 +704,7 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
     // Just use pure physical forces
     //
 
-    LogMessage("  Particle not on floor edge; using pure physical forces");
+    LogMessage("    Particle not in constrained state or not on floor edge; using pure physical forces");
 
     vec2f const targetPosition =
         mParticles.GetPosition(particle.ParticleIndex)
@@ -744,7 +744,7 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
     {
         // Reached destination
 
-        LogMessage("  Reached destination");
+        LogMessage("    Reached destination");
 
         return FinalParticleState(
             trajectoryState.TargetPosition,
@@ -757,7 +757,7 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
 
     if (!particleState.ConstrainedState)
     {
-        LogMessage("  Particle is free, moving to target");
+        LogMessage("    Particle is free, moving to target");
 
         // ...move to target position directly
         trajectoryState.CurrentPosition = trajectoryState.TargetPosition;
@@ -769,7 +769,7 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
     // We are in constrained state
     //
 
-    LogMessage("  Particle is in constrained state");
+    LogMessage("    Particle is in constrained state");
 
     assert(particleState.ConstrainedState.has_value());
     assert(trajectoryState.ConstrainedState.has_value());
@@ -792,7 +792,7 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
         && targetBarycentricCoords.y >= 0.0f && targetBarycentricCoords.y <= 1.0f
         && targetBarycentricCoords.z >= 0.0f && targetBarycentricCoords.z <= 1.0f)
     {
-        LogMessage("  Target is on/in triangle (", targetBarycentricCoords, "), moving to target");
+        LogMessage("    Target is on/in triangle (", targetBarycentricCoords, "), moving to target");
 
         // ...move to target position directly
         trajectoryState.CurrentPosition = trajectoryState.TargetPosition;
@@ -806,7 +806,7 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
     // if we're on edge, trajectory is along this edge
     //
 
-    LogMessage("  Target is outside triangle ", targetBarycentricCoords, "");
+    LogMessage("    Target is outside triangle ", targetBarycentricCoords, "");
 
     //
     // Find closest intersection in the direction of the trajectory
@@ -862,7 +862,7 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
 
             assert(t > -Epsilon<float>); // Some numeric slack, trajectory is here guaranteed to be pointing into this edge
 
-            LogMessage("  t[v", vi, " e", edgeOrdinal, "] = ", t);            
+            LogMessage("      t[v", vi, " e", edgeOrdinal, "] = ", t);            
 
             if (t < minIntersectionT)
             {
@@ -882,7 +882,7 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
     int const intersectionEdgeOrdinal = (intersectionVertexOrdinal + 1) % 3;
     ElementIndex const intersectionEdgeElementIndex = triangles.GetSubEdges(currentTriangle).EdgeIndices[intersectionEdgeOrdinal];
 
-    LogMessage("  Moving to intersection with edge ", intersectionEdgeOrdinal);
+    LogMessage("    Moving to intersection with edge ", intersectionEdgeOrdinal);
 
     // Calculate intersection barycentric coordinates
     vec3f intersectionBarycentricCoords;
@@ -929,7 +929,7 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
         // Impact
         //
 
-        LogMessage("  Impact");
+        LogMessage("    Impact");
 
         //
         // Update velocity with bounce response, using the *apparent* (trajectory) 
@@ -957,14 +957,14 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
             tangentialVelocity
             * (1.0f - labParameters.KineticFriction);
 
-        LogMessage("    traj=", trajectory, " apv=", apparentParticleVelocity, " nr=", normalResponse, " tr=", tangentialResponse);
+        LogMessage("      traj=", trajectory, " apv=", apparentParticleVelocity, " nr=", normalResponse, " tr=", tangentialResponse);
 
         // Given that we calc the collision response to *trajectory* (i.e. apparent trajectory),
         // we need to transform it to absolute particle velocity
         vec2f const meshVelocity = trajectoryState.ConstrainedState->MeshDisplacement / LabParameters::SimulationTimeStepDuration;
         vec2f const resultantResponseVelocity = normalResponse + tangentialResponse - meshVelocity;
 
-        LogMessage("    meshVelocity=", meshVelocity, " res=", resultantResponseVelocity);
+        LogMessage("      meshVelocity=", meshVelocity, " res=", resultantResponseVelocity);
 
         // 
         // Conclude here
@@ -980,7 +980,7 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
         // Not floor, climb over edge
         //
 
-        LogMessage("  Climbing over non-floor edge");
+        LogMessage("    Climbing over non-floor edge");
 
         // Find opposite triangle
         ElementIndex const oppositeTriangle = edges.GetOppositeTriangle(intersectionEdgeElementIndex, currentTriangle);
@@ -990,7 +990,7 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
             // Become free
             //
 
-            LogMessage("  No opposite triangle found, becoming free");
+            LogMessage("    No opposite triangle found, becoming free");
 
             particleState.ConstrainedState.reset();
             trajectoryState.ConstrainedState.reset();
@@ -1005,7 +1005,7 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
 
             int const oppositeTriangleEdgeOrdinal = triangles.GetSubEdgeOrdinal(oppositeTriangle, intersectionEdgeElementIndex);
 
-            LogMessage("  Moving to edge ", oppositeTriangleEdgeOrdinal, " of opposite triangle ", oppositeTriangle);
+            LogMessage("    Moving to edge ", oppositeTriangleEdgeOrdinal, " of opposite triangle ", oppositeTriangle);
 
             particleState.ConstrainedState->CurrentTriangle = oppositeTriangle;
 
@@ -1021,7 +1021,7 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
             newBarycentricCoords[oppositeTriangleEdgeOrdinal] = particleState.ConstrainedState->CurrentTriangleBarycentricCoords[(intersectionEdgeOrdinal + 1) % 3];
             newBarycentricCoords[(oppositeTriangleEdgeOrdinal + 1) % 3] = particleState.ConstrainedState->CurrentTriangleBarycentricCoords[intersectionEdgeOrdinal];
 
-            LogMessage("  B-Coords: ", particleState.ConstrainedState->CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
+            LogMessage("    B-Coords: ", particleState.ConstrainedState->CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
 
             {
                 assert(newBarycentricCoords[0] >= 0.0f && newBarycentricCoords[0] <= 1.0f);

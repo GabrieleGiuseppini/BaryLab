@@ -100,6 +100,10 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
             Npcs::NpcType::Furniture,
             position,
             *mesh);
+
+        // Select particle
+        assert(npcs->GetParticles().GetParticleCount() > 0);
+        npcs->SelectParticle(0);
     }    
 
     // Create a new model
