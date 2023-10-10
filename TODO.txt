@@ -42,9 +42,9 @@
 			+ mCurrentOriginTriangle
 			+ mCurrentParticleTrajectory and mCurrentParticleTrajectoryNotification
 
-	= Move simulation to Npcs
+	+ Move simulation to Npcs
 		+ Npcs_Simulation.cpp
-		= Goal 1: Single-particle state update (like now)
+		+ Goal 1: Single-particle state update (like now)
 
 	- Dipole state update:
 		- Misc notes:

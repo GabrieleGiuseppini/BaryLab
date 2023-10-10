@@ -14,9 +14,11 @@ enum class SLabSettings : size_t
     StaticFriction,
     KineticFriction,
     MassAdjustment,
-    GravityAdjustment,    
+    GravityAdjustment,
+    SpringReductionFraction,
+    SpringDampingCoefficient,
 
-    _Last = GravityAdjustment
+    _Last = SpringDampingCoefficient
 };
 
 class SettingsManager final : public BaseSettingsManager<SLabSettings>

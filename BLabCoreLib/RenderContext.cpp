@@ -82,6 +82,26 @@ RenderContext::RenderContext(
     glBindVertexArray(0);
 
     //
+    // Springs
+    //
+
+    glGenVertexArrays(1, &tmpGLuint);
+    mSpringVAO = tmpGLuint;
+    glBindVertexArray(*mSpringVAO);
+
+    glGenBuffers(1, &tmpGLuint);
+    mSpringVertexVBO = tmpGLuint;
+    glBindBuffer(GL_ARRAY_BUFFER, *mSpringVertexVBO);
+
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::SpringAttributeGroup1));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::SpringAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(SpringVertex), (void *)0);
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::SpringAttributeGroup2));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::SpringAttributeGroup2), 4, GL_FLOAT, GL_FALSE, sizeof(SpringVertex), (void *)(4 * sizeof(float)));
+    static_assert(sizeof(SpringVertex) == 8 * sizeof(float));
+
+    glBindVertexArray(0);
+
+    //
     // Particles
     //
 
@@ -362,6 +382,81 @@ void RenderContext::UploadEdgesEnd()
     }
 }
 
+void RenderContext::UploadSpringsStart()
+{
+    //
+    // Prepare buffer
+    //
+
+    mSpringVertexBuffer.clear();
+}
+
+void RenderContext::UploadSpring(
+    vec2f const & endpointAPosition,
+    vec2f const & endpointBPosition,
+    rgbaColor const & springColor)
+{
+    vec2f const springVector = endpointBPosition - endpointAPosition;
+    vec2f const springNormal = springVector.to_perpendicular().normalise() * LabParameters::SpringThickness / 2.0f;
+
+    vec2f const bottomLeft = endpointAPosition - springNormal;
+    vec2f const bottomRight = endpointAPosition + springNormal;
+    vec2f const topLeft = endpointBPosition - springNormal;
+    vec2f const topRight = endpointBPosition + springNormal;
+
+    vec4f const color = springColor.toVec4f();
+
+    // Left, bottom
+    mSpringVertexBuffer.emplace_back(
+        bottomLeft,
+        vec2f(-1.0f, -1.0f),
+        color);
+
+    // Left, top
+    mSpringVertexBuffer.emplace_back(
+        topLeft,
+        vec2f(-1.0f, 1.0f),
+        color);
+
+    // Right, bottom
+    mSpringVertexBuffer.emplace_back(
+        bottomRight,
+        vec2f(1.0f, -1.0f),
+        color);
+
+    // Left, top
+    mSpringVertexBuffer.emplace_back(
+        topLeft,
+        vec2f(-1.0f, 1.0f),
+        color);
+
+    // Right, bottom
+    mSpringVertexBuffer.emplace_back(
+        bottomRight,
+        vec2f(1.0f, -1.0f),
+        color);
+
+    // Right, top
+    mSpringVertexBuffer.emplace_back(
+        topRight,
+        vec2f(1.0f, 1.0f),
+        color);
+}
+
+void RenderContext::UploadSpringsEnd()
+{
+    //
+    // Upload buffer, if needed
+    //
+
+    if (!mSpringVertexBuffer.empty())
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, *mSpringVertexVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(SpringVertex) * mSpringVertexBuffer.size(), mSpringVertexBuffer.data(), GL_STREAM_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+}
+
 void RenderContext::UploadParticlesStart()
 {
     //
@@ -450,12 +545,12 @@ void RenderContext::UploadParticleTrajectory(
     rgbaColor const & color)
 {
     vec2f const trajectoryVector = endPosition - startPosition;
-    vec2f const edgeNormal = trajectoryVector.to_perpendicular().normalise() * LabParameters::ParticleTrajectoryThickness / 2.0f;
+    vec2f const trajectoryNormal = trajectoryVector.to_perpendicular().normalise() * LabParameters::ParticleTrajectoryThickness / 2.0f;
 
-    vec2f const bottomLeft = startPosition - edgeNormal;
-    vec2f const bottomRight = startPosition + edgeNormal;
-    vec2f const topLeft = endPosition - edgeNormal;
-    vec2f const topRight = endPosition + edgeNormal;
+    vec2f const bottomLeft = startPosition - trajectoryNormal;
+    vec2f const bottomRight = startPosition + trajectoryNormal;
+    vec2f const topLeft = endPosition - trajectoryNormal;
+    vec2f const topRight = endPosition + trajectoryNormal;
 
     vec4f const colorf = color.toVec4f();
 
@@ -731,6 +826,24 @@ void RenderContext::RenderEnd()
     glBindVertexArray(0);
 
     ////////////////////////////////////////////////////////////////
+    // Springs
+    ////////////////////////////////////////////////////////////////
+
+    if (!mSpringVertexBuffer.empty())
+    {
+        glBindVertexArray(*mSpringVAO);
+
+        mShaderManager->ActivateProgram<ShaderManager::ProgramType::Springs>();
+
+        assert((mSpringVertexBuffer.size() % 6) == 0);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mSpringVertexBuffer.size()));
+
+        CheckOpenGLError();
+
+        glBindVertexArray(0);
+    }
+
+    ////////////////////////////////////////////////////////////////
     // Particles
     ////////////////////////////////////////////////////////////////
 
@@ -842,6 +955,10 @@ void RenderContext::OnViewModelUpdated()
 
     mShaderManager->ActivateProgram<ShaderManager::ProgramType::ParticleTrajectories>();
     mShaderManager->SetProgramParameter<ShaderManager::ProgramType::ParticleTrajectories, ShaderManager::ProgramParameterType::OrthoMatrix>(
+        orthoMatrix);
+
+    mShaderManager->ActivateProgram<ShaderManager::ProgramType::Springs>();
+    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::Springs, ShaderManager::ProgramParameterType::OrthoMatrix>(
         orthoMatrix);
 
     mShaderManager->ActivateProgram<ShaderManager::ProgramType::Triangles>();

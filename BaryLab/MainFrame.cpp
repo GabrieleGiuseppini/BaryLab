@@ -562,6 +562,11 @@ void MainFrame::OnResetMenuItemSelected(wxCommandEvent & /*event*/)
 {
     assert(!!mLabController);
     mLabController->Reset();
+
+    mControlToolbar->ReconcialiteUI(
+        mLabController->IsGravityEnabled(),
+        mLabController->IsViewGridEnabled(),
+        mLabController->IsRenderSimulationStepsEnabled());
 }
 
 void MainFrame::OnResetViewMenuItemSelected(wxCommandEvent & /*event*/)

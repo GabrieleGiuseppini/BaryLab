@@ -91,7 +91,7 @@ public:
 		, mStateBuffer()
 		, mParticles(LabParameters::MaxNpcs * LabParameters::MaxParticlesPerNpc)
 		// Parameters
-		, mIsStepByStepMode(true)
+		, mIsStepByStepMode(false)
 		, mGravityGate(isGravityEnabled ? 1.0f : 0.0f)
 	{}
 
@@ -364,6 +364,15 @@ private:
 			&& ((mSimulationStepState.CurrentIsPrimaryParticle && mStateBuffer[mSimulationStepState.CurrentNpcIndex].PrimaryParticleState.ParticleIndex == particleIndex)
 				|| (!mSimulationStepState.CurrentIsPrimaryParticle && mStateBuffer[mSimulationStepState.CurrentNpcIndex].SecondaryParticleState->ParticleIndex == particleIndex));
 	}
+
+private:
+
+	//
+	// Constants
+	//
+
+	// TODO: move somewhere else
+	static float constexpr HumanNpcLength = 1.65f;
 
 private:
 

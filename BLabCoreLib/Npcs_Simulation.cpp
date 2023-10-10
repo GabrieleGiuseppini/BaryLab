@@ -264,9 +264,6 @@ void Npcs::UpdateNpcs(
                     break;
                 }
             }
-
-            // We're done
-            break;
         }
         else
         {
@@ -281,187 +278,6 @@ void Npcs::UpdateNpcs(
     }
 }
 
-// TODOOLD
-/*
-void Npcs::UpdateSimulation(LabParameters const & labParameters)
-{
-    //
-    // Update particles' state
-    //
-
-    auto & particles = mModel->GetParticles();
-
-    LogMessage("----------------");
-    LogMessage("----------------");
-
-    for (auto const & p : particles)
-    {
-        LogMessage("----------------");
-
-        auto & particleState = particles.GetState(p);
-
-        if (!particleState.TrajectoryState.has_value())
-        {
-            //
-            // We need a trajectory
-            //
-
-            LogMessage("Particle ", p, ": Trajectory state initialization");
-
-            // Update mesh transformations
-            UpdateMeshTransformations();
-
-            // Calculate target position
-            vec2f targetPosition;
-            std::optional<Particles::StateType::TrajectoryStateType::ConstrainedStateType> trajectoryConstrainedState;
-            if (mCurrentParticleTrajectory.has_value()
-                && mCurrentParticleTrajectory->ParticleIndex == p)
-            {
-                // We have a user-imposed trajectory for this particle...
-                // ...use the provided trajectory
-
-                targetPosition = mCurrentParticleTrajectory->TargetPosition;
-
-                if (particleState.ConstrainedState.has_value())
-                {
-                    vec3f const targetPositionCurrentTriangleBarycentricCoords = mModel->GetMesh().GetTriangles().ToBarycentricCoordinates(
-                        targetPosition,
-                        particleState.ConstrainedState->CurrentTriangle,
-                        mModel->GetMesh().GetVertices());
-
-                    vec2f const newTheoreticalPositionAfterMeshDisplacement = mModel->GetMesh().GetTriangles().FromBarycentricCoordinates(
-                        particleState.ConstrainedState->CurrentTriangleBarycentricCoords,
-                        particleState.ConstrainedState->CurrentTriangle,
-                        mModel->GetMesh().GetVertices());
-
-                    vec2f const meshDisplacement =
-                        particles.GetPosition(p)
-                        - newTheoreticalPositionAfterMeshDisplacement;
-
-                    trajectoryConstrainedState.emplace(
-                        targetPositionCurrentTriangleBarycentricCoords,
-                        meshDisplacement);
-                }
-            }
-            else
-            {
-                // Use physics to calculate trajectory
-
-                auto const trajectoryTarget = CalculatePhysicsTarget(p, labParameters); 
-                targetPosition = trajectoryTarget.Position;
-                trajectoryConstrainedState = trajectoryTarget.ConstrainedStateInfo;
-            }
-
-            // Calculate source position
-            vec2f sourcePosition;
-            if (particleState.ConstrainedState.has_value())
-            {
-                // Constrained state: trajectory is from current bary coords in cur triangle 
-                // (i.e. in mesh's reference frame) up to target position calculated by physics
-
-                sourcePosition = mModel->GetMesh().GetTriangles().FromBarycentricCoordinates(
-                    particleState.ConstrainedState->CurrentTriangleBarycentricCoords,
-                    particleState.ConstrainedState->CurrentTriangle,
-                    mModel->GetMesh().GetVertices());
-            }
-            else
-            {
-                // Free state: from current (absolute) position up to target position calculated by physics
-
-                sourcePosition = particles.GetPosition(p);
-            }
-
-            particleState.TrajectoryState.emplace(
-                sourcePosition,
-                targetPosition,
-                trajectoryConstrainedState);
-
-            //
-            // Update trajectory notification
-            //
-
-            mCurrentParticleTrajectory.emplace(p, targetPosition);
-            mCurrentParticleTrajectoryNotification.reset();
-
-            if (mRenderSimulationSteps)
-            {
-                continue;
-            }
-        }
-
-        assert(particleState.TrajectoryState.has_value());
-
-        LogMessage("Particle ", p, ": Trajectory state update");
-
-        while (true)
-        {
-            auto const finalParticleState = UpdateParticleTrajectoryState(particles.GetState(p), labParameters);
-            if (finalParticleState)
-            {
-                LogMessage("Particle ", p, " COMPLETED");
-
-                //
-                // Finalize particle's velocities
-                //
-
-                vec2f absoluteVelocity;
-                if (finalParticleState->Velocity.has_value())
-                {
-                    LogMessage("  FinalV: delivered: ", *(finalParticleState->Velocity));
-
-                    absoluteVelocity = *(finalParticleState->Velocity);
-                }
-                else
-                {
-                    LogMessage("  FinalV: calculated: deltaV=", (finalParticleState->Position - particles.GetPosition(p)) / LabParameters::SimulationTimeStepDuration);
-
-                    absoluteVelocity = (finalParticleState->Position - particles.GetPosition(p)) / LabParameters::SimulationTimeStepDuration;
-                }
-
-                particles.SetVelocity(
-                    p,
-                    absoluteVelocity);
-
-                if (particleState.TrajectoryState->ConstrainedState.has_value())
-                { 
-                    vec2f const meshRelativeVelocity = 
-                        absoluteVelocity
-                        + particleState.TrajectoryState->ConstrainedState->MeshDisplacement / LabParameters::SimulationTimeStepDuration;
-
-                    LogMessage("  FinalMRV: meshRelativeVelocity=", meshRelativeVelocity);
-
-                    assert(particleState.ConstrainedState.has_value());
-                    particleState.ConstrainedState->MeshRelativeVelocity = meshRelativeVelocity;
-                }
-                else
-                {
-                    // We're free
-                    assert(!particleState.ConstrainedState.has_value());
-                }                
-
-                //
-                // Finalize particle's position
-                //
-
-                particles.SetPosition(p, finalParticleState->Position);
-
-                // Destroy trajectory state
-                particleState.TrajectoryState.reset();
-                mCurrentParticleTrajectory.reset();
-
-                // We're done
-                break;
-            }
-
-            if (mRenderSimulationSteps)
-            {
-                break;
-            }
-        }
-    }
-}
-*/
-
 Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
     StateType::NpcParticleStateType & particle,
     StateType::NpcParticleStateType * otherParticle,
@@ -470,7 +286,6 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
     LabParameters const & labParameters) const
 {
     // TODO
-    (void)otherParticle;
     (void)isPrimaryParticle;
 
     float const dt = LabParameters::SimulationTimeStepDuration;
@@ -480,13 +295,71 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
     Edges const & edges = mesh.GetEdges();
     Triangles const & triangles = mesh.GetTriangles();
 
+    vec2f const particlePosition = mParticles.GetPosition(particle.ParticleIndex);
+
     //
-    // Integrate physical forces, including eventual bounce velocity from a previous impact
+    // Integrate physical forces, including spring forces, and eventual bounce velocity from a previous impact
     //
+
+    vec2f springForces; // Hooke+Damp
+    if (otherParticle != nullptr)
+    {        
+        vec2f const springDisplacement = mParticles.GetPosition(otherParticle->ParticleIndex) - particlePosition; // Towards other particle
+        float const springDisplacementLength = springDisplacement.length();
+        vec2f const springDir = springDisplacement.normalise_approx(springDisplacementLength);
+
+        //
+        // 1. Hooke's law
+        //        
+
+        // TODO: mass per particle, in Particles
+        float const massFactor =
+            (LabParameters::ParticleMass * labParameters.MassAdjustment * LabParameters::ParticleMass * labParameters.MassAdjustment)
+            / (LabParameters::ParticleMass * labParameters.MassAdjustment + LabParameters::ParticleMass * labParameters.MassAdjustment);
+
+        float const springStiffnessCoefficient =
+            labParameters.SpringReductionFraction
+            * massFactor
+            / (dt * dt);
+
+        // Calculate spring force on this particle
+        float const fSpring =
+            (springDisplacementLength - HumanNpcLength)
+            * springStiffnessCoefficient;
+
+        //
+        // 2. Damper forces
+        //
+        // Damp the velocities of each endpoint pair, as if the points were also connected by a damper
+        // along the same direction as the spring
+        //
+
+        float const springDampingCoefficient =
+            labParameters.SpringDampingCoefficient
+            * massFactor
+            / dt;
+
+        // Calculate damp force on this particle
+        vec2f const relVelocity = mParticles.GetVelocity(otherParticle->ParticleIndex) - mParticles.GetVelocity(particle.ParticleIndex);
+        float const fDamp =
+            relVelocity.dot(springDir)
+            * springDampingCoefficient;
+
+        //
+        // 3. Apply forces
+        //
+
+        springForces = springDir * (fSpring + fDamp);
+    }
+    else
+    {
+        springForces = vec2f::zero();
+    }
 
     vec2f const physicalForces =
         mParticles.GetWorldForce(particle.ParticleIndex)
-        + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * labParameters.ParticleMass * labParameters.MassAdjustment;
+        + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * labParameters.ParticleMass * labParameters.MassAdjustment
+        + springForces;
 
     vec2f const physicsDeltaPos =
         mParticles.GetVelocity(particle.ParticleIndex) * dt
@@ -511,9 +384,7 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
             vertices);
 
         // Calculate mesh displacement
-        meshDisplacement =
-            mParticles.GetPosition(particle.ParticleIndex)
-            - newTheoreticalPositionAfterMeshDisplacement;
+        meshDisplacement = particlePosition - newTheoreticalPositionAfterMeshDisplacement;
 
         // Calculate ghost condition - we don't consider a surface floor (and thus allow 
         // particle to ghost through it) if it's in a triangle made fully of floors
@@ -521,6 +392,9 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
             edges.GetSurfaceType(triangles.GetSubEdgeAIndex(currentTriangleElementIndex)) == SurfaceType::Floor
             && edges.GetSurfaceType(triangles.GetSubEdgeBIndex(currentTriangleElementIndex)) == SurfaceType::Floor
             && edges.GetSurfaceType(triangles.GetSubEdgeCIndex(currentTriangleElementIndex)) == SurfaceType::Floor;
+
+        // TODO: other ghost condition
+        // TODO: encapsulate in helper method as it's used twice
 
         if (!isGhost)
         {
@@ -554,11 +428,9 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
                         //
 
                         // Note: this is the same as physicsDeltaPos + meshDisplacement
-                        vec2f const trajectory = mParticles.GetPosition(particle.ParticleIndex)
-                            + physicsDeltaPos
-                            - newTheoreticalPositionAfterMeshDisplacement;
+                        vec2f const trajectory = particlePosition + physicsDeltaPos - newTheoreticalPositionAfterMeshDisplacement;
 
-                        LogMessage("      startPos=", mParticles.GetPosition(particle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos, 
+                        LogMessage("      startPos=", particlePosition, " physicsDeltaPos=", physicsDeltaPos,
                             " meshDispl=", meshDisplacement, " traj=", trajectory);
 
                         //
@@ -695,7 +567,6 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
     {
         // Inertial frame - no mesh displacement that we care about
         meshDisplacement = vec2f::zero();
-
     }
 
     //
@@ -706,9 +577,7 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
 
     LogMessage("    Particle not in constrained state or not on floor edge; using pure physical forces");
 
-    vec2f const targetPosition =
-        mParticles.GetPosition(particle.ParticleIndex)
-        + physicsDeltaPos;
+    vec2f const targetPosition = particlePosition + physicsDeltaPos;
     
     std::optional<SimulationStepStateType::TrajectoryStateType::ConstrainedStateType> constrainedState;
     if (particle.ConstrainedState.has_value())

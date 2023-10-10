@@ -198,6 +198,16 @@ public:
     float GetMinGravityAdjustment() const { return LabParameters::MinGravityAdjustment; }
     float GetMaxGravityAdjustment() const { return LabParameters::MaxGravityAdjustment; }
 
+    float GetSpringReductionFraction() const { return mLabParameters.SpringReductionFraction; }
+    void SetSpringReductionFraction(float value) { mLabParameters.SpringReductionFraction = value; }
+    float GetMinSpringReductionFraction() const { return LabParameters::MinSpringReductionFraction; }
+    float GetMaxSpringReductionFraction() const { return LabParameters::MaxSpringReductionFraction; }
+
+    float GetSpringDampingCoefficient() const { return mLabParameters.SpringDampingCoefficient; }
+    void SetSpringDampingCoefficient(float value) { mLabParameters.SpringDampingCoefficient = value; }
+    float GetMinSpringDampingCoefficient() const { return LabParameters::MinSpringDampingCoefficient; }
+    float GetMaxSpringDampingCoefficient() const { return LabParameters::MaxSpringDampingCoefficient; }
+
 private:
 
     explicit LabController(

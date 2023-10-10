@@ -35,8 +35,15 @@ void Npcs::Add(
 
 	if (npcType != NpcType::Furniture)
 	{
-		// TODO
-		assert(false);
+		ElementIndex const secondaryParticleIndex = mParticles.GetParticleCount();
+
+		vec2f const secondaryPosition = primaryPosition + vec2f(0.0f, 1.0f) * HumanNpcLength;
+		mParticles.Add(secondaryPosition, rgbaColor(0x60, 0x60, 0x60, 0xff));
+
+		secondaryParticleState = MaterializeParticleState(
+			secondaryPosition,
+			secondaryParticleIndex,
+			mesh);
 	}
 	
 	//
@@ -248,6 +255,27 @@ void Npcs::Render(RenderContext & renderContext)
 	}
 
 	renderContext.UploadParticlesEnd();
+
+	//
+	// Springs
+	//
+
+	renderContext.UploadSpringsStart();
+
+	for (auto const i : *this)
+	{
+		auto const & state = mStateBuffer[i];
+
+		if (state.SecondaryParticleState.has_value())
+		{
+			renderContext.UploadSpring(
+				mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
+				mParticles.GetPosition(state.SecondaryParticleState->ParticleIndex),
+				rgbaColor(0x4a, 0x4a, 0x4a, 0xff));
+		}
+	}
+
+	renderContext.UploadSpringsEnd();
 
 	//
 	// Particle trajectories

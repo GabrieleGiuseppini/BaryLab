@@ -97,7 +97,9 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
         vec2f const position = vec2f(0.5f, -2.0f);
 
         npcs->Add(
-            Npcs::NpcType::Furniture,
+            // TODOTEST
+            //Npcs::NpcType::Furniture,
+            Npcs::NpcType::Human,
             position,
             *mesh);
 

@@ -174,6 +174,15 @@ public:
 
     void UploadParticleTrajectoriesEnd();
 
+    void UploadSpringsStart();
+
+    void UploadSpring(
+        vec2f const & endpointAPosition,
+        vec2f const & endpointBPosition,
+        rgbaColor const & springColor);
+
+    void UploadSpringsEnd();
+
     void UploadTrianglesStart();
 
     void UploadTriangle(
@@ -271,6 +280,35 @@ private:
 
     std::vector<EdgeVertex> mEdgeVertexBuffer;
     BLabOpenGLVBO mEdgeVertexVBO;
+
+    ////////////////////////////////////////////////////////////////
+    // Springs
+    ////////////////////////////////////////////////////////////////
+
+#pragma pack(push)
+
+    struct SpringVertex
+    {
+        vec2f Position;
+        vec2f VertexSpacePosition;
+        vec4f Color;
+
+        SpringVertex(
+            vec2f const & position,
+            vec2f const & vertexSpacePosition,
+            vec4f const & color)
+            : Position(position)
+            , VertexSpacePosition(vertexSpacePosition)
+            , Color(color)
+        {}
+    };
+
+#pragma pack(pop)
+
+    BLabOpenGLVAO mSpringVAO;
+
+    std::vector<EdgeVertex> mSpringVertexBuffer;
+    BLabOpenGLVBO mSpringVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // Particles

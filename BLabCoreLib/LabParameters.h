@@ -47,7 +47,15 @@ struct LabParameters
     float GravityAdjustment;
     static float constexpr MinGravityAdjustment = 0.0f;
     static float constexpr MaxGravityAdjustment = 1000.0f;
-    
+
+    float SpringReductionFraction;
+    static float constexpr MinSpringReductionFraction = 0.0f;
+    static float constexpr MaxSpringReductionFraction = 2.0f;
+
+    float SpringDampingCoefficient;
+    static float constexpr MinSpringDampingCoefficient = 0.0f;
+    static float constexpr MaxSpringDampingCoefficient = 1.0f;
+
     float Elasticity;
     static float constexpr MinElasticity = 0.0f;
     static float constexpr MaxElasticity = 1.0f;
@@ -64,6 +72,7 @@ struct LabParameters
 
     static float constexpr VertexRadius = 0.05f;
     static float constexpr EdgeThickness = 0.03f;
+    static float constexpr SpringThickness = 0.06f;
     static float constexpr ParticleRadius = 0.15f;
     static float constexpr ParticleTrajectoryThickness = 0.04f;
 };

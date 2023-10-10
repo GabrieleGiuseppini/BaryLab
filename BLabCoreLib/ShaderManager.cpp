@@ -472,6 +472,8 @@ ShaderManager::ProgramType ShaderManager::ShaderFilenameToProgramType(std::strin
         return ProgramType::ParticleTrajectories;
     else if (Utils::CaseInsensitiveEquals(str, "Particles"))
         return ProgramType::Particles;
+    if (Utils::CaseInsensitiveEquals(str, "Springs"))
+        return ProgramType::Springs;
     else if (Utils::CaseInsensitiveEquals(str, "Triangles"))
         return ProgramType::Triangles;
     else if (Utils::CaseInsensitiveEquals(str, "Vertices"))
@@ -494,6 +496,8 @@ std::string ShaderManager::ProgramTypeToStr(ProgramType program)
             return "ParticleTrajectories";
         case ProgramType::Particles:
             return "Particles";
+        case ProgramType::Springs:
+            return "Springs";
         case ProgramType::Triangles:
             return "Triangles";
         case ProgramType::Vertices:
@@ -552,6 +556,10 @@ ShaderManager::VertexAttributeType ShaderManager::StrToVertexAttributeType(std::
         return VertexAttributeType::ParticleTrajectoryAttributeGroup1;
     else if (Utils::CaseInsensitiveEquals(str, "ParticleTrajectoryAttributeGroup2"))
         return VertexAttributeType::ParticleTrajectoryAttributeGroup2;
+    else if (Utils::CaseInsensitiveEquals(str, "SpringAttributeGroup1"))
+        return VertexAttributeType::SpringAttributeGroup1;
+    else if (Utils::CaseInsensitiveEquals(str, "SpringAttributeGroup2"))
+        return VertexAttributeType::SpringAttributeGroup2;
     else if (Utils::CaseInsensitiveEquals(str, "TriangleAttributeGroup1"))
         return VertexAttributeType::TriangleAttributeGroup1;
     else if (Utils::CaseInsensitiveEquals(str, "TriangleAttributeGroup2"))
