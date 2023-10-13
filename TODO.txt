@@ -47,6 +47,11 @@
 		+ Goal 1: Single-particle state update (like now)
 
 	- Dipole state update:
+		- Think rearc:
+			- StateType has NpcParticleStateType primary, opt<DipoleStateType> secondary
+				- DipoleStateType: NpcParticleStateType, and DipolePropertiesType
+			- When passed to CalcTraj, "other" is opt<DipoleStateType>
+				- TODO: how can we avoid a copy of NpcParticleStateType?
 		- Misc notes:
 			- Transitions to free state/regime management:
 				- Free when both are free (mostly used for stats)
@@ -54,9 +59,9 @@
 					- If free, allowed to re-enter constrained - checked and transitioned into at end of ray-tracing
 					- If constrained, allowed to become free as normal
 			- Ghosting: secondary particle should not see as floor an edge that separates it from primary
-			- Physics:
-				- Attempt 1:
-					- Normal physics: calc spring forces first (in new particle's buffer) and include those forces when calculating trajectory
+			= Physics:
+				= Attempt 1:
+					+ Normal physics: calc spring forces first (in new particle's buffer) and include those forces when calculating trajectory
 					- However, when on an edge, friction might get in the way of reunification of the particles, hence: attempt 2
 				- Attempt 2:
 					- If both not on edge: normal physics: calc spring forces first (in new particle's buffer) and include those forces when calculating (non-edge) trajectory
