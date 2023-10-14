@@ -46,12 +46,15 @@
 		+ Npcs_Simulation.cpp
 		+ Goal 1: Single-particle state update (like now)
 
-	- Dipole state update:
-		- Think rearc:
-			- StateType has NpcParticleStateType primary, opt<DipoleStateType> secondary
-				- DipoleStateType: NpcParticleStateType, and DipolePropertiesType
-			- When passed to CalcTraj, "other" is opt<DipoleStateType>
-				- TODO: how can we avoid a copy of NpcParticleStateType?
+	= Dipole state update:
+		+ Think rearc:
+			+ StateType has NpcParticleStateType primary, opt<DipoleStateType> secondary
+				+ DipoleStateType: NpcParticleStateType, and DipolePropertiesType
+			+ When passed to CalcTraj, "other" is opt<~DipoleStateType>
+				+ Like DipoleStateType, but contains ref's - to avoid copies
+			+ DipoleProperties is created @ Npcs::Add
+		- Fix: calculate spring forces before all
+			- Or else we have asymmetry?
 		- Misc notes:
 			- Transitions to free state/regime management:
 				- Free when both are free (mostly used for stats)

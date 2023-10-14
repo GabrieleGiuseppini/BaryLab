@@ -25,27 +25,31 @@ void Npcs::UpdateNpcs(
     {
         auto & npcState = mStateBuffer[mSimulationStepState.CurrentNpcIndex];
 
-        StateType::NpcParticleStateType * npcParticleState;
-        StateType::NpcParticleStateType * otherNpcParticleState;
-        bool isPrimaryParticle;
+        const auto [npcParticleState, dipoleArg, isPrimaryParticle] = [&]()
+            {
+                if (mSimulationStepState.CurrentIsPrimaryParticle)
+                {
+                    return std::tuple<StateType::NpcParticleStateType &, std::optional<TrajectoryTargetDipoleArg>, bool>(
+                        npcState.PrimaryParticleState,
+                        npcState.DipoleState.has_value()
+                            ? TrajectoryTargetDipoleArg(npcState.DipoleState->SecondaryParticleState, npcState.DipoleState->DipoleProperties)
+                            : std::optional<TrajectoryTargetDipoleArg>(),
+                        true);
+                }
+                else
+                {
+                    assert(npcState.DipoleState.has_value());
 
-        if (mSimulationStepState.CurrentIsPrimaryParticle)
-        {
-            npcParticleState = &(npcState.PrimaryParticleState);
-            otherNpcParticleState = npcState.SecondaryParticleState.has_value() ? &(*npcState.SecondaryParticleState) : nullptr;
-            isPrimaryParticle = true;
-        }
-        else
-        {
-            assert(npcState.SecondaryParticleState.has_value());
-            npcParticleState = &(*npcState.SecondaryParticleState);
-            otherNpcParticleState = &(npcState.PrimaryParticleState);
-            isPrimaryParticle = false;
-        }
+                    return std::tuple<StateType::NpcParticleStateType &, std::optional<TrajectoryTargetDipoleArg>, bool>(
+                        npcState.DipoleState->SecondaryParticleState,
+                        TrajectoryTargetDipoleArg(
+                            npcState.PrimaryParticleState,
+                            npcState.DipoleState->DipoleProperties),
+                        false);
+                }
+            }();
 
-        assert(npcParticleState != nullptr);
-
-        ElementIndex const particleIndex = npcParticleState->ParticleIndex;
+        ElementIndex const particleIndex = npcParticleState.ParticleIndex;
 
         LogMessage("UpdateNpcs - NpcIndex:", mSimulationStepState.CurrentNpcIndex, " IsPrimaryParticle:", mSimulationStepState.CurrentIsPrimaryParticle, 
             " ParticleIndex:", particleIndex);
@@ -70,20 +74,20 @@ void Npcs::UpdateNpcs(
                 targetPosition = mCurrentParticleTrajectory->TargetPosition;
 
                 // Calculate constrained state for the trajectory
-                if (npcParticleState->ConstrainedState.has_value())
+                if (npcParticleState.ConstrainedState.has_value())
                 {
                     // Target bary coords
 
                     vec3f const targetPositionCurrentTriangleBarycentricCoords = mesh.GetTriangles().ToBarycentricCoordinates(
                         targetPosition,
-                        npcParticleState->ConstrainedState->CurrentTriangle,
+                        npcParticleState.ConstrainedState->CurrentTriangle,
                         mesh.GetVertices());
 
                     // Mesh displacement
 
                     vec2f const newTheoreticalPositionAfterMeshDisplacement = mesh.GetTriangles().FromBarycentricCoordinates(
-                        npcParticleState->ConstrainedState->CurrentTriangleBarycentricCoords,
-                        npcParticleState->ConstrainedState->CurrentTriangle,
+                        npcParticleState.ConstrainedState->CurrentTriangleBarycentricCoords,
+                        npcParticleState.ConstrainedState->CurrentTriangle,
                         mesh.GetVertices());
 
                     vec2f const meshDisplacement =
@@ -102,8 +106,8 @@ void Npcs::UpdateNpcs(
                 // Calculate a trajectory for this particle, based on physics
 
                 auto const trajectoryTarget = CalculateTrajectoryTarget(
-                    *npcParticleState,
-                    otherNpcParticleState,
+                    npcParticleState,
+                    dipoleArg,
                     isPrimaryParticle,
                     mesh,
                     labParameters);
@@ -116,14 +120,14 @@ void Npcs::UpdateNpcs(
 
             // Calculate source position
             vec2f sourcePosition;
-            if (npcParticleState->ConstrainedState.has_value())
+            if (npcParticleState.ConstrainedState.has_value())
             {
                 // Constrained state: trajectory is from current bary coords in cur triangle 
                 // (i.e. in mesh's reference frame, after mesh movement) up to target position calculated by physics
 
                 sourcePosition = mesh.GetTriangles().FromBarycentricCoordinates(
-                    npcParticleState->ConstrainedState->CurrentTriangleBarycentricCoords,
-                    npcParticleState->ConstrainedState->CurrentTriangle,
+                    npcParticleState.ConstrainedState->CurrentTriangleBarycentricCoords,
+                    npcParticleState.ConstrainedState->CurrentTriangle,
                     mesh.GetVertices());
             }
             else
@@ -160,7 +164,7 @@ void Npcs::UpdateNpcs(
 
         LogMessage("  Trajectory step");
 
-        auto const finalParticleState = UpdateParticleTrajectoryTrace(*npcParticleState, *mSimulationStepState.TrajectoryState, mesh, labParameters);
+        auto const finalParticleState = UpdateParticleTrajectoryTrace(npcParticleState, *mSimulationStepState.TrajectoryState, mesh, labParameters);
         if (finalParticleState)
         {
             LogMessage("  Particle ", particleIndex, " COMPLETED");
@@ -201,8 +205,8 @@ void Npcs::UpdateNpcs(
 
                 LogMessage("  FinalMRV: meshRelativeVelocity=", meshRelativeVelocity);
 
-                assert(npcParticleState->ConstrainedState.has_value());
-                npcParticleState->ConstrainedState->MeshRelativeVelocity = meshRelativeVelocity;
+                assert(npcParticleState.ConstrainedState.has_value());
+                npcParticleState.ConstrainedState->MeshRelativeVelocity = meshRelativeVelocity;
 
                 // Make sure particle's regime is consistent
                 mStateBuffer[mSimulationStepState.CurrentNpcIndex].Regime = StateType::RegimeType::Constrained;
@@ -211,10 +215,10 @@ void Npcs::UpdateNpcs(
             {
                 // We're free
 
-                assert(!npcParticleState->ConstrainedState.has_value());
+                assert(!npcParticleState.ConstrainedState.has_value());
 
                 // Make sure particle's regime is consistent
-                mStateBuffer[mSimulationStepState.CurrentNpcIndex].Regime = (otherNpcParticleState != nullptr && otherNpcParticleState->ConstrainedState.has_value())
+                mStateBuffer[mSimulationStepState.CurrentNpcIndex].Regime = (dipoleArg.has_value() && dipoleArg->SecondaryParticle.ConstrainedState.has_value())
                     ? StateType::RegimeType::Constrained
                     : StateType::RegimeType::Free;
             }
@@ -235,7 +239,7 @@ void Npcs::UpdateNpcs(
 
             mSimulationStepState.TrajectoryState.reset();
 
-            if (mCurrentParticleTrajectory.has_value() && mCurrentParticleTrajectory->ParticleIndex == npcParticleState->ParticleIndex)
+            if (mCurrentParticleTrajectory.has_value() && mCurrentParticleTrajectory->ParticleIndex == npcParticleState.ParticleIndex)
             {
                 mCurrentParticleTrajectory.reset();
             }
@@ -243,7 +247,7 @@ void Npcs::UpdateNpcs(
             // Particle
 
             if (mSimulationStepState.CurrentIsPrimaryParticle
-                && otherNpcParticleState != nullptr)
+                && dipoleArg.has_value())
             {
                 // Move on to next particle
                 mSimulationStepState.CurrentIsPrimaryParticle = false;
@@ -278,9 +282,9 @@ void Npcs::UpdateNpcs(
     }
 }
 
-Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
+Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
     StateType::NpcParticleStateType & particle,
-    StateType::NpcParticleStateType * otherParticle,
+    std::optional<TrajectoryTargetDipoleArg> const & dipole,
     bool isPrimaryParticle,
     Mesh const & mesh,
     LabParameters const & labParameters) const
@@ -302,29 +306,24 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
     //
 
     vec2f springForces; // Hooke+Damp
-    if (otherParticle != nullptr)
+    if (dipole.has_value())
     {        
-        vec2f const springDisplacement = mParticles.GetPosition(otherParticle->ParticleIndex) - particlePosition; // Towards other particle
+        vec2f const springDisplacement = mParticles.GetPosition(dipole->SecondaryParticle.ParticleIndex) - particlePosition; // Towards other particle
         float const springDisplacementLength = springDisplacement.length();
         vec2f const springDir = springDisplacement.normalise_approx(springDisplacementLength);
 
         //
         // 1. Hooke's law
-        //        
-
-        // TODO: mass per particle, in Particles
-        float const massFactor =
-            (LabParameters::ParticleMass * labParameters.MassAdjustment * LabParameters::ParticleMass * labParameters.MassAdjustment)
-            / (LabParameters::ParticleMass * labParameters.MassAdjustment + LabParameters::ParticleMass * labParameters.MassAdjustment);
+        //
 
         float const springStiffnessCoefficient =
             labParameters.SpringReductionFraction
-            * massFactor
+            * dipole->DipoleProperties.MassFactor * labParameters.MassAdjustment
             / (dt * dt);
 
         // Calculate spring force on this particle
         float const fSpring =
-            (springDisplacementLength - HumanNpcLength)
+            (springDisplacementLength - dipole->DipoleProperties.DipoleLength)
             * springStiffnessCoefficient;
 
         //
@@ -336,11 +335,11 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
 
         float const springDampingCoefficient =
             labParameters.SpringDampingCoefficient
-            * massFactor
+            * dipole->DipoleProperties.MassFactor * labParameters.MassAdjustment
             / dt;
 
         // Calculate damp force on this particle
-        vec2f const relVelocity = mParticles.GetVelocity(otherParticle->ParticleIndex) - mParticles.GetVelocity(particle.ParticleIndex);
+        vec2f const relVelocity = mParticles.GetVelocity(dipole->SecondaryParticle.ParticleIndex) - mParticles.GetVelocity(particle.ParticleIndex);
         float const fDamp =
             relVelocity.dot(springDir)
             * springDampingCoefficient;
@@ -535,7 +534,7 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
 
                             LogMessage("      flattened traj=", flattenedTrajectory, " flattened target coords=", targetBarycentricCoords," actual target pos=", targetCoords);
 
-                            return CalculatedTrajectoryTarget(
+                            return CalculatedTrajectoryTargetRetVal(
                                 targetCoords,
                                 SimulationStepStateType::TrajectoryStateType::ConstrainedStateType(
                                     targetBarycentricCoords,
@@ -547,7 +546,7 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
 
                             vec2f const targetPosition = mParticles.GetPosition(particle.ParticleIndex) + physicsDeltaPos;
 
-                            return CalculatedTrajectoryTarget(
+                            return CalculatedTrajectoryTargetRetVal(
                                 targetPosition,
                                 SimulationStepStateType::TrajectoryStateType::ConstrainedStateType(
                                     triangles.ToBarycentricCoordinates(
@@ -590,7 +589,7 @@ Npcs::CalculatedTrajectoryTarget Npcs::CalculateTrajectoryTarget(
             meshDisplacement);
     }
 
-    return CalculatedTrajectoryTarget(
+    return CalculatedTrajectoryTargetRetVal(
         targetPosition,
         constrainedState);
 }
@@ -920,14 +919,18 @@ Npcs::StateType Npcs::MaterializeNpcState(
 
     // Secondary particle
 
-    std::optional<StateType::NpcParticleStateType> secondaryParticleState;
+    std::optional<StateType::DipoleStateType> dipoleState;
 
-    if (state.SecondaryParticleState.has_value())
+    if (state.DipoleState.has_value())
     {
-        secondaryParticleState = MaterializeParticleState(
-            mParticles.GetPosition(state.SecondaryParticleState->ParticleIndex),
-            state.SecondaryParticleState->ParticleIndex,
+        StateType::NpcParticleStateType secondaryParticleState = MaterializeParticleState(
+            mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
+            state.DipoleState->SecondaryParticleState.ParticleIndex,
             mesh);
+
+        dipoleState.emplace(
+            std::move(secondaryParticleState),
+            state.DipoleState->DipoleProperties);
     }
 
     //
@@ -936,12 +939,12 @@ Npcs::StateType Npcs::MaterializeNpcState(
 
     auto const regime = primaryParticleState.ConstrainedState.has_value()
         ? StateType::RegimeType::Constrained
-        : (secondaryParticleState.has_value() && secondaryParticleState->ConstrainedState.has_value()) ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
+        : (dipoleState.has_value() && dipoleState->SecondaryParticleState.ConstrainedState.has_value()) ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
 
     return StateType(
         regime,
         std::move(primaryParticleState),
-        std::move(secondaryParticleState));
+        std::move(dipoleState));
 }
 
 Npcs::StateType::NpcParticleStateType Npcs::MaterializeParticleState(

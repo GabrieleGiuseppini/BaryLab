@@ -35,8 +35,6 @@ public:
 			Free
 		};
 
-		RegimeType Regime;
-
 		struct NpcParticleStateType final
 		{
 			ElementIndex ParticleIndex;
@@ -48,7 +46,7 @@ public:
 				vec3f CurrentTriangleBarycentricCoords;
 
 				// Not in FS - only used because of step-by-step ray tracing
-				// TODO: really? If not, need to make sure we initialize it each time we initialize particle state
+				// TODO: really? If not, need to make sure we re-initialize it each time we initialize particle state
 				vec2f MeshRelativeVelocity; // Velocity of particle (as in velocity buffer), but relative to mesh at the moment velocity was calculated
 
 				ConstrainedStateType(
@@ -70,16 +68,47 @@ public:
 			{}
 		};
 
+		struct DipolePropertiesType final
+		{
+			float DipoleLength;
+			float MassFactor; // Net of MassAdjustment
+			float BaseStiffnessCoefficient;
+
+			DipolePropertiesType(
+				float dipoleLength,
+				float massFactor,
+				float baseStiffnessCoefficient)
+				: DipoleLength(dipoleLength)
+				, MassFactor(massFactor)
+				, BaseStiffnessCoefficient(baseStiffnessCoefficient)
+			{}
+		};
+
+		struct DipoleStateType
+		{
+			NpcParticleStateType SecondaryParticleState; // e.g. head
+			DipolePropertiesType DipoleProperties;
+
+			DipoleStateType(
+				NpcParticleStateType && secondaryParticleState,
+				DipolePropertiesType const & dipoleProperties)
+				: SecondaryParticleState(std::move(secondaryParticleState))
+				, DipoleProperties(dipoleProperties)
+			{}
+		};
+
+		RegimeType Regime;
+
 		NpcParticleStateType PrimaryParticleState; // e.g. feet
-		std::optional<NpcParticleStateType> SecondaryParticleState; // e.g. head
+		std::optional<DipoleStateType> DipoleState; 
 
 		StateType(
 			RegimeType regime,
 			NpcParticleStateType && primaryParticleState,
-			std::optional<NpcParticleStateType> && secondaryParticleState)
+			std::optional<DipoleStateType> && dipoleState)
 			: Regime(regime)
 			, PrimaryParticleState(std::move(primaryParticleState))
-			, SecondaryParticleState(std::move(secondaryParticleState))
+			, DipoleState(std::move(dipoleState))
 		{}
 	};
 
@@ -306,13 +335,25 @@ private:
 		Mesh const & mesh,
 		LabParameters const & labParameters);
 
-	struct CalculatedTrajectoryTarget final
+	struct TrajectoryTargetDipoleArg final
+	{
+		StateType::NpcParticleStateType & SecondaryParticle;
+		StateType::DipolePropertiesType & DipoleProperties;
+
+		TrajectoryTargetDipoleArg(
+			StateType::NpcParticleStateType & secondaryParticle,
+			StateType::DipolePropertiesType & dipoleProperties)
+			: SecondaryParticle(secondaryParticle)
+			, DipoleProperties(dipoleProperties)
+		{}
+	};
+
+	struct CalculatedTrajectoryTargetRetVal final
 	{
 		vec2f Position;
-
 		std::optional<SimulationStepStateType::TrajectoryStateType::ConstrainedStateType> ConstrainedStateInfo; // Returned when in constrained state
 
-		CalculatedTrajectoryTarget(
+		CalculatedTrajectoryTargetRetVal(
 			vec2f const & position,
 			std::optional<SimulationStepStateType::TrajectoryStateType::ConstrainedStateType> constrainedStateInfo)
 			: Position(position)
@@ -320,9 +361,9 @@ private:
 		{}
 	};
 
-	CalculatedTrajectoryTarget CalculateTrajectoryTarget(
+	CalculatedTrajectoryTargetRetVal CalculateTrajectoryTarget(
 		StateType::NpcParticleStateType & particle,
-		StateType::NpcParticleStateType * otherParticle,
+		std::optional<TrajectoryTargetDipoleArg> const & dipole,
 		bool isPrimaryParticle,
 		Mesh const & mesh,
 		LabParameters const & labParameters) const;
@@ -362,17 +403,8 @@ private:
 	{
 		return mSimulationStepState.TrajectoryState.has_value()
 			&& ((mSimulationStepState.CurrentIsPrimaryParticle && mStateBuffer[mSimulationStepState.CurrentNpcIndex].PrimaryParticleState.ParticleIndex == particleIndex)
-				|| (!mSimulationStepState.CurrentIsPrimaryParticle && mStateBuffer[mSimulationStepState.CurrentNpcIndex].SecondaryParticleState->ParticleIndex == particleIndex));
+				|| (!mSimulationStepState.CurrentIsPrimaryParticle && mStateBuffer[mSimulationStepState.CurrentNpcIndex].DipoleState->SecondaryParticleState.ParticleIndex == particleIndex));
 	}
-
-private:
-
-	//
-	// Constants
-	//
-
-	// TODO: move somewhere else
-	static float constexpr HumanNpcLength = 1.65f;
 
 private:
 

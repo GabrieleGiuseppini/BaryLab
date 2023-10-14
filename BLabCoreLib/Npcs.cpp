@@ -28,22 +28,35 @@ void Npcs::Add(
 		mesh);
 
 	//
-	// Add secondary particle
+	// Add dipole
 	//
 
-	std::optional<StateType::NpcParticleStateType> secondaryParticleState;
+	std::optional<StateType::DipoleStateType> dipoleState;
 
 	if (npcType != NpcType::Furniture)
 	{
 		ElementIndex const secondaryParticleIndex = mParticles.GetParticleCount();
 
+		static float constexpr HumanNpcLength = 1.65f;
+
 		vec2f const secondaryPosition = primaryPosition + vec2f(0.0f, 1.0f) * HumanNpcLength;
 		mParticles.Add(secondaryPosition, rgbaColor(0x60, 0x60, 0x60, 0xff));
 
-		secondaryParticleState = MaterializeParticleState(
+		StateType::NpcParticleStateType secondaryParticleState = MaterializeParticleState(
 			secondaryPosition,
 			secondaryParticleIndex,
 			mesh);
+
+		float const massFactor =
+			(LabParameters::ParticleMass * LabParameters::ParticleMass)
+			/ (LabParameters::ParticleMass + LabParameters::ParticleMass);
+
+		dipoleState.emplace(
+			std::move(secondaryParticleState),
+			StateType::DipolePropertiesType(
+				HumanNpcLength,
+				massFactor,
+				1.0f));
 	}
 	
 	//
@@ -52,12 +65,12 @@ void Npcs::Add(
 
 	auto const regime = primaryParticleState.ConstrainedState.has_value()
 		? StateType::RegimeType::Constrained
-		: (secondaryParticleState.has_value() && secondaryParticleState->ConstrainedState.has_value()) ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
+		: (dipoleState.has_value() && dipoleState->SecondaryParticleState.ConstrainedState.has_value()) ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
 
 	mStateBuffer.emplace_back(
 		regime,
 		std::move(primaryParticleState),
-		std::move(secondaryParticleState));
+		std::move(dipoleState));
 }
 
 void Npcs::MoveParticleBy(
@@ -82,7 +95,7 @@ void Npcs::MoveParticleBy(
 		auto & state = mStateBuffer[n];
 
 		if (state.PrimaryParticleState.ParticleIndex == particleIndex
-			|| (state.SecondaryParticleState.has_value() && state.SecondaryParticleState->ParticleIndex == particleIndex))
+			|| (state.DipoleState.has_value() && state.DipoleState->SecondaryParticleState.ParticleIndex == particleIndex))
 		{
 			state = MaterializeNpcState(n, mesh);
 			break;
@@ -130,10 +143,10 @@ void Npcs::RotateParticlesWithMesh(
 			sinAngle,
 			mesh);
 
-		if (state.SecondaryParticleState.has_value())
+		if (state.DipoleState.has_value())
 		{
 			RotateParticleWithMesh(
-				*state.SecondaryParticleState,
+				state.DipoleState->SecondaryParticleState,
 				centerPos,
 				cosAngle,
 				sinAngle,
@@ -208,23 +221,23 @@ void Npcs::Update(
 				physicsParticleProbe.emplace(mParticles.GetVelocity(state.PrimaryParticleState.ParticleIndex));
 			}
 
-			if (state.SecondaryParticleState.has_value()
-				&& state.SecondaryParticleState->ParticleIndex == *mCurrentlySelectedParticle
-				&& state.SecondaryParticleState->ConstrainedState.has_value())
+			if (state.DipoleState.has_value()
+				&& state.DipoleState->SecondaryParticleState.ParticleIndex == *mCurrentlySelectedParticle
+				&& state.DipoleState->SecondaryParticleState.ConstrainedState.has_value())
 			{
 				constrainedRegimeParticleProbe.emplace(
-					state.SecondaryParticleState->ConstrainedState->CurrentTriangle,
-					state.SecondaryParticleState->ConstrainedState->CurrentTriangleBarycentricCoords);
+					state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangle,
+					state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords);
 
 				if (mCurrentOriginTriangle.has_value())
 				{
 					subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = mesh.GetTriangles().ToBarycentricCoordinates(
-						mParticles.GetPosition(state.SecondaryParticleState->ParticleIndex),
+						mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
 						*mCurrentOriginTriangle,
 						mesh.GetVertices());
 				}
 
-				physicsParticleProbe.emplace(mParticles.GetVelocity(state.SecondaryParticleState->ParticleIndex));
+				physicsParticleProbe.emplace(mParticles.GetVelocity(state.DipoleState->SecondaryParticleState.ParticleIndex));
 			}
 		}
 	}
@@ -248,9 +261,9 @@ void Npcs::Render(RenderContext & renderContext)
 
 		RenderParticle(state.PrimaryParticleState, renderContext);
 
-		if (state.SecondaryParticleState.has_value())
+		if (state.DipoleState.has_value())
 		{
-			RenderParticle(*state.SecondaryParticleState, renderContext);
+			RenderParticle(state.DipoleState->SecondaryParticleState, renderContext);
 		}
 	}
 
@@ -266,11 +279,11 @@ void Npcs::Render(RenderContext & renderContext)
 	{
 		auto const & state = mStateBuffer[i];
 
-		if (state.SecondaryParticleState.has_value())
+		if (state.DipoleState.has_value())
 		{
 			renderContext.UploadSpring(
 				mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
-				mParticles.GetPosition(state.SecondaryParticleState->ParticleIndex),
+				mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
 				rgbaColor(0x4a, 0x4a, 0x4a, 0xff));
 		}
 	}
@@ -330,10 +343,10 @@ bool Npcs::IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangle
 				return true;
 			}
 
-			if (state.SecondaryParticleState.has_value()
-				&& state.SecondaryParticleState->ParticleIndex == *mCurrentlySelectedParticle
-				&& state.SecondaryParticleState->ConstrainedState.has_value()
-				&& triangleIndex == state.SecondaryParticleState->ConstrainedState->CurrentTriangle)
+			if (state.DipoleState.has_value()
+				&& state.DipoleState->SecondaryParticleState.ParticleIndex == *mCurrentlySelectedParticle
+				&& state.DipoleState->SecondaryParticleState.ConstrainedState.has_value()
+				&& triangleIndex == state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangle)
 			{
 				return true;
 			}
