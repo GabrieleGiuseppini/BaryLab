@@ -53,11 +53,11 @@
 			+ When passed to CalcTraj, "other" is opt<~DipoleStateType>
 				+ Like DipoleStateType, but contains ref's - to avoid copies
 			+ DipoleProperties is created @ Npcs::Add
-		- Fix: calculate spring forces before all
-			- Or else we have asymmetry?
+		+ Fix: calculate spring forces before all
+			+ Or else we have asymmetry
 		- Misc notes:
 			- Transitions to free state/regime management:
-				- Free when both are free (mostly used for stats)
+				+ NPC is free when both are free (mostly used for stats)
 				- When primary is constrained, secondary:
 					- If free, allowed to re-enter constrained - checked and transitioned into at end of ray-tracing
 					- If constrained, allowed to become free as normal
@@ -66,6 +66,7 @@
 				= Attempt 1:
 					+ Normal physics: calc spring forces first (in new particle's buffer) and include those forces when calculating trajectory
 					- However, when on an edge, friction might get in the way of reunification of the particles, hence: attempt 2
+						- Test this! Even if we now think we like attempt 1!
 				- Attempt 2:
 					- If both not on edge: normal physics: calc spring forces first (in new particle's buffer) and include those forces when calculating (non-edge) trajectory
 					- Else:

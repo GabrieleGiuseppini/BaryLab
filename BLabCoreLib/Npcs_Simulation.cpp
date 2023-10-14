@@ -19,6 +19,73 @@ void Npcs::UpdateNpcs(
         LogMessage("----------------------------------");
         LogMessage("----------------------------------");
         LogMessage("----------------------------------");
+
+        //
+        // Calculate spring forces for the entire step
+        //
+
+        for (auto const n : *this)
+        {
+            auto & state = mStateBuffer[n];
+
+            if (state.DipoleState.has_value())
+            {
+                ElementIndex const primaryParticleIndex = state.PrimaryParticleState.ParticleIndex;
+                ElementIndex const secondaryParticleIndex = state.DipoleState->SecondaryParticleState.ParticleIndex;
+
+                float const dt = LabParameters::SimulationTimeStepDuration;
+
+                vec2f const springDisplacement = mParticles.GetPosition(secondaryParticleIndex) - mParticles.GetPosition(primaryParticleIndex); // Towards secondary particle
+                float const springDisplacementLength = springDisplacement.length();
+                vec2f const springDir = springDisplacement.normalise_approx(springDisplacementLength);
+
+                //
+                // 1. Hooke's law
+                //
+
+                float const springStiffnessCoefficient =
+                    labParameters.SpringReductionFraction
+                    * state.DipoleState->DipoleProperties.MassFactor * labParameters.MassAdjustment
+                    / (dt * dt);
+
+                // Calculate spring force on this particle
+                float const fSpring =
+                    (springDisplacementLength - state.DipoleState->DipoleProperties.DipoleLength)
+                    * springStiffnessCoefficient;
+
+                //
+                // 2. Damper forces
+                //
+                // Damp the velocities of each endpoint pair, as if the points were also connected by a damper
+                // along the same direction as the spring
+                //
+
+                float const springDampingCoefficient =
+                    labParameters.SpringDampingCoefficient
+                    * state.DipoleState->DipoleProperties.MassFactor * labParameters.MassAdjustment
+                    / dt;
+
+                // Calculate damp force on this particle
+                vec2f const relVelocity = mParticles.GetVelocity(secondaryParticleIndex) - mParticles.GetVelocity(primaryParticleIndex);
+                float const fDamp =
+                    relVelocity.dot(springDir)
+                    * springDampingCoefficient;
+
+                //
+                // 3. Apply forces
+                //
+
+                vec2f const primaryParticlesSpringForces = springDir * (fSpring + fDamp);
+
+                mParticles.SetSpringForces(
+                    primaryParticleIndex,
+                    primaryParticlesSpringForces);
+
+                mParticles.SetSpringForces(
+                    secondaryParticleIndex,
+                    -primaryParticlesSpringForces);
+            }
+        }
     }
 
     while (true)
@@ -289,7 +356,8 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
     Mesh const & mesh,
     LabParameters const & labParameters) const
 {
-    // TODO
+    // TODO: we'll use them for forced spring displacement (first) and for ghost (second)
+    (void)dipole;
     (void)isPrimaryParticle;
 
     float const dt = LabParameters::SimulationTimeStepDuration;
@@ -302,63 +370,13 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
     vec2f const particlePosition = mParticles.GetPosition(particle.ParticleIndex);
 
     //
-    // Integrate physical forces, including spring forces, and eventual bounce velocity from a previous impact
+    // Integrate physical forces, including eventual bounce velocity from a previous impact
     //
-
-    vec2f springForces; // Hooke+Damp
-    if (dipole.has_value())
-    {        
-        vec2f const springDisplacement = mParticles.GetPosition(dipole->SecondaryParticle.ParticleIndex) - particlePosition; // Towards other particle
-        float const springDisplacementLength = springDisplacement.length();
-        vec2f const springDir = springDisplacement.normalise_approx(springDisplacementLength);
-
-        //
-        // 1. Hooke's law
-        //
-
-        float const springStiffnessCoefficient =
-            labParameters.SpringReductionFraction
-            * dipole->DipoleProperties.MassFactor * labParameters.MassAdjustment
-            / (dt * dt);
-
-        // Calculate spring force on this particle
-        float const fSpring =
-            (springDisplacementLength - dipole->DipoleProperties.DipoleLength)
-            * springStiffnessCoefficient;
-
-        //
-        // 2. Damper forces
-        //
-        // Damp the velocities of each endpoint pair, as if the points were also connected by a damper
-        // along the same direction as the spring
-        //
-
-        float const springDampingCoefficient =
-            labParameters.SpringDampingCoefficient
-            * dipole->DipoleProperties.MassFactor * labParameters.MassAdjustment
-            / dt;
-
-        // Calculate damp force on this particle
-        vec2f const relVelocity = mParticles.GetVelocity(dipole->SecondaryParticle.ParticleIndex) - mParticles.GetVelocity(particle.ParticleIndex);
-        float const fDamp =
-            relVelocity.dot(springDir)
-            * springDampingCoefficient;
-
-        //
-        // 3. Apply forces
-        //
-
-        springForces = springDir * (fSpring + fDamp);
-    }
-    else
-    {
-        springForces = vec2f::zero();
-    }
 
     vec2f const physicalForces =
         mParticles.GetWorldForce(particle.ParticleIndex)
         + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * labParameters.ParticleMass * labParameters.MassAdjustment
-        + springForces;
+        + mParticles.GetSpringForces(particle.ParticleIndex);
 
     vec2f const physicsDeltaPos =
         mParticles.GetVelocity(particle.ParticleIndex) * dt

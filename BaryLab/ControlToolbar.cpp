@@ -174,7 +174,7 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
                     ReconciliateUIWithTool(ToolType::RotateMeshByPosition);
                 });
 
-            mMoveVertexButton->SetToolTip("Rotate the mesh around a point");
+            mRotateMeshByPositionButton->SetToolTip("Rotate the mesh around a point");
 
             gridSizer->Add(mRotateMeshByPositionButton);
         }
@@ -198,7 +198,7 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
                     ReconciliateUIWithTool(ToolType::RotateMeshByParticle);
                 });
 
-            mMoveVertexButton->SetToolTip("Rotate the mesh around a particle");
+            mRotateMeshByParticleButton->SetToolTip("Rotate the mesh around a particle");
 
             gridSizer->Add(mRotateMeshByParticleButton);
         }
