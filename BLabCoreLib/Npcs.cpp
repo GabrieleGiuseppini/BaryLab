@@ -385,7 +385,7 @@ void Npcs::RotateParticleWithMesh(
 			centeredPos.x * cosAngle - centeredPos.y * sinAngle,
 			centeredPos.x * sinAngle + centeredPos.y * cosAngle);
 
-		newPosition = rotatedPos + centeredPos;
+		newPosition = rotatedPos + centerPos;
 	}
 
 	mParticles.SetPosition(npcParticleState.ParticleIndex, newPosition);

@@ -39,6 +39,9 @@ void Npcs::UpdateNpcs(
                 float const springDisplacementLength = springDisplacement.length();
                 vec2f const springDir = springDisplacement.normalise_approx(springDisplacementLength);
 
+                LogMessage("  springDisplacement[", n, "]: ", springDisplacement, " (Part1:", mParticles.GetPosition(primaryParticleIndex), 
+                    " Part2:", mParticles.GetPosition(secondaryParticleIndex), ")");
+
                 //
                 // 1. Hooke's law
                 //
@@ -86,6 +89,8 @@ void Npcs::UpdateNpcs(
                     -primaryParticlesSpringForces);
             }
         }
+
+        LogMessage("----------------------------------");
     }
 
     while (true)
@@ -249,7 +254,7 @@ void Npcs::UpdateNpcs(
             }
             else
             {
-                LogMessage("  FinalV: calculated: deltaV=", (finalParticleState->Position - mParticles.GetPosition(particleIndex)) / LabParameters::SimulationTimeStepDuration);
+                LogMessage("  FinalV: calculated: deltaV: ", (finalParticleState->Position - mParticles.GetPosition(particleIndex)) / LabParameters::SimulationTimeStepDuration);
 
                 absoluteVelocity = (finalParticleState->Position - mParticles.GetPosition(particleIndex)) / LabParameters::SimulationTimeStepDuration;
             }
@@ -293,6 +298,8 @@ void Npcs::UpdateNpcs(
             //
             // Finalize particle's position
             //
+
+            LogMessage("  FinalP: calculated: ", finalParticleState->Position);
 
             mParticles.SetPosition(
                 particleIndex, 
@@ -381,6 +388,8 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
     vec2f const physicsDeltaPos =
         mParticles.GetVelocity(particle.ParticleIndex) * dt
         + physicalForces / particleMass * dt * dt;
+
+    LogMessage("      springForces=", mParticles.GetSpringForces(particle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos);
 
     //
     // Check whether we're on a floor

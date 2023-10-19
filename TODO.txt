@@ -62,6 +62,7 @@
 					- If free, allowed to re-enter constrained - checked and transitioned into at end of ray-tracing
 					- If constrained, allowed to become free as normal
 			- Ghosting: secondary particle should not see as floor an edge that separates it from primary
+				- Make helper func as it's used twice
 			= Physics:
 				= Attempt 1:
 					+ Normal physics: calc spring forces first (in new particle's buffer) and include those forces when calculating trajectory
