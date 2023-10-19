@@ -28,12 +28,13 @@ void Npcs::Add(
 		mesh);
 
 	//
-	// Add dipole
+	// Add human
 	//
 
 	std::optional<StateType::DipoleStateType> dipoleState;
+	std::optional<HumanNpcStateType> humanNpcState;
 
-	if (npcType != NpcType::Furniture)
+	if (npcType == NpcType::Human)
 	{
 		ElementIndex const secondaryParticleIndex = mParticles.GetParticleCount();
 
@@ -57,6 +58,8 @@ void Npcs::Add(
 				HumanNpcLength,
 				massFactor,
 				1.0f));
+
+		humanNpcState.emplace();
 	}
 	
 	//
@@ -68,9 +71,11 @@ void Npcs::Add(
 		: (dipoleState.has_value() && dipoleState->SecondaryParticleState.ConstrainedState.has_value()) ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
 
 	mStateBuffer.emplace_back(
+		npcType,
 		regime,
 		std::move(primaryParticleState),
-		std::move(dipoleState));
+		std::move(dipoleState),
+		std::move(humanNpcState));
 }
 
 void Npcs::MoveParticleBy(

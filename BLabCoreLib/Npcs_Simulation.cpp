@@ -960,18 +960,28 @@ Npcs::StateType Npcs::MaterializeNpcState(
             state.DipoleState->DipoleProperties);
     }
 
-    //
+    // Human NPC state
+
+    std::optional<HumanNpcStateType> humanNpcState;
+
+    if (state.Type == NpcType::Human)
+    {
+        // TODO
+        humanNpcState.emplace();
+    }
+
     // Regime
-    //
 
     auto const regime = primaryParticleState.ConstrainedState.has_value()
         ? StateType::RegimeType::Constrained
         : (dipoleState.has_value() && dipoleState->SecondaryParticleState.ConstrainedState.has_value()) ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
 
     return StateType(
+        state.Type,
         regime,
         std::move(primaryParticleState),
-        std::move(dipoleState));
+        std::move(dipoleState),
+        std::move(humanNpcState));
 }
 
 Npcs::StateType::NpcParticleStateType Npcs::MaterializeParticleState(

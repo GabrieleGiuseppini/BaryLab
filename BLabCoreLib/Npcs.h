@@ -8,6 +8,7 @@
 #include "BLabTypes.h"
 #include "ElementIndexRangeIterator.h"
 #include "EventDispatcher.h"
+#include "HumanNpcState.h"
 #include "LabParameters.h"
 #include "Mesh.h"
 #include "NpcParticles.h"
@@ -97,18 +98,26 @@ public:
 			{}
 		};
 
+		NpcType Type;
+
 		RegimeType Regime;
 
 		NpcParticleStateType PrimaryParticleState; // e.g. feet
-		std::optional<DipoleStateType> DipoleState; 
+		std::optional<DipoleStateType> DipoleState;
+
+		std::optional<HumanNpcStateType> HumanNpcState;
 
 		StateType(
+			NpcType type,
 			RegimeType regime,
 			NpcParticleStateType && primaryParticleState,
-			std::optional<DipoleStateType> && dipoleState)
-			: Regime(regime)
+			std::optional<DipoleStateType> && dipoleState,
+			std::optional<HumanNpcStateType> && humanNpcState)
+			: Type(type)
+			, Regime(regime)
 			, PrimaryParticleState(std::move(primaryParticleState))
 			, DipoleState(std::move(dipoleState))
+			, HumanNpcState(std::move(humanNpcState))
 		{}
 	};
 

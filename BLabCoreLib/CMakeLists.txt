@@ -28,6 +28,8 @@ set  (SOURCES
 	FileSystem.h
 	FixedSizeVector.h
 	FloatingPoint.h
+	HumanNpcState.cpp
+	HumanNpcState.h
 	IEventHandler.h
 	ImageData.h
 	ImageFileTools.cpp
