@@ -28,8 +28,6 @@ set  (SOURCES
 	FileSystem.h
 	FixedSizeVector.h
 	FloatingPoint.h
-	HumanNpcState.cpp
-	HumanNpcState.h
 	IEventHandler.h
 	ImageData.h
 	ImageFileTools.cpp
@@ -54,6 +52,7 @@ set  (SOURCES
 	NpcParticles.h
 	Npcs.cpp
 	Npcs.h
+	Npcs_HumanSimulation.cpp
 	Npcs_Simulation.cpp
 	RenderContext.cpp
 	RenderContext.h

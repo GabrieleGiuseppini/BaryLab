@@ -21,12 +21,27 @@ void Npcs::UpdateNpcs(
         LogMessage("----------------------------------");
 
         //
-        // Calculate spring forces for the entire step
+        // 1. Update behavioral state machines
+        // 2. Calculate spring forces for the entire step
         //
 
         for (auto const n : *this)
         {
             auto & state = mStateBuffer[n];
+
+            // Behavior
+
+            if (state.Type == NpcType::Human)
+            {
+                assert(state.DipoleState.has_value());
+
+                UpdateHuman(
+                    state.PrimaryParticleState,
+                    state.DipoleState->SecondaryParticleState,
+                    mesh);
+            }
+
+            // Spring forces
 
             if (state.DipoleState.has_value())
             {
@@ -962,12 +977,16 @@ Npcs::StateType Npcs::MaterializeNpcState(
 
     // Human NPC state
 
-    std::optional<HumanNpcStateType> humanNpcState;
+    std::optional<StateType::HumanNpcStateType> humanNpcState;
 
     if (state.Type == NpcType::Human)
     {
-        // TODO
-        humanNpcState.emplace();
+        assert(dipoleState.has_value());
+
+        humanNpcState = InitializeHuman(
+            primaryParticleState,
+            dipoleState->SecondaryParticleState,
+            mesh);
     }
 
     // Regime

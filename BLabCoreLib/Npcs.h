@@ -8,7 +8,6 @@
 #include "BLabTypes.h"
 #include "ElementIndexRangeIterator.h"
 #include "EventDispatcher.h"
-#include "HumanNpcState.h"
 #include "LabParameters.h"
 #include "Mesh.h"
 #include "NpcParticles.h"
@@ -46,8 +45,6 @@ public:
 
 				vec3f CurrentTriangleBarycentricCoords;
 
-				// Not in FS - only used because of step-by-step ray tracing
-				// TODO: really? If not, need to make sure we re-initialize it each time we initialize particle state
 				vec2f MeshRelativeVelocity; // Velocity of particle (as in velocity buffer), but relative to mesh at the moment velocity was calculated
 
 				ConstrainedStateType(
@@ -95,6 +92,24 @@ public:
 				DipolePropertiesType const & dipoleProperties)
 				: SecondaryParticleState(std::move(secondaryParticleState))
 				, DipoleProperties(dipoleProperties)
+			{}
+		};
+
+		struct HumanNpcStateType final
+		{
+			enum class BehaviorType
+			{
+				KnockedOut,
+				Rising,
+				// TODOHERE
+
+			};
+
+			BehaviorType CurrentBehavior;
+
+			HumanNpcStateType(
+				BehaviorType initialBehavior)
+				: CurrentBehavior(initialBehavior)
 			{}
 		};
 
@@ -414,6 +429,20 @@ private:
 			&& ((mSimulationStepState.CurrentIsPrimaryParticle && mStateBuffer[mSimulationStepState.CurrentNpcIndex].PrimaryParticleState.ParticleIndex == particleIndex)
 				|| (!mSimulationStepState.CurrentIsPrimaryParticle && mStateBuffer[mSimulationStepState.CurrentNpcIndex].DipoleState->SecondaryParticleState.ParticleIndex == particleIndex));
 	}
+
+	//
+	// Human simulation
+	//
+
+	StateType::HumanNpcStateType InitializeHuman(
+		StateType::NpcParticleStateType const & primaryParticleState,
+		StateType::NpcParticleStateType const & secondaryParticleState,
+		Mesh const & mesh) const;
+
+	void UpdateHuman(
+		StateType::NpcParticleStateType const & primaryParticleState,
+		StateType::NpcParticleStateType const & secondaryParticleState,
+		Mesh const & mesh);
 
 private:
 

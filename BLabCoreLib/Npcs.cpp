@@ -32,7 +32,7 @@ void Npcs::Add(
 	//
 
 	std::optional<StateType::DipoleStateType> dipoleState;
-	std::optional<HumanNpcStateType> humanNpcState;
+	std::optional<StateType::HumanNpcStateType> humanNpcState;
 
 	if (npcType == NpcType::Human)
 	{
@@ -48,6 +48,11 @@ void Npcs::Add(
 			secondaryParticleIndex,
 			mesh);
 
+		humanNpcState = InitializeHuman(
+			primaryParticleState,
+			secondaryParticleState,
+			mesh);
+
 		float const massFactor =
 			(LabParameters::ParticleMass * LabParameters::ParticleMass)
 			/ (LabParameters::ParticleMass + LabParameters::ParticleMass);
@@ -58,8 +63,6 @@ void Npcs::Add(
 				HumanNpcLength,
 				massFactor,
 				1.0f));
-
-		humanNpcState.emplace();
 	}
 	
 	//
