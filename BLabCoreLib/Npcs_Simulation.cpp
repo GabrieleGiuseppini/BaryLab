@@ -34,8 +34,10 @@ void Npcs::UpdateNpcs(
             if (state.Type == NpcType::Human)
             {
                 assert(state.DipoleState.has_value());
+                assert(state.HumanNpcState.has_value());
 
                 UpdateHuman(
+                    *state.HumanNpcState,
                     state.PrimaryParticleState,
                     state.DipoleState->SecondaryParticleState,
                     mesh);

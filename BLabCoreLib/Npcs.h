@@ -440,6 +440,7 @@ private:
 		Mesh const & mesh) const;
 
 	void UpdateHuman(
+		StateType::HumanNpcStateType & humanState,
 		StateType::NpcParticleStateType const & primaryParticleState,
 		StateType::NpcParticleStateType const & secondaryParticleState,
 		Mesh const & mesh);

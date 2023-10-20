@@ -20,11 +20,13 @@ Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 }
 
 void Npcs::UpdateHuman(
+	StateType::HumanNpcStateType & humanState,
 	StateType::NpcParticleStateType const & primaryParticleState,
 	StateType::NpcParticleStateType const & secondaryParticleState,
 	Mesh const & mesh)
 {
 	// TODOHERE
+	(void)humanState;
 	(void)primaryParticleState;
 	(void)secondaryParticleState;
 	(void)mesh;
