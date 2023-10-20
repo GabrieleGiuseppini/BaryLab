@@ -253,7 +253,14 @@ void Npcs::UpdateNpcs(
 
         LogMessage("  Trajectory step");
 
-        auto const finalParticleState = UpdateParticleTrajectoryTrace(npcParticleState, *mSimulationStepState.TrajectoryState, mesh, labParameters);
+        auto const finalParticleState = UpdateParticleTrajectoryTrace(
+            npcParticleState, 
+            dipoleArg, 
+            isPrimaryParticle, 
+            *mSimulationStepState.TrajectoryState, 
+            mesh, 
+            labParameters);
+
         if (finalParticleState)
         {
             LogMessage("  Particle ", particleIndex, " COMPLETED");
@@ -307,7 +314,7 @@ void Npcs::UpdateNpcs(
                 assert(!npcParticleState.ConstrainedState.has_value());
 
                 // Make sure particle's regime is consistent
-                mStateBuffer[mSimulationStepState.CurrentNpcIndex].Regime = (dipoleArg.has_value() && dipoleArg->SecondaryParticle.ConstrainedState.has_value())
+                mStateBuffer[mSimulationStepState.CurrentNpcIndex].Regime = (dipoleArg.has_value() && dipoleArg->OtherParticle.ConstrainedState.has_value())
                     ? StateType::RegimeType::Constrained
                     : StateType::RegimeType::Free;
             }
@@ -389,15 +396,11 @@ void Npcs::UpdateNpcs(
 
 Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
     StateType::NpcParticleStateType & particle,
-    std::optional<TrajectoryTargetDipoleArg> const & dipole,
+    std::optional<TrajectoryTargetDipoleArg> const & dipoleArg,
     bool isPrimaryParticle,
     Mesh const & mesh,
     LabParameters const & labParameters) const
 {
-    // TODO: we'll use them for forced spring displacement (first) and for ghost (second)
-    (void)dipole;
-    (void)isPrimaryParticle;
-
     float const dt = LabParameters::SimulationTimeStepDuration;
     float const particleMass = LabParameters::ParticleMass * labParameters.MassAdjustment;
 
@@ -443,17 +446,8 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
         // Calculate mesh displacement
         meshDisplacement = particlePosition - newTheoreticalPositionAfterMeshDisplacement;
 
-        // Calculate ghost condition - we don't consider a surface floor (and thus allow 
-        // particle to ghost through it) if it's in a triangle made fully of floors
-        bool const isGhost =
-            edges.GetSurfaceType(triangles.GetSubEdgeAIndex(currentTriangleElementIndex)) == SurfaceType::Floor
-            && edges.GetSurfaceType(triangles.GetSubEdgeBIndex(currentTriangleElementIndex)) == SurfaceType::Floor
-            && edges.GetSurfaceType(triangles.GetSubEdgeCIndex(currentTriangleElementIndex)) == SurfaceType::Floor;
-
-        // TODO: other ghost condition
-        // TODO: encapsulate in helper method as it's used twice
-
-        if (!isGhost)
+        // There are no floors if we are in a triangle made fully of floors
+        if (!IsSealedTriangle(currentTriangleElementIndex, mesh))
         {
             // Check all edges, stop at first one that is floor
             for (int vi = 0; vi < 3; ++vi)
@@ -463,7 +457,15 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
                     int const edgeOrdinal = (vi + 1) % 3;
                     ElementIndex const currentEdgeElementIndex = triangles.GetSubEdges(currentTriangleElementIndex).EdgeIndices[edgeOrdinal];
 
-                    if (edges.GetSurfaceType(currentEdgeElementIndex) == SurfaceType::Floor)
+                    assert(isPrimaryParticle || dipoleArg.has_value());
+
+                    // A floor that separates a secondary from its primary is not a floor
+                    if (edges.GetSurfaceType(currentEdgeElementIndex) == SurfaceType::Floor
+                        && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
+                            dipoleArg->OtherParticle.ParticleIndex,
+                            particle.ParticleIndex,
+                            currentEdgeElementIndex,
+                            mesh)))
                     {
                         //
                         // On floor edge - so potentially in a non-inertial frame
@@ -654,6 +656,8 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
 
 std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
     Npcs::StateType::NpcParticleStateType & particleState,
+    std::optional<TrajectoryTargetDipoleArg> const & dipoleArg,
+    bool isPrimaryParticle,
     SimulationStepStateType::TrajectoryStateType & trajectoryState,
     Mesh const & mesh,
     LabParameters const & labParameters)
@@ -841,15 +845,17 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
     // Check if impacted with floor
     //
 
-    // Calculate ghost condition - we don't consider a surface floor (and thus allow 
-    // particle to ghost through it) if it's in a triangle made fully of floors
-    bool const isGhost =
-        edges.GetSurfaceType(triangles.GetSubEdgeAIndex(currentTriangle)) == SurfaceType::Floor
-        && edges.GetSurfaceType(triangles.GetSubEdgeBIndex(currentTriangle)) == SurfaceType::Floor
-        && edges.GetSurfaceType(triangles.GetSubEdgeCIndex(currentTriangle)) == SurfaceType::Floor;
+    assert(isPrimaryParticle || dipoleArg.has_value());
 
+    // We don't consider a surface floor (and thus allow particle to ghost through it) 
+    // if it's in a triangle made fully of floors, or if the floor separates us from a constrained primary
     if (edges.GetSurfaceType(intersectionEdgeElementIndex) == SurfaceType::Floor
-        && !isGhost)
+        && !IsSealedTriangle(currentTriangle, mesh)
+        && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
+            dipoleArg->OtherParticle.ParticleIndex,
+            particleState.ParticleIndex,
+            intersectionEdgeElementIndex,
+            mesh)))
     {
         //
         // Impact

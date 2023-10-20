@@ -16,7 +16,7 @@ Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 	(void)primaryParticleState;
 	(void)secondaryParticleState;
 	(void)mesh;
-	return StateType::HumanNpcStateType(StateType::HumanNpcStateType::BehaviorType::KnockedOut);
+	return StateType::HumanNpcStateType(StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut);
 }
 
 void Npcs::UpdateHuman(
@@ -26,8 +26,24 @@ void Npcs::UpdateHuman(
 	Mesh const & mesh)
 {
 	// TODOHERE
-	(void)humanState;
 	(void)primaryParticleState;
 	(void)secondaryParticleState;
 	(void)mesh;
+
+	switch (humanState.CurrentBehavior)
+	{
+		case StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
+		{
+			// TODOHERE
+			mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+			break;
+		}
+
+		case StateType::HumanNpcStateType::BehaviorType::Constrained_Rising:
+		{
+			// TODOHERE
+			mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Rising");
+			break;
+		}
+	}
 }

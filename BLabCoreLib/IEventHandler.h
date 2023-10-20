@@ -46,6 +46,18 @@ struct IEventHandler
         // Default-implemented
     }
 
+    virtual void OnHumanNpcBehaviorChanged(
+        std::optional<std::string> /*behavior*/)
+    {
+        // Default-implemented
+    }
+
+    virtual void OnHumanNpcStateQuantityChanged(
+        std::optional<std::tuple<std::string, std::string>> /*nameAndValue*/)
+    {
+        // Default-implemented
+    }
+
     virtual void OnCustomProbe(
         std::string const & /*name*/,
         float /*value*/)

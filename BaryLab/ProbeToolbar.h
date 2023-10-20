@@ -10,6 +10,7 @@
 #include <BLabCoreLib/IEventHandler.h>
 
 #include <wx/sizer.h>
+#include <wx/stattext.h>
 #include <wx/textctrl.h>
 #include <wx/wx.h>
 
@@ -43,6 +44,10 @@ public:
 
     void OnSubjectParticlePhysicsUpdated(std::optional<PhysicsParticleProbe> const & probe) override;
 
+    void OnHumanNpcBehaviorChanged(std::optional<std::string> behavior) override;
+
+    void OnHumanNpcStateQuantityChanged(std::optional<std::tuple<std::string, std::string>> nameAndValue) override;
+
     void OnCustomProbe(
         std::string const & name,
         float value) override;
@@ -74,6 +79,10 @@ private:
     wxTextCtrl * mProbeBarycentricCoordinateL3TextCtrl;
 
     wxTextCtrl * mParticleVelocityTextCtrl;
+
+    wxTextCtrl * mHumanBehaviorTextCtrl;
+    wxStaticText * mHumanStateQuantityNameLabel;
+    wxTextCtrl * mHumanStateQuantityTextCtrl;
 
     std::unordered_map<std::string, std::unique_ptr<ScalarTimeSeriesProbeControl>> mCustomProbes;
 

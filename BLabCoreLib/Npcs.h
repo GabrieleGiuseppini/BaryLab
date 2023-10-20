@@ -99,8 +99,8 @@ public:
 		{
 			enum class BehaviorType
 			{
-				KnockedOut,
-				Rising,
+				Constrained_KnockedOut,
+				Constrained_Rising,
 				// TODOHERE
 
 			};
@@ -361,13 +361,13 @@ private:
 
 	struct TrajectoryTargetDipoleArg final
 	{
-		StateType::NpcParticleStateType & SecondaryParticle;
+		StateType::NpcParticleStateType & OtherParticle;
 		StateType::DipolePropertiesType & DipoleProperties;
 
 		TrajectoryTargetDipoleArg(
-			StateType::NpcParticleStateType & secondaryParticle,
+			StateType::NpcParticleStateType & otherParticle,
 			StateType::DipolePropertiesType & dipoleProperties)
-			: SecondaryParticle(secondaryParticle)
+			: OtherParticle(otherParticle)
 			, DipoleProperties(dipoleProperties)
 		{}
 	};
@@ -387,7 +387,7 @@ private:
 
 	CalculatedTrajectoryTargetRetVal CalculateTrajectoryTarget(
 		StateType::NpcParticleStateType & particle,
-		std::optional<TrajectoryTargetDipoleArg> const & dipole,
+		std::optional<TrajectoryTargetDipoleArg> const & dipoleArg,
 		bool isPrimaryParticle,
 		Mesh const & mesh,
 		LabParameters const & labParameters) const;
@@ -408,6 +408,8 @@ private:
 	// When returns a final particle state, the simulation of this particle has completed
 	std::optional<FinalParticleState> UpdateParticleTrajectoryTrace(
 		Npcs::StateType::NpcParticleStateType & particleState,
+		std::optional<TrajectoryTargetDipoleArg> const & dipoleArg,
+		bool isPrimaryParticle,
 		SimulationStepStateType::TrajectoryStateType & trajectoryState,
 		Mesh const & mesh,
 		LabParameters const & labParameters);
@@ -428,6 +430,34 @@ private:
 			&& ((mSimulationStepState.CurrentIsPrimaryParticle && mStateBuffer[mSimulationStepState.CurrentNpcIndex].PrimaryParticleState.ParticleIndex == particleIndex)
 				|| (!mSimulationStepState.CurrentIsPrimaryParticle && mStateBuffer[mSimulationStepState.CurrentNpcIndex].DipoleState->SecondaryParticleState.ParticleIndex == particleIndex));
 	}
+
+	bool IsSealedTriangle(
+		ElementIndex triangleElementIndex,
+		Mesh const & mesh) const
+	{
+		return mesh.GetEdges().GetSurfaceType(mesh.GetTriangles().GetSubEdgeAIndex(triangleElementIndex)) == SurfaceType::Floor
+			&& mesh.GetEdges().GetSurfaceType(mesh.GetTriangles().GetSubEdgeBIndex(triangleElementIndex)) == SurfaceType::Floor
+			&& mesh.GetEdges().GetSurfaceType(mesh.GetTriangles().GetSubEdgeCIndex(triangleElementIndex)) == SurfaceType::Floor;
+	}
+
+	bool DoesFloorSeparateFromPrimaryParticle(
+		ElementIndex primaryParticleIndex,
+		ElementIndex secondaryParticleIndex,
+		ElementIndex edgeElementIndex,
+		Mesh const & mesh) const
+	{
+		vec2f const aPos = mesh.GetEdges().GetEndpointAPosition(edgeElementIndex, mesh.GetVertices());
+		vec2f const bPos = mesh.GetEdges().GetEndpointBPosition(edgeElementIndex, mesh.GetVertices());
+		vec2f const p1Pos = mParticles.GetPosition(primaryParticleIndex);
+		vec2f const p2Pos = mParticles.GetPosition(secondaryParticleIndex);
+
+		// ((y1−y2)(ax−x1)+(x2−x1)(ay−y1)) * ((y1−y2)(bx−x1)+(x2−x1)(by−y1)) < 0
+		float const magic = ((aPos.y - bPos.y) * (p1Pos.x - aPos.x) + (bPos.x - aPos.x) * (p1Pos.y - aPos.y))
+			* ((aPos.y - bPos.y) * (p2Pos.x - aPos.x) + (bPos.x - aPos.x) * (p2Pos.y - aPos.y));
+
+		return  magic < 0.0f;
+	}
+
 
 	//
 	// Human simulation

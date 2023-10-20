@@ -60,6 +60,24 @@ public:
         }
     }
 
+    void OnHumanNpcBehaviorChanged(
+        std::optional<std::string> behavior) override
+    {
+        for (auto sink : mSinks)
+        {
+            sink->OnHumanNpcBehaviorChanged(behavior);
+        }
+    }
+
+    void OnHumanNpcStateQuantityChanged(
+        std::optional<std::tuple<std::string, std::string>> nameAndValue) override
+    {
+        for (auto sink : mSinks)
+        {
+            sink->OnHumanNpcStateQuantityChanged(nameAndValue);
+        }
+    }
+
     void OnCustomProbe(
         std::string const & name,
         float value) override

@@ -6,7 +6,6 @@
 #include "ProbeToolbar.h"
 
 #include <wx/gbsizer.h>
-#include <wx/stattext.h>
 
 #include <cassert>
 #include <iomanip>
@@ -37,6 +36,7 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
     //
 
     int constexpr TextCtrlWidth = 100;
+    int constexpr TextCtrlWidth2 = 200;
 
     {
         int constexpr HMargin = 10;
@@ -245,6 +245,57 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                 0);
         }
 
+        hSizer->AddSpacer(80);
+
+        // Human state
+        {
+            wxGridBagSizer * gridSizer = new wxGridBagSizer(0, 0);
+
+            // Behavior
+            {
+                auto label = new wxStaticText(this, wxID_ANY, _("Behavior:"));
+                gridSizer->Add(
+                    label,
+                    wxGBPosition(0, 0),
+                    wxGBSpan(1, 1),
+                    wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
+                    0);
+
+                mHumanBehaviorTextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth2, -1), wxTE_RIGHT | wxTE_READONLY);
+                gridSizer->Add(
+                    mHumanBehaviorTextCtrl,
+                    wxGBPosition(0, 1),
+                    wxGBSpan(1, 1),
+                    wxEXPAND,
+                    0);
+            }
+
+            // State Quantity
+            {
+                mHumanStateQuantityNameLabel = new wxStaticText(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1));
+                gridSizer->Add(
+                    mHumanStateQuantityNameLabel,
+                    wxGBPosition(1, 0),
+                    wxGBSpan(1, 1),
+                    wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
+                    0);
+
+                mHumanStateQuantityTextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth2, -1), wxTE_RIGHT | wxTE_READONLY);
+                gridSizer->Add(
+                    mHumanStateQuantityTextCtrl,
+                    wxGBPosition(1, 1),
+                    wxGBSpan(1, 1),
+                    wxEXPAND,
+                    0);
+            }
+
+            hSizer->Add(
+                gridSizer,
+                0,
+                0,
+                0);
+        }
+
         hSizer->AddSpacer(HMargin);
 
         // Custom probes
@@ -423,6 +474,17 @@ void ProbeToolbar::OnSubjectParticlePhysicsUpdated(std::optional<PhysicsParticle
     }
 
     mParticleVelocityTextCtrl->SetValue(ss.str());
+}
+
+void ProbeToolbar::OnHumanNpcBehaviorChanged(std::optional<std::string> behavior)
+{
+    mHumanBehaviorTextCtrl->SetValue(behavior.value_or(""));
+}
+
+void ProbeToolbar::OnHumanNpcStateQuantityChanged(std::optional<std::tuple<std::string, std::string>> nameAndValue)
+{
+    mHumanStateQuantityNameLabel->SetLabel(nameAndValue.has_value() ? std::get<0>(*nameAndValue) : "");
+    mHumanStateQuantityTextCtrl->SetValue(nameAndValue.has_value() ? std::get<1>(*nameAndValue) : "");
 }
 
 void ProbeToolbar::OnCustomProbe(
