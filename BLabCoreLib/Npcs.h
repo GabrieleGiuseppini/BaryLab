@@ -416,9 +416,8 @@ private:
 		ElementIndex npcIndex,
 		Mesh const & mesh) const;
 
-	StateType::NpcParticleStateType MaterializeParticleState(
+	std::optional<StateType::NpcParticleStateType::ConstrainedStateType> CalculateParticleConstrainedState(
 		vec2f const & position,
-		ElementIndex particleIndex,
 		Mesh const & mesh) const;
 
 	void ResetSimulationStepState();

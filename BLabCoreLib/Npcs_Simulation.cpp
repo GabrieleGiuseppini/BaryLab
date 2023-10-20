@@ -327,10 +327,12 @@ void Npcs::UpdateNpcs(
             //
 
             if (!mSimulationStepState.CurrentIsPrimaryParticle // This is a secondary
-                && !npcParticleState.ConstrainedState.has_value() // ...and free
+                && !npcState.DipoleState->SecondaryParticleState.ConstrainedState.has_value() // ...and free
                 && npcState.PrimaryParticleState.ConstrainedState.has_value()) // And primary is constrained
             {
-                // TODOHERE
+                npcState.DipoleState->SecondaryParticleState.ConstrainedState = CalculateParticleConstrainedState(
+                    finalParticleState->Position,
+                    mesh);
             }
 
 
@@ -968,10 +970,11 @@ Npcs::StateType Npcs::MaterializeNpcState(
 
     // Primary particle
 
-    auto primaryParticleState = MaterializeParticleState(
-        mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
+    StateType::NpcParticleStateType primaryParticleState = StateType::NpcParticleStateType(
         state.PrimaryParticleState.ParticleIndex,
-        mesh);
+        CalculateParticleConstrainedState(
+            mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
+            mesh));
 
     // Secondary particle
 
@@ -979,10 +982,11 @@ Npcs::StateType Npcs::MaterializeNpcState(
 
     if (state.DipoleState.has_value())
     {
-        StateType::NpcParticleStateType secondaryParticleState = MaterializeParticleState(
-            mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
+        StateType::NpcParticleStateType secondaryParticleState = StateType::NpcParticleStateType(
             state.DipoleState->SecondaryParticleState.ParticleIndex,
-            mesh);
+            CalculateParticleConstrainedState(
+                mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
+                mesh));
 
         dipoleState.emplace(
             std::move(secondaryParticleState),
@@ -1017,9 +1021,8 @@ Npcs::StateType Npcs::MaterializeNpcState(
         std::move(humanNpcState));
 }
 
-Npcs::StateType::NpcParticleStateType Npcs::MaterializeParticleState(
+std::optional<Npcs::StateType::NpcParticleStateType::ConstrainedStateType> Npcs::CalculateParticleConstrainedState(
     vec2f const & position,
-    ElementIndex particleIndex,
     Mesh const & mesh) const
 {
     std::optional<StateType::NpcParticleStateType::ConstrainedStateType> constrainedState;
@@ -1038,14 +1041,12 @@ Npcs::StateType::NpcParticleStateType Npcs::MaterializeParticleState(
             assert(barycentricCoords[2] >= 0.0f && barycentricCoords[2] <= 1.0f);
         }
 
-        constrainedState.emplace(
+        return Npcs::StateType::NpcParticleStateType::ConstrainedStateType(
             triangleIndex,
             barycentricCoords);
     }
 
-    return StateType::NpcParticleStateType(
-        particleIndex,
-        std::move(constrainedState));
+    return std::nullopt;
 }
 
 void Npcs::ResetSimulationStepState()

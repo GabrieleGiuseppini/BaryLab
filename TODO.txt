@@ -56,11 +56,11 @@
 		+ Fix: calculate spring forces before all
 			+ Or else we have asymmetry
 		- Misc notes:
-			- Transitions to free state/regime management:
+			+ Transitions to free state/regime management:
 				+ NPC is free when both are free (mostly used for stats)
-				- When primary is constrained, secondary:
-					- If free, allowed to re-enter constrained - checked and transitioned into at end of ray-tracing
-					- If constrained, allowed to become free as normal
+				+ When primary is constrained, secondary:
+					+ If free, allowed to re-enter constrained - checked and transitioned into at end of ray-tracing
+					+ If constrained, allowed to become free as normal
 			- Ghosting: secondary particle should not see as floor an edge that separates it from primary
 				- Make helper func as it's used twice
 			= Physics:

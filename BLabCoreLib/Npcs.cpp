@@ -22,10 +22,12 @@ void Npcs::Add(
 
 	ElementIndex const primaryParticleIndex = mParticles.GetParticleCount();
 	mParticles.Add(primaryPosition, rgbaColor(0x60, 0x60, 0x60, 0xff));
-	auto primaryParticleState = MaterializeParticleState(
-		primaryPosition,
+
+	StateType::NpcParticleStateType primaryParticleState = StateType::NpcParticleStateType(
 		primaryParticleIndex,
-		mesh);
+		CalculateParticleConstrainedState(
+			primaryPosition,
+			mesh));
 
 	//
 	// Add human
@@ -43,10 +45,11 @@ void Npcs::Add(
 		vec2f const secondaryPosition = primaryPosition + vec2f(0.0f, 1.0f) * HumanNpcLength;
 		mParticles.Add(secondaryPosition, rgbaColor(0x60, 0x60, 0x60, 0xff));
 
-		StateType::NpcParticleStateType secondaryParticleState = MaterializeParticleState(
-			secondaryPosition,
+		StateType::NpcParticleStateType secondaryParticleState = StateType::NpcParticleStateType(
 			secondaryParticleIndex,
-			mesh);
+			CalculateParticleConstrainedState(
+				secondaryPosition,			
+				mesh));
 
 		humanNpcState = InitializeHuman(
 			primaryParticleState,
