@@ -323,6 +323,18 @@ void Npcs::UpdateNpcs(
                 finalParticleState->Position);
 
             //
+            // Check if a secondary free particle should become constrained
+            //
+
+            if (!mSimulationStepState.CurrentIsPrimaryParticle // This is a secondary
+                && !npcParticleState.ConstrainedState.has_value() // ...and free
+                && npcState.PrimaryParticleState.ConstrainedState.has_value()) // And primary is constrained
+            {
+                // TODOHERE
+            }
+
+
+            //
             // Advance state
             //
 
