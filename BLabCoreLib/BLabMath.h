@@ -325,3 +325,9 @@ inline bool IsAlmostZero(float value)
 {
     return IsAlmostZero(value, Epsilon<float>);
 }
+
+inline bool AreAlmostEqual(float value1, float value2, float epsilon)
+{
+    float const d = value1 - value2;
+    return (d > -epsilon) && (d < epsilon);
+}

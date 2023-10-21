@@ -99,12 +99,12 @@ public:
 		{
 			enum class BehaviorType
 			{
-				Constrained_KnockedOut,
-				Constrained_Rising,
-				Constrained_Equilibrium,
-				Constrained_Walking,
+				Constrained_KnockedOut, // Does nothing
+				Constrained_Rising, // Tries to stand up (appliying torque)
+				Constrained_Equilibrium, // Stands up; continues to adjust alignment with torque
+				Constrained_Walking, // Walks; continues to adjust alignment with torque
 
-				Free_KnockedOut
+				Free_KnockedOut // Does nothing
 			};
 
 			BehaviorType CurrentBehavior;
@@ -120,6 +120,16 @@ public:
 				, CurrentStateValue(currentStateValue)
 				, TargetStateValue(targetStateValue)
 			{}
+
+			void TransitionToState(
+				BehaviorType behavior,
+				float currentStateValue,
+				float targetStateValue)
+			{
+				CurrentBehavior = behavior;
+				CurrentStateValue = currentStateValue;
+				TargetStateValue = targetStateValue;
+			}
 		};
 
 		NpcType Type;

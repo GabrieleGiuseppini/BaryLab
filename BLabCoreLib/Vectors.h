@@ -51,42 +51,42 @@ public:
     {
     }
 
-	inline vec2f operator+(vec2f const & other) const
+	inline constexpr vec2f operator+(vec2f const & other) const
 	{
 		return vec2f(
 			x + other.x,
 			y + other.y);
 	}
 
-	inline vec2f operator-(vec2f const & other) const
+	inline constexpr vec2f operator-(vec2f const & other) const
 	{
 		return vec2f(
 			x - other.x,
 			y - other.y);
 	}
 
-    inline vec2f operator-() const
+    inline constexpr vec2f operator-() const
     {
         return vec2f(
             -x,
             -y);
     }
 
-	inline vec2f operator*(float other) const
+	inline constexpr vec2f operator*(float other) const
 	{
 		return vec2f(
 			x * other,
 			y * other);
 	}
 
-    inline vec2f operator*(vec2f other) const
+    inline constexpr vec2f operator*(vec2f other) const
     {
         return vec2f(
             x * other.x,
             y * other.y);
     }
 
-	inline vec2f operator/(float other) const
+	inline constexpr vec2f operator/(float other) const
 	{
 		return vec2f(
 			x / other,

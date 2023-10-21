@@ -19,9 +19,11 @@ struct LabParameters
     //
 
     // Gravity
-    static constexpr vec2f Gravity = vec2f(0.0f, -9.80f);
-    static constexpr vec2f GravityNormalized = vec2f(0.0f, -1.0f);
+    static constexpr vec2f GravityDir = vec2f(0.0f, -1.0f);
     static float constexpr GravityMagnitude = 9.80f; // m/s
+    static constexpr vec2f Gravity = GravityDir * GravityMagnitude;
+    
+    
 
     //
     // Structural constants
@@ -75,4 +77,10 @@ struct LabParameters
     static float constexpr SpringThickness = 0.06f;
     static float constexpr ParticleRadius = 0.15f;
     static float constexpr ParticleTrajectoryThickness = 0.04f;
+
+    //
+    // NPCs
+    //
+
+    static float constexpr HumanNpcLength = 1.65f;
 };

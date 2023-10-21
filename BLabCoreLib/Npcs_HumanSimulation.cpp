@@ -5,6 +5,7 @@
  ***************************************************************************************/
 #include "Npcs.h"
 
+#include "BLabMath.h"
 #include "Log.h"
 
 #include <cmath>
@@ -21,6 +22,12 @@ namespace /*anonymous*/ {
 		return barycentricCoords.x == 0.0f
 			|| barycentricCoords.y == 0.0f
 			|| barycentricCoords.z == 0.0f;
+	}
+
+	float CalculateAlignment(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)
+	{
+		vec2f const humanVerticalVector = particles.GetPosition(primaryParticleIndex) - particles.GetPosition(secondaryParticleIndex);
+		return (humanVerticalVector.dot(LabParameters::GravityDir) - LabParameters::HumanNpcLength) / LabParameters::HumanNpcLength;
 	}
 }
 
@@ -44,6 +51,7 @@ Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 	else
 	{
 		// NPC is constrained
+		// TODO: check alignment and, if ok, start at Constrained_Equilibrium
 		mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 		return StateType::HumanNpcStateType(StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, 0.0f, 0.0f);
 	}
@@ -55,6 +63,10 @@ void Npcs::UpdateHuman(
 	StateType::NpcParticleStateType const & secondaryParticleState,
 	Mesh const & mesh)
 {
+	float const ToRisingConvergenceRate = 0.05f;
+	//float constexpr MaxRelativeVelocityForEquilibrium = 0.1f;
+	float constexpr MaxRelativeVelocityForEquilibrium = 0.3f;
+
 	// TODOHERE
 	(void)mesh;
 
@@ -66,14 +78,15 @@ void Npcs::UpdateHuman(
 	{
 		case StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
 		{
-			float const RisingConvergenceRate = 0.05f;
-			float constexpr MaxRelativeVelocity = 0.1f;
-
 			if (isFree)
 			{
 				// Transition
 
-				humanState.CurrentBehavior = StateType::HumanNpcStateType::BehaviorType::Free_KnockedOut;
+				humanState.TransitionToState(
+					StateType::HumanNpcStateType::BehaviorType::Free_KnockedOut,
+					0.0f,
+					0.0f);
+
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
 
 				break;
@@ -81,18 +94,20 @@ void Npcs::UpdateHuman(
 
 			// Advance
 
-			humanState.CurrentStateValue += (humanState.TargetStateValue - humanState.CurrentStateValue) * RisingConvergenceRate;
+			humanState.CurrentStateValue += (humanState.TargetStateValue - humanState.CurrentStateValue) * ToRisingConvergenceRate;
+
 			publishStateQuantity = std::make_tuple("CurrentStateValue", std::to_string(humanState.CurrentStateValue));
 
 			if (IsAtTarget(humanState.CurrentStateValue, 1.0f))
 			{
 				// Transition
 
-				humanState.CurrentBehavior = StateType::HumanNpcStateType::BehaviorType::Constrained_Rising;
-				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Rising");
+				humanState.TransitionToState(
+					StateType::HumanNpcStateType::BehaviorType::Constrained_Rising,
+					0.0f,
+					0.0f);
 
-				humanState.CurrentStateValue = 0.0f;
-				humanState.TargetStateValue = 0.0f;
+				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Rising");
 
 				break;
 			}
@@ -103,10 +118,10 @@ void Npcs::UpdateHuman(
 
 			if (primaryParticleState.ConstrainedState.has_value()
 				&& IsOnEdge(primaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords)
-				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocity
+				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium
 				&& secondaryParticleState.ConstrainedState.has_value()
 				&& IsOnEdge(secondaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords)
-				&& secondaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocity)
+				&& secondaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium)
 			{
 				stateCondition = 1.0f;
 			}
@@ -122,20 +137,83 @@ void Npcs::UpdateHuman(
 			{
 				// Transition
 
-				humanState.CurrentBehavior = StateType::HumanNpcStateType::BehaviorType::Free_KnockedOut;
+				humanState.TransitionToState(
+					StateType::HumanNpcStateType::BehaviorType::Free_KnockedOut,
+					0.0f,
+					0.0f);
+
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
 
 				break;
 			}
 
 			// Check conditions to stay
-			// TODOHERE
+
+			bool stateCondition = false;
+
+			if (primaryParticleState.ConstrainedState.has_value()
+				&& IsOnEdge(primaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords)
+				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium)
+			{
+				// Make sure secondary's velocity is in direction of becoming erected
+				// TODOHERE: secondary: velocity is in direction of becoming erected
+				stateCondition = true;
+			}
+
+			if (!stateCondition)
+			{
+				// Transition
+
+				humanState.TransitionToState(
+					StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut,
+					0.0f,
+					0.0f);
+
+
+				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+
+				break;
+			}
+
+			// Check alignment
+
+			float const alignment = CalculateAlignment(primaryParticleState.ParticleIndex, secondaryParticleState.ParticleIndex, mParticles);
+
+			publishStateQuantity = std::make_tuple("Alignment", std::to_string(alignment));
+
+			if (IsAlmostZero(alignment, 0.01f))
+			{
+				// Transition
+
+				humanState.TransitionToState(
+					StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium,
+					0.0f,
+					0.0f);
+
+				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Equilibrium");
+
+				break;
+			}
 
 			break;
 		}
 
 		case StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
 		{
+			if (isFree)
+			{
+				// Transition
+
+				humanState.TransitionToState(
+					StateType::HumanNpcStateType::BehaviorType::Free_KnockedOut,
+					0.0f,
+					0.0f);
+
+				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
+
+				break;
+			}
+
 			// TODOHERE
 			break;
 		}

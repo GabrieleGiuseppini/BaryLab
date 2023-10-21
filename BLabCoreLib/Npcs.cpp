@@ -40,9 +40,7 @@ void Npcs::Add(
 	{
 		ElementIndex const secondaryParticleIndex = mParticles.GetParticleCount();
 
-		static float constexpr HumanNpcLength = 1.65f;
-
-		vec2f const secondaryPosition = primaryPosition + vec2f(0.0f, 1.0f) * HumanNpcLength;
+		vec2f const secondaryPosition = primaryPosition + vec2f(0.0f, 1.0f) * LabParameters::HumanNpcLength;
 		mParticles.Add(secondaryPosition, rgbaColor(0x60, 0x60, 0x60, 0xff));
 
 		StateType::NpcParticleStateType secondaryParticleState = StateType::NpcParticleStateType(
@@ -63,7 +61,7 @@ void Npcs::Add(
 		dipoleState.emplace(
 			std::move(secondaryParticleState),
 			StateType::DipolePropertiesType(
-				HumanNpcLength,
+				LabParameters::HumanNpcLength,
 				massFactor,
 				1.0f));
 	}

@@ -414,10 +414,17 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
     // Integrate physical forces, including eventual bounce velocity from a previous impact
     //
 
+    vec2f voluntaryForces = vec2f::zero();
+    if (TODOHERE)
+    {
+
+    }
+
     vec2f const physicalForces =
         mParticles.GetWorldForce(particle.ParticleIndex)
         + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * labParameters.ParticleMass * labParameters.MassAdjustment
-        + mParticles.GetSpringForces(particle.ParticleIndex);
+        + mParticles.GetSpringForces(particle.ParticleIndex)
+        + voluntaryForces;
 
     vec2f const physicsDeltaPos =
         mParticles.GetVelocity(particle.ParticleIndex) * dt
