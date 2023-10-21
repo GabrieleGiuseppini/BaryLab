@@ -63,7 +63,8 @@
 					+ If constrained, allowed to become free as normal
 			= Ghosting: secondary particle should not see as floor an edge that separates it from primary
 				+ Make helper func as it's used twice
-				- Problem: this allows a secondary to enter a sealed triangle, and when that happens, it will exit again regardless
+				+ Problem: this allows a secondary to enter a sealed triangle, and when that happens, it will exit again regardless
+					+ Add condition: even if it's a sealed triangle, crossing the edge should not make the particle free
 			= Physics:
 				= Attempt 1:
 					+ Normal physics: calc spring forces first (in new particle's buffer) and include those forces when calculating trajectory

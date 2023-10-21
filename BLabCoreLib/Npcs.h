@@ -431,13 +431,41 @@ private:
 				|| (!mSimulationStepState.CurrentIsPrimaryParticle && mStateBuffer[mSimulationStepState.CurrentNpcIndex].DipoleState->SecondaryParticleState.ParticleIndex == particleIndex));
 	}
 
-	bool IsSealedTriangle(
+	bool IsEdgeFloorToParticle(
+		ElementIndex edgeElementIndex,
 		ElementIndex triangleElementIndex,
 		Mesh const & mesh) const
 	{
-		return mesh.GetEdges().GetSurfaceType(mesh.GetTriangles().GetSubEdgeAIndex(triangleElementIndex)) == SurfaceType::Floor
+		//
+		// An edge is a floor for a given (constrained) particle if:
+		// - It is a floor; AND
+		// - The triangle is _not_ sealed, OR it _is_ sealed bu crossing the edge would make the particle free
+		//
+
+		if (mesh.GetEdges().GetSurfaceType(edgeElementIndex) != SurfaceType::Floor)
+		{
+			// Not even a floor
+			return false;
+		}
+
+		bool const isSealedTriangle = 
+			mesh.GetEdges().GetSurfaceType(mesh.GetTriangles().GetSubEdgeAIndex(triangleElementIndex)) == SurfaceType::Floor
 			&& mesh.GetEdges().GetSurfaceType(mesh.GetTriangles().GetSubEdgeBIndex(triangleElementIndex)) == SurfaceType::Floor
 			&& mesh.GetEdges().GetSurfaceType(mesh.GetTriangles().GetSubEdgeCIndex(triangleElementIndex)) == SurfaceType::Floor;
+
+		if (!isSealedTriangle)
+		{
+			return true;
+		}
+
+		ElementIndex const oppositeTriangle = mesh.GetEdges().GetOppositeTriangle(edgeElementIndex, triangleElementIndex);
+		if (oppositeTriangle == NoneElementIndex)
+		{
+			// Crossing this floor makes the particle free
+			return true;
+		}
+
+		return false;
 	}
 
 	bool DoesFloorSeparateFromPrimaryParticle(
@@ -455,7 +483,7 @@ private:
 		float const magic = ((aPos.y - bPos.y) * (p1Pos.x - aPos.x) + (bPos.x - aPos.x) * (p1Pos.y - aPos.y))
 			* ((aPos.y - bPos.y) * (p2Pos.x - aPos.x) + (bPos.x - aPos.x) * (p2Pos.y - aPos.y));
 
-		return  magic < 0.0f;
+		return magic < -0.0001f;
 	}
 
 

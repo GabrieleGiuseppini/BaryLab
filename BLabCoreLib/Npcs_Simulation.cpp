@@ -421,7 +421,7 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
 
     vec2f const physicsDeltaPos =
         mParticles.GetVelocity(particle.ParticleIndex) * dt
-        + physicalForces / particleMass * dt * dt;
+        + (physicalForces / particleMass) * dt * dt;
 
     LogMessage("      springForces=", mParticles.GetSpringForces(particle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos);
 
@@ -446,177 +446,175 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
         // Calculate mesh displacement
         meshDisplacement = particlePosition - newTheoreticalPositionAfterMeshDisplacement;
 
-        // There are no floors if we are in a triangle made fully of floors
-        if (!IsSealedTriangle(currentTriangleElementIndex, mesh))
+        // Check all edges, stop at first one that is floor
+        for (int vi = 0; vi < 3; ++vi)
         {
-            // Check all edges, stop at first one that is floor
-            for (int vi = 0; vi < 3; ++vi)
+            if (particle.ConstrainedState->CurrentTriangleBarycentricCoords[vi] == 0.0f)
             {
-                if (particle.ConstrainedState->CurrentTriangleBarycentricCoords[vi] == 0.0f)
+                // We are on this edge
+
+                int const edgeOrdinal = (vi + 1) % 3;
+                ElementIndex const currentEdgeElementIndex = triangles.GetSubEdges(currentTriangleElementIndex).EdgeIndices[edgeOrdinal];
+
+                assert(isPrimaryParticle || dipoleArg.has_value());
+
+                // Check if this is really a floor to this particle
+                if (IsEdgeFloorToParticle(currentEdgeElementIndex, currentTriangleElementIndex, mesh)
+                    && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
+                        dipoleArg->OtherParticle.ParticleIndex,
+                        particle.ParticleIndex,
+                        currentEdgeElementIndex,
+                        mesh)))
                 {
-                    int const edgeOrdinal = (vi + 1) % 3;
-                    ElementIndex const currentEdgeElementIndex = triangles.GetSubEdges(currentTriangleElementIndex).EdgeIndices[edgeOrdinal];
+                    //
+                    // On floor edge - so potentially in a non-inertial frame
+                    //
 
-                    assert(isPrimaryParticle || dipoleArg.has_value());
+                    //
+                    // Calculate trajectory
+                    //
+                    // Trajectory is the apparent displacement, i.e. the displacement of the particle
+                    // *from the point of view of the mesh* (or of the particle itself).
+                    //
+                    // Given that trajectory discounts physics move, trajectory is the displacement
+                    // caused by the apparent forces. In fact, we've verified that when the particle has
+                    // the same velocity as the mesh, trajectory is zero.
+                    //
+                    // Note: when there's no physics displacement, this amounts to pure mesh move
+                    // (PartPos - FromBary(PartPosBary)). On the other hand, when the mesh is at rest, this
+                    // amounts to pure physical displacement.
+                    //
 
-                    // A floor that separates a secondary from its primary is not a floor
-                    if (edges.GetSurfaceType(currentEdgeElementIndex) == SurfaceType::Floor
-                        && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
-                            dipoleArg->OtherParticle.ParticleIndex,
-                            particle.ParticleIndex,
-                            currentEdgeElementIndex,
-                            mesh)))
+                    // Note: this is the same as physicsDeltaPos + meshDisplacement
+                    vec2f const trajectory = particlePosition + physicsDeltaPos - newTheoreticalPositionAfterMeshDisplacement;
+
+                    LogMessage("      startPos=", particlePosition, " physicsDeltaPos=", physicsDeltaPos,
+                        " meshDispl=", meshDisplacement, " traj=", trajectory);
+
+                    //
+                    // Check whether we're moving *against* the floor
+                    //
+
+                    vec2f const edgeVector = mesh.GetTriangles().GetSubEdgeVector(
+                        currentTriangleElementIndex,
+                        edgeOrdinal,
+                        vertices);
+
+                    vec2f const edgeDir = edgeVector.normalise();
+                    vec2f const edgeNormal = edgeDir.to_perpendicular(); // Points outside of triangle (i.e. towards floor)
+
+                    if (trajectory.dot(edgeNormal) >= 0.0f) // If 0, no normal force - hence no friction; however we want to take this codepath anyways for consistency
                     {
                         //
-                        // On floor edge - so potentially in a non-inertial frame
+                        // We're moving against the floor, hence we are in a non-inertial frame
                         //
 
-                        //
-                        // Calculate trajectory
-                        //
-                        // Trajectory is the apparent displacement, i.e. the displacement of the particle
-                        // *from the point of view of the mesh* (or of the particle itself).
-                        //
-                        // Given that trajectory discounts physics move, trajectory is the displacement
-                        // caused by the apparent forces. In fact, we've verified that when the particle has
-                        // the same velocity as the mesh, trajectory is zero.
-                        //
-                        // Note: when there's no physics displacement, this amounts to pure mesh move
-                        // (PartPos - FromBary(PartPosBary)). On the other hand, when the mesh is at rest, this
-                        // amounts to pure physical displacement.
+                        LogMessage("    Particle is on floor edge ", edgeOrdinal, ", moving against it");
+
+                        // 
+                        // Calculate magnitude of flattened trajectory - i.e. component of trajectory 
+                        // along (tangent) edge, appi.e. arent (integrated) force tangential to the floor;
+                        // positive when in the direction of the edge
                         //
 
-                        // Note: this is the same as physicsDeltaPos + meshDisplacement
-                        vec2f const trajectory = particlePosition + physicsDeltaPos - newTheoreticalPositionAfterMeshDisplacement;
-
-                        LogMessage("      startPos=", particlePosition, " physicsDeltaPos=", physicsDeltaPos,
-                            " meshDispl=", meshDisplacement, " traj=", trajectory);
+                        float trajectoryT = trajectory.dot(edgeDir);
 
                         //
-                        // Check whether we're moving *against* the floor
+                        // Update tangential component of trajectory with friction
                         //
 
-                        vec2f const edgeVector = mesh.GetTriangles().GetSubEdgeVector(
-                            currentTriangleElementIndex,
-                            edgeOrdinal,
-                            vertices);
-
-                        vec2f const edgeDir = edgeVector.normalise();
-                        vec2f const edgeNormal = edgeDir.to_perpendicular(); // Points outside of triangle (i.e. towards floor)
-
-                        if (trajectory.dot(edgeNormal) >= 0.0f) // If 0, no normal force - hence no friction; however we want to take this codepath anyways for consistency
                         {
-                            //
-                            // We're moving against the floor, hence we are in a non-inertial frame
-                            //
+                            // Normal trajectory: apparent (integrated) force against the floor;
+                            // positive when against the floor
 
-                            LogMessage("    Particle is on floor edge ", edgeOrdinal, ", moving against it");
-
-                            // 
-                            // Calculate magnitude of flattened trajectory - i.e. component of trajectory 
-                            // along (tangent) edge, appi.e. arent (integrated) force tangential to the floor;
-                            // positive when in the direction of the edge
-                            //
-
-                            float trajectoryT = trajectory.dot(edgeDir);
+                            float const trajectoryN = trajectory.dot(edgeNormal);
 
                             //
-                            // Update tangential component of trajectory with friction
+                            // Choose between kinetic and static friction
                             //
-
-                            {
-                                // Normal trajectory: apparent (integrated) force against the floor;
-                                // positive when against the floor
-
-                                float const trajectoryN = trajectory.dot(edgeNormal);
-
-                                //
-                                // Choose between kinetic and static friction
-                                //
-                                // Note that we want to check actual velocity here, not
-                                // *intention* to move (which is trajectory)
-                                //
+                            // Note that we want to check actual velocity here, not
+                            // *intention* to move (which is trajectory)
+                            //
                                 
-                                float frictionCoefficient;
-                                if (std::abs(particle.ConstrainedState->MeshRelativeVelocity.dot(edgeDir)) > 0.01f) // Magic number
-                                {
-                                    // Kinetic friction
-                                    frictionCoefficient = labParameters.KineticFriction;
-                                }
-                                else
-                                {
-                                    // Static friction
-                                    frictionCoefficient = labParameters.StaticFriction;
-                                }
-
-                                // Calculate friction (integrated) force magnitude (along edgeDir),
-                                // which is the same as apparent force, up to max friction threshold
-                                float tFriction = std::min(std::abs(trajectoryT), frictionCoefficient * std::max(trajectoryN, 0.0f));
-                                if (trajectoryT >= 0.0f)
-                                {
-                                    tFriction *= -1.0f;
-                                }
-
-                                LogMessage("      friction: trajectoryN=", trajectoryN, " relVel=", particle.ConstrainedState->MeshRelativeVelocity, " trajectoryT=", trajectoryT,
-                                    " tFriction=", tFriction);
-
-                                // Update trajectory with friction
-                                trajectoryT += tFriction;
+                            float frictionCoefficient;
+                            if (std::abs(particle.ConstrainedState->MeshRelativeVelocity.dot(edgeDir)) > 0.01f) // Magic number
+                            {
+                                // Kinetic friction
+                                frictionCoefficient = labParameters.KineticFriction;
+                            }
+                            else
+                            {
+                                // Static friction
+                                frictionCoefficient = labParameters.StaticFriction;
                             }
 
-                            //
-                            // Recovered flattened trajectory as a vector
-                            //
+                            // Calculate friction (integrated) force magnitude (along edgeDir),
+                            // which is the same as apparent force, up to max friction threshold
+                            float tFriction = std::min(std::abs(trajectoryT), frictionCoefficient * std::max(trajectoryN, 0.0f));
+                            if (trajectoryT >= 0.0f)
+                            {
+                                tFriction *= -1.0f;
+                            }
 
-                            vec2f const flattenedTrajectory = edgeDir * trajectoryT;
+                            LogMessage("      friction: trajectoryN=", trajectoryN, " relVel=", particle.ConstrainedState->MeshRelativeVelocity, " trajectoryT=", trajectoryT,
+                                " tFriction=", tFriction);
 
-                            //
-                            // Due to numerical slack, ensure target barycentric coords are along edge
-                            //
+                            // Update trajectory with friction
+                            trajectoryT += tFriction;
+                        }
 
-                            vec2f const targetPos = newTheoreticalPositionAfterMeshDisplacement + flattenedTrajectory;
-                            vec3f targetBarycentricCoords = triangles.ToBarycentricCoordinates(                                
-                                targetPos,
-                                currentTriangleElementIndex,
-                                vertices);
+                        //
+                        // Recovered flattened trajectory as a vector
+                        //
 
-                            LogMessage("      targetPos=", targetPos, " targetBarycentricCoords before forcing=", targetBarycentricCoords);
+                        vec2f const flattenedTrajectory = edgeDir * trajectoryT;
 
-                            // Force to be on edge
-                            int const vertexOrdinal = (edgeOrdinal + 2) % 3;
-                            targetBarycentricCoords[vertexOrdinal] = 0.0f;
-                            targetBarycentricCoords[(vertexOrdinal + 1) % 3] = 1.0f - targetBarycentricCoords[(vertexOrdinal + 2) % 3];
+                        //
+                        // Due to numerical slack, ensure target barycentric coords are along edge
+                        //
 
-                            vec2f const targetCoords = triangles.FromBarycentricCoordinates(
+                        vec2f const targetPos = newTheoreticalPositionAfterMeshDisplacement + flattenedTrajectory;
+                        vec3f targetBarycentricCoords = triangles.ToBarycentricCoordinates(                                
+                            targetPos,
+                            currentTriangleElementIndex,
+                            vertices);
+
+                        LogMessage("      targetPos=", targetPos, " targetBarycentricCoords before forcing=", targetBarycentricCoords);
+
+                        // Force to be on edge
+                        int const vertexOrdinal = (edgeOrdinal + 2) % 3;
+                        targetBarycentricCoords[vertexOrdinal] = 0.0f;
+                        targetBarycentricCoords[(vertexOrdinal + 1) % 3] = 1.0f - targetBarycentricCoords[(vertexOrdinal + 2) % 3];
+
+                        vec2f const targetCoords = triangles.FromBarycentricCoordinates(
+                            targetBarycentricCoords,
+                            currentTriangleElementIndex,
+                            vertices);
+
+                        LogMessage("      flattened traj=", flattenedTrajectory, " flattened target coords=", targetBarycentricCoords," actual target pos=", targetCoords);
+
+                        return CalculatedTrajectoryTargetRetVal(
+                            targetCoords,
+                            SimulationStepStateType::TrajectoryStateType::ConstrainedStateType(
                                 targetBarycentricCoords,
-                                currentTriangleElementIndex,
-                                vertices);
-
-                            LogMessage("      flattened traj=", flattenedTrajectory, " flattened target coords=", targetBarycentricCoords," actual target pos=", targetCoords);
-
-                            return CalculatedTrajectoryTargetRetVal(
-                                targetCoords,
-                                SimulationStepStateType::TrajectoryStateType::ConstrainedStateType(
-                                    targetBarycentricCoords,
-                                    meshDisplacement));
-                        }
-                        else
-                        {
-                            LogMessage("    Particle is on floor edge, but not moving against it");
-
-                            vec2f const targetPosition = mParticles.GetPosition(particle.ParticleIndex) + physicsDeltaPos;
-
-                            return CalculatedTrajectoryTargetRetVal(
-                                targetPosition,
-                                SimulationStepStateType::TrajectoryStateType::ConstrainedStateType(
-                                    triangles.ToBarycentricCoordinates(
-                                        targetPosition,
-                                        currentTriangleElementIndex,
-                                        vertices),
-                                    meshDisplacement));
-                        }
+                                meshDisplacement));
                     }
-                }
+                    else
+                    {
+                        LogMessage("    Particle is on floor edge, but not moving against it");
+
+                        vec2f const targetPosition = mParticles.GetPosition(particle.ParticleIndex) + physicsDeltaPos;
+
+                        return CalculatedTrajectoryTargetRetVal(
+                            targetPosition,
+                            SimulationStepStateType::TrajectoryStateType::ConstrainedStateType(
+                                triangles.ToBarycentricCoordinates(
+                                    targetPosition,
+                                    currentTriangleElementIndex,
+                                    vertices),
+                                meshDisplacement));
+                    }
+                }                
             }
         }
 
@@ -847,10 +845,7 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
 
     assert(isPrimaryParticle || dipoleArg.has_value());
 
-    // We don't consider a surface floor (and thus allow particle to ghost through it) 
-    // if it's in a triangle made fully of floors, or if the floor separates us from a constrained primary
-    if (edges.GetSurfaceType(intersectionEdgeElementIndex) == SurfaceType::Floor
-        && !IsSealedTriangle(currentTriangle, mesh)
+    if (IsEdgeFloorToParticle(intersectionEdgeElementIndex, currentTriangle, mesh)
         && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
             dipoleArg->OtherParticle.ParticleIndex,
             particleState.ParticleIndex,
