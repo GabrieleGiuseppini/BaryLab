@@ -101,15 +101,24 @@ public:
 			{
 				Constrained_KnockedOut,
 				Constrained_Rising,
-				// TODOHERE
+				Constrained_Equilibrium,
+				Constrained_Walking,
 
+				Free_KnockedOut
 			};
 
 			BehaviorType CurrentBehavior;
 
+			float CurrentStateValue;
+			float TargetStateValue;
+
 			HumanNpcStateType(
-				BehaviorType initialBehavior)
+				BehaviorType initialBehavior,
+				float currentStateValue,
+				float targetStateValue)
 				: CurrentBehavior(initialBehavior)
+				, CurrentStateValue(currentStateValue)
+				, TargetStateValue(targetStateValue)
 			{}
 		};
 
