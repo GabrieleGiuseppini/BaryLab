@@ -242,7 +242,7 @@ public:
     }
 
     /*
-     * Returns the vector rotated by PI/2.
+     * Returns the vector rotated (CCW) by PI/2.
      */
     inline vec2f to_perpendicular() const noexcept
     {

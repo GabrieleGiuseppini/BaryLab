@@ -13,5 +13,7 @@ LabParameters::LabParameters()
 	, Elasticity(0.6f)
 	, StaticFriction(0.15f)
 	, KineticFriction(0.031f)
+	// NPC
+	, HumanNpcRisingTorqueFactor(1.0f)
 {
 }

@@ -208,6 +208,11 @@ public:
     float GetMinSpringDampingCoefficient() const { return LabParameters::MinSpringDampingCoefficient; }
     float GetMaxSpringDampingCoefficient() const { return LabParameters::MaxSpringDampingCoefficient; }
 
+    float GetHumanNpcRisingTorqueFactor() const { return mLabParameters.HumanNpcRisingTorqueFactor; }
+    void SetHumanNpcRisingTorqueFactor(float value) { mLabParameters.HumanNpcRisingTorqueFactor = value; }
+    float GetMinHumanNpcRisingTorqueFactor() const { return LabParameters::MinHumanNpcRisingTorqueFactor; }
+    float GetMaxHumanNpcRisingTorqueFactor() const { return LabParameters::MaxHumanNpcRisingTorqueFactor; }
+
 private:
 
     explicit LabController(

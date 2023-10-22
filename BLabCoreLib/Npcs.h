@@ -519,7 +519,15 @@ private:
 		StateType::HumanNpcStateType & humanState,
 		StateType::NpcParticleStateType const & primaryParticleState,
 		StateType::NpcParticleStateType const & secondaryParticleState,
-		Mesh const & mesh);
+		Mesh const & mesh,
+		LabParameters const & labParameters);
+
+	void ApplyHumanNpcEquilibriumTorque(
+		vec2f const & humanVector,
+		float alignment,
+		ElementIndex secondaryParticleIndex,
+		NpcParticles & particles,
+		LabParameters const & labParameters);
 
 private:
 

@@ -40,7 +40,8 @@ void Npcs::UpdateNpcs(
                     *state.HumanNpcState,
                     state.PrimaryParticleState,
                     state.DipoleState->SecondaryParticleState,
-                    mesh);
+                    mesh,
+                    labParameters);
             }
 
             // Spring forces

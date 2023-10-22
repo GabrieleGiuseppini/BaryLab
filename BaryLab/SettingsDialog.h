@@ -56,6 +56,9 @@ private:
     SliderControl<float> * mSpringReductionFractionSlider;
     SliderControl<float> * mSpringDampingCoefficientSlider;
 
+    // NPCs
+    SliderControl<float> * mHumanNpcRisingTorqueFactorSlider;
+
     //////////////////////////////////////////////////////
 
     // Buttons
@@ -70,6 +73,7 @@ private:
     void DoClose();
 
     void PopulateSimulatorPanel(wxPanel * panel);
+    void PopulateNpcsPanel(wxPanel * panel);
 
     void SyncControlsWithSettings(Settings<SLabSettings> const & settings);
 

@@ -88,6 +88,15 @@ SettingsDialog::SettingsDialog(
 
     notebook->AddPage(simulatorPanel, "Simulator");
 
+    //
+    // NPCs
+    //
+
+    wxPanel * npcsPanel = new wxPanel(notebook);
+
+    PopulateNpcsPanel(npcsPanel);
+
+    notebook->AddPage(npcsPanel, "NPCs");
 
 
     dialogVSizer->Add(notebook, 0, wxEXPAND);
@@ -509,6 +518,67 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
     panel->SetSizer(gridSizer);
 }
 
+void SettingsDialog::PopulateNpcsPanel(wxPanel * panel)
+{
+    wxGridBagSizer * gridSizer = new wxGridBagSizer(0, 0);
+
+    // NPCs
+    {
+        wxStaticBox * npcsBox = new wxStaticBox(panel, wxID_ANY, _("NPCs"));
+
+        wxBoxSizer * npcsBoxSizer = new wxBoxSizer(wxVERTICAL);
+        npcsBoxSizer->AddSpacer(StaticBoxTopMargin);
+
+        {
+            wxGridBagSizer * npcsSizer = new wxGridBagSizer(0, 0);
+
+            // Human NPC Torque Strength Factor
+            {
+                mHumanNpcRisingTorqueFactorSlider = new SliderControl<float>(
+                    npcsBox,
+                    SliderWidth,
+                    SliderHeight,
+                    "Torque Strength",
+                    "The strength of the torque applied while rising.",
+                    [this](float value)
+                    {
+                        this->mLiveSettings.SetValue(SLabSettings::HumanNpcRisingTorqueFactor, value);
+                        this->OnLiveSettingsChanged();
+                    },
+                    std::make_unique<ExponentialSliderCore>(
+                        mLabController->GetMinHumanNpcRisingTorqueFactor(),
+                        1.0f,
+                        mLabController->GetMaxHumanNpcRisingTorqueFactor()));
+
+                npcsSizer->Add(
+                    mHumanNpcRisingTorqueFactorSlider,
+                    wxGBPosition(0, 0),
+                    wxGBSpan(1, 1),
+                    wxEXPAND | wxALL,
+                    CellBorder);
+            }
+
+            npcsBoxSizer->Add(npcsSizer, 0, wxALL, StaticBoxInsetMargin);
+        }
+
+        npcsBox->SetSizerAndFit(npcsBoxSizer);
+
+        gridSizer->Add(
+            npcsBox,
+            wxGBPosition(0, 0),
+            wxGBSpan(1, 1),
+            wxEXPAND | wxALL | wxALIGN_CENTER_HORIZONTAL,
+            CellBorder);
+    }
+
+    // Finalize panel
+
+    for (int c = 0; c < gridSizer->GetCols(); ++c)
+        gridSizer->AddGrowableCol(c);
+
+    panel->SetSizer(gridSizer);
+}
+
 void SettingsDialog::SyncControlsWithSettings(Settings<SLabSettings> const & settings)
 {
     // Simulator
@@ -519,6 +589,9 @@ void SettingsDialog::SyncControlsWithSettings(Settings<SLabSettings> const & set
     mGravityAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::GravityAdjustment));    
     mSpringReductionFractionSlider->SetValue(settings.GetValue<float>(SLabSettings::SpringReductionFraction));
     mSpringDampingCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::SpringDampingCoefficient));
+
+    // NPCs
+    mHumanNpcRisingTorqueFactorSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcRisingTorqueFactor));
 }
 
 void SettingsDialog::OnLiveSettingsChanged()

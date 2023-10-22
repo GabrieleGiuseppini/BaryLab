@@ -83,4 +83,8 @@ struct LabParameters
     //
 
     static float constexpr HumanNpcLength = 1.65f;
+
+    float HumanNpcRisingTorqueFactor;
+    static float constexpr MinHumanNpcRisingTorqueFactor = 0.0f;
+    static float constexpr MaxHumanNpcRisingTorqueFactor = 2.0f;
 };

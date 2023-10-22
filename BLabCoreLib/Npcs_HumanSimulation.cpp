@@ -24,10 +24,20 @@ namespace /*anonymous*/ {
 			|| barycentricCoords.z == 0.0f;
 	}
 
+	// Head->Feet
+	vec2f CalculateHumanVector(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)
+	{
+		return particles.GetPosition(primaryParticleIndex) - particles.GetPosition(secondaryParticleIndex);
+	}
+
+	float CalculateVerticalAlignment(vec2f const & humanVector)
+	{
+		return humanVector.normalise().dot(LabParameters::GravityDir);
+	}
+
 	float CalculateVerticalAlignment(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)
 	{
-		vec2f const humanVerticalVector = particles.GetPosition(primaryParticleIndex) - particles.GetPosition(secondaryParticleIndex);
-		return humanVerticalVector.normalise().dot(LabParameters::GravityDir);
+		return CalculateVerticalAlignment(CalculateHumanVector(primaryParticleIndex, secondaryParticleIndex, particles));
 	}
 }
 
@@ -61,11 +71,11 @@ void Npcs::UpdateHuman(
 	StateType::HumanNpcStateType & humanState,
 	StateType::NpcParticleStateType const & primaryParticleState,
 	StateType::NpcParticleStateType const & secondaryParticleState,
-	Mesh const & mesh)
+	Mesh const & mesh,
+	LabParameters const & labParameters)
 {
 	float const ToRisingConvergenceRate = 0.05f;
-	//float constexpr MaxRelativeVelocityForEquilibrium = 0.1f;
-	float constexpr MaxRelativeVelocityForEquilibrium = 0.3f;
+	float constexpr MaxRelativeVelocityForEquilibrium = 5.0f;
 
 	// TODOHERE
 	(void)mesh;
@@ -142,6 +152,10 @@ void Npcs::UpdateHuman(
 					0.0f,
 					0.0f);
 
+				mParticles.SetVoluntaryForces(
+					secondaryParticleState.ParticleIndex,
+					vec2f::zero());
+
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
 
 				break;
@@ -164,20 +178,35 @@ void Npcs::UpdateHuman(
 			{
 				// Transition
 
+				LogMessage("Going to Constrained_KnockedOut; primary's relative velocity: ", primaryParticleState.ConstrainedState->MeshRelativeVelocity.length());
+
 				humanState.TransitionToState(
 					StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut,
 					0.0f,
 					0.0f);
 
+				mParticles.SetVoluntaryForces(
+					secondaryParticleState.ParticleIndex,
+					vec2f::zero());
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 
 				break;
 			}
 
-			// Check alignment
+			// Apply torque
 
-			float const alignment = CalculateVerticalAlignment(primaryParticleState.ParticleIndex, secondaryParticleState.ParticleIndex, mParticles);
+			vec2f const humanVector = CalculateHumanVector(primaryParticleState.ParticleIndex, secondaryParticleState.ParticleIndex, mParticles); // H->F
+			float const alignment = CalculateVerticalAlignment(humanVector);
+
+			ApplyHumanNpcEquilibriumTorque(
+				humanVector,
+				alignment,
+				secondaryParticleState.ParticleIndex,
+				mParticles,
+				labParameters);
+
+			// Check alignment (note: here so that we may keep torque as we'll be transitioning to Equilibrium)
 
 			publishStateQuantity = std::make_tuple("Alignment", std::to_string(alignment));
 
@@ -194,11 +223,6 @@ void Npcs::UpdateHuman(
 
 				break;
 			}
-
-			// Apply torque
-
-			vec2f const desiredSecondaryParticlePosition = mParticles.GetPosition(primaryParticleState.ParticleIndex) - LabParameters::GravityDir * LabParameters::HumanNpcLength;
-			// TODOHERE			
 
 			break;
 		}
@@ -219,7 +243,22 @@ void Npcs::UpdateHuman(
 				break;
 			}
 
-			// TODOHERE
+			// TODO: When enough time has passed in this state: transition to Walking
+
+			// TODO: knocked off
+
+			// Apply torque
+
+			vec2f const humanVector = CalculateHumanVector(primaryParticleState.ParticleIndex, secondaryParticleState.ParticleIndex, mParticles); // H->F
+			float const alignment = CalculateVerticalAlignment(humanVector);
+
+			ApplyHumanNpcEquilibriumTorque(
+				humanVector,
+				alignment,
+				secondaryParticleState.ParticleIndex,
+				mParticles,
+				labParameters);
+			
 			break;
 		}
 
@@ -237,4 +276,38 @@ void Npcs::UpdateHuman(
 	}
 
 	mEventDispatcher.OnHumanNpcStateQuantityChanged(publishStateQuantity);
+}
+
+void Npcs::ApplyHumanNpcEquilibriumTorque(
+	vec2f const & humanVector,
+	float alignment,
+	ElementIndex secondaryParticleIndex,
+	NpcParticles & particles,
+	LabParameters const & labParameters)
+{
+	// TODO
+	(void)alignment;
+
+	// TODOTEST
+	float const torqueStrength = std::min(1.0f - alignment, 0.1f) / 0.1f;
+	//float const torqueStrength = 1.0f;
+
+	// Calculate desired displacement
+	vec2f torqueDisplacement = humanVector.normalise().to_perpendicular() * torqueStrength * 0.004f * labParameters.HumanNpcRisingTorqueFactor;
+	if (humanVector.cross(LabParameters::GravityDir) > 0.0f)
+		torqueDisplacement *= -1.0f;
+
+	// Check how much current velocity would already contribute to that
+	vec2f const velocityDisplacement = particles.GetVelocity(secondaryParticleIndex) * labParameters.SimulationTimeStepDuration;
+
+	// Adjust desired displacement
+	torqueDisplacement = torqueDisplacement - velocityDisplacement;
+
+	LogMessage("HumanVector(H->F): ", humanVector, " TorqueStrength: ", torqueStrength, " TorqueDisplacement: ", torqueDisplacement);
+
+	vec2f const torqueForce = torqueDisplacement * LabParameters::ParticleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
+
+	mParticles.SetVoluntaryForces(
+		secondaryParticleIndex,
+		torqueForce);
 }
