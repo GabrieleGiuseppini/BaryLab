@@ -27,7 +27,7 @@ namespace /*anonymous*/ {
 	float CalculateVerticalAlignment(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)
 	{
 		vec2f const humanVerticalVector = particles.GetPosition(primaryParticleIndex) - particles.GetPosition(secondaryParticleIndex);
-		return (humanVerticalVector.dot(LabParameters::GravityDir) - LabParameters::HumanNpcLength) / LabParameters::HumanNpcLength;
+		return humanVerticalVector.normalise().dot(LabParameters::GravityDir);
 	}
 }
 
@@ -181,7 +181,7 @@ void Npcs::UpdateHuman(
 
 			publishStateQuantity = std::make_tuple("Alignment", std::to_string(alignment));
 
-			if (IsAlmostZero(alignment, 0.01f))
+			if (AreAlmostEqual(alignment, 1.0f, 0.005f))
 			{
 				// Transition
 
