@@ -32,6 +32,7 @@ public:
         , mVelocityBuffer(mBufferElementCount, particleCount, vec2f::zero())
         , mWorldForceBuffer(mBufferElementCount, particleCount, vec2f::zero())
         , mSpringForcesBuffer(mBufferElementCount, particleCount, vec2f::zero())
+        , mVoluntaryForcesBuffer(mBufferElementCount, particleCount, vec2f::zero())
         // Render
         , mRenderColorBuffer(mBufferElementCount, particleCount, rgbaColor::zero())
     {
@@ -134,6 +135,23 @@ public:
         mSpringForcesBuffer[particleElementIndex] = value;
     }
 
+    vec2f const & GetVoluntaryForces(ElementIndex particleElementIndex) const noexcept
+    {
+        return mVoluntaryForcesBuffer[particleElementIndex];
+    }
+
+    vec2f * GetVoluntaryForcesBuffer() noexcept
+    {
+        return mVoluntaryForcesBuffer.data();
+    }
+
+    void SetVoluntaryForces(
+        ElementIndex particleElementIndex,
+        vec2f const & value) noexcept
+    {
+        mVoluntaryForcesBuffer[particleElementIndex] = value;
+    }
+
     //
     // Render
     //
@@ -171,6 +189,7 @@ private:
     Buffer<vec2f> mVelocityBuffer;
     Buffer<vec2f> mWorldForceBuffer;
     Buffer<vec2f> mSpringForcesBuffer; // Hooke+Damp
+    Buffer<vec2f> mVoluntaryForcesBuffer;
 
     //
     // Render

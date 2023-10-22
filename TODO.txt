@@ -61,7 +61,7 @@
 				+ When primary is constrained, secondary:
 					+ If free, allowed to re-enter constrained - checked and transitioned into at end of ray-tracing
 					+ If constrained, allowed to become free as normal
-			= Ghosting: secondary particle should not see as floor an edge that separates it from primary
+			+ Ghosting: secondary particle should not see as floor an edge that separates it from primary
 				+ Make helper func as it's used twice
 				+ Problem: this allows a secondary to enter a sealed triangle, and when that happens, it will exit again regardless
 					+ Add condition: even if it's a sealed triangle, crossing the edge should not make the particle free

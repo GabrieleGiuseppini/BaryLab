@@ -24,7 +24,7 @@ namespace /*anonymous*/ {
 			|| barycentricCoords.z == 0.0f;
 	}
 
-	float CalculateAlignment(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)
+	float CalculateVerticalAlignment(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)
 	{
 		vec2f const humanVerticalVector = particles.GetPosition(primaryParticleIndex) - particles.GetPosition(secondaryParticleIndex);
 		return (humanVerticalVector.dot(LabParameters::GravityDir) - LabParameters::HumanNpcLength) / LabParameters::HumanNpcLength;
@@ -177,7 +177,7 @@ void Npcs::UpdateHuman(
 
 			// Check alignment
 
-			float const alignment = CalculateAlignment(primaryParticleState.ParticleIndex, secondaryParticleState.ParticleIndex, mParticles);
+			float const alignment = CalculateVerticalAlignment(primaryParticleState.ParticleIndex, secondaryParticleState.ParticleIndex, mParticles);
 
 			publishStateQuantity = std::make_tuple("Alignment", std::to_string(alignment));
 
@@ -194,6 +194,11 @@ void Npcs::UpdateHuman(
 
 				break;
 			}
+
+			// Apply torque
+
+			vec2f const desiredSecondaryParticlePosition = mParticles.GetPosition(primaryParticleState.ParticleIndex) - LabParameters::GravityDir * LabParameters::HumanNpcLength;
+			// TODOHERE			
 
 			break;
 		}
