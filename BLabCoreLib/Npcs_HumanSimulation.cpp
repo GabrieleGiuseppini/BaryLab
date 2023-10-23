@@ -289,11 +289,11 @@ void Npcs::ApplyHumanNpcEquilibriumTorque(
 	(void)alignment;
 
 	// TODOTEST
-	float const torqueStrength = std::min(1.0f - alignment, 0.1f) / 0.1f;
-	//float const torqueStrength = 1.0f;
+	//float const torqueStrength = std::min(1.0f - alignment, 0.1f) / 0.1f;
+	float const torqueStrength = 1.0f;
 
 	// Calculate desired displacement
-	vec2f torqueDisplacement = humanVector.normalise().to_perpendicular() * torqueStrength * 0.004f * labParameters.HumanNpcRisingTorqueFactor;
+	vec2f torqueDisplacement = humanVector.normalise().to_perpendicular() * torqueStrength * 0.04f * labParameters.HumanNpcRisingTorqueFactor;
 	if (humanVector.cross(LabParameters::GravityDir) > 0.0f)
 		torqueDisplacement *= -1.0f;
 
