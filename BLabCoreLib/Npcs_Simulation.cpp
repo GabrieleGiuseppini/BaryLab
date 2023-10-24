@@ -57,7 +57,7 @@ void Npcs::UpdateNpcs(
                 float const springDisplacementLength = springDisplacement.length();
                 vec2f const springDir = springDisplacement.normalise_approx(springDisplacementLength);
 
-                LogMessage("  springDisplacement[", n, "]: ", springDisplacement, " (Part1:", mParticles.GetPosition(primaryParticleIndex), 
+                LogMessage("SpringDisplacement[", n, "]: ", springDisplacement, " (", springDisplacement.length(), ") (Part1:", mParticles.GetPosition(primaryParticleIndex),
                     " Part2:", mParticles.GetPosition(secondaryParticleIndex), ")");
 
                 //

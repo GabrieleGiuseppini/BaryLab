@@ -208,10 +208,15 @@ public:
     float GetMinSpringDampingCoefficient() const { return LabParameters::MinSpringDampingCoefficient; }
     float GetMaxSpringDampingCoefficient() const { return LabParameters::MaxSpringDampingCoefficient; }
 
-    float GetHumanNpcRisingTorqueFactor() const { return mLabParameters.HumanNpcRisingTorqueFactor; }
-    void SetHumanNpcRisingTorqueFactor(float value) { mLabParameters.HumanNpcRisingTorqueFactor = value; }
-    float GetMinHumanNpcRisingTorqueFactor() const { return LabParameters::MinHumanNpcRisingTorqueFactor; }
-    float GetMaxHumanNpcRisingTorqueFactor() const { return LabParameters::MaxHumanNpcRisingTorqueFactor; }
+    float GetHumanNpcEquilibriumTorqueStiffnessCoefficient() const { return mLabParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient; }
+    void SetHumanNpcEquilibriumTorqueStiffnessCoefficient(float value) { mLabParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient = value; }
+    float GetMinHumanNpcEquilibriumTorqueStiffnessCoefficient() const { return LabParameters::MinHumanNpcEquilibriumTorqueStiffnessCoefficient; }
+    float GetMaxHumanNpcEquilibriumTorqueStiffnessCoefficient() const { return LabParameters::MaxHumanNpcEquilibriumTorqueStiffnessCoefficient; }
+
+    float GetHumanNpcEquilibriumTorqueDampingCoefficient() const { return mLabParameters.HumanNpcEquilibriumTorqueDampingCoefficient; }
+    void SetHumanNpcEquilibriumTorqueDampingCoefficient(float value) { mLabParameters.HumanNpcEquilibriumTorqueDampingCoefficient = value; }
+    float GetMinHumanNpcEquilibriumTorqueDampingCoefficient() const { return LabParameters::MinHumanNpcEquilibriumTorqueDampingCoefficient; }
+    float GetMaxHumanNpcEquilibriumTorqueDampingCoefficient() const { return LabParameters::MaxHumanNpcEquilibriumTorqueDampingCoefficient; }
 
 private:
 

@@ -84,7 +84,11 @@ struct LabParameters
 
     static float constexpr HumanNpcLength = 1.65f;
 
-    float HumanNpcRisingTorqueFactor;
-    static float constexpr MinHumanNpcRisingTorqueFactor = 0.0f;
-    static float constexpr MaxHumanNpcRisingTorqueFactor = 2.0f;
+    float HumanNpcEquilibriumTorqueStiffnessCoefficient;
+    static float constexpr MinHumanNpcEquilibriumTorqueStiffnessCoefficient = 0.0f;
+    static float constexpr MaxHumanNpcEquilibriumTorqueStiffnessCoefficient = 0.2f;
+
+    float HumanNpcEquilibriumTorqueDampingCoefficient;
+    static float constexpr MinHumanNpcEquilibriumTorqueDampingCoefficient = 0.0f;
+    static float constexpr MaxHumanNpcEquilibriumTorqueDampingCoefficient = 1.0f;
 };

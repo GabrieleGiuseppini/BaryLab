@@ -532,27 +532,51 @@ void SettingsDialog::PopulateNpcsPanel(wxPanel * panel)
         {
             wxGridBagSizer * npcsSizer = new wxGridBagSizer(0, 0);
 
-            // Human NPC Torque Strength Factor
+            // Human NPC Equilibrium Torque Stiffness Coefficient
             {
-                mHumanNpcRisingTorqueFactorSlider = new SliderControl<float>(
+                mHumanNpcEquilibriumTorqueStiffnessCoefficientSlider = new SliderControl<float>(
                     npcsBox,
                     SliderWidth,
                     SliderHeight,
-                    "Torque Strength",
+                    "Torque Stiffness",
                     "The strength of the torque applied while rising.",
                     [this](float value)
                     {
-                        this->mLiveSettings.SetValue(SLabSettings::HumanNpcRisingTorqueFactor, value);
+                        this->mLiveSettings.SetValue(SLabSettings::HumanNpcEquilibriumTorqueStiffnessCoefficient, value);
                         this->OnLiveSettingsChanged();
                     },
-                    std::make_unique<ExponentialSliderCore>(
-                        mLabController->GetMinHumanNpcRisingTorqueFactor(),
-                        1.0f,
-                        mLabController->GetMaxHumanNpcRisingTorqueFactor()));
+                    std::make_unique<LinearSliderCore>(
+                        mLabController->GetMinHumanNpcEquilibriumTorqueStiffnessCoefficient(),
+                        mLabController->GetMaxHumanNpcEquilibriumTorqueStiffnessCoefficient()));
 
                 npcsSizer->Add(
-                    mHumanNpcRisingTorqueFactorSlider,
+                    mHumanNpcEquilibriumTorqueStiffnessCoefficientSlider,
                     wxGBPosition(0, 0),
+                    wxGBSpan(1, 1),
+                    wxEXPAND | wxALL,
+                    CellBorder);
+            }
+
+            // Human NPC Equilibrium Torque Damping Coefficient
+            {
+                mHumanNpcEquilibriumTorqueDampingCoefficientSlider = new SliderControl<float>(
+                    npcsBox,
+                    SliderWidth,
+                    SliderHeight,
+                    "Torque Damping",
+                    "The damping of the torque applied while rising.",
+                    [this](float value)
+                    {
+                        this->mLiveSettings.SetValue(SLabSettings::HumanNpcEquilibriumTorqueDampingCoefficient, value);
+                        this->OnLiveSettingsChanged();
+                    },
+                    std::make_unique<LinearSliderCore>(
+                        mLabController->GetMinHumanNpcEquilibriumTorqueDampingCoefficient(),
+                        mLabController->GetMaxHumanNpcEquilibriumTorqueDampingCoefficient()));
+
+                npcsSizer->Add(
+                    mHumanNpcEquilibriumTorqueDampingCoefficientSlider,
+                    wxGBPosition(0, 1),
                     wxGBSpan(1, 1),
                     wxEXPAND | wxALL,
                     CellBorder);
@@ -591,7 +615,8 @@ void SettingsDialog::SyncControlsWithSettings(Settings<SLabSettings> const & set
     mSpringDampingCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::SpringDampingCoefficient));
 
     // NPCs
-    mHumanNpcRisingTorqueFactorSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcRisingTorqueFactor));
+    mHumanNpcEquilibriumTorqueStiffnessCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcEquilibriumTorqueStiffnessCoefficient));
+    mHumanNpcEquilibriumTorqueDampingCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcEquilibriumTorqueDampingCoefficient));
 }
 
 void SettingsDialog::OnLiveSettingsChanged()

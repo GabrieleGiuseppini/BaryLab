@@ -523,8 +523,7 @@ private:
 		LabParameters const & labParameters);
 
 	void ApplyHumanNpcEquilibriumTorque(
-		vec2f const & humanVector,
-		float alignment,
+		ElementIndex primaryParticleIndex,
 		ElementIndex secondaryParticleIndex,
 		NpcParticles & particles,
 		LabParameters const & labParameters);

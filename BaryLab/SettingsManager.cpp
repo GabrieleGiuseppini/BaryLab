@@ -30,7 +30,8 @@ BaseSettingsManager<SLabSettings>::BaseSettingsManagerFactory SettingsManager::M
     ADD_SETTING(float, GravityAdjustment);
     ADD_SETTING(float, SpringReductionFraction);
     ADD_SETTING(float, SpringDampingCoefficient);
-    ADD_SETTING(float, HumanNpcRisingTorqueFactor);
+    ADD_SETTING(float, HumanNpcEquilibriumTorqueStiffnessCoefficient);
+    ADD_SETTING(float, HumanNpcEquilibriumTorqueDampingCoefficient);
 
     return factory;
 }

@@ -196,17 +196,15 @@ void Npcs::UpdateHuman(
 
 			// Apply torque
 
-			vec2f const humanVector = CalculateHumanVector(primaryParticleState.ParticleIndex, secondaryParticleState.ParticleIndex, mParticles); // H->F
-			float const alignment = CalculateVerticalAlignment(humanVector);
-
 			ApplyHumanNpcEquilibriumTorque(
-				humanVector,
-				alignment,
+				primaryParticleState.ParticleIndex,
 				secondaryParticleState.ParticleIndex,
 				mParticles,
 				labParameters);
 
 			// Check alignment (note: here so that we may keep torque as we'll be transitioning to Equilibrium)
+
+			float const alignment = CalculateVerticalAlignment(primaryParticleState.ParticleIndex, secondaryParticleState.ParticleIndex, mParticles);
 
 			publishStateQuantity = std::make_tuple("Alignment", std::to_string(alignment));
 
@@ -249,12 +247,8 @@ void Npcs::UpdateHuman(
 
 			// Apply torque
 
-			vec2f const humanVector = CalculateHumanVector(primaryParticleState.ParticleIndex, secondaryParticleState.ParticleIndex, mParticles); // H->F
-			float const alignment = CalculateVerticalAlignment(humanVector);
-
 			ApplyHumanNpcEquilibriumTorque(
-				humanVector,
-				alignment,
+				primaryParticleState.ParticleIndex,
 				secondaryParticleState.ParticleIndex,
 				mParticles,
 				labParameters);
@@ -278,36 +272,77 @@ void Npcs::UpdateHuman(
 	mEventDispatcher.OnHumanNpcStateQuantityChanged(publishStateQuantity);
 }
 
-void Npcs::ApplyHumanNpcEquilibriumTorque(
-	vec2f const & humanVector,
-	float alignment,
+void Npcs::ApplyHumanNpcEquilibriumTorque(	
+	ElementIndex primaryParticleIndex,
 	ElementIndex secondaryParticleIndex,
 	NpcParticles & particles,
 	LabParameters const & labParameters)
 {
-	// TODO
-	(void)alignment;
+	vec2f const headPosition = particles.GetPosition(secondaryParticleIndex);
+	vec2f const feetPosition = particles.GetPosition(primaryParticleIndex);
 
-	// TODOTEST
-	//float const torqueStrength = std::min(1.0f - alignment, 0.1f) / 0.1f;
-	float const torqueStrength = 1.0f;
+	vec2f const humanVector = headPosition - feetPosition;
 
-	// Calculate desired displacement
-	vec2f torqueDisplacement = humanVector.normalise().to_perpendicular() * torqueStrength * 0.04f * labParameters.HumanNpcRisingTorqueFactor;
-	if (humanVector.cross(LabParameters::GravityDir) > 0.0f)
-		torqueDisplacement *= -1.0f;
+	// Torque stiffness
 
-	// Check how much current velocity would already contribute to that
-	vec2f const velocityDisplacement = particles.GetVelocity(secondaryParticleIndex) * labParameters.SimulationTimeStepDuration;
+	// Calculate CW angle between head and vertical (pointing up)
+	// Positive when human is CW wrt vertical
+	float const displacementAngleCW = (-LabParameters::GravityDir).angleCw(humanVector);
+	
+	// Velocity damping
 
-	// Adjust desired displacement
-	torqueDisplacement = torqueDisplacement - velocityDisplacement;
+	// New pos after integration of velocity
+	vec2f const positionAfterVelocity =
+		headPosition
+		+ particles.GetVelocity(secondaryParticleIndex) * LabParameters::SimulationTimeStepDuration;
 
-	LogMessage("HumanVector(H->F): ", humanVector, " TorqueStrength: ", torqueStrength, " TorqueDisplacement: ", torqueDisplacement);
+	// Delta angle of velocity
+	// Positive when new position is CW wrt old
+	float const velocityAngleCW = -(positionAfterVelocity - feetPosition).angleCw(humanVector);
 
-	vec2f const torqueForce = torqueDisplacement * LabParameters::ParticleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
+	// Calculate total torque angle
+	float const totalTorqueAngleCW = 
+		-displacementAngleCW / 32.0f
+		- velocityAngleCW * labParameters.HumanNpcEquilibriumTorqueDampingCoefficient;
+
+	// Calculate displacement now
+	vec2f const endPosition = humanVector.rotate(-totalTorqueAngleCW) + feetPosition;
+	vec2f const torqueDisplacement = endPosition - headPosition;
+
+	LogMessage("TODOHERE: DisplacementAngleCW:", displacementAngleCW, " VelocityAngleCW:", velocityAngleCW, " Total TorqueAngleCW:", totalTorqueAngleCW, " TorqueDisplacement:", torqueDisplacement);
+
+	vec2f const torqueForce = 
+		torqueDisplacement 
+		* LabParameters::ParticleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration)
+		* labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient;
 
 	mParticles.SetVoluntaryForces(
 		secondaryParticleIndex,
 		torqueForce);
+
+
+
+	// TODOOLD
+	////// TODOTEST
+	//////float const torqueStrength = std::min(1.0f - alignment, 0.1f) / 0.1f;
+	////float const torqueStrength = 1.0f;
+
+	////// Calculate desired displacement
+	////vec2f torqueDisplacement = humanVector.normalise().to_perpendicular() * torqueStrength * 0.04f * labParameters.HumanNpcRisingTorqueFactor;
+	////if (humanVector.cross(LabParameters::GravityDir) > 0.0f)
+	////	torqueDisplacement *= -1.0f;
+
+	////// Check how much current velocity would already contribute to that
+	////vec2f const velocityDisplacement = particles.GetVelocity(secondaryParticleIndex) * labParameters.SimulationTimeStepDuration;
+
+	////// Adjust desired displacement
+	////torqueDisplacement = torqueDisplacement - velocityDisplacement;
+
+	////LogMessage("HumanVector(H->F): ", humanVector, " TorqueStrength: ", torqueStrength, " TorqueDisplacement: ", torqueDisplacement);
+
+	////vec2f const torqueForce = torqueDisplacement * LabParameters::ParticleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
+
+	////mParticles.SetVoluntaryForces(
+	////	secondaryParticleIndex,
+	////	torqueForce);
 }

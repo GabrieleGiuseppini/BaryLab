@@ -57,7 +57,8 @@ private:
     SliderControl<float> * mSpringDampingCoefficientSlider;
 
     // NPCs
-    SliderControl<float> * mHumanNpcRisingTorqueFactorSlider;
+    SliderControl<float> * mHumanNpcEquilibriumTorqueStiffnessCoefficientSlider;
+    SliderControl<float> * mHumanNpcEquilibriumTorqueDampingCoefficientSlider;
 
     //////////////////////////////////////////////////////
 
