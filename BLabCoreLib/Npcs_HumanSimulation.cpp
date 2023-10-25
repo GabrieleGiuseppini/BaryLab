@@ -75,7 +75,7 @@ void Npcs::UpdateHuman(
 	LabParameters const & labParameters)
 {
 	float const ToRisingConvergenceRate = 0.05f;
-	float constexpr MaxRelativeVelocityForEquilibrium = 5.0f;
+	float constexpr MaxRelativeVelocityForEquilibrium = 4.0f; // TODO: was 5.0f
 
 	// TODOHERE
 	(void)mesh;
@@ -169,8 +169,6 @@ void Npcs::UpdateHuman(
 				&& IsOnEdge(primaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords)
 				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium)
 			{
-				// Make sure secondary's velocity is in direction of becoming erected
-				// TODOHERE: secondary: velocity is in direction of becoming erected
 				stateCondition = true;
 			}
 
@@ -194,13 +192,29 @@ void Npcs::UpdateHuman(
 				break;
 			}
 
-			// Apply torque
+			// Maintain equilibrium
 
-			ApplyHumanNpcEquilibriumTorque(
+			if (!MaintainAndCheckEquilibrium(
 				primaryParticleState.ParticleIndex,
 				secondaryParticleState.ParticleIndex,
 				mParticles,
-				labParameters);
+				labParameters))
+			{
+				// Transition
+
+				humanState.TransitionToState(
+					StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut,
+					0.0f,
+					0.0f);
+
+				mParticles.SetVoluntaryForces(
+					secondaryParticleState.ParticleIndex,
+					vec2f::zero());
+
+				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+
+				break;
+			}
 
 			// Check alignment (note: here so that we may keep torque as we'll be transitioning to Equilibrium)
 
@@ -243,15 +257,29 @@ void Npcs::UpdateHuman(
 
 			// TODO: When enough time has passed in this state: transition to Walking
 
-			// TODO: knocked off
+			// Maintain equilibrium
 
-			// Apply torque
-
-			ApplyHumanNpcEquilibriumTorque(
+			if (!MaintainAndCheckEquilibrium(
 				primaryParticleState.ParticleIndex,
 				secondaryParticleState.ParticleIndex,
 				mParticles,
-				labParameters);
+				labParameters))
+			{
+				// Transition
+
+				humanState.TransitionToState(
+					StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut,
+					0.0f,
+					0.0f);
+
+				mParticles.SetVoluntaryForces(
+					secondaryParticleState.ParticleIndex,
+					vec2f::zero());
+
+				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+
+				break;
+			}
 			
 			break;
 		}
@@ -272,77 +300,56 @@ void Npcs::UpdateHuman(
 	mEventDispatcher.OnHumanNpcStateQuantityChanged(publishStateQuantity);
 }
 
-void Npcs::ApplyHumanNpcEquilibriumTorque(	
+bool Npcs::MaintainAndCheckEquilibrium(
 	ElementIndex primaryParticleIndex,
 	ElementIndex secondaryParticleIndex,
 	NpcParticles & particles,
 	LabParameters const & labParameters)
 {
+	//
+	// Calculates torque to maintain equilibrium, and makes sure we are not falling out of equilibrium
+	//
+
 	vec2f const headPosition = particles.GetPosition(secondaryParticleIndex);
 	vec2f const feetPosition = particles.GetPosition(primaryParticleIndex);
 
 	vec2f const humanVector = headPosition - feetPosition;
 
-	// Torque stiffness
-
-	// Calculate CW angle between head and vertical (pointing up)
-	// Positive when human is CW wrt vertical
+	// Calculate CW angle between head and vertical (pointing up);
+	// positive when human is CW wrt vertical
 	float const displacementAngleCW = (-LabParameters::GravityDir).angleCw(humanVector);
-	
-	// Velocity damping
 
-	// New pos after integration of velocity
+	// Calculate CW angle that would be rotated by velocity alone;
+	// positive when new position is CW wrt old
 	vec2f const positionAfterVelocity =
 		headPosition
 		+ particles.GetVelocity(secondaryParticleIndex) * LabParameters::SimulationTimeStepDuration;
-
-	// Delta angle of velocity
-	// Positive when new position is CW wrt old
 	float const velocityAngleCW = -(positionAfterVelocity - feetPosition).angleCw(humanVector);
 
-	// Calculate total torque angle
+	// Check whether we are still in equulibrium
+	// TODOHERE
+
+	//
+	// Calculate and apply torque: from raise force and from velocity damp
+	//
+
 	float const totalTorqueAngleCW = 
 		-displacementAngleCW / 32.0f
 		- velocityAngleCW * labParameters.HumanNpcEquilibriumTorqueDampingCoefficient;
 
-	// Calculate displacement now
+	// Calculate linear force that generates this rotation
 	vec2f const endPosition = humanVector.rotate(-totalTorqueAngleCW) + feetPosition;
 	vec2f const torqueDisplacement = endPosition - headPosition;
-
-	LogMessage("TODOHERE: DisplacementAngleCW:", displacementAngleCW, " VelocityAngleCW:", velocityAngleCW, " Total TorqueAngleCW:", totalTorqueAngleCW, " TorqueDisplacement:", torqueDisplacement);
-
-	vec2f const torqueForce = 
+	vec2f const torqueLinearForce = 
 		torqueDisplacement 
 		* LabParameters::ParticleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration)
 		* labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient;
 
-	mParticles.SetVoluntaryForces(
+	LogMessage("TODOHERE: DisplacementAngleCW:", displacementAngleCW, " VelocityAngleCW:", velocityAngleCW, " Total TorqueAngleCW:", totalTorqueAngleCW, " TorqueDisplacement:", torqueDisplacement);
+
+	particles.SetVoluntaryForces(
 		secondaryParticleIndex,
-		torqueForce);
+		torqueLinearForce);
 
-
-
-	// TODOOLD
-	////// TODOTEST
-	//////float const torqueStrength = std::min(1.0f - alignment, 0.1f) / 0.1f;
-	////float const torqueStrength = 1.0f;
-
-	////// Calculate desired displacement
-	////vec2f torqueDisplacement = humanVector.normalise().to_perpendicular() * torqueStrength * 0.04f * labParameters.HumanNpcRisingTorqueFactor;
-	////if (humanVector.cross(LabParameters::GravityDir) > 0.0f)
-	////	torqueDisplacement *= -1.0f;
-
-	////// Check how much current velocity would already contribute to that
-	////vec2f const velocityDisplacement = particles.GetVelocity(secondaryParticleIndex) * labParameters.SimulationTimeStepDuration;
-
-	////// Adjust desired displacement
-	////torqueDisplacement = torqueDisplacement - velocityDisplacement;
-
-	////LogMessage("HumanVector(H->F): ", humanVector, " TorqueStrength: ", torqueStrength, " TorqueDisplacement: ", torqueDisplacement);
-
-	////vec2f const torqueForce = torqueDisplacement * LabParameters::ParticleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
-
-	////mParticles.SetVoluntaryForces(
-	////	secondaryParticleIndex,
-	////	torqueForce);
+	return true;
 }

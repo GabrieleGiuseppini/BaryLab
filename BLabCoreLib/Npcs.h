@@ -522,7 +522,7 @@ private:
 		Mesh const & mesh,
 		LabParameters const & labParameters);
 
-	void ApplyHumanNpcEquilibriumTorque(
+	bool MaintainAndCheckEquilibrium(
 		ElementIndex primaryParticleIndex,
 		ElementIndex secondaryParticleIndex,
 		NpcParticles & particles,
