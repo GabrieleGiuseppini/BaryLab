@@ -329,12 +329,13 @@ bool Npcs::MaintainAndCheckEquilibrium(
 	//
 	// Check whether we are still in equulibrium
 	//
-	// We lose equilibrium if HumanVector is outside of -alpha->alpha sector around vertical, with rotation velocity towards outside of sector
+	// We lose equilibrium if HumanVector is outside of -alpha->alpha sector around vertical, with non-negligible rotation velocity towards outside of sector
 	//
 
 	float constexpr MaxStaticAngleForEquilibrium = Pi<float> / 7.0f;
 
 	if (std::abs(staticDisplacementAngleCW) >= MaxStaticAngleForEquilibrium
+		&& std::abs(velocityAngleCW) > 0.01f
 		&& staticDisplacementAngleCW * velocityAngleCW > 0.0f) // Equal signs
 	{
 		LogMessage("Losing equilibrium because: StaticDisplacementAngleCW=", staticDisplacementAngleCW, " (Max=", MaxStaticAngleForEquilibrium,
