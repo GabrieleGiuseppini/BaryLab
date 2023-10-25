@@ -75,7 +75,7 @@ void Npcs::UpdateHuman(
 	LabParameters const & labParameters)
 {
 	float const ToRisingConvergenceRate = 0.05f;
-	float constexpr MaxRelativeVelocityForEquilibrium = 4.0f; // TODO: was 5.0f
+	float constexpr MaxRelativeVelocityForEquilibrium = 2.0f; // TODO: was 5.0f
 
 	// TODOHERE
 	(void)mesh;
@@ -317,24 +317,38 @@ bool Npcs::MaintainAndCheckEquilibrium(
 
 	// Calculate CW angle between head and vertical (pointing up);
 	// positive when human is CW wrt vertical
-	float const displacementAngleCW = (-LabParameters::GravityDir).angleCw(humanVector);
+	float const staticDisplacementAngleCW = (-LabParameters::GravityDir).angleCw(humanVector);
 
 	// Calculate CW angle that would be rotated by velocity alone;
 	// positive when new position is CW wrt old
-	vec2f const positionAfterVelocity =
+	vec2f const headPositionAfterVelocity =
 		headPosition
 		+ particles.GetVelocity(secondaryParticleIndex) * LabParameters::SimulationTimeStepDuration;
-	float const velocityAngleCW = -(positionAfterVelocity - feetPosition).angleCw(humanVector);
+	float const velocityAngleCW = -(headPositionAfterVelocity - feetPosition).angleCw(humanVector);
 
+	//
 	// Check whether we are still in equulibrium
-	// TODOHERE
+	//
+	// We lose equilibrium if HumanVector is outside of -alpha->alpha sector around vertical, with rotation velocity towards outside of sector
+	//
+
+	float constexpr MaxStaticAngleForEquilibrium = Pi<float> / 3.5f;
+
+	if (std::abs(staticDisplacementAngleCW) >= MaxStaticAngleForEquilibrium
+		&& staticDisplacementAngleCW * velocityAngleCW > 0.0f) // Equal signs
+	{
+		LogMessage("Losing equilibrium because: StaticDisplacementAngleCW=", staticDisplacementAngleCW, " (Max=", MaxStaticAngleForEquilibrium,
+			") VelocityAngleCW=", velocityAngleCW);
+
+		return false;
+	}
 
 	//
 	// Calculate and apply torque: from raise force and from velocity damp
 	//
 
-	float const totalTorqueAngleCW = 
-		-displacementAngleCW / 32.0f
+	float const totalTorqueAngleCW =
+		-staticDisplacementAngleCW * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient
 		- velocityAngleCW * labParameters.HumanNpcEquilibriumTorqueDampingCoefficient;
 
 	// Calculate linear force that generates this rotation
@@ -342,10 +356,9 @@ bool Npcs::MaintainAndCheckEquilibrium(
 	vec2f const torqueDisplacement = endPosition - headPosition;
 	vec2f const torqueLinearForce = 
 		torqueDisplacement 
-		* LabParameters::ParticleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration)
-		* labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient;
+		* LabParameters::ParticleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
 
-	LogMessage("TODOHERE: DisplacementAngleCW:", displacementAngleCW, " VelocityAngleCW:", velocityAngleCW, " Total TorqueAngleCW:", totalTorqueAngleCW, " TorqueDisplacement:", torqueDisplacement);
+	LogMessage("TODOHERE: StaticDisplacementAngleCW:", staticDisplacementAngleCW, " VelocityAngleCW:", velocityAngleCW, " Total TorqueAngleCW:", totalTorqueAngleCW, " TorqueDisplacement:", torqueDisplacement);
 
 	particles.SetVoluntaryForces(
 		secondaryParticleIndex,

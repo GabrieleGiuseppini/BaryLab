@@ -14,7 +14,7 @@ LabParameters::LabParameters()
 	, StaticFriction(0.4f)
 	, KineticFriction(0.031f)
 	// NPC
-	, HumanNpcEquilibriumTorqueStiffnessCoefficient(0.055f)
-	, HumanNpcEquilibriumTorqueDampingCoefficient(0.38f)
+	, HumanNpcEquilibriumTorqueStiffnessCoefficient(0.00171875f)
+	, HumanNpcEquilibriumTorqueDampingCoefficient(0.0209f)
 {
 }
