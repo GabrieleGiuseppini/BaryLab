@@ -75,7 +75,7 @@ void Npcs::UpdateHuman(
 	LabParameters const & labParameters)
 {
 	float const ToRisingConvergenceRate = 0.05f;
-	float constexpr MaxRelativeVelocityForEquilibrium = 2.0f; // TODO: was 5.0f
+	float constexpr MaxRelativeVelocityForEquilibrium = 2.5f; // TODO: was 5.0f
 
 	// TODOHERE
 	(void)mesh;
@@ -319,12 +319,12 @@ bool Npcs::MaintainAndCheckEquilibrium(
 	// positive when human is CW wrt vertical
 	float const staticDisplacementAngleCW = (-LabParameters::GravityDir).angleCw(humanVector);
 
-	// Calculate CW angle that would be rotated by velocity alone;
+	// Calculate CW angle that would be rotated by (relative to feet) velocity alone;
 	// positive when new position is CW wrt old
 	vec2f const headPositionAfterVelocity =
 		headPosition
-		+ particles.GetVelocity(secondaryParticleIndex) * LabParameters::SimulationTimeStepDuration;
-	float const velocityAngleCW = -(headPositionAfterVelocity - feetPosition).angleCw(humanVector);
+		+ (particles.GetVelocity(secondaryParticleIndex) - particles.GetVelocity(primaryParticleIndex)) * LabParameters::SimulationTimeStepDuration;
+	float const velocityAngleCW = humanVector.angleCw(headPositionAfterVelocity - feetPosition);
 
 	//
 	// Check whether we are still in equulibrium
@@ -332,7 +332,7 @@ bool Npcs::MaintainAndCheckEquilibrium(
 	// We lose equilibrium if HumanVector is outside of -alpha->alpha sector around vertical, with rotation velocity towards outside of sector
 	//
 
-	float constexpr MaxStaticAngleForEquilibrium = Pi<float> / 3.5f;
+	float constexpr MaxStaticAngleForEquilibrium = Pi<float> / 7.0f;
 
 	if (std::abs(staticDisplacementAngleCW) >= MaxStaticAngleForEquilibrium
 		&& staticDisplacementAngleCW * velocityAngleCW > 0.0f) // Equal signs
