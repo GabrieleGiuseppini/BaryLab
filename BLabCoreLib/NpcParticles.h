@@ -33,6 +33,7 @@ public:
         , mWorldForceBuffer(mBufferElementCount, particleCount, vec2f::zero())
         , mSpringForcesBuffer(mBufferElementCount, particleCount, vec2f::zero())
         , mVoluntaryForcesBuffer(mBufferElementCount, particleCount, vec2f::zero())
+        , mVoluntarySuperimposedDisplacementBuffer(mBufferElementCount, particleCount, vec2f::zero())
         // Render
         , mRenderColorBuffer(mBufferElementCount, particleCount, rgbaColor::zero())
     {
@@ -152,6 +153,23 @@ public:
         mVoluntaryForcesBuffer[particleElementIndex] = value;
     }
 
+    vec2f const & GetVoluntarySuperimposedDisplacement(ElementIndex particleElementIndex) const noexcept
+    {
+        return mVoluntarySuperimposedDisplacementBuffer[particleElementIndex];
+    }
+
+    vec2f * GetVoluntarySuperimposedDisplacementBuffer() noexcept
+    {
+        return mVoluntarySuperimposedDisplacementBuffer.data();
+    }
+
+    void SetVoluntarySuperimposedDisplacement(
+        ElementIndex particleElementIndex,
+        vec2f const & value) noexcept
+    {
+        mVoluntarySuperimposedDisplacementBuffer[particleElementIndex] = value;
+    }
+
     //
     // Render
     //
@@ -190,6 +208,7 @@ private:
     Buffer<vec2f> mWorldForceBuffer;
     Buffer<vec2f> mSpringForcesBuffer; // Hooke+Damp
     Buffer<vec2f> mVoluntaryForcesBuffer;
+    Buffer<vec2f> mVoluntarySuperimposedDisplacementBuffer;
 
     //
     // Render
