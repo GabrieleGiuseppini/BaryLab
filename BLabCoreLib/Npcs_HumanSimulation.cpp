@@ -131,11 +131,7 @@ void Npcs::UpdateHuman(
 				&& IsOnEdge(primaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords)
 				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium
 				&& (!secondaryParticleState.ConstrainedState.has_value()
-					|| 
-					(
-						IsOnEdge(secondaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords)
-						&& secondaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium
-					)))
+					|| secondaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium))
 			{
 				stateCondition = 1.0f;
 			}
