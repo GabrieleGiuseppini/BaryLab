@@ -255,7 +255,36 @@ void Npcs::UpdateHuman(
 				break;
 			}
 
-			// TODO: When enough time has passed in this state: transition to Walking
+			// Check conditions to stay
+
+			bool stateCondition = false;
+
+			if (primaryParticleState.ConstrainedState.has_value()
+				&& IsOnEdge(primaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords)
+				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium)
+			{
+				stateCondition = true;
+			}
+
+			if (!stateCondition)
+			{
+				// Transition
+
+				LogMessage("Going to Constrained_KnockedOut; primary's relative velocity: ", primaryParticleState.ConstrainedState->MeshRelativeVelocity.length());
+
+				humanState.TransitionToState(
+					StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut,
+					0.0f,
+					0.0f);
+
+				mParticles.SetVoluntaryForces(
+					secondaryParticleState.ParticleIndex,
+					vec2f::zero());
+
+				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+
+				break;
+			}
 
 			// Maintain equilibrium
 
@@ -280,6 +309,8 @@ void Npcs::UpdateHuman(
 
 				break;
 			}
+
+			// TODO: When enough time has passed in this state: transition to Walking
 			
 			break;
 		}
