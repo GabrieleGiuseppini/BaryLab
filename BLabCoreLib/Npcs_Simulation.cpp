@@ -275,23 +275,11 @@ void Npcs::UpdateNpcs(
             // Finalize particle's velocities
             //
 
-            vec2f absoluteVelocity;
-            if (finalParticleState->Velocity.has_value())
-            {
-                LogMessage("  FinalV: delivered: ", *(finalParticleState->Velocity));
-
-                absoluteVelocity = *(finalParticleState->Velocity);
-            }
-            else
-            {
-                LogMessage("  FinalV: calculated: deltaV: ", (finalParticleState->Position - mParticles.GetPosition(particleIndex)) / LabParameters::SimulationTimeStepDuration);
-
-                absoluteVelocity = (finalParticleState->Position - mParticles.GetPosition(particleIndex)) / LabParameters::SimulationTimeStepDuration;
-            }
+            LogMessage("  FinalABSV: ", finalParticleState->AbsoluteVelocity);
 
             mParticles.SetVelocity(
                 particleIndex,
-                absoluteVelocity);
+                finalParticleState->AbsoluteVelocity);
 
             assert(mSimulationStepState.TrajectoryState.has_value());
 
@@ -302,10 +290,10 @@ void Npcs::UpdateNpcs(
                 // ...update mesh-relative velocity as well, for next iteration (friction)
 
                 vec2f const meshRelativeVelocity =
-                    absoluteVelocity
+                    finalParticleState->AbsoluteVelocity
                     + mSimulationStepState.TrajectoryState->ConstrainedState->MeshDisplacement / LabParameters::SimulationTimeStepDuration;
 
-                LogMessage("  FinalMRV: meshRelativeVelocity=", meshRelativeVelocity);
+                LogMessage("  FinalMRV: ", meshRelativeVelocity);
 
                 assert(npcParticleState.ConstrainedState.has_value());
                 npcParticleState.ConstrainedState->MeshRelativeVelocity = meshRelativeVelocity;
@@ -329,7 +317,7 @@ void Npcs::UpdateNpcs(
             // Finalize particle's position
             //
 
-            LogMessage("  FinalP: calculated: ", finalParticleState->Position);
+            LogMessage("  FinalP: ", finalParticleState->Position);
 
             mParticles.SetPosition(
                 particleIndex, 
@@ -468,8 +456,8 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
                 // Check if this is really a floor to this particle
                 if (IsEdgeFloorToParticle(currentEdgeElementIndex, currentTriangleElementIndex, mesh)
                     && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
-                        dipoleArg->OtherParticle.ParticleIndex,
-                        particle.ParticleIndex,
+                        mParticles.GetPosition(dipoleArg->OtherParticle.ParticleIndex),
+                        newTheoreticalPositionAfterMeshDisplacement,
                         currentEdgeElementIndex,
                         mesh)))
                 {
@@ -641,9 +629,11 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
     // Just use pure physical forces
     //
 
-    LogMessage("    Particle not in constrained state or not on floor edge; using pure physical forces");
+    
 
     vec2f const targetPosition = particlePosition + physicsDeltaPos;
+
+    LogMessage("    Particle not in constrained state or not on floor edge; using pure physical forces, targetPosition=", targetPosition);
     
     std::optional<SimulationStepStateType::TrajectoryStateType::ConstrainedStateType> constrainedState;
     if (particle.ConstrainedState.has_value())
@@ -684,9 +674,11 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
 
         LogMessage("    Reached destination");
 
+        assert(trajectoryState.TargetAbsoluteVelocity == (trajectoryState.TargetPosition - mParticles.GetPosition(particleState.ParticleIndex)) / LabParameters::SimulationTimeStepDuration);
+
         return FinalParticleState(
             trajectoryState.TargetPosition,
-            std::nullopt);
+            trajectoryState.TargetAbsoluteVelocity);
     }
 
     //
@@ -857,8 +849,8 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
 
     if (IsEdgeFloorToParticle(intersectionEdgeElementIndex, currentTriangle, mesh)
         && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
-            dipoleArg->OtherParticle.ParticleIndex,
-            particleState.ParticleIndex,
+            mParticles.GetPosition(dipoleArg->OtherParticle.ParticleIndex),
+            intersectionPosition,
             intersectionEdgeElementIndex,
             mesh)))
     {

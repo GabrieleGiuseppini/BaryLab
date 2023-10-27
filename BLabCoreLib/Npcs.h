@@ -420,13 +420,13 @@ private:
 	struct FinalParticleState final
 	{
 		vec2f Position;
-		std::optional<vec2f Velocity;
+		vec2f AbsoluteVelocity;
 
 		FinalParticleState(
 			vec2f const & position,
-			std::optional<vec2f> velocity)
+			vec2f const & absoluteVelocity)
 			: Position(position)
-			, Velocity(std::move(velocity))
+			, AbsoluteVelocity(absoluteVelocity)
 		{}
 	};
 
@@ -464,7 +464,7 @@ private:
 		//
 		// An edge is a floor for a given (constrained) particle if:
 		// - It is a floor; AND
-		// - The triangle is _not_ sealed, OR it _is_ sealed bu crossing the edge would make the particle free
+		// - The triangle is _not_ sealed, OR it _is_ sealed but crossing the edge would make the particle free
 		//
 
 		if (mesh.GetEdges().GetSurfaceType(edgeElementIndex) != SurfaceType::Floor)
@@ -494,19 +494,21 @@ private:
 	}
 
 	bool DoesFloorSeparateFromPrimaryParticle(
-		ElementIndex primaryParticleIndex,
-		ElementIndex secondaryParticleIndex,
+		vec2f const & primaryParticlePosition,
+		vec2f const & secondaryParticlePosition,
 		ElementIndex edgeElementIndex,
 		Mesh const & mesh) const
 	{
 		vec2f const aPos = mesh.GetEdges().GetEndpointAPosition(edgeElementIndex, mesh.GetVertices());
 		vec2f const bPos = mesh.GetEdges().GetEndpointBPosition(edgeElementIndex, mesh.GetVertices());
-		vec2f const p1Pos = mParticles.GetPosition(primaryParticleIndex);
-		vec2f const p2Pos = mParticles.GetPosition(secondaryParticleIndex);
+		vec2f const & p1Pos = primaryParticlePosition;
+		vec2f const & p2Pos = secondaryParticlePosition;
 
 		// ((y1−y2)(ax−x1)+(x2−x1)(ay−y1)) * ((y1−y2)(bx−x1)+(x2−x1)(by−y1)) < 0
 		float const magic = ((aPos.y - bPos.y) * (p1Pos.x - aPos.x) + (bPos.x - aPos.x) * (p1Pos.y - aPos.y))
 			* ((aPos.y - bPos.y) * (p2Pos.x - aPos.x) + (bPos.x - aPos.x) * (p2Pos.y - aPos.y));
+
+		LogMessage("TODOTEST: Magic=", magic, " (ppos=", p1Pos, " spos=", p2Pos, ")");
 
 		return magic < -0.0001f;
 	}
