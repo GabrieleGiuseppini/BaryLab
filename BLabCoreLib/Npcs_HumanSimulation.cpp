@@ -74,9 +74,9 @@ void Npcs::UpdateHuman(
 	Mesh const & mesh,
 	LabParameters const & labParameters)
 {
-	float const ToRisingConvergenceRate = 0.05f;
+	float const ToRisingConvergenceRate = 0.065f;
 	float const ToWalkingConvergenceRate = 0.09f;
-	float constexpr MaxRelativeVelocityForEquilibrium = 2.5f; // TODO: was 5.0f
+	float constexpr MaxRelativeVelocityForEquilibrium = 2.5f;
 
 	// TODOHERE
 	(void)mesh;
@@ -130,9 +130,12 @@ void Npcs::UpdateHuman(
 			if (primaryParticleState.ConstrainedState.has_value()
 				&& IsOnEdge(primaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords)
 				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium
-				&& secondaryParticleState.ConstrainedState.has_value()
-				&& IsOnEdge(secondaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords)
-				&& secondaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium)
+				&& (!secondaryParticleState.ConstrainedState.has_value()
+					|| 
+					(
+						IsOnEdge(secondaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords)
+						&& secondaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium
+					)))
 			{
 				stateCondition = 1.0f;
 			}
