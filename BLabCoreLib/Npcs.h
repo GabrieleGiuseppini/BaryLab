@@ -326,6 +326,7 @@ private:
 		{
 			vec2f SourcePosition;
 			vec2f TargetPosition;
+			vec2f TargetAbsoluteVelocity;
 
 			struct ConstrainedStateType
 			{
@@ -347,9 +348,11 @@ private:
 			TrajectoryStateType(
 				vec2f const & sourcePosition,
 				vec2f const & targetPosition,
+				vec2f const & targetAbsoluteVelocity,
 				std::optional<ConstrainedStateType> constrainedState)
 				: SourcePosition(sourcePosition)
 				, TargetPosition(targetPosition)
+				, TargetAbsoluteVelocity(targetAbsoluteVelocity)
 				, ConstrainedState(std::move(constrainedState))
 				, CurrentPosition(sourcePosition)
 			{}
@@ -394,12 +397,15 @@ private:
 	struct CalculatedTrajectoryTargetRetVal final
 	{
 		vec2f Position;
+		vec2f TargetAbsoluteVelocity;
 		std::optional<SimulationStepStateType::TrajectoryStateType::ConstrainedStateType> ConstrainedStateInfo; // Returned when in constrained state
 
 		CalculatedTrajectoryTargetRetVal(
 			vec2f const & position,
+			vec2f const & targetAbsoluteVelocity,
 			std::optional<SimulationStepStateType::TrajectoryStateType::ConstrainedStateType> constrainedStateInfo)
 			: Position(position)
+			, TargetAbsoluteVelocity(targetAbsoluteVelocity)
 			, ConstrainedStateInfo(std::move(constrainedStateInfo))
 		{}
 	};
@@ -414,7 +420,7 @@ private:
 	struct FinalParticleState final
 	{
 		vec2f Position;
-		std::optional<vec2f> Velocity;
+		std::optional<vec2f Velocity;
 
 		FinalParticleState(
 			vec2f const & position,

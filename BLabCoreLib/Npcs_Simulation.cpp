@@ -154,6 +154,7 @@ void Npcs::UpdateNpcs(
 
             // Calculate target position
             vec2f targetPosition;
+            vec2f targetAbsoluteVelocity;
             std::optional<SimulationStepStateType::TrajectoryStateType::ConstrainedStateType> trajectoryConstrainedState;
             if (mCurrentParticleTrajectory.has_value()
                 && mCurrentParticleTrajectory->ParticleIndex == particleIndex)
@@ -162,6 +163,7 @@ void Npcs::UpdateNpcs(
                 // ...use the provided trajectory
 
                 targetPosition = mCurrentParticleTrajectory->TargetPosition;
+                targetAbsoluteVelocity = (targetPosition - mParticles.GetPosition(particleIndex)) / LabParameters::SimulationTimeStepDuration;
 
                 // Calculate constrained state for the trajectory
                 if (npcParticleState.ConstrainedState.has_value())
@@ -201,10 +203,12 @@ void Npcs::UpdateNpcs(
                     isPrimaryParticle,
                     mesh,
                     labParameters);
-                
-                //
 
                 targetPosition = trajectoryTarget.Position;
+                targetAbsoluteVelocity = trajectoryTarget.TargetAbsoluteVelocity;
+
+                //
+
                 trajectoryConstrainedState = trajectoryTarget.ConstrainedStateInfo;
             }
 
@@ -230,6 +234,7 @@ void Npcs::UpdateNpcs(
             mSimulationStepState.TrajectoryState.emplace(
                 sourcePosition,
                 targetPosition,
+                targetAbsoluteVelocity,
                 trajectoryConstrainedState);
 
             //
@@ -588,15 +593,16 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
                         targetBarycentricCoords[vertexOrdinal] = 0.0f;
                         targetBarycentricCoords[(vertexOrdinal + 1) % 3] = 1.0f - targetBarycentricCoords[(vertexOrdinal + 2) % 3];
 
-                        vec2f const targetCoords = triangles.FromBarycentricCoordinates(
+                        vec2f const adjustedTargetPos = triangles.FromBarycentricCoordinates(
                             targetBarycentricCoords,
                             currentTriangleElementIndex,
                             vertices);
 
-                        LogMessage("      flattened traj=", flattenedTrajectory, " flattened target coords=", targetBarycentricCoords," actual target pos=", targetCoords);
+                        LogMessage("      flattened traj=", flattenedTrajectory, " flattened target coords=", targetBarycentricCoords," actual target pos=", adjustedTargetPos);
 
                         return CalculatedTrajectoryTargetRetVal(
-                            targetCoords,
+                            adjustedTargetPos,
+                            (adjustedTargetPos - particlePosition) / LabParameters::SimulationTimeStepDuration,
                             SimulationStepStateType::TrajectoryStateType::ConstrainedStateType(
                                 targetBarycentricCoords,
                                 meshDisplacement));
@@ -609,6 +615,7 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
 
                         return CalculatedTrajectoryTargetRetVal(
                             targetPosition,
+                            (targetPosition - particlePosition) / LabParameters::SimulationTimeStepDuration,
                             SimulationStepStateType::TrajectoryStateType::ConstrainedStateType(
                                 triangles.ToBarycentricCoordinates(
                                     targetPosition,
@@ -651,6 +658,7 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
 
     return CalculatedTrajectoryTargetRetVal(
         targetPosition,
+        (targetPosition - particlePosition) / LabParameters::SimulationTimeStepDuration,
         constrainedState);
 }
 
