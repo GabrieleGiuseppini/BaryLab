@@ -155,7 +155,7 @@ void Npcs::UpdateHuman(
 					vec2f::zero());
 
 				mParticles.SetVoluntarySuperimposedDisplacement(
-					secondaryParticleState.ParticleIndex,
+					primaryParticleState.ParticleIndex,
 					vec2f::zero());
 
 				humanState.CurrentWalkingMagnitude = 0.0f;
@@ -222,7 +222,7 @@ void Npcs::UpdateHuman(
 					vec2f::zero());
 
 				mParticles.SetVoluntarySuperimposedDisplacement(
-					secondaryParticleState.ParticleIndex,
+					primaryParticleState.ParticleIndex,
 					vec2f::zero());
 
 				humanState.CurrentWalkingMagnitude = 0.0f;
@@ -249,6 +249,10 @@ void Npcs::UpdateHuman(
 
 				mParticles.SetVoluntaryForces(
 					secondaryParticleState.ParticleIndex,
+					vec2f::zero());
+
+				mParticles.SetVoluntarySuperimposedDisplacement(
+					primaryParticleState.ParticleIndex,
 					vec2f::zero());
 
 				humanState.CurrentWalkingMagnitude = 0.0f;
