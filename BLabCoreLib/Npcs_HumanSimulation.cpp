@@ -61,7 +61,6 @@ Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 	else
 	{
 		// NPC is constrained
-		// TODO: check alignment and, if ok, start at Constrained_Equilibrium
 		mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 		return StateType::HumanNpcStateType(StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, 0.0f, 0.0f);
 	}
@@ -77,9 +76,6 @@ void Npcs::UpdateHuman(
 	float const ToRisingConvergenceRate = 0.067f;
 	float const ToWalkingConvergenceRate = 0.09f;
 	float constexpr MaxRelativeVelocityForEquilibrium = 2.9f; // We slip a lot while we try to stand up
-
-	// TODOHERE
-	(void)mesh;
 
 	std::optional<std::tuple<std::string, std::string>> publishStateQuantity;
 
@@ -143,6 +139,7 @@ void Npcs::UpdateHuman(
 
 		case StateType::HumanNpcStateType::BehaviorType::Constrained_Rising:
 		case StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
+		case StateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
 		{
 			if (isFree)
 			{
@@ -156,6 +153,12 @@ void Npcs::UpdateHuman(
 				mParticles.SetVoluntaryForces(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
+
+				mParticles.SetVoluntarySuperimposedDisplacement(
+					secondaryParticleState.ParticleIndex,
+					vec2f::zero());
+
+				humanState.CurrentWalkingMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
 
@@ -178,6 +181,9 @@ void Npcs::UpdateHuman(
 						StateType::HumanNpcStateType::BehaviorType::Constrained_Walking,
 						0.0f,
 						0.0f);
+
+					// TODO: pick direction
+					humanState.CurrentWalkingMagnitude = 0.1f;
 
 					// Keep torque
 
@@ -215,6 +221,12 @@ void Npcs::UpdateHuman(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
+				mParticles.SetVoluntarySuperimposedDisplacement(
+					secondaryParticleState.ParticleIndex,
+					vec2f::zero());
+
+				humanState.CurrentWalkingMagnitude = 0.0f;
+
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 
 				break;
@@ -222,7 +234,7 @@ void Npcs::UpdateHuman(
 
 			// Maintain equilibrium
 
-			if (!MaintainAndCheckEquilibrium(
+			if (!MaintainAndCheckHumanEquilibrium(
 				primaryParticleState.ParticleIndex,
 				secondaryParticleState.ParticleIndex,
 				mParticles,
@@ -238,6 +250,8 @@ void Npcs::UpdateHuman(
 				mParticles.SetVoluntaryForces(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
+
+				humanState.CurrentWalkingMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 
@@ -264,19 +278,30 @@ void Npcs::UpdateHuman(
 					mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Equilibrium");
 				}
 			}
-			else
+			else if (humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium)
 			{
-				assert(humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium);
-
 				// We are well in a state to advance to walking
 
 				humanState.TargetStateValue = 1.0f;
+			}
+			else
+			{
+				assert(humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking);
+
+				// Impart walk displacement & run walking state machine
+				RunWalkingHumanStateMachine(
+					humanState,
+					primaryParticleState,
+					secondaryParticleState,
+					mesh,
+					labParameters);
 			}
 
 			break;
 		}
 
 		////// TODOOLD
+		////case StateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
 		////{
 		////	if (isFree)
 		////	{
@@ -291,27 +316,11 @@ void Npcs::UpdateHuman(
 		////			secondaryParticleState.ParticleIndex,
 		////			vec2f::zero());
 
+		////		mParticles.SetVoluntarySuperimposedDisplacement(
+		////			secondaryParticleState.ParticleIndex,
+		////			vec2f::zero());
+
 		////		mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
-
-		////		break;
-		////	}
-
-		////	// Advance
-
-		////	humanState.CurrentStateValue += (humanState.TargetStateValue - humanState.CurrentStateValue) * ToWalkingConvergenceRate;
-
-		////	publishStateQuantity = std::make_tuple("CurrentStateValue", std::to_string(humanState.CurrentStateValue));
-
-		////	if (IsAtTarget(humanState.CurrentStateValue, 1.0f))
-		////	{
-		////		// Transition
-
-		////		humanState.TransitionToState(
-		////			StateType::HumanNpcStateType::BehaviorType::Constrained_Walking,
-		////			0.0f,
-		////			0.0f);
-
-		////		mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Walking");
 
 		////		break;
 		////	}
@@ -342,6 +351,10 @@ void Npcs::UpdateHuman(
 		////			secondaryParticleState.ParticleIndex,
 		////			vec2f::zero());
 
+		////		mParticles.SetVoluntarySuperimposedDisplacement(
+		////			secondaryParticleState.ParticleIndex,
+		////			vec2f::zero());
+
 		////		mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 
 		////		break;
@@ -366,111 +379,21 @@ void Npcs::UpdateHuman(
 		////			secondaryParticleState.ParticleIndex,
 		////			vec2f::zero());
 
+		////		mParticles.SetVoluntarySuperimposedDisplacement(
+		////			secondaryParticleState.ParticleIndex,
+		////			vec2f::zero());
+
 		////		mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 
 		////		break;
 		////	}
 
-		////	// We are well in a state to advance
+		////	// Impart walk displacement
 
-		////	humanState.TargetStateValue = 1.0f;
-		////	
+		////	// TODOHERE
+
 		////	break;
 		////}
-
-		case StateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
-		{
-			if (isFree)
-			{
-				// Transition
-
-				humanState.TransitionToState(
-					StateType::HumanNpcStateType::BehaviorType::Free_KnockedOut,
-					0.0f,
-					0.0f);
-
-				mParticles.SetVoluntaryForces(
-					secondaryParticleState.ParticleIndex,
-					vec2f::zero());
-
-				mParticles.SetVoluntarySuperimposedDisplacement(
-					secondaryParticleState.ParticleIndex,
-					vec2f::zero());
-
-				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
-
-				break;
-			}
-
-			// Check conditions to stay
-
-			bool stateCondition = false;
-
-			if (primaryParticleState.ConstrainedState.has_value()
-				&& IsOnEdge(primaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords)
-				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium)
-			{
-				stateCondition = true;
-			}
-
-			if (!stateCondition)
-			{
-				// Transition
-
-				LogMessage("Going to Constrained_KnockedOut; primary's relative velocity: ", primaryParticleState.ConstrainedState->MeshRelativeVelocity.length());
-
-				humanState.TransitionToState(
-					StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut,
-					0.0f,
-					0.0f);
-
-				mParticles.SetVoluntaryForces(
-					secondaryParticleState.ParticleIndex,
-					vec2f::zero());
-
-				mParticles.SetVoluntarySuperimposedDisplacement(
-					secondaryParticleState.ParticleIndex,
-					vec2f::zero());
-
-				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
-
-				break;
-			}
-
-			// Maintain equilibrium
-
-			if (!MaintainAndCheckEquilibrium(
-				primaryParticleState.ParticleIndex,
-				secondaryParticleState.ParticleIndex,
-				mParticles,
-				labParameters))
-			{
-				// Transition
-
-				humanState.TransitionToState(
-					StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut,
-					0.0f,
-					0.0f);
-
-				mParticles.SetVoluntaryForces(
-					secondaryParticleState.ParticleIndex,
-					vec2f::zero());
-
-				mParticles.SetVoluntarySuperimposedDisplacement(
-					secondaryParticleState.ParticleIndex,
-					vec2f::zero());
-
-				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
-
-				break;
-			}
-
-			// Impart walk displacement
-
-			// TODOHERE
-
-			break;
-		}
 
 		case StateType::HumanNpcStateType::BehaviorType::Free_KnockedOut:
 		{
@@ -482,7 +405,7 @@ void Npcs::UpdateHuman(
 	mEventDispatcher.OnHumanNpcStateQuantityChanged(publishStateQuantity);
 }
 
-bool Npcs::MaintainAndCheckEquilibrium(
+bool Npcs::MaintainAndCheckHumanEquilibrium(
 	ElementIndex primaryParticleIndex,
 	ElementIndex secondaryParticleIndex,
 	NpcParticles & particles,
@@ -548,4 +471,26 @@ bool Npcs::MaintainAndCheckEquilibrium(
 		torqueLinearForce);
 
 	return true;
+}
+
+void Npcs::RunWalkingHumanStateMachine(
+	StateType::HumanNpcStateType & humanState,
+	StateType::NpcParticleStateType const & primaryParticleState,
+	StateType::NpcParticleStateType const & secondaryParticleState,
+	Mesh const & mesh,
+	LabParameters const & labParameters)
+{
+	// TODOHERE
+	(void)primaryParticleState;
+	(void)secondaryParticleState;
+	(void)mesh;
+
+	// Advance
+	humanState.CurrentWalkingMagnitude = std::min(1.0f, humanState.CurrentWalkingMagnitude + (1.0f - humanState.CurrentWalkingMagnitude) * 0.04f);
+	LogMessage(humanState.CurrentWalkingMagnitude);
+
+	// Impart displacement
+	mParticles.SetVoluntarySuperimposedDisplacement(
+		primaryParticleState.ParticleIndex,
+		vec2f(humanState.CurrentWalkingMagnitude * labParameters.HumanNpcWalkingSpeed * LabParameters::SimulationTimeStepDuration, 0.0f));
 }

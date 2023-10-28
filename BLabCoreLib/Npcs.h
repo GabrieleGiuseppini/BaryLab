@@ -112,6 +112,8 @@ public:
 			float CurrentStateValue;
 			float TargetStateValue;
 
+			float CurrentWalkingMagnitude; // [-1.0f, 1.0f]
+
 			HumanNpcStateType(
 				BehaviorType initialBehavior,
 				float currentStateValue,
@@ -119,6 +121,7 @@ public:
 				: CurrentBehavior(initialBehavior)
 				, CurrentStateValue(currentStateValue)
 				, TargetStateValue(targetStateValue)
+				, CurrentWalkingMagnitude(0.0f)
 			{}
 
 			void TransitionToState(
@@ -414,6 +417,7 @@ private:
 		StateType::NpcParticleStateType & particle,
 		std::optional<TrajectoryTargetDipoleArg> const & dipoleArg,
 		bool isPrimaryParticle,
+		StateType const & npc,
 		Mesh const & mesh,
 		LabParameters const & labParameters) const;
 
@@ -530,10 +534,17 @@ private:
 		Mesh const & mesh,
 		LabParameters const & labParameters);
 
-	bool MaintainAndCheckEquilibrium(
+	bool MaintainAndCheckHumanEquilibrium(
 		ElementIndex primaryParticleIndex,
 		ElementIndex secondaryParticleIndex,
 		NpcParticles & particles,
+		LabParameters const & labParameters);
+
+	void RunWalkingHumanStateMachine(
+		StateType::HumanNpcStateType & humanState,
+		StateType::NpcParticleStateType const & primaryParticleState,
+		StateType::NpcParticleStateType const & secondaryParticleState,
+		Mesh const & mesh,
 		LabParameters const & labParameters);
 
 private:

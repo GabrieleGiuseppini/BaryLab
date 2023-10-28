@@ -22,8 +22,6 @@ struct LabParameters
     static constexpr vec2f GravityDir = vec2f(0.0f, -1.0f);
     static float constexpr GravityMagnitude = 9.80f; // m/s
     static constexpr vec2f Gravity = GravityDir * GravityMagnitude;
-    
-    
 
     //
     // Structural constants
@@ -91,4 +89,6 @@ struct LabParameters
     float HumanNpcEquilibriumTorqueDampingCoefficient;
     static float constexpr MinHumanNpcEquilibriumTorqueDampingCoefficient = 0.0f;
     static float constexpr MaxHumanNpcEquilibriumTorqueDampingCoefficient = 0.1f;
+    
+    float HumanNpcWalkingSpeed;
 };

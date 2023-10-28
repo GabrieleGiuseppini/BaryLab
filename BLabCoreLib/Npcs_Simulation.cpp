@@ -201,6 +201,7 @@ void Npcs::UpdateNpcs(
                     npcParticleState,
                     dipoleArg,
                     isPrimaryParticle,
+                    npcState,
                     mesh,
                     labParameters);
 
@@ -388,10 +389,11 @@ void Npcs::UpdateNpcs(
     }
 }
 
-Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
+Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(    
     StateType::NpcParticleStateType & particle,
     std::optional<TrajectoryTargetDipoleArg> const & dipoleArg,
     bool isPrimaryParticle,
+    StateType const & npc,
     Mesh const & mesh,
     LabParameters const & labParameters) const
 {
@@ -501,7 +503,8 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
                     if (trajectory.dot(edgeNormal) >= 0.0f) // If 0, no normal force - hence no friction; however we want to take this codepath anyways for consistency
                     {
                         //
-                        // We're moving against the floor, hence we are in a non-inertial frame
+                        // We're moving against the floor, hence we are in a non-inertial frame...
+                        // ...take friction into account and flaten trajectory
                         //
 
                         LogMessage("    Particle is on floor edge ", edgeOrdinal, ", moving against it");
@@ -564,33 +567,47 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
 
                         vec2f const flattenedTrajectory = edgeDir * trajectoryT;
 
+                        vec2f targetPosition = newTheoreticalPositionAfterMeshDisplacement + flattenedTrajectory;
+                        vec2f const targetAbsoluteVelocity = (targetPosition - particlePosition) / LabParameters::SimulationTimeStepDuration;
+
+                        // Adjust target pos with superimposed displacement - which is NOT taken into account for velocity
+                        if (npc.HumanNpcState.has_value())
+                        {
+                            vec2f const walkVector = edgeDir * edgeDir.dot(vec2f(1.0f, 0.0f)) * mParticles.GetVoluntarySuperimposedDisplacement(particle.ParticleIndex);
+                            if (walkVector != vec2f::zero())
+                            {
+                                LogMessage("WalkVector@1: ", walkVector, " ", npc.HumanNpcState->CurrentWalkingMagnitude);
+                            }
+                            targetPosition += walkVector;
+                        }
+
                         //
                         // Due to numerical slack, ensure target barycentric coords are along edge
                         //
 
-                        vec2f const targetPos = newTheoreticalPositionAfterMeshDisplacement + flattenedTrajectory;
+                        
                         vec3f targetBarycentricCoords = triangles.ToBarycentricCoordinates(                                
-                            targetPos,
+                            targetPosition,
                             currentTriangleElementIndex,
                             vertices);
 
-                        LogMessage("      targetPos=", targetPos, " targetBarycentricCoords before forcing=", targetBarycentricCoords);
+                        LogMessage("      targetPosition=", targetPosition, " targetBarycentricCoords before forcing=", targetBarycentricCoords);
 
                         // Force to be on edge
                         int const vertexOrdinal = (edgeOrdinal + 2) % 3;
                         targetBarycentricCoords[vertexOrdinal] = 0.0f;
                         targetBarycentricCoords[(vertexOrdinal + 1) % 3] = 1.0f - targetBarycentricCoords[(vertexOrdinal + 2) % 3];
 
-                        vec2f const adjustedTargetPos = triangles.FromBarycentricCoordinates(
+                        vec2f const adjustedTargetPosition = triangles.FromBarycentricCoordinates(
                             targetBarycentricCoords,
                             currentTriangleElementIndex,
                             vertices);
 
-                        LogMessage("      flattened traj=", flattenedTrajectory, " flattened target coords=", targetBarycentricCoords," actual target pos=", adjustedTargetPos);
+                        LogMessage("      flattened traj=", flattenedTrajectory, " flattened target coords=", targetBarycentricCoords," actual target pos=", adjustedTargetPosition);
 
                         return CalculatedTrajectoryTargetRetVal(
-                            adjustedTargetPos,
-                            (adjustedTargetPos - particlePosition) / LabParameters::SimulationTimeStepDuration,
+                            adjustedTargetPosition,
+                            targetAbsoluteVelocity,
                             SimulationStepStateType::TrajectoryStateType::ConstrainedStateType(
                                 targetBarycentricCoords,
                                 meshDisplacement));
@@ -599,11 +616,23 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
                     {
                         LogMessage("    Particle is on floor edge, but not moving against it");
 
-                        vec2f const targetPosition = mParticles.GetPosition(particle.ParticleIndex) + physicsDeltaPos;
+                        vec2f targetPosition = mParticles.GetPosition(particle.ParticleIndex) + physicsDeltaPos;
+                        vec2f const targetAbsoluteVelocity = (targetPosition - particlePosition) / LabParameters::SimulationTimeStepDuration;
+
+                        // Adjust target pos with superimposed displacement - which is NOT taken into account for velocity
+                        if (npc.HumanNpcState.has_value())
+                        {
+                            vec2f const walkVector = edgeDir * edgeDir.dot(vec2f(1.0f, 0.0f)) * mParticles.GetVoluntarySuperimposedDisplacement(particle.ParticleIndex);
+                            if (walkVector != vec2f::zero())
+                            {
+                                LogMessage("WalkVector@2: ", walkVector);
+                            }
+                            targetPosition += walkVector;
+                        }
 
                         return CalculatedTrajectoryTargetRetVal(
                             targetPosition,
-                            (targetPosition - particlePosition) / LabParameters::SimulationTimeStepDuration,
+                            targetAbsoluteVelocity,
                             SimulationStepStateType::TrajectoryStateType::ConstrainedStateType(
                                 triangles.ToBarycentricCoordinates(
                                     targetPosition,
@@ -674,7 +703,8 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
 
         LogMessage("    Reached destination");
 
-        assert(trajectoryState.TargetAbsoluteVelocity == (trajectoryState.TargetPosition - mParticles.GetPosition(particleState.ParticleIndex)) / LabParameters::SimulationTimeStepDuration);
+        // TODOTEST
+        //assert(trajectoryState.TargetAbsoluteVelocity == (trajectoryState.TargetPosition - mParticles.GetPosition(particleState.ParticleIndex)) / LabParameters::SimulationTimeStepDuration);
 
         return FinalParticleState(
             trajectoryState.TargetPosition,
