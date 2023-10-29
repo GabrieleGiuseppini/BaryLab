@@ -845,6 +845,7 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
     LogMessage("    Moving to intersection with edge ", intersectionEdgeOrdinal);
 
     // Calculate intersection barycentric coordinates
+
     vec3f intersectionBarycentricCoords;
     intersectionBarycentricCoords[intersectionVertexOrdinal] = 0.0f;
     float const lNext = Clamp( // Barycentric coord of next vertex at intersection; enforcing it's within triangle
