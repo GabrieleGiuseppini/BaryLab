@@ -1,3 +1,4 @@
 - Walking rearc attempt:
-	- Step 1: replace voluntary displacement *superimposed* with normal force, on primary only
+	+ Step 1: replace voluntary displacement *superimposed* with normal force, on primary only
+		+ Kinda work - but secondary acquires more velocity than primary, because primary has friction
 	- Step 2: Merge CalculateTraj with StepSimulation
