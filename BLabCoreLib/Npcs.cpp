@@ -52,6 +52,7 @@ void Npcs::Add(
 		humanNpcState = InitializeHuman(
 			primaryParticleState,
 			secondaryParticleState,
+			mParticles,
 			mesh);
 
 		float const massFactor =
@@ -106,7 +107,7 @@ void Npcs::MoveParticleBy(
 		if (state.PrimaryParticleState.ParticleIndex == particleIndex
 			|| (state.DipoleState.has_value() && state.DipoleState->SecondaryParticleState.ParticleIndex == particleIndex))
 		{
-			state = MaterializeNpcState(n, mesh);
+			state = MaterializeNpcState(n, mParticles, mesh);
 			break;
 		}
 	}
@@ -178,7 +179,7 @@ void Npcs::OnVertexMoved(Mesh const & mesh)
 
 	for (auto const n : *this)
 	{
-		mStateBuffer[n] = MaterializeNpcState(n, mesh);
+		mStateBuffer[n] = MaterializeNpcState(n, mParticles, mesh);
 	}
 
 	//

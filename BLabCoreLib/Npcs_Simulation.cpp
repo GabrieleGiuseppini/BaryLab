@@ -205,12 +205,22 @@ void Npcs::UpdateNpcs(
                     mesh,
                     labParameters);
 
-                targetPosition = trajectoryTarget.Position;
+                targetPosition = trajectoryTarget.TargetPosition;
                 targetAbsoluteVelocity = trajectoryTarget.TargetAbsoluteVelocity;
 
                 //
 
                 trajectoryConstrainedState = trajectoryTarget.ConstrainedStateInfo;
+
+                // Impart voluntary displacement to secondary
+                if (trajectoryTarget.SecondaryVoluntarySuperimposedDisplacement.has_value())
+                {
+                    assert(isPrimaryParticle && npcState.DipoleState.has_value());
+
+                    mParticles.SetVoluntarySuperimposedDisplacement(
+                        npcState.DipoleState->SecondaryParticleState.ParticleIndex, 
+                        *trajectoryTarget.SecondaryVoluntarySuperimposedDisplacement);
+                }
             }
 
             // Calculate source position
@@ -571,6 +581,7 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
                         vec2f const targetAbsoluteVelocity = (targetPosition - particlePosition) / LabParameters::SimulationTimeStepDuration;
 
                         // Adjust target pos with superimposed displacement - which is NOT taken into account for velocity
+                        std::optional<vec2f> secondaryVoluntarySuperimposedDisplacement;
                         if (npc.HumanNpcState.has_value())
                         {
                             vec2f const walkVector = edgeDir * edgeDir.dot(vec2f(1.0f, 0.0f)) * mParticles.GetVoluntarySuperimposedDisplacement(particle.ParticleIndex);
@@ -578,13 +589,19 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
                             {
                                 LogMessage("WalkVector@1: ", walkVector, " ", npc.HumanNpcState->CurrentWalkingMagnitude);
                             }
+
                             targetPosition += walkVector;
+
+                            if (isPrimaryParticle)
+                            {
+                                // Impart same displacement to secondary particle
+                                secondaryVoluntarySuperimposedDisplacement = walkVector;
+                            }
                         }
 
                         //
                         // Due to numerical slack, ensure target barycentric coords are along edge
                         //
-
                         
                         vec3f targetBarycentricCoords = triangles.ToBarycentricCoordinates(                                
                             targetPosition,
@@ -610,7 +627,8 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
                             targetAbsoluteVelocity,
                             SimulationStepStateType::TrajectoryStateType::ConstrainedStateType(
                                 targetBarycentricCoords,
-                                meshDisplacement));
+                                meshDisplacement),
+                            std::move(secondaryVoluntarySuperimposedDisplacement));
                     }
                     else
                     {
@@ -620,6 +638,7 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
                         vec2f const targetAbsoluteVelocity = (targetPosition - particlePosition) / LabParameters::SimulationTimeStepDuration;
 
                         // Adjust target pos with superimposed displacement - which is NOT taken into account for velocity
+                        std::optional<vec2f> secondaryVoluntarySuperimposedDisplacement;
                         if (npc.HumanNpcState.has_value())
                         {
                             vec2f const walkVector = edgeDir * edgeDir.dot(vec2f(1.0f, 0.0f)) * mParticles.GetVoluntarySuperimposedDisplacement(particle.ParticleIndex);
@@ -627,7 +646,14 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
                             {
                                 LogMessage("WalkVector@2: ", walkVector);
                             }
+
                             targetPosition += walkVector;
+
+                            if (isPrimaryParticle)
+                            {
+                                // Impart same displacement to secondary particle
+                                secondaryVoluntarySuperimposedDisplacement = walkVector;
+                            }
                         }
 
                         return CalculatedTrajectoryTargetRetVal(
@@ -638,7 +664,8 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
                                     targetPosition,
                                     currentTriangleElementIndex,
                                     vertices),
-                                meshDisplacement));
+                                meshDisplacement),
+                            std::move(secondaryVoluntarySuperimposedDisplacement));
                     }
                 }                
             }
@@ -658,16 +685,19 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
     // Just use pure physical forces
     //
 
-    
+    vec2f targetPosition = particlePosition + physicsDeltaPos;
+    vec2f const targetAbsoluteVelocity = (targetPosition - particlePosition) / LabParameters::SimulationTimeStepDuration;
 
-    vec2f const targetPosition = particlePosition + physicsDeltaPos;
+    // Incorporate voluntary superimposed displacement
+    targetPosition += mParticles.GetVoluntarySuperimposedDisplacement(particle.ParticleIndex);
 
     LogMessage("    Particle not in constrained state or not on floor edge; using pure physical forces, targetPosition=", targetPosition);
     
-    std::optional<SimulationStepStateType::TrajectoryStateType::ConstrainedStateType> constrainedState;
+    // Populate constrained version of trajectory target, if we're in constrained state
+    std::optional<SimulationStepStateType::TrajectoryStateType::ConstrainedStateType> trajectoryConstrainedState;
     if (particle.ConstrainedState.has_value())
     {
-        constrainedState.emplace(
+        trajectoryConstrainedState.emplace(
             triangles.ToBarycentricCoordinates(
                 targetPosition,
                 particle.ConstrainedState->CurrentTriangle,
@@ -677,8 +707,9 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
 
     return CalculatedTrajectoryTargetRetVal(
         targetPosition,
-        (targetPosition - particlePosition) / LabParameters::SimulationTimeStepDuration,
-        constrainedState);
+        targetAbsoluteVelocity,
+        trajectoryConstrainedState,
+        isPrimaryParticle ? mParticles.GetVoluntarySuperimposedDisplacement(particle.ParticleIndex) : std::optional<vec2f>());
 }
 
 std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
@@ -703,7 +734,7 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
 
         LogMessage("    Reached destination");
 
-        // TODOTEST
+        // TODOTEST: not true when subject to voluntary superimposed displacement
         //assert(trajectoryState.TargetAbsoluteVelocity == (trajectoryState.TargetPosition - mParticles.GetPosition(particleState.ParticleIndex)) / LabParameters::SimulationTimeStepDuration);
 
         return FinalParticleState(
@@ -998,6 +1029,7 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
 
 Npcs::StateType Npcs::MaterializeNpcState(
     ElementIndex npcIndex,
+    NpcParticles & particles,
     Mesh const & mesh) const
 {
     auto const & state = mStateBuffer[npcIndex];
@@ -1038,6 +1070,7 @@ Npcs::StateType Npcs::MaterializeNpcState(
         humanNpcState = InitializeHuman(
             primaryParticleState,
             dipoleState->SecondaryParticleState,
+            particles,
             mesh);
     }
 

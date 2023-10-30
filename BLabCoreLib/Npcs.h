@@ -399,17 +399,20 @@ private:
 
 	struct CalculatedTrajectoryTargetRetVal final
 	{
-		vec2f Position;
+		vec2f TargetPosition;
 		vec2f TargetAbsoluteVelocity;
 		std::optional<SimulationStepStateType::TrajectoryStateType::ConstrainedStateType> ConstrainedStateInfo; // Returned when in constrained state
+		std::optional<vec2f> SecondaryVoluntarySuperimposedDisplacement;
 
 		CalculatedTrajectoryTargetRetVal(
-			vec2f const & position,
+			vec2f const & targetPposition,
 			vec2f const & targetAbsoluteVelocity,
-			std::optional<SimulationStepStateType::TrajectoryStateType::ConstrainedStateType> constrainedStateInfo)
-			: Position(position)
+			std::optional<SimulationStepStateType::TrajectoryStateType::ConstrainedStateType> constrainedStateInfo,
+			std::optional<vec2f> secondaryVoluntarySuperimposedDisplacement)
+			: TargetPosition(targetPposition)
 			, TargetAbsoluteVelocity(targetAbsoluteVelocity)
 			, ConstrainedStateInfo(std::move(constrainedStateInfo))
+			, SecondaryVoluntarySuperimposedDisplacement(std::move(secondaryVoluntarySuperimposedDisplacement))
 		{}
 	};
 
@@ -445,6 +448,7 @@ private:
 
 	StateType MaterializeNpcState(
 		ElementIndex npcIndex,
+		NpcParticles & particles,
 		Mesh const & mesh) const;
 
 	std::optional<StateType::NpcParticleStateType::ConstrainedStateType> CalculateParticleConstrainedState(
@@ -525,6 +529,7 @@ private:
 	StateType::HumanNpcStateType InitializeHuman(
 		StateType::NpcParticleStateType const & primaryParticleState,
 		StateType::NpcParticleStateType const & secondaryParticleState,
+		NpcParticles & particles,
 		Mesh const & mesh) const;
 
 	void UpdateHuman(

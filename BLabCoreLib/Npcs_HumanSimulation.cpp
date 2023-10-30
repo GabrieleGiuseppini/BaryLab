@@ -44,12 +44,21 @@ namespace /*anonymous*/ {
 Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 	StateType::NpcParticleStateType const & primaryParticleState,
 	StateType::NpcParticleStateType const & secondaryParticleState,
+	NpcParticles & particles,
 	Mesh const & mesh) const
 {
 	// TODOHERE
-	(void)primaryParticleState;
-	(void)secondaryParticleState;
 	(void)mesh;
+
+	// Reset voluntary physics
+
+	particles.SetVoluntaryForces(primaryParticleState.ParticleIndex, vec2f::zero());
+	particles.SetVoluntaryForces(secondaryParticleState.ParticleIndex, vec2f::zero());
+
+	particles.SetVoluntarySuperimposedDisplacement(primaryParticleState.ParticleIndex, vec2f::zero());
+	particles.SetVoluntarySuperimposedDisplacement(secondaryParticleState.ParticleIndex, vec2f::zero());
+
+	// Return state
 
 	if (!primaryParticleState.ConstrainedState.has_value()
 		&& !secondaryParticleState.ConstrainedState.has_value())
@@ -158,6 +167,10 @@ void Npcs::UpdateHuman(
 					primaryParticleState.ParticleIndex,
 					vec2f::zero());
 
+				mParticles.SetVoluntarySuperimposedDisplacement(
+					secondaryParticleState.ParticleIndex,
+					vec2f::zero());
+
 				humanState.CurrentWalkingMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
@@ -225,6 +238,10 @@ void Npcs::UpdateHuman(
 					primaryParticleState.ParticleIndex,
 					vec2f::zero());
 
+				mParticles.SetVoluntarySuperimposedDisplacement(
+					secondaryParticleState.ParticleIndex,
+					vec2f::zero());
+
 				humanState.CurrentWalkingMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
@@ -253,6 +270,10 @@ void Npcs::UpdateHuman(
 
 				mParticles.SetVoluntarySuperimposedDisplacement(
 					primaryParticleState.ParticleIndex,
+					vec2f::zero());
+
+				mParticles.SetVoluntarySuperimposedDisplacement(
+					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
 				humanState.CurrentWalkingMagnitude = 0.0f;
@@ -490,7 +511,7 @@ void Npcs::RunWalkingHumanStateMachine(
 	(void)mesh;
 
 	// Advance
-	humanState.CurrentWalkingMagnitude = std::min(1.0f, humanState.CurrentWalkingMagnitude + (1.0f - humanState.CurrentWalkingMagnitude) * 0.04f);
+	humanState.CurrentWalkingMagnitude = std::min(1.0f, humanState.CurrentWalkingMagnitude + (1.0f - humanState.CurrentWalkingMagnitude) * 0.03f);
 	LogMessage(humanState.CurrentWalkingMagnitude);
 
 	// Impart displacement
