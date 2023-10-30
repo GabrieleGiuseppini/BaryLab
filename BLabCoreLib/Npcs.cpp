@@ -197,7 +197,7 @@ void Npcs::Update(
 	// Update NPCs' state
 	//
 
-	UpdateNpcs(mesh, labParameters);
+	UpdateNpcs2(mesh, labParameters);
 
 	//
 	// Publish
@@ -213,38 +213,41 @@ void Npcs::Update(
 		{
 			auto const & state = mStateBuffer[n];
 
-			if (state.PrimaryParticleState.ParticleIndex == *mCurrentlySelectedParticle
-				&& state.PrimaryParticleState.ConstrainedState.has_value())
+			if (state.PrimaryParticleState.ParticleIndex == *mCurrentlySelectedParticle)
 			{
-				constrainedRegimeParticleProbe.emplace(
-					state.PrimaryParticleState.ConstrainedState->CurrentTriangle,
-					state.PrimaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords);
-				
-				if (mCurrentOriginTriangle.has_value())
+				if (state.PrimaryParticleState.ConstrainedState.has_value())
 				{
-					subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = mesh.GetTriangles().ToBarycentricCoordinates(
-						mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
-						*mCurrentOriginTriangle,
-						mesh.GetVertices());
+					constrainedRegimeParticleProbe.emplace(
+						state.PrimaryParticleState.ConstrainedState->CurrentTriangle,
+						state.PrimaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords);
+
+					if (mCurrentOriginTriangle.has_value())
+					{
+						subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = mesh.GetTriangles().ToBarycentricCoordinates(
+							mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
+							*mCurrentOriginTriangle,
+							mesh.GetVertices());
+					}
 				}
 
 				physicsParticleProbe.emplace(mParticles.GetVelocity(state.PrimaryParticleState.ParticleIndex));
 			}
-
-			if (state.DipoleState.has_value()
-				&& state.DipoleState->SecondaryParticleState.ParticleIndex == *mCurrentlySelectedParticle
-				&& state.DipoleState->SecondaryParticleState.ConstrainedState.has_value())
+			else if (state.DipoleState.has_value()
+				&& state.DipoleState->SecondaryParticleState.ParticleIndex == *mCurrentlySelectedParticle)
 			{
-				constrainedRegimeParticleProbe.emplace(
-					state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangle,
-					state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords);
-
-				if (mCurrentOriginTriangle.has_value())
+				if (state.DipoleState->SecondaryParticleState.ConstrainedState.has_value())
 				{
-					subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = mesh.GetTriangles().ToBarycentricCoordinates(
-						mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
-						*mCurrentOriginTriangle,
-						mesh.GetVertices());
+					constrainedRegimeParticleProbe.emplace(
+						state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangle,
+						state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords);
+
+					if (mCurrentOriginTriangle.has_value())
+					{
+						subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = mesh.GetTriangles().ToBarycentricCoordinates(
+							mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
+							*mCurrentOriginTriangle,
+							mesh.GetVertices());
+					}
 				}
 
 				physicsParticleProbe.emplace(mParticles.GetVelocity(state.DipoleState->SecondaryParticleState.ParticleIndex));

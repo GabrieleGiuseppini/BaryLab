@@ -446,6 +446,68 @@ private:
 		Mesh const & mesh,
 		LabParameters const & labParameters);
 
+private:
+
+	//
+	// Simulation 2
+	//
+
+	void UpdateNpcs2(
+		Mesh const & mesh,
+		LabParameters const & labParameters);
+
+	struct DipoleArg final
+	{
+		StateType::NpcParticleStateType & OtherParticle;
+		StateType::DipolePropertiesType & DipoleProperties;
+
+		DipoleArg(
+			StateType::NpcParticleStateType & otherParticle,
+			StateType::DipolePropertiesType & dipoleProperties)
+			: OtherParticle(otherParticle)
+			, DipoleProperties(dipoleProperties)
+		{}
+	};
+
+	void UpdateNpcParticle2(
+		StateType::NpcParticleStateType & particle,
+		std::optional<DipoleArg> const & dipoleArg,
+		bool isPrimaryParticle,
+		StateType & npc,
+		Mesh const & mesh,
+		LabParameters const & labParameters);
+
+	void UpdateNpcParticle_Free2(
+		StateType::NpcParticleStateType & particle,
+		vec2f const & absoluteDisplacement,
+		NpcParticles & particles) const;
+
+	float UpdateNpcParticle_ConstrainedNonInertial2(
+		StateType::NpcParticleStateType & particle,
+		std::optional<DipoleArg> const & dipoleArg,
+		bool isPrimaryParticle,
+		StateType const & npc,
+		vec2f const & physicsDeltaPos,
+		NpcParticles & particles,
+		Mesh const & mesh,
+		LabParameters const & labParameters) const;
+
+	float UpdateNpcParticle_ConstrainedInertial2(
+		StateType::NpcParticleStateType & particle,
+		std::optional<DipoleArg> const & dipoleArg,
+		bool isPrimaryParticle,
+		StateType const & npc,
+		vec2f const & physicsDeltaPos,
+		NpcParticles & particles,
+		Mesh const & mesh,
+		LabParameters const & labParameters) const;
+
+private:
+
+	//
+	// Helpers
+	//
+
 	StateType MaterializeNpcState(
 		ElementIndex npcIndex,
 		NpcParticles & particles,
@@ -521,6 +583,7 @@ private:
 		return magic < -0.0001f;
 	}
 
+private:
 
 	//
 	// Human simulation

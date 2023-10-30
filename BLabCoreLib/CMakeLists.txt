@@ -54,6 +54,7 @@ set  (SOURCES
 	Npcs.h
 	Npcs_HumanSimulation.cpp
 	Npcs_Simulation.cpp
+	Npcs_Simulation_2.cpp
 	RenderContext.cpp
 	RenderContext.h
 	ResourceLocator.h

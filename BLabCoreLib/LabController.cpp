@@ -87,19 +87,22 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
 
     {
         // TODOTEST
-        ////vec2f const center = (
+        ////vec2f const position = (
         ////    mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexAIndex(0))
         ////    + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexBIndex(0))
         ////    + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexCIndex(0))) / 3.0f;
-        ////vec2f const center =
-        ////    mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexBIndex(0))
-        ////    - vec2f(0.5f, 0.5f);
-        vec2f const position = vec2f(0.5f, -2.0f);
+        //vec2f const position =
+        //    mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexBIndex(0))
+        //    - vec2f(0.5f, 0.5f);
+
+        // TODOTEST
+        //vec2f const position = vec2f(0.5f, -2.0f);
+        vec2f const position = vec2f(0.5f, 0.0f);
 
         npcs->Add(
             // TODOTEST
-            //Npcs::NpcType::Furniture,
-            Npcs::NpcType::Human,
+            Npcs::NpcType::Furniture,
+            //Npcs::NpcType::Human,
             position,
             *mesh);
 
