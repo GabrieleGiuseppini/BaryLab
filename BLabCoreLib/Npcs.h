@@ -479,6 +479,7 @@ private:
 
 	void UpdateNpcParticle_Free2(
 		StateType::NpcParticleStateType & particle,
+		vec2f const & particlePosition,
 		vec2f const & absoluteDisplacement,
 		NpcParticles & particles) const;
 
@@ -487,7 +488,8 @@ private:
 		std::optional<DipoleArg> const & dipoleArg,
 		bool isPrimaryParticle,
 		StateType const & npc,
-		vec2f const & physicsDeltaPos,
+		vec2f const & particleStartPosition,
+		vec2f const & trajectory,
 		NpcParticles & particles,
 		Mesh const & mesh,
 		LabParameters const & labParameters) const;
@@ -497,6 +499,7 @@ private:
 		std::optional<DipoleArg> const & dipoleArg,
 		bool isPrimaryParticle,
 		StateType const & npc,
+		vec2f const & particleStartPosition,
 		vec2f const & physicsDeltaPos,
 		NpcParticles & particles,
 		Mesh const & mesh,

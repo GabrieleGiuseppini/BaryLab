@@ -167,6 +167,8 @@ void Npcs::UpdateNpcParticle2(
         // Calculate desired displacement
         //
 
+        vec2f const particleStartPosition = mParticles.GetPosition(particle.ParticleIndex);
+
         vec2f const physicalForces =
             mParticles.GetWorldForce(particle.ParticleIndex)
             + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * labParameters.ParticleMass * labParameters.MassAdjustment
@@ -191,6 +193,7 @@ void Npcs::UpdateNpcParticle2(
 
             UpdateNpcParticle_Free2(
                 particle,
+                particleStartPosition,
                 physicsDeltaPos,
                 mParticles);
 
@@ -213,7 +216,7 @@ void Npcs::UpdateNpcParticle2(
                 mesh.GetVertices());
 
             // Calculate mesh displacement
-            vec2f const meshDisplacement = mParticles.GetPosition(particle.ParticleIndex) - newTheoreticalPositionAfterMeshDisplacement;
+            vec2f const meshDisplacement = particleStartPosition - newTheoreticalPositionAfterMeshDisplacement;
 
             //
             // Check whether we're on a floor and wanting to move against it
@@ -258,7 +261,7 @@ void Npcs::UpdateNpcParticle2(
                         //
 
                         // Note: this is the same as physicsDeltaPos + meshDisplacement
-                        vec2f const trajectory = mParticles.GetPosition(particle.ParticleIndex) + physicsDeltaPos - newTheoreticalPositionAfterMeshDisplacement;
+                        vec2f const trajectory = particleStartPosition + physicsDeltaPos - newTheoreticalPositionAfterMeshDisplacement;
 
                         // Check whether we're moving *against* the floor
 
@@ -281,7 +284,8 @@ void Npcs::UpdateNpcParticle2(
                                 dipoleArg,
                                 isPrimaryParticle,
                                 npc,
-                                physicsDeltaPos,
+                                particleStartPosition,
+                                trajectory,
                                 mParticles,
                                 mesh,
                                 labParameters);
@@ -305,6 +309,7 @@ void Npcs::UpdateNpcParticle2(
                     dipoleArg,
                     isPrimaryParticle,
                     npc,
+                    particleStartPosition,
                     physicsDeltaPos,
                     mParticles,
                     mesh,
@@ -316,15 +321,16 @@ void Npcs::UpdateNpcParticle2(
 
 void Npcs::UpdateNpcParticle_Free2(
     StateType::NpcParticleStateType & particle,
+    vec2f const & particleStartPosition,
     vec2f const & absoluteDisplacement,
     NpcParticles & particles) const
 {
-    LogMessage("    Free: absoluteDisplacement=", absoluteDisplacement);
+    LogMessage("    Free: particleStartPosition=", particleStartPosition, " absoluteDisplacement=", absoluteDisplacement);
 
     // Update position
     particles.SetPosition(
         particle.ParticleIndex,
-        particles.GetPosition(particle.ParticleIndex) + absoluteDisplacement);
+        particleStartPosition + absoluteDisplacement);
 
     // Update velocity
     particles.SetVelocity(
@@ -337,12 +343,20 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
     std::optional<DipoleArg> const & dipoleArg,
     bool isPrimaryParticle,
     StateType const & npc,
-    vec2f const & physicsDeltaPos,
+    vec2f const & particleStartPosition,
+    vec2f const & trajectory,
     NpcParticles & particles,
     Mesh const & mesh,
     LabParameters const & labParameters) const
 {
-    LogMessage("    ConstrainedNonInertial: physicsDeltaPos=", physicsDeltaPos);
+    assert(particle.ConstrainedState.has_value());
+
+    LogMessage("    ConstrainedNonInertial: triangle=", particle.ConstrainedState->CurrentTriangle, " bCoords=", particle.ConstrainedState->CurrentTriangleBarycentricCoords);
+    LogMessage("                            startPos=", particleStartPosition, " trajectory=", trajectory);
+
+    //
+    // Flatten trajectory, taking into account friction
+    //
 
     // TODOHERE
     (void)particle;
@@ -481,12 +495,16 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial2(
     std::optional<DipoleArg> const & dipoleArg,
     bool isPrimaryParticle,
     StateType const & npc,
+    vec2f const & particleStartPosition,
     vec2f const & physicsDeltaPos,
     NpcParticles & particles,
     Mesh const & mesh,
     LabParameters const & labParameters) const
 {
-    LogMessage("    ConstrainedInertial: physicsDeltaPos=", physicsDeltaPos);
+    assert(particle.ConstrainedState.has_value());
+
+    LogMessage("    ConstrainedInertial: triangle=", particle.ConstrainedState->CurrentTriangle, " bCoords=", particle.ConstrainedState->CurrentTriangleBarycentricCoords);
+    LogMessage("                         startPos=", particleStartPosition, " physicsDeltaPos=", physicsDeltaPos);
 
     // TODOHERE
     (void)particle;
