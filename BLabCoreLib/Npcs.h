@@ -479,8 +479,9 @@ private:
 
 	void UpdateNpcParticle_Free2(
 		StateType::NpcParticleStateType & particle,
-		vec2f const & particlePosition,
+		vec2f const & startPosition,
 		vec2f const & absoluteDisplacement,
+		float dt,
 		NpcParticles & particles) const;
 
 	float UpdateNpcParticle_ConstrainedNonInertial2(
@@ -488,8 +489,8 @@ private:
 		std::optional<DipoleArg> const & dipoleArg,
 		bool isPrimaryParticle,
 		StateType const & npc,
-		vec2f const & particleStartPosition,
 		vec2f const & trajectory,
+		float dt,
 		NpcParticles & particles,
 		Mesh const & mesh,
 		LabParameters const & labParameters) const;
@@ -498,9 +499,21 @@ private:
 		StateType::NpcParticleStateType & particle,
 		std::optional<DipoleArg> const & dipoleArg,
 		bool isPrimaryParticle,
-		StateType const & npc,
-		vec2f const & particleStartPosition,
 		vec2f const & physicsDeltaPos,
+		vec2f const & meshVelocity,
+		float dt,
+		NpcParticles & particles,
+		Mesh const & mesh,
+		LabParameters const & labParameters) const;
+
+	float UpdateNpcParticle_ConstrainedTraceSegment2(
+		StateType::NpcParticleStateType & particle,
+		std::optional<DipoleArg> const & dipoleArg,
+		bool isPrimaryParticle,
+		vec3f const & targetBarycentricCoords,
+		float trajectoryLength,
+		vec2f const & meshVelocity,
+		float dt,
 		NpcParticles & particles,
 		Mesh const & mesh,
 		LabParameters const & labParameters) const;

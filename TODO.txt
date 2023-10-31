@@ -1,8 +1,13 @@
 - Walking rearc attempt:
 	+ Step 1: replace voluntary displacement *superimposed* with normal force, on primary only
 		+ Kinda work - but secondary acquires more velocity than primary, because primary has friction
-	- Step 2: Merge CalculateTraj with StepSimulation
-		- Each Update...() step moves a segment and sets velocity based on movement achieved in its remainingDt
+	= Step 2: Merge CalculateTraj with StepSimulation
+		= Each Update...() step moves a segment and sets velocity based on movement achieved in its remainingDt
+		- Issue at ConstrainedSegmentMove:
+			- If we hit edge before end of a trajectory which is completely due to mesh movement, the particle position
+			  changes as it's a temporary one; at the next iteration, trajectory is zero hence we don't move
+			- Should we then not update particle position but update a ray-tracing position instead?
+				- Function returns remainingDt, rayTracingPosition (pos + bcoords)
 	- Cleanups:
 		- Nuke imparted trajectory (tool and all)
 		- Nuke step-by-step

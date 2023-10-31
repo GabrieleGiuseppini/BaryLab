@@ -195,6 +195,7 @@ void Npcs::UpdateNpcParticle2(
                 particle,
                 particleStartPosition,
                 physicsDeltaPos,
+                remainingDt,
                 mParticles);
 
             // We've consumed the whole time quantum
@@ -208,6 +209,7 @@ void Npcs::UpdateNpcParticle2(
 
             ElementIndex const currentTriangleElementIndex = particle.ConstrainedState->CurrentTriangle;
 
+            // TODOHERE: aren't we doing it twice?
             // New position of particle in moved triangle (i.e. sourcePos + non-inertial displacement)
             // - does not include physics delta pos
             vec2f const newTheoreticalPositionAfterMeshDisplacement = mesh.GetTriangles().FromBarycentricCoordinates(
@@ -284,8 +286,8 @@ void Npcs::UpdateNpcParticle2(
                                 dipoleArg,
                                 isPrimaryParticle,
                                 npc,
-                                particleStartPosition,
                                 trajectory,
+                                remainingDt,
                                 mParticles,
                                 mesh,
                                 labParameters);
@@ -308,34 +310,40 @@ void Npcs::UpdateNpcParticle2(
                     particle,
                     dipoleArg,
                     isPrimaryParticle,
-                    npc,
-                    particleStartPosition,
                     physicsDeltaPos,
+                    meshDisplacement / LabParameters::SimulationTimeStepDuration,
+                    remainingDt,
                     mParticles,
                     mesh,
                     labParameters);
             }
         }
+
+        assert(remainingDt >= 0.0f);
     }
 }
 
 void Npcs::UpdateNpcParticle_Free2(
     StateType::NpcParticleStateType & particle,
-    vec2f const & particleStartPosition,
+    vec2f const & startPosition,
     vec2f const & absoluteDisplacement,
+    float dt,
     NpcParticles & particles) const
 {
-    LogMessage("    Free: particleStartPosition=", particleStartPosition, " absoluteDisplacement=", absoluteDisplacement);
+    LogMessage("    Free: absoluteDisplacement=", absoluteDisplacement);
+    LogMessage("    StartPosition=", particles.GetPosition(particle.ParticleIndex), " StartVelocity=", particles.GetVelocity(particle.ParticleIndex));
 
     // Update position
     particles.SetPosition(
         particle.ParticleIndex,
-        particleStartPosition + absoluteDisplacement);
+        startPosition + absoluteDisplacement);
 
     // Update velocity
     particles.SetVelocity(
         particle.ParticleIndex,
-        absoluteDisplacement / LabParameters::SimulationTimeStepDuration);
+        absoluteDisplacement / dt);
+
+    LogMessage("    EndPosition=", particles.GetPosition(particle.ParticleIndex), " EndVelocity=", particles.GetVelocity(particle.ParticleIndex));
 }
 
 float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
@@ -343,16 +351,16 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
     std::optional<DipoleArg> const & dipoleArg,
     bool isPrimaryParticle,
     StateType const & npc,
-    vec2f const & particleStartPosition,
     vec2f const & trajectory,
+    float dt,
     NpcParticles & particles,
     Mesh const & mesh,
     LabParameters const & labParameters) const
 {
     assert(particle.ConstrainedState.has_value());
 
-    LogMessage("    ConstrainedNonInertial: triangle=", particle.ConstrainedState->CurrentTriangle, " bCoords=", particle.ConstrainedState->CurrentTriangleBarycentricCoords);
-    LogMessage("                            startPos=", particleStartPosition, " trajectory=", trajectory);
+    LogMessage("    ConstrainedNonInertial: triangle=", particle.ConstrainedState->CurrentTriangle, " bCoords=", particle.ConstrainedState->CurrentTriangleBarycentricCoords, "  trajectory=", trajectory);
+    LogMessage("    StartPosition=", particles.GetPosition(particle.ParticleIndex), " StartVelocity=", particles.GetVelocity(particle.ParticleIndex), " StartMRVelocity=", particle.ConstrainedState->MeshRelativeVelocity);
 
     //
     // Flatten trajectory, taking into account friction
@@ -363,6 +371,7 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
     (void)dipoleArg;
     (void)isPrimaryParticle;
     (void)npc;
+    (void)dt;
     (void)particles;
     (void)mesh;
     (void)labParameters;
@@ -487,6 +496,9 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
                                 std::move(secondaryVoluntarySuperimposedDisplacement));
     */
 
+    LogMessage("    EndPosition=", particles.GetPosition(particle.ParticleIndex), " EndVelocity=", particles.GetVelocity(particle.ParticleIndex), " EndMRVelocity=", particle.ConstrainedState->MeshRelativeVelocity);
+
+
     return 0.0f;
 }
 
@@ -494,25 +506,346 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial2(
     StateType::NpcParticleStateType & particle,
     std::optional<DipoleArg> const & dipoleArg,
     bool isPrimaryParticle,
-    StateType const & npc,
-    vec2f const & particleStartPosition,
     vec2f const & physicsDeltaPos,
+    vec2f const & meshVelocity,
+    float dt,
     NpcParticles & particles,
     Mesh const & mesh,
     LabParameters const & labParameters) const
 {
     assert(particle.ConstrainedState.has_value());
 
-    LogMessage("    ConstrainedInertial: triangle=", particle.ConstrainedState->CurrentTriangle, " bCoords=", particle.ConstrainedState->CurrentTriangleBarycentricCoords);
-    LogMessage("                         startPos=", particleStartPosition, " physicsDeltaPos=", physicsDeltaPos);
+    LogMessage("    ConstrainedInertial: triangle=", particle.ConstrainedState->CurrentTriangle, " bCoords=", particle.ConstrainedState->CurrentTriangleBarycentricCoords, "  physicsDeltaPos=", physicsDeltaPos);
+    LogMessage("    StartPosition=", particles.GetPosition(particle.ParticleIndex), " StartVelocity=", particles.GetVelocity(particle.ParticleIndex), " StartMRVelocity=", particle.ConstrainedState->MeshRelativeVelocity);
 
-    // TODOHERE
-    (void)particle;
-    (void)dipoleArg;
-    (void)isPrimaryParticle;
-    (void)npc;
-    (void)particles;
-    (void)mesh;
-    (void)labParameters;
-    return 0.0f;
+    //
+    // Calculate target barycentric coords
+    //
+
+    vec2f const targetPosition = mParticles.GetPosition(particle.ParticleIndex) + physicsDeltaPos;
+    vec3f const targetBarycentricCoords = mesh.GetTriangles().ToBarycentricCoordinates(
+        targetPosition,
+        particle.ConstrainedState->CurrentTriangle,
+        mesh.GetVertices());
+
+    //
+    // Move towards target bary coords
+    //
+
+    float const remainingDt = UpdateNpcParticle_ConstrainedTraceSegment2(
+        particle,
+        dipoleArg,
+        isPrimaryParticle,
+        targetBarycentricCoords,
+        physicsDeltaPos.length(),
+        meshVelocity,
+        dt,
+        particles,
+        mesh,
+        labParameters);
+
+    LogMessage("    EndPosition=", particles.GetPosition(particle.ParticleIndex), " EndVelocity=", particles.GetVelocity(particle.ParticleIndex), " EndMRVelocity=", particle.ConstrainedState->MeshRelativeVelocity);
+
+    return remainingDt;
+}
+
+float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
+    StateType::NpcParticleStateType & particle,
+    std::optional<DipoleArg> const & dipoleArg,
+    bool isPrimaryParticle,
+    vec3f const & targetBarycentricCoords,
+    float trajectoryLength,
+    vec2f const & meshVelocity,
+    float dt,
+    NpcParticles & particles,
+    Mesh const & mesh,
+    LabParameters const & labParameters) const
+{
+    assert(particle.ConstrainedState.has_value());
+
+    {
+        assert(particle.ConstrainedState->CurrentTriangleBarycentricCoords[0] >= 0.0f && particle.ConstrainedState->CurrentTriangleBarycentricCoords[0] <= 1.0f);
+        assert(particle.ConstrainedState->CurrentTriangleBarycentricCoords[1] >= 0.0f && particle.ConstrainedState->CurrentTriangleBarycentricCoords[1] <= 1.0f);
+        assert(particle.ConstrainedState->CurrentTriangleBarycentricCoords[2] >= 0.0f && particle.ConstrainedState->CurrentTriangleBarycentricCoords[2] <= 1.0f);
+    }
+
+    LogMessage("    SegmentTrace:");
+
+    //
+    // If target is on/in triangle, we move to target
+    //
+
+    if (targetBarycentricCoords.x >= 0.0f && targetBarycentricCoords.x <= 1.0f
+        && targetBarycentricCoords.y >= 0.0f && targetBarycentricCoords.y <= 1.0f
+        && targetBarycentricCoords.z >= 0.0f && targetBarycentricCoords.z <= 1.0f)
+    {
+        LogMessage("      Target is on/in triangle (", targetBarycentricCoords, "), moving to target");
+
+        // Move to target, update physics
+
+        vec2f const targetPosition = mesh.GetTriangles().FromBarycentricCoordinates(
+            targetBarycentricCoords,
+            particle.ConstrainedState->CurrentTriangle,
+            mesh.GetVertices());
+
+        vec2f const absoluteVelocity = (targetPosition - particles.GetPosition(particle.ParticleIndex)) / dt;
+
+        particles.SetPosition(
+            particle.ParticleIndex,
+            targetPosition);
+
+        particles.SetVelocity(
+            particle.ParticleIndex,
+            absoluteVelocity);
+
+        particle.ConstrainedState->MeshRelativeVelocity = 
+            absoluteVelocity
+            + meshVelocity;
+
+        particle.ConstrainedState->CurrentTriangleBarycentricCoords = targetBarycentricCoords;
+
+        return 0.0f;
+    }
+
+    //
+    // We're inside or on triangle, and target is outside triangle;
+    // if we're on edge, trajectory is along this edge
+    //
+
+    LogMessage("      Target is outside triangle (", targetBarycentricCoords, ")");
+
+    //
+    // Find closest intersection in the direction of the trajectory
+    //
+    // Guaranteed to exist and within trajectory, because target is outside
+    // of triangle and we're inside or on an edge
+    //
+
+#ifdef _DEBUG
+
+    struct EdgeIntersectionDiag
+    {
+        float Den;
+        float T;
+        vec3f IntersectionPoint;
+
+        EdgeIntersectionDiag(
+            float den,
+            float t)
+            : Den(den)
+            , T(t)
+            , IntersectionPoint()
+        {}
+    };
+
+    std::array<std::optional<EdgeIntersectionDiag>, 3> diags;
+
+#endif // DEBUG
+
+    int intersectionVertexOrdinal = -1;
+    float minIntersectionT = std::numeric_limits<float>::max();
+
+    for (int vi = 0; vi < 3; ++vi)
+    {
+        int const edgeOrdinal = (vi + 1) % 3;
+
+        // Only consider edges that we ancounter ahead along the trajectory
+        if (targetBarycentricCoords[vi] < 0.0f)
+        {
+            float const den = particle.ConstrainedState->CurrentTriangleBarycentricCoords[vi] - targetBarycentricCoords[vi];
+            float const t = particle.ConstrainedState->CurrentTriangleBarycentricCoords[vi] / den;
+
+#ifdef _DEBUG
+            diags[vi].emplace(den, t);
+            diags[vi]->IntersectionPoint =
+                particle.ConstrainedState->CurrentTriangleBarycentricCoords
+                + (targetBarycentricCoords - particle.ConstrainedState->CurrentTriangleBarycentricCoords) * t;
+#endif
+
+            assert(t > -Epsilon<float>); // Some numeric slack, trajectory is here guaranteed to be pointing into this edge
+
+            LogMessage("        t[v", vi, " e", edgeOrdinal, "] = ", t);
+
+            if (t < minIntersectionT)
+            {
+                intersectionVertexOrdinal = vi;
+                minIntersectionT = t;
+            }
+        }
+    }
+
+    assert(intersectionVertexOrdinal >= 0); // Guaranteed to exist
+    assert(minIntersectionT > -Epsilon<float> && minIntersectionT <= 1.0f); // Guaranteed to exist, and within trajectory
+
+    //
+    // Move to intersection
+    //
+
+    int const intersectionEdgeOrdinal = (intersectionVertexOrdinal + 1) % 3;
+    ElementIndex const intersectionEdgeElementIndex = mesh.GetTriangles().GetSubEdges(particle.ConstrainedState->CurrentTriangle).EdgeIndices[intersectionEdgeOrdinal];
+
+    LogMessage("      Moving to intersection with edge ", intersectionEdgeOrdinal);
+
+    // Calculate intersection barycentric coordinates
+
+    vec3f intersectionBarycentricCoords;
+    intersectionBarycentricCoords[intersectionVertexOrdinal] = 0.0f;
+    float const lNext = Clamp( // Barycentric coord of next vertex at intersection; enforcing it's within triangle
+        particle.ConstrainedState->CurrentTriangleBarycentricCoords[(intersectionVertexOrdinal + 1) % 3] * (1.0f - minIntersectionT)
+        + targetBarycentricCoords[(intersectionVertexOrdinal + 1) % 3] * minIntersectionT,
+        0.0f,
+        1.0f);
+    intersectionBarycentricCoords[(intersectionVertexOrdinal + 1) % 3] = lNext;
+    intersectionBarycentricCoords[(intersectionVertexOrdinal + 2) % 3] = 1.0f - lNext;
+
+    {
+        assert(intersectionBarycentricCoords[0] >= 0.0f && intersectionBarycentricCoords[0] <= 1.0f);
+        assert(intersectionBarycentricCoords[1] >= 0.0f && intersectionBarycentricCoords[1] <= 1.0f);
+        assert(intersectionBarycentricCoords[2] >= 0.0f && intersectionBarycentricCoords[2] <= 1.0f);
+    }
+
+    // Calculate intersection position
+
+    vec2f const intersectionPosition = mesh.GetTriangles().FromBarycentricCoordinates(
+        intersectionBarycentricCoords,
+        particle.ConstrainedState->CurrentTriangle,
+        mesh.GetVertices());
+
+    // Calculate how much time has been consumed for this movement
+
+    float const actualDisplacement = (intersectionPosition - particles.GetPosition(particle.ParticleIndex)).length();
+    float const consumedFraction = trajectoryLength != 0.0f
+        ? actualDisplacement / trajectoryLength
+        : 0.0f;
+
+    LogMessage("        Consumed: ", actualDisplacement, " over ", trajectoryLength, " == ", consumedFraction);
+
+    float const timeConsumed = dt * consumedFraction;
+    float const remainingDt = dt - timeConsumed;
+
+    // Move to intersection, update physics
+
+    vec2f const absoluteVelocity = timeConsumed != 0.0f
+        ? (intersectionPosition - particles.GetPosition(particle.ParticleIndex)) / timeConsumed
+        : vec2f::zero();
+
+    particles.SetPosition(
+        particle.ParticleIndex,
+        intersectionPosition);
+
+    particles.SetVelocity(
+        particle.ParticleIndex,
+        absoluteVelocity);
+
+    particle.ConstrainedState->MeshRelativeVelocity =
+        absoluteVelocity
+        + meshVelocity;
+
+    particle.ConstrainedState->CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
+
+    //
+    // Check if impacted with floor
+    //
+
+    assert(isPrimaryParticle || dipoleArg.has_value());
+
+    if (IsEdgeFloorToParticle(intersectionEdgeElementIndex, particle.ConstrainedState->CurrentTriangle, mesh)
+        && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
+            mParticles.GetPosition(dipoleArg->OtherParticle.ParticleIndex),
+            intersectionPosition,
+            intersectionEdgeElementIndex,
+            mesh)))
+    {
+        //
+        // Impact - calculate bounce response
+        //
+
+        LogMessage("      Impact");
+
+        // Decompose absolute particle velocity into normal and tangential
+        vec2f const edgeDir =
+            mesh.GetTriangles().GetSubEdgeVector(particle.ConstrainedState->CurrentTriangle, intersectionEdgeOrdinal, mesh.GetVertices())
+            .normalise();
+        vec2f const edgeNormal = edgeDir.to_perpendicular();
+        float const absoluteVelocityAlongNormal = absoluteVelocity.dot(edgeNormal);
+        vec2f const normalVelocity = edgeNormal * absoluteVelocityAlongNormal;
+        vec2f const tangentialVelocity = absoluteVelocity - normalVelocity;
+
+        // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
+        vec2f const normalResponse =
+            -normalVelocity
+            * labParameters.Elasticity;
+
+        // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
+        vec2f const tangentialResponse =
+            tangentialVelocity
+            * (1.0f - labParameters.KineticFriction);
+
+        vec2f const resultantAbsoluteVelocity = normalResponse + tangentialResponse;
+
+        LogMessage("      nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantAbsoluteVelocity);
+
+        // Update physics
+
+        particles.SetVelocity(
+            particle.ParticleIndex,
+            resultantAbsoluteVelocity);
+
+        particle.ConstrainedState->MeshRelativeVelocity =
+            resultantAbsoluteVelocity
+            + meshVelocity;
+
+        particle.ConstrainedState->CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
+    }
+    else
+    {
+        //
+        // Not floor, climb over edge
+        //
+
+        LogMessage("      Climbing over non-floor edge");
+
+        // Find opposite triangle
+        ElementIndex const oppositeTriangle = mesh.GetEdges().GetOppositeTriangle(intersectionEdgeElementIndex, particle.ConstrainedState->CurrentTriangle);
+        if (oppositeTriangle == NoneElementIndex)
+        {
+            //
+            // Become free
+            //
+
+            LogMessage("      No opposite triangle found, becoming free");
+
+            particle.ConstrainedState.reset();
+        }
+        else
+        {
+            //
+            // Move to edge of opposite triangle 
+            //
+
+            int const oppositeTriangleEdgeOrdinal = mesh.GetTriangles().GetSubEdgeOrdinal(oppositeTriangle, intersectionEdgeElementIndex);
+
+            LogMessage("      Moving to edge ", oppositeTriangleEdgeOrdinal, " of opposite triangle ", oppositeTriangle);
+
+            particle.ConstrainedState->CurrentTriangle = oppositeTriangle;
+
+            // Calculate new current barycentric coords (wrt opposite triangle)
+            vec3f newBarycentricCoords; // In new triangle
+            newBarycentricCoords[(oppositeTriangleEdgeOrdinal + 2) % 3] = 0.0f;
+            newBarycentricCoords[oppositeTriangleEdgeOrdinal] = particle.ConstrainedState->CurrentTriangleBarycentricCoords[(intersectionEdgeOrdinal + 1) % 3];
+            newBarycentricCoords[(oppositeTriangleEdgeOrdinal + 1) % 3] = particle.ConstrainedState->CurrentTriangleBarycentricCoords[intersectionEdgeOrdinal];
+
+            LogMessage("      B-Coords: ", particle.ConstrainedState->CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
+
+            {
+                assert(newBarycentricCoords[0] >= 0.0f && newBarycentricCoords[0] <= 1.0f);
+                assert(newBarycentricCoords[1] >= 0.0f && newBarycentricCoords[1] <= 1.0f);
+                assert(newBarycentricCoords[2] >= 0.0f && newBarycentricCoords[2] <= 1.0f);
+            }
+
+            particle.ConstrainedState->CurrentTriangleBarycentricCoords = newBarycentricCoords;
+        }
+    }
+
+    return remainingDt;
 }

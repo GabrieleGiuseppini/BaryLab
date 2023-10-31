@@ -265,8 +265,6 @@ void LabController::Reset()
 
 void LabController::UpdateMeshTransformations()
 {
-    LogMessage("UpdateMeshTransformations()");
-
     vec2f const translation = mCurrentMeshTranslationVelocity * LabParameters::SimulationTimeStepDuration;
 
     // Update mesh
