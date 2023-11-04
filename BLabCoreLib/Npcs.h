@@ -495,24 +495,13 @@ private:
 		Mesh const & mesh,
 		LabParameters const & labParameters) const;
 
-	float UpdateNpcParticle_ConstrainedInertial2(
-		StateType::NpcParticleStateType & particle,
-		std::optional<DipoleArg> const & dipoleArg,
-		bool isPrimaryParticle,
-		vec2f const & physicsDeltaPos,
-		vec2f const & meshVelocity,
-		float dt,
-		NpcParticles & particles,
-		Mesh const & mesh,
-		LabParameters const & labParameters) const;
-
 	float UpdateNpcParticle_ConstrainedTraceSegment2(
 		StateType::NpcParticleStateType & particle,
 		std::optional<DipoleArg> const & dipoleArg,
 		bool isPrimaryParticle,
-		vec3f const & targetBarycentricCoords,
-		float trajectoryLength,
-		vec2f const & meshVelocity,
+		vec3f const trajectoryStartBarycentricCoords,
+		vec3f trajectoryEndBarycentricCoords,
+		vec2f const meshVelocity,
 		float dt,
 		NpcParticles & particles,
 		Mesh const & mesh,

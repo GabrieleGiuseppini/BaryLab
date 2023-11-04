@@ -3,11 +3,55 @@
 		+ Kinda work - but secondary acquires more velocity than primary, because primary has friction
 	= Step 2: Merge CalculateTraj with StepSimulation
 		= Each Update...() step moves a segment and sets velocity based on movement achieved in its remainingDt
-		- Issue at ConstrainedSegmentMove:
+		= Issue at ConstrainedSegmentMove:
 			- If we hit edge before end of a trajectory which is completely due to mesh movement, the particle position
 			  changes as it's a temporary one; at the next iteration, trajectory is zero hence we don't move
 			- Should we then not update particle position but update a ray-tracing position instead?
 				- Function returns remainingDt, rayTracingPosition (pos + bcoords)
+			- OR: isn't this a side-effect of the fact that the second time around, our calculation of target b-coords matches cur position, rather than including
+			  mesh velocity?
+			= Solution option 1:
+				- UpdateNpcParticle_ConstrainedTraceSegment2() works completely on bary coords - it updates them at each step; only sets position at end moments (when it has fully consumed time quantum)
+					- Thoughts: UpdateNpcParticle_ConstrainedInertial2() recalculates each time target bary coords after physics delta pos (which, TODO: does it change or not? should not change
+					  for the rest of this plan to work); the current bary coords change each time
+				= Loop for deltaT
+					+ Note: if we allow to loop over multiple constrained sub-loops, then meshDisplacement/Velocity calculated at first step - before various coords are changed - must be constant
+					  for all the other sub-loops
+					- Case 1
+					= Case 2, 3 (Constrained): UpdateNpcParticle_ConstrainedTraceSegment2()
+						+ Trajectory: first particles moves with mesh (start traj) and then we try to reach start abs pos + physics delta pos (which might be zero)
+						+ Takes:
+							- TrajectoryStartBaryCoords (==current bary coords; once converted to absolute, are due exclusively to mesh displacement)
+							- (Start absolute coords are implicitly TrajectoryStartBaryCoords converted to absolute)
+							- TrajectoryEndBaryCoords (==bary coords (after mesh displacement) of startPos + physicsDeltaPos)
+							- TrajectoryEndAbsoluteCoords (==startPos + physicsDeltaPos)
+							- MeshDisplacement - but TODO: remaining portion? or whole?
+						= Loops until one of three exit conditions, at which point sets physics and calculates remaining DT
+							+ Reaching destination:
+								! We consume the whole time quantum
+								+ Set CurrentBaryCoords to TrajectoryEndBaryCoords
+								+ Set absolute pos
+								= Set absolute vel to (TrajectoryStartAbsoluteCoords - TrajectoryStartBaryCoords)/remainingDT
+								- Set mesh-relative vel to absolute vel with meshDisplacement
+									- TODOHERE: should we use whole dt? or just remaining DT? What mesh velocity is this?
+									- Probably: should take meshVelocity as arg, calculated @ beginning on whole DT
+							= Bounce:
+								+ Calc how much of *trajectory* has been moving so far, and use that for remaining DT
+								+ Set current bary coords to bary coords of intersection
+								+ Set absolute pos
+									- It's ok to change here: after bounce we can take mesh as moved already, and we only care about
+									  physics delta pos from new position
+										- Because now we have included mesh displacement in velocity (via bounce)
+								= Set absolute vel
+								= Set mesh-relative vel
+									- TODOHERE: should we use whole dt? or just remaining DT? What mesh velocity is this?
+							- Becoming free:
+								- TODOHERE
+					- Optimize:
+						- current bary coords are in local var
+							- set at exit points - where needed
+						- current triangle is in local var
+							- set at exit points - where needed
 	- Cleanups:
 		- Nuke imparted trajectory (tool and all)
 		- Nuke step-by-step
