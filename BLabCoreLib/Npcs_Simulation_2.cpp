@@ -296,6 +296,8 @@ void Npcs::UpdateNpcParticle2(
                             // Case 2: Constrained, on edge and moving against (or along) it (i.e. in a non-inertial frame)
                             //
 
+                            // TODOHERE
+
                             remainingDt = UpdateNpcParticle_ConstrainedNonInertial2(
                                 particle,
                                 dipoleArg,
@@ -349,7 +351,14 @@ void Npcs::UpdateNpcParticle2(
                     mesh,
                     labParameters);
 
-                LogMessage("    EndPosition=", mParticles.GetPosition(particle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(particle.ParticleIndex), " EndMRVelocity=", particle.ConstrainedState->MeshRelativeVelocity);
+                if (particle.ConstrainedState.has_value())
+                {
+                    LogMessage("    EndPosition=", mParticles.GetPosition(particle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(particle.ParticleIndex), " EndMRVelocity=", particle.ConstrainedState->MeshRelativeVelocity);
+                }
+                else
+                {
+                    LogMessage("    EndPosition=", mParticles.GetPosition(particle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(particle.ParticleIndex));
+                }
             }
         }
 
@@ -702,9 +711,9 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
             assert(intersectionBarycentricCoords[2] >= 0.0f && intersectionBarycentricCoords[2] <= 1.0f);
         }
 
-        // Move to intersection
+        // Move barycentric coords to intersection
 
-        LogMessage("      Moving to intersection with edge ", intersectionEdgeOrdinal, " ", intersectionBarycentricCoords);
+        LogMessage("      Moving bary coords to intersection with edge ", intersectionEdgeOrdinal, " ", intersectionBarycentricCoords);
 
         particle.ConstrainedState->CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
 
@@ -761,8 +770,8 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
                 * (1.0f - labParameters.KineticFriction);
 
             // Given that we've been working in *apparent* space (we've calc'd the collision response to *trajectory* which is apparent displacement),
-            // we need to transform it to absolute particle velocity
-            vec2f const resultantAbsoluteVelocity = normalResponse + tangentialResponse - meshVelocity;
+            // we need to transform velocity to absolute particle velocity
+            vec2f const resultantAbsoluteVelocity = (normalResponse + tangentialResponse) - meshVelocity;
 
             LogMessage("        nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantAbsoluteVelocity);
 
@@ -815,11 +824,32 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
                 // Exit
                 //
 
-                // TODOHERE
+                // Calculate consumed time quantum
+                vec2f const trajectoryEndAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
+                    trajectoryEndBarycentricCoords,
+                    particle.ConstrainedState->CurrentTriangle,
+                    mesh.GetVertices());
+                float const trajectoryLength = (trajectoryEndAbsolutePosition - trajectoryStartAbsolutePosition).length();
+                float const consumedFraction = trajectoryLength == 0.0f
+                    ? 0.0f // No trajectory -> nothing consumed
+                    : (intersectionAbsolutePosition - trajectoryStartAbsolutePosition).length() / trajectoryLength;
+                assert(consumedFraction >= 0.0f && consumedFraction <= 1.0f);
+                float const consumedDt = dt * consumedFraction;
+
+                LogMessage("        consumedDt=", consumedDt, " (", consumedFraction, ") of ", dt);
+
+                particles.SetPosition(particle.ParticleIndex, intersectionAbsolutePosition);
+
+                // TODOTEST
+                ////particles.SetVelocity(
+                ////    particle.ParticleIndex, 
+                ////    (intersectionAbsolutePosition - particleStartAbsolutePosition) / consumedDt);
+                // No need for mesh-relative velocity as we're becoming free
 
                 particle.ConstrainedState.reset();
 
-                return 0.0f;
+                // Consume the consumed time quantum
+                return dt - consumedDt;
             }
             else
             {

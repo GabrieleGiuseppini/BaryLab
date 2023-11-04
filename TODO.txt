@@ -17,7 +17,7 @@
 				= Loop for deltaT
 					+ Note: if we allow to loop over multiple constrained sub-loops, then meshDisplacement/Velocity calculated at first step - before various coords are changed - must be constant
 					  for all the other sub-loops
-					- Case 1
+					+ Case 1
 					= Case 2, 3 (Constrained): UpdateNpcParticle_ConstrainedTraceSegment2()
 						+ Trajectory: first particles moves with mesh (start traj) and then we try to reach start abs pos + physics delta pos (which might be zero)
 						+ Takes:
@@ -31,10 +31,9 @@
 								! We consume the whole time quantum
 								+ Set CurrentBaryCoords to TrajectoryEndBaryCoords
 								+ Set absolute pos
-								= Set absolute vel to (TrajectoryStartAbsoluteCoords - TrajectoryStartBaryCoords)/remainingDT
-								- Set mesh-relative vel to absolute vel with meshDisplacement
-									- TODOHERE: should we use whole dt? or just remaining DT? What mesh velocity is this?
-									- Probably: should take meshVelocity as arg, calculated @ beginning on whole DT
+								+ Set absolute vel to (TrajectoryStartAbsoluteCoords - TrajectoryStartBaryCoords)/remainingDT
+								+ Set mesh-relative vel to absolute vel with meshDisplacement
+									+ Should take meshVelocity as arg, calculated @ beginning on whole DT
 							= Bounce:
 								+ Calc how much of *trajectory* has been moving so far, and use that for remaining DT
 								+ Set current bary coords to bary coords of intersection
@@ -42,16 +41,27 @@
 									- It's ok to change here: after bounce we can take mesh as moved already, and we only care about
 									  physics delta pos from new position
 										- Because now we have included mesh displacement in velocity (via bounce)
-								= Set absolute vel
-								= Set mesh-relative vel
-									- TODOHERE: should we use whole dt? or just remaining DT? What mesh velocity is this?
-							- Becoming free:
-								- TODOHERE
+								+ Set absolute vel
+								+ Set mesh-relative vel
+								- Verify/think following iterations in outer loop after this bounce
+							= Becoming free:
+								- FIX: intersection position might be even before start position, when mesh moves move than particle (e.g. case of particle falling through hole)
+									- Because intersection position comes along trajectory, which is from fictitious (theoretical) initial particle position
+										- Calculating velocity based on this seems to be preposterous
+										! But calculating consumed DT is OK, as whole apparent trajectory is indeed traveled along in dt
+								- absolute velocity calculation: 
 					- Optimize:
 						- current bary coords are in local var
 							- set at exit points - where needed
 						- current triangle is in local var
 							- set at exit points - where needed
+
+	- Re-instate dipole - w/out human
+	- Re-instate human state machine, w/out walking
+	- Re-instate walking
+		- First version: try with voluntaryVelocity (instead of displacement)
+			- Set to purely walking velocity
 	- Cleanups:
+		- Nuke old "1" simulations and rename "2"
 		- Nuke imparted trajectory (tool and all)
 		- Nuke step-by-step
