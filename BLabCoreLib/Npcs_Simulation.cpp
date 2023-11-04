@@ -709,7 +709,7 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
         targetPosition,
         targetAbsoluteVelocity,
         trajectoryConstrainedState,
-        isPrimaryParticle ? mParticles.GetVoluntarySuperimposedDisplacement(particle.ParticleIndex) : std::optional<vec2f>());
+        isPrimaryParticle && npc.HumanNpcState.has_value() ? mParticles.GetVoluntarySuperimposedDisplacement(particle.ParticleIndex) : std::optional<vec2f>());
 }
 
 std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(

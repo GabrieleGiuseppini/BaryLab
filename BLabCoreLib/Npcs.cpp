@@ -197,7 +197,9 @@ void Npcs::Update(
 	// Update NPCs' state
 	//
 
+	// TODOTEST
 	UpdateNpcs2(mesh, labParameters);
+	//UpdateNpcs(mesh, labParameters);
 
 	//
 	// Publish

@@ -550,6 +550,11 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
 {
     vec2f const particleStartAbsolutePosition = particles.GetPosition(particle.ParticleIndex);
 
+    vec2f const trajectoryStartAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
+        trajectoryStartBarycentricCoords,
+        particle.ConstrainedState->CurrentTriangle,
+        mesh.GetVertices());
+
     //
     // Ray-trace along the specified trajectory, ending only at one of the following three conditions:
     // 1. Reached destination: simulation step has completed
@@ -730,11 +735,6 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
 
             // Decompose apparent particle velocity into normal and tangential
 
-            vec2f const trajectoryStartAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
-                trajectoryStartBarycentricCoords,
-                particle.ConstrainedState->CurrentTriangle,
-                mesh.GetVertices());
-
             vec2f const trajectoryEndAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
                 trajectoryEndBarycentricCoords,
                 particle.ConstrainedState->CurrentTriangle,
@@ -760,7 +760,9 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
                 tangentialVelocity
                 * (1.0f - labParameters.KineticFriction);
 
-            vec2f const resultantAbsoluteVelocity = normalResponse + tangentialResponse;
+            // Given that we've been working in *apparent* space (we've calc'd the collision response to *trajectory* which is apparent displacement),
+            // we need to transform it to absolute particle velocity
+            vec2f const resultantAbsoluteVelocity = normalResponse + tangentialResponse - meshVelocity;
 
             LogMessage("        nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantAbsoluteVelocity);
 
@@ -773,6 +775,7 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
             float const consumedFraction = trajectoryLength == 0.0f
                 ? 0.0f // No trajectory -> nothing consumed
                 : (intersectionAbsolutePosition - trajectoryStartAbsolutePosition).length() / trajectoryLength;
+            assert(consumedFraction >= 0.0f && consumedFraction <= 1.0f);
             float const consumedDt = dt * consumedFraction;
 
             LogMessage("        consumedDt=", consumedDt, " (", consumedFraction, ") of ", dt);
