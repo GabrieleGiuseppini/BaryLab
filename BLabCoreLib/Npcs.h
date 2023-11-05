@@ -480,7 +480,7 @@ private:
 	void UpdateNpcParticle_Free2(
 		StateType::NpcParticleStateType & particle,
 		vec2f const & startPosition,
-		vec2f const & absoluteDisplacement,
+		vec2f const & endPosition,
 		float dt,
 		NpcParticles & particles) const;
 

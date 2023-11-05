@@ -4,15 +4,12 @@
 	= Step 2: Merge CalculateTraj with StepSimulation
 		= Each Update...() step moves a segment and sets velocity based on movement achieved in its remainingDt
 		= Issue at ConstrainedSegmentMove:
-			- If we hit edge before end of a trajectory which is completely due to mesh movement, the particle position
+			! If we hit edge before end of a trajectory which is completely due to mesh movement, the particle position
 			  changes as it's a temporary one; at the next iteration, trajectory is zero hence we don't move
-			- Should we then not update particle position but update a ray-tracing position instead?
-				- Function returns remainingDt, rayTracingPosition (pos + bcoords)
-			- OR: isn't this a side-effect of the fact that the second time around, our calculation of target b-coords matches cur position, rather than including
-			  mesh velocity?
+				! We should then not update particle position and continue with the loop
 			= Solution option 1:
-				- UpdateNpcParticle_ConstrainedTraceSegment2() works completely on bary coords - it updates them at each step; only sets position at end moments (when it has fully consumed time quantum)
-					- Thoughts: UpdateNpcParticle_ConstrainedInertial2() recalculates each time target bary coords after physics delta pos (which, TODO: does it change or not? should not change
+				! UpdateNpcParticle_ConstrainedTraceSegment2() works completely on bary coords - it updates them at each step; only sets position at end moments (when it has fully consumed time quantum)
+					! Thoughts: UpdateNpcParticle_ConstrainedInertial2() recalculates each time target bary coords after physics delta pos (which, TODO: does it change or not? should not change
 					  for the rest of this plan to work); the current bary coords change each time
 				= Loop for deltaT
 					+ Note: if we allow to loop over multiple constrained sub-loops, then meshDisplacement/Velocity calculated at first step - before various coords are changed - must be constant
@@ -44,12 +41,17 @@
 								+ Set absolute vel
 								+ Set mesh-relative vel
 								- Verify/think following iterations in outer loop after this bounce
-							= Becoming free:
-								- FIX: intersection position might be even before start position, when mesh moves move than particle (e.g. case of particle falling through hole)
-									- Because intersection position comes along trajectory, which is from fictitious (theoretical) initial particle position
-										- Calculating velocity based on this seems to be preposterous
-										! But calculating consumed DT is OK, as whole apparent trajectory is indeed traveled along in dt
-								- absolute velocity calculation: 
+							+ Becoming free:
+								+ Do whole free movement here, consuming whole dt
+					- Think: will multiple on-edge loops cause problems because of missing mesh displacement?
+						- No, as long as:
+							- Each loop does trajectory from TrajectoryStart (==current bary coords) to TrajectoryEnd (==current absolute pos + deltaPos)
+								- TODOHERE: actually it's the ABS POS that we care about: trajectoryStartAbsolutePosition = current bary coords -> abs pos
+							- And: at the end of each loop that is meant to continue we:
+								- Update current bary coords to what will become the next TrajectoryStart
+								- Do *NOT* update absolute pos
+							- And: TrajectoryEnd remains constant from one loop iteration to the other
+								- TODO: is this really necessary? And, if so, does it really hold?
 					- Optimize:
 						- current bary coords are in local var
 							- set at exit points - where needed
@@ -65,3 +67,4 @@
 		- Nuke old "1" simulations and rename "2"
 		- Nuke imparted trajectory (tool and all)
 		- Nuke step-by-step
+	- Go back to solving walking reached injuction of two floors

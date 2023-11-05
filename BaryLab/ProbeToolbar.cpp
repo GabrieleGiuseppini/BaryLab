@@ -495,7 +495,7 @@ void ProbeToolbar::OnCustomProbe(
     if (!probe)
     {
         probe = AddScalarTimeSeriesProbe(name, 100);
-        mProbesSizer->Layout();
+        Layout();
     }
 
     probe->RegisterSample(value);

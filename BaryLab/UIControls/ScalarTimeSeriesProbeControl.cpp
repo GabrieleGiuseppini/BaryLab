@@ -96,14 +96,17 @@ void ScalarTimeSeriesProbeControl::OnMouseClick(wxMouseEvent & /*event*/)
 
 void ScalarTimeSeriesProbeControl::OnPaint(wxPaintEvent & /*event*/)
 {
-    if (!mBufferedDCBitmap || mBufferedDCBitmap->GetSize() != this->GetSize())
+    if (this->GetSize() != wxSize(0, 0))
     {
-        mBufferedDCBitmap = std::make_unique<wxBitmap>(this->GetSize());
+        if (!mBufferedDCBitmap || mBufferedDCBitmap->GetSize() != this->GetSize())
+        {
+            mBufferedDCBitmap = std::make_unique<wxBitmap>(this->GetSize());
+        }
+
+        wxBufferedPaintDC bufDc(this, *mBufferedDCBitmap);
+
+        Render(bufDc);
     }
-
-    wxBufferedPaintDC bufDc(this, *mBufferedDCBitmap);
-
-    Render(bufDc);
 }
 
 void ScalarTimeSeriesProbeControl::OnEraseBackground(wxPaintEvent & /*event*/)

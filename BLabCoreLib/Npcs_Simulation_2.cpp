@@ -195,12 +195,17 @@ void Npcs::UpdateNpcParticle2(
             // Case 1: Free
             //
 
+            LogMessage("    Free: physicsDeltaPos=", physicsDeltaPos);
+            LogMessage("    StartPosition=", particleStartPosition, " StartVelocity=", mParticles.GetVelocity(particle.ParticleIndex));
+
             UpdateNpcParticle_Free2(
                 particle,
                 particleStartPosition,
-                physicsDeltaPos,
+                particleStartPosition + physicsDeltaPos,
                 remainingDt,
                 mParticles);
+
+            LogMessage("    EndPosition=", mParticles.GetPosition(particle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(particle.ParticleIndex));
 
             // We've consumed the whole time quantum
             remainingDt = 0.0f;
@@ -217,7 +222,7 @@ void Npcs::UpdateNpcParticle2(
             // at the position at which the particle would be if it were only subject to physical forces
             //
 
-            ElementIndex const currentTriangleElementIndex = particle.ConstrainedState->CurrentTriangle;
+            ElementIndex const currentTriangleElementIndex = particle.ConstrainedState->CurrentTriangle;            
 
             // Absolute position of particle as if it moved with the mesh, staying in its position wrt its triangle;
             // new theoretical position after mesh displacement
@@ -369,24 +374,21 @@ void Npcs::UpdateNpcParticle2(
 void Npcs::UpdateNpcParticle_Free2(
     StateType::NpcParticleStateType & particle,
     vec2f const & startPosition,
-    vec2f const & absoluteDisplacement,
+    vec2f const & endPosition,
     float dt,
     NpcParticles & particles) const
 {
-    LogMessage("    Free: absoluteDisplacement=", absoluteDisplacement);
-    LogMessage("    StartPosition=", particles.GetPosition(particle.ParticleIndex), " StartVelocity=", particles.GetVelocity(particle.ParticleIndex));
+    assert(!particle.ConstrainedState.has_value());
 
     // Update position
     particles.SetPosition(
         particle.ParticleIndex,
-        startPosition + absoluteDisplacement);
+        endPosition);
 
     // Update velocity
     particles.SetVelocity(
         particle.ParticleIndex,
-        absoluteDisplacement / dt);
-
-    LogMessage("    EndPosition=", particles.GetPosition(particle.ParticleIndex), " EndVelocity=", particles.GetVelocity(particle.ParticleIndex));
+        (endPosition - startPosition) / dt);
 }
 
 float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
@@ -821,35 +823,24 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
                 LogMessage("      No opposite triangle found, becoming free");
 
                 //
-                // Exit
+                // Move to endpoint and exit, consuming whole quantum
                 //
 
-                // Calculate consumed time quantum
                 vec2f const trajectoryEndAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
                     trajectoryEndBarycentricCoords,
                     particle.ConstrainedState->CurrentTriangle,
                     mesh.GetVertices());
-                float const trajectoryLength = (trajectoryEndAbsolutePosition - trajectoryStartAbsolutePosition).length();
-                float const consumedFraction = trajectoryLength == 0.0f
-                    ? 0.0f // No trajectory -> nothing consumed
-                    : (intersectionAbsolutePosition - trajectoryStartAbsolutePosition).length() / trajectoryLength;
-                assert(consumedFraction >= 0.0f && consumedFraction <= 1.0f);
-                float const consumedDt = dt * consumedFraction;
-
-                LogMessage("        consumedDt=", consumedDt, " (", consumedFraction, ") of ", dt);
-
-                particles.SetPosition(particle.ParticleIndex, intersectionAbsolutePosition);
-
-                // TODOTEST
-                ////particles.SetVelocity(
-                ////    particle.ParticleIndex, 
-                ////    (intersectionAbsolutePosition - particleStartAbsolutePosition) / consumedDt);
-                // No need for mesh-relative velocity as we're becoming free
 
                 particle.ConstrainedState.reset();
 
-                // Consume the consumed time quantum
-                return dt - consumedDt;
+                UpdateNpcParticle_Free2(
+                    particle,
+                    particleStartAbsolutePosition,
+                    trajectoryEndAbsolutePosition,
+                    dt,
+                    particles);
+
+                return 0.0f;
             }
             else
             {
