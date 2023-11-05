@@ -159,6 +159,8 @@ void Npcs::UpdateNpcParticle2(
 {
     float const particleMass = LabParameters::ParticleMass * labParameters.MassAdjustment;
 
+    vec2f const startPosition = mParticles.GetPosition(particle.ParticleIndex);
+
     // Mesh displacement may only be calculated at first constrained step - susbequent steps won't be able to
     // detect it anymore if the particle's absolute position has changed
     std::optional<vec2f> meshDisplacement; 
@@ -328,8 +330,10 @@ void Npcs::UpdateNpcParticle2(
                 // Case 3: Constrained inertial: not on edge or on edge but not moving against (nor along) it
                 //
 
-                LogMessage("    ConstrainedInertial: triangle=", particle.ConstrainedState->CurrentTriangle, " bCoords=", particle.ConstrainedState->CurrentTriangleBarycentricCoords, "  physicsDeltaPos=", physicsDeltaPos);
-                LogMessage("    StartPosition=", mParticles.GetPosition(particle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(particle.ParticleIndex), " StartMRVelocity=", particle.ConstrainedState->MeshRelativeVelocity);
+                vec2f const meshVelocity = *meshDisplacement / LabParameters::SimulationTimeStepDuration;
+
+                LogMessage("    ConstrainedInertial: triangle=", particle.ConstrainedState->CurrentTriangle, " bCoords=", particle.ConstrainedState->CurrentTriangleBarycentricCoords, " physicsDeltaPos=", physicsDeltaPos);
+                LogMessage("    StartPosition=", mParticles.GetPosition(particle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(particle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", particle.ConstrainedState->MeshRelativeVelocity);
 
                 //
                 // Calculate target barycentric coords
@@ -350,7 +354,7 @@ void Npcs::UpdateNpcParticle2(
                     isPrimaryParticle,
                     particle.ConstrainedState->CurrentTriangleBarycentricCoords, // trajectoryStartBarycentricCoords
                     trajectoryEndBarycentricCoords,
-                    *meshDisplacement / LabParameters::SimulationTimeStepDuration,
+                    meshVelocity,
                     remainingDt,
                     mParticles,
                     mesh,
@@ -369,6 +373,13 @@ void Npcs::UpdateNpcParticle2(
 
         assert(remainingDt >= 0.0f);
     }
+
+    // Publish velocities
+
+    vec2f const particleVelocity = (mParticles.GetPosition(particle.ParticleIndex) - startPosition) / LabParameters::SimulationTimeStepDuration;
+
+    mEventDispatcher.OnCustomProbe("VelX", particleVelocity.x);
+    mEventDispatcher.OnCustomProbe("VelY", particleVelocity.y);
 }
 
 void Npcs::UpdateNpcParticle_Free2(
@@ -753,6 +764,9 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
 
             vec2f const trajectory = trajectoryEndAbsolutePosition - trajectoryStartAbsolutePosition;
             vec2f const apparentParticleVelocity = trajectory / dt;
+
+            LogMessage("        apparentParticleVelocity=", apparentParticleVelocity);
+
             vec2f const edgeDir =
                 mesh.GetTriangles().GetSubEdgeVector(particle.ConstrainedState->CurrentTriangle, intersectionEdgeOrdinal, mesh.GetVertices())
                 .normalise();
@@ -778,31 +792,18 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
             LogMessage("        nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantAbsoluteVelocity);
 
             //
-            // Exit
+            // Exit, consuming whole time quantum
+            //
+            // Note: we consume whole time quantum as a subsequent bounce during the same simulation step wouldn't see mesh moving
             //
 
-            // Calculate consumed time quantum
-            float const trajectoryLength = (trajectoryEndAbsolutePosition - trajectoryStartAbsolutePosition).length();
-            float const consumedFraction = trajectoryLength == 0.0f
-                ? 0.0f // No trajectory -> nothing consumed
-                : (intersectionAbsolutePosition - trajectoryStartAbsolutePosition).length() / trajectoryLength;
-            assert(consumedFraction >= 0.0f && consumedFraction <= 1.0f);
-            float const consumedDt = dt * consumedFraction;
-
-            LogMessage("        consumedDt=", consumedDt, " (", consumedFraction, ") of ", dt);
-
-            assert(particle.ConstrainedState->CurrentTriangleBarycentricCoords == intersectionBarycentricCoords);
-
-            // Note: it's ok to set position here: after this bounce we will take mesh as moved already, and then we only care about
-            // physics delta pos from bounce position
-            //    - Because now we have included mesh displacement in velocity(via bounce)
             particles.SetPosition(particle.ParticleIndex, intersectionAbsolutePosition);
 
             particles.SetVelocity(particle.ParticleIndex, resultantAbsoluteVelocity);
             particle.ConstrainedState->MeshRelativeVelocity = resultantAbsoluteVelocity + meshVelocity;
 
-            // Consume the consumed time quantum
-            return dt - consumedDt;
+            // Consume the entire time quantum
+            return 0.0f;
         }
         else
         {

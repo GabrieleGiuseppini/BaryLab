@@ -15,15 +15,15 @@
 					+ Note: if we allow to loop over multiple constrained sub-loops, then meshDisplacement/Velocity calculated at first step - before various coords are changed - must be constant
 					  for all the other sub-loops
 					+ Case 1
-					= Case 2, 3 (Constrained): UpdateNpcParticle_ConstrainedTraceSegment2()
+					+ Case 2, 3 (Constrained): UpdateNpcParticle_ConstrainedTraceSegment2()
 						+ Trajectory: first particles moves with mesh (start traj) and then we try to reach start abs pos + physics delta pos (which might be zero)
 						+ Takes:
-							- TrajectoryStartBaryCoords (==current bary coords; once converted to absolute, are due exclusively to mesh displacement)
-							- (Start absolute coords are implicitly TrajectoryStartBaryCoords converted to absolute)
-							- TrajectoryEndBaryCoords (==bary coords (after mesh displacement) of startPos + physicsDeltaPos)
-							- TrajectoryEndAbsoluteCoords (==startPos + physicsDeltaPos)
-							- MeshDisplacement - but TODO: remaining portion? or whole?
-						= Loops until one of three exit conditions, at which point sets physics and calculates remaining DT
+							+ TrajectoryStartBaryCoords (==current bary coords; once converted to absolute, are due exclusively to mesh displacement)
+							+ (Start absolute coords are implicitly TrajectoryStartBaryCoords converted to absolute)
+							+ TrajectoryEndBaryCoords (==bary coords (after mesh displacement) of startPos + physicsDeltaPos)
+							+ TrajectoryEndAbsoluteCoords (==startPos + physicsDeltaPos)
+							+ MeshDisplacement - but TODO: remaining portion? or whole?
+						+ Loops until one of three exit conditions, at which point sets physics and calculates remaining DT
 							+ Reaching destination:
 								! We consume the whole time quantum
 								+ Set CurrentBaryCoords to TrajectoryEndBaryCoords
@@ -31,7 +31,7 @@
 								+ Set absolute vel to (TrajectoryStartAbsoluteCoords - TrajectoryStartBaryCoords)/remainingDT
 								+ Set mesh-relative vel to absolute vel with meshDisplacement
 									+ Should take meshVelocity as arg, calculated @ beginning on whole DT
-							= Bounce:
+							+ Bounce:
 								+ Calc how much of *trajectory* has been moving so far, and use that for remaining DT
 								+ Set current bary coords to bary coords of intersection
 								+ Set absolute pos
@@ -40,9 +40,11 @@
 										- Because now we have included mesh displacement in velocity (via bounce)
 								+ Set absolute vel
 								+ Set mesh-relative vel
-								- Verify/think following iterations in outer loop after this bounce
+								+ Verify/think following iterations in outer loop after this bounce
+									+ Cut segment short
 							+ Becoming free:
 								+ Do whole free movement here, consuming whole dt
+					- NonInertial case
 					- Think: will multiple on-edge loops cause problems because of missing mesh displacement?
 						- No, as long as:
 							- Each loop does trajectory from TrajectoryStart (==current bary coords) to TrajectoryEnd (==current absolute pos + deltaPos)
@@ -61,8 +63,11 @@
 	- Re-instate dipole - w/out human
 	- Re-instate human state machine, w/out walking
 	- Re-instate walking
+		- TODOHERE: still need to figure it out
 		- First version: try with voluntaryVelocity (instead of displacement)
 			- Set to purely walking velocity
+			- But then, secondary trails primary, or doesn't follow it walking
+				- Wanna try by forecasting primary when we calc walk vector at HumanWalkingStateMachine?
 	- Cleanups:
 		- Nuke old "1" simulations and rename "2"
 		- Nuke imparted trajectory (tool and all)
