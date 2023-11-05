@@ -2,16 +2,15 @@
 	+ Step 1: replace voluntary displacement *superimposed* with normal force, on primary only
 		+ Kinda work - but secondary acquires more velocity than primary, because primary has friction
 	= Step 2: Merge CalculateTraj with StepSimulation
-		= Each Update...() step moves a segment and sets velocity based on movement achieved in its remainingDt
+		+ Each Update...() step moves a segment and sets velocity based on movement achieved in its remainingDt
 		= Issue at ConstrainedSegmentMove:
 			! If we hit edge before end of a trajectory which is completely due to mesh movement, the particle position
 			  changes as it's a temporary one; at the next iteration, trajectory is zero hence we don't move
 				! We should then not update particle position and continue with the loop
-			= Solution option 1:
-				! UpdateNpcParticle_ConstrainedTraceSegment2() works completely on bary coords - it updates them at each step; only sets position at end moments (when it has fully consumed time quantum)
-					! Thoughts: UpdateNpcParticle_ConstrainedInertial2() recalculates each time target bary coords after physics delta pos (which, TODO: does it change or not? should not change
-					  for the rest of this plan to work); the current bary coords change each time
-				= Loop for deltaT
+			+ Solution: UpdateNpcParticle_ConstrainedTraceSegment2() works completely on bary coords - it updates them at each step; only sets position at end moments (when it has fully consumed time quantum)
+				! Thoughts: UpdateNpcParticle_ConstrainedInertial2() recalculates each time target bary coords after physics delta pos (which, TODO: does it change or not? should not change
+				  for the rest of this plan to work); the current bary coords change each time
+				+ Loop for deltaT
 					+ Note: if we allow to loop over multiple constrained sub-loops, then meshDisplacement/Velocity calculated at first step - before various coords are changed - must be constant
 					  for all the other sub-loops
 					+ Case 1
@@ -44,21 +43,23 @@
 									+ Cut segment short
 							+ Becoming free:
 								+ Do whole free movement here, consuming whole dt
-					- NonInertial case
-					- Think: will multiple on-edge loops cause problems because of missing mesh displacement?
-						- No, as long as:
-							- Each loop does trajectory from TrajectoryStart (==current bary coords) to TrajectoryEnd (==current absolute pos + deltaPos)
-								- TODOHERE: actually it's the ABS POS that we care about: trajectoryStartAbsolutePosition = current bary coords -> abs pos
-							- And: at the end of each loop that is meant to continue we:
-								- Update current bary coords to what will become the next TrajectoryStart
-								- Do *NOT* update absolute pos
-							- And: TrajectoryEnd remains constant from one loop iteration to the other
-								- TODO: is this really necessary? And, if so, does it really hold?
-					- Optimize:
-						- current bary coords are in local var
-							- set at exit points - where needed
-						- current triangle is in local var
-							- set at exit points - where needed
+					+ NonInertial case
+			- Think: will multiple on-edge loops cause problems because of missing mesh displacement?
+				- No, as long as:
+					- Each loop does trajectory from TrajectoryStart (==current bary coords) to TrajectoryEnd (==current absolute pos + deltaPos)
+						- TODOHERE: actually it's the ABS POS that we care about: trajectoryStartAbsolutePosition = current bary coords -> abs pos
+					- And: at the end of each loop that is meant to continue we:
+						- Update current bary coords to what will become the next TrajectoryStart
+						- Do *NOT* update absolute pos - so that we may continue calculating the same TrajectoryEnd over and over
+							- But, TODO: if remaining dt is smaller, trajectoryEnd would get closer to initial (current) asolute pos
+							- So, shouldn't we calc traj end once and for all at beginning, like we do with mesh displacement?
+					- And: TrajectoryEnd remains constant from one loop iteration to the other
+						- TODO: is this really necessary? And, if so, does it really hold?
+			- Optimize:
+				- current bary coords are in local var
+					- set at exit points - where needed
+				- current triangle is in local var
+					- set at exit points - where needed
 
 	- Re-instate dipole - w/out human
 	- Re-instate human state machine, w/out walking
