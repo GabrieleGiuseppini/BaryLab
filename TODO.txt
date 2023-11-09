@@ -48,41 +48,26 @@
 				! TraceSegment either exits (completes), or moves currenty bary coords (and calcs remaining dt) when it wants to "continue" an impact while on edge-moving-against-it, i.e.
 				  wants to recalculate a new flattened traj
 					! Doesn't change current absolute pos, nor velocity
-				- In this case, at next iteration:
-					- TrajectoryStart (==current bary coords) is new
-					- TrajectoryEnd (==current absolute pos + physicsDeltaPos) is same as before
+				+ In this case, at next iteration:
+					+ TrajectoryStart (==current bary coords) is new
+					+ TrajectoryEnd (==current absolute pos + physicsDeltaPos) is same as before
 				= Loop restructure:
 					+ Free by itself
 					= Loop (else if constrained):
 						- See if DT really necessary
-			- OLD:
-			- Think: will multiple on-edge loops cause problems because of missing mesh displacement?
-				- No, as long as:
-					- Each loop does trajectory from TrajectoryStart (==current bary coords) to TrajectoryEnd (==current absolute pos + deltaPos); i.e., each step
-						moves the next TrajectoryStart a bit ahead
-						- TODOHERE: actually it's the ABS POS that we care about: trajectoryStartAbsolutePosition = current bary coords -> abs pos
-					- And: at the end of each loop that is meant to continue we:
-						- Update current bary coords to what will become the next TrajectoryStart
-						- Do *NOT* update absolute pos - so that we may continue calculating the same TrajectoryEnd over and over
-							- But, TODO: if remaining dt is smaller, trajectoryEnd would get closer to initial (current) asolute pos
-							- So, shouldn't we calc traj end once and for all at beginning, like we do with mesh displacement?
-					- TODOOLD: And: TrajectoryEnd remains constant from one loop iteration to the other
-						- TODO: is this really necessary? And, if so, does it really hold?
-			- Optimize:
-				- current bary coords are in local var
-					- set at exit points - where needed
-				- current triangle is in local var
-					- set at exit points - where needed
-
 	- TODO: when do we want to try impact continuation?
 		- Mechanics:
-			- TraceSegment: mutable arg "raking"edgeOrdinal tells us whether we're on edge (-1 if not)
-			- After calculating intersection, we check if it's still on (carried over) edge
-				- It is if same ordinal vertex is still zero
-			- If Impact: decide continuation by using current "raking"edgeOrdinal
-				- TODO: isn't enough to relax tolerance to dot product in current algo?
-			- Else: TODO: see if could being onto an edge with minimal slope
-			- TODO: consider alternative: when changing triangle *and in non-inertial case*, return immediately - so that we recalc traj and flatten on new floor
+			- Option 1:
+				- TraceSegment gets boolean to say if it's on an edge/non-inertial
+				- If it's in non-inertial, the first trajectory intersection will be a) on same edge, and b) also on another edge (i.e. on a cuspid)
+			- Option 2 (old):
+				- TraceSegment: mutable arg "raking"edgeOrdinal tells us whether we're on edge (-1 if not)
+				- After calculating intersection, we check if it's still on (carried over) edge
+					- It is if same ordinal vertex is still zero
+				- If Impact: decide continuation by using current "raking"edgeOrdinal
+					- TODO: isn't enough to relax tolerance to dot product in current algo?
+				- Else: TODO: see if could being onto an edge with minimal slope
+				- TODO: consider alternative: when changing triangle *and in non-inertial case*, return immediately - so that we recalc traj and flatten on new floor
 	- Re-instate dipole - w/out human
 	- Re-instate human state machine, w/out walking
 	- Re-instate walking

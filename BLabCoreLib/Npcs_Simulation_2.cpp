@@ -179,7 +179,8 @@ void Npcs::UpdateNpcParticle2(
         mParticles.GetVelocity(particle.ParticleIndex) * dt
         + (physicalForces / particleMass) * dt * dt;
 
-    // Absolute position of particle if it only moved due to physical forces
+    // Absolute position of particle if it only moved due to physical forces; constant
+    // during the whole loop
     vec2f const trajectoryEndAbsolutePosition = particleStartAbsolutePosition + physicsDeltaPos;
 
     if (!particle.ConstrainedState.has_value())
@@ -512,6 +513,10 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
 
     vec2f const flattenedTrajectory = edgeDir * trajectoryT;
 
+    //
+    // Calculate trajectory target
+    //
+
     vec2f targetAbsolutePosition = trajectoryStartAbsolutePosition + flattenedTrajectory;
 
     ////// TODOHERE: walking
@@ -534,16 +539,15 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
     ////    }
     ////}
 
-    //
-    // Due to numerical slack, ensure target barycentric coords are along edge
-    //
-
     vec3f targetBarycentricCoords = mesh.GetTriangles().ToBarycentricCoordinates(
         targetAbsolutePosition,
         particle.ConstrainedState->CurrentTriangle,
         mesh.GetVertices());
 
-    // Force to be on edge
+    //
+    // Due to numerical slack, ensure target barycentric coords are still along edge
+    //
+
     int const vertexOrdinal = (edgeOrdinal + 2) % 3;
     targetBarycentricCoords[vertexOrdinal] = 0.0f;
     targetBarycentricCoords[(vertexOrdinal + 1) % 3] = 1.0f - targetBarycentricCoords[(vertexOrdinal + 2) % 3];
