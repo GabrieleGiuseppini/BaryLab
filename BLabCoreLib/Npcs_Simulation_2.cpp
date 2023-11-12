@@ -371,6 +371,7 @@ void Npcs::UpdateNpcParticle2(
                 isPrimaryParticle,
                 particle.ConstrainedState->CurrentTriangleBarycentricCoords, // trajectoryStartBarycentricCoords
                 trajectoryEndBarycentricCoords,
+                false, // IsNonInertial
                 meshVelocity,
                 remainingDt,
                 mParticles,
@@ -560,6 +561,7 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
         isPrimaryParticle,
         particle.ConstrainedState->CurrentTriangleBarycentricCoords, // trajectoryStartBarycentricCoords
         targetBarycentricCoords,
+        true, // IsNonInertial
         meshVelocity,
         dt,
         particles,
@@ -570,9 +572,10 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
 float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
     StateType::NpcParticleStateType & particle,
     std::optional<DipoleArg> const & dipoleArg,
-    bool isPrimaryParticle,
+    bool const isPrimaryParticle,
     vec3f const trajectoryStartBarycentricCoords,
-    vec3f trajectoryEndBarycentricCoords,
+    vec3f trajectoryEndBarycentricCoords, // Mutable
+    bool isNonInertial, // Mutable
     vec2f const meshVelocity,
     float dt,
     NpcParticles & particles,
@@ -603,7 +606,7 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
             assert(particle.ConstrainedState->CurrentTriangleBarycentricCoords[2] >= 0.0f && particle.ConstrainedState->CurrentTriangleBarycentricCoords[2] <= 1.0f);
         }
 
-        LogMessage("    SegmentTrace ", i, ":");
+        LogMessage("    SegmentTrace ", i, ": (IsNonInertial=", isNonInertial ? "Y" : "N", ")");
         LogMessage("      triangle=", particle.ConstrainedState->CurrentTriangle, " bCoords=", particle.ConstrainedState->CurrentTriangleBarycentricCoords, 
             " trajStartBCoords=", trajectoryStartBarycentricCoords, " trajEndBCoords=", trajectoryEndBarycentricCoords);
 
@@ -708,10 +711,6 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
         assert(intersectionVertexOrdinal >= 0); // Guaranteed to exist
         assert(minIntersectionT > -Epsilon<float> && minIntersectionT <= 1.0f); // Guaranteed to exist, and within trajectory
 
-        //
-        // Move to intersection
-        //
-
         int const intersectionEdgeOrdinal = (intersectionVertexOrdinal + 1) % 3;
         ElementIndex const intersectionEdgeElementIndex = mesh.GetTriangles().GetSubEdges(particle.ConstrainedState->CurrentTriangle).EdgeIndices[intersectionEdgeOrdinal];
 
@@ -733,7 +732,24 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
             assert(intersectionBarycentricCoords[2] >= 0.0f && intersectionBarycentricCoords[2] <= 1.0f);
         }
 
-        // Move barycentric coords to intersection
+        // If we're in the non-inertial case, then the intersection is
+        // a) on same edge, and b) also on another edge (i.e. on a cuspid)
+        // (however not mathematically perfect, due to slack)
+
+        // TODOTEST
+        if (isNonInertial)
+        {
+            int nZeroCoords = 0;
+            if (intersectionBarycentricCoords[0] == 0.0f) ++nZeroCoords;
+            if (intersectionBarycentricCoords[1] == 0.0f) ++nZeroCoords;
+            if (intersectionBarycentricCoords[2] == 0.0f) ++nZeroCoords;
+            if (nZeroCoords != 2)
+                LogMessage("TODOTEST: nZeroCoords != 2");
+        }
+
+        //
+        // Move to intersection, by moving barycentric coords
+        //
 
         LogMessage("      Moving bary coords to intersection with edge ", intersectionEdgeOrdinal, " ", intersectionBarycentricCoords);
 
@@ -886,12 +902,16 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
 
                 particle.ConstrainedState->CurrentTriangleBarycentricCoords = newBarycentricCoords;
 
-                // Translate target coords to this triangle
+                // Translate target coords to this triangle, for next iteration
+
+                auto const oldTrajectoryEndBarycentricCoords = trajectoryEndBarycentricCoords;
 
                 trajectoryEndBarycentricCoords = mesh.GetTriangles().ToBarycentricCoordinates(
                     oldTrajectoryEndAbsolutePosition,
                     particle.ConstrainedState->CurrentTriangle,
                     mesh.GetVertices());
+
+                LogMessage("      TrajEndB-Coords: ", oldTrajectoryEndBarycentricCoords, " -> ", trajectoryEndBarycentricCoords);
 
                 // Continue
             }

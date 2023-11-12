@@ -501,9 +501,10 @@ private:
 	float UpdateNpcParticle_ConstrainedTraceSegment2(
 		StateType::NpcParticleStateType & particle,
 		std::optional<DipoleArg> const & dipoleArg,
-		bool isPrimaryParticle,
+		bool const isPrimaryParticle,
 		vec3f const trajectoryStartBarycentricCoords,
 		vec3f trajectoryEndBarycentricCoords,
+		bool isNonInertial,
 		vec2f const meshVelocity,
 		float dt,
 		NpcParticles & particles,

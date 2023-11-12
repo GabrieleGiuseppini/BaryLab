@@ -54,12 +54,44 @@
 				= Loop restructure:
 					+ Free by itself
 					= Loop (else if constrained):
-						- See if DT really necessary
-	- TODO: when do we want to try impact continuation?
-		- Mechanics:
-			- Option 1:
-				- TraceSegment gets boolean to say if it's on an edge/non-inertial
-				- If it's in non-inertial, the first trajectory intersection will be a) on same edge, and b) also on another edge (i.e. on a cuspid)
+						- See if DT really necessary - especially after Impact Continuation work below
+	= Impact continuation
+		= Mechanics:
+			= Option 1:
+				+ TraceSegment gets boolean to say if it's on an edge/non-inertial
+				! If it's in non-inertial, the first trajectory intersection will be a) on same edge, and b) also on another edge (i.e. on a cuspid)
+				! Potentially useful facts:
+					- When non-inertial and tracing segment:
+						- First hit with cuspid: t > 0, intersection b-coords are (1,0,0), with zero at original edge
+						- Second hit with cuspid: t == 0, intersection b-coords are (1,0,0) - seems that it should be zero always at original edge
+						- Third hit with cuspid: t == 0, intersection b-coords are (1,0,0) - seems that it should be zero always at original edge
+						- Now it's a floor, and impact
+				= Algo:
+					- Traveled distance in this segment = 0.0
+					+ ...arrive at point where target is outside triangle
+					+ Calculate intersection coords
+					! If non-inertial, we are on a floor edge
+					- If intersection is heads-on with a floor edge:
+						! Here we normally declare "impact", as we by definition consider an intersection as being hit along the trajectory
+						! This is the bump case
+						- If non-inertial:
+							- Check cross product with current trajectory (stand-in of edge)
+								! Because if we're in non-inertial case, trajectory is flattened against origin edge, hence we can take its dir as being the edge dir
+							- If abs(cross product) < epsilon1 OR TODO: walking condition/slow velocity:
+								- Do impact continuation:
+									- Update traveled distance
+									- Return dt (as a function of traveled distance)
+							- Else: below
+						- Else:
+							- Impact (& bounce)
+					- Else:
+						! Note: this includes along the floor (no bump), flying away over not an edge (to reach intersection on an edge), and cuspids
+						- If it's cuspid-cuspid intersection (t==0): maintain isNonInertial; climb over edge, ...
+						- If non-inertial: do impact continuation:
+							- Update traveled distance
+							- Return dt (as a function of traveled distance)
+						- Else: ...
+
 			- Option 2 (old):
 				- TraceSegment: mutable arg "raking"edgeOrdinal tells us whether we're on edge (-1 if not)
 				- After calculating intersection, we check if it's still on (carried over) edge
