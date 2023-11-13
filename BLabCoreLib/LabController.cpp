@@ -97,7 +97,8 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
 
         // TODOTEST
         //vec2f const position = vec2f(0.5f, -2.0f);
-        vec2f const position = vec2f(0.5f, 0.0f);
+        //vec2f const position = vec2f(0.5f, 0.0f);
+        vec2f const position = vec2f(5.5f, -6.0f);
 
         npcs->Add(
             // TODOTEST

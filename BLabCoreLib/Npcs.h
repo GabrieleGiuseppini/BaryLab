@@ -481,7 +481,6 @@ private:
 		StateType::NpcParticleStateType & particle,
 		vec2f const & startPosition,
 		vec2f const & endPosition,
-		float dt,
 		NpcParticles & particles) const;
 
 	float UpdateNpcParticle_ConstrainedNonInertial2(

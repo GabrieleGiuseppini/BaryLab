@@ -67,30 +67,42 @@
 						- Third hit with cuspid: t == 0, intersection b-coords are (1,0,0) - seems that it should be zero always at original edge
 						- Now it's a floor, and impact
 				= Algo:
-					- Traveled distance in this segment = 0.0
 					+ ...arrive at point where target is outside triangle
 					+ Calculate intersection coords
+					+ Move to intersection coords?
 					! If non-inertial, we are on a floor edge
-					- If intersection is heads-on with a floor edge:
+					= If intersection is heads-on with a floor edge:
 						! Here we normally declare "impact", as we by definition consider an intersection as being hit along the trajectory
 						! This is the bump case
-						- If non-inertial:
-							- Check cross product with current trajectory (stand-in of edge)
+						= If non-inertial:
+							+ Check cross product with current trajectory (stand-in of edge)
 								! Because if we're in non-inertial case, trajectory is flattened against origin edge, hence we can take its dir as being the edge dir
-							- If abs(cross product) < epsilon1 OR TODO: walking condition/slow velocity:
-								- Do impact continuation:
-									- Update traveled distance
-									- Return dt (as a function of traveled distance)
-							- Else: below
-						- Else:
-							- Impact (& bounce)
+							= If abs(cross product) < epsilon1 AND/OR TODO: walking condition/slow velocity:
+								+ Do impact continuation:
+									+ Update traveled trajectory distance
+									+ Return dt (as a function of traveled distance)
+								- Test climbing over gentle slope - as opposed to bounce
+							+ Else: below
+						+ Else:
+							+ Impact (& bounce)
+					
 					- Else:
 						! Note: this includes along the floor (no bump), flying away over not an edge (to reach intersection on an edge), and cuspids
 						- If it's cuspid-cuspid intersection (t==0): maintain isNonInertial; climb over edge, ...
-						- If non-inertial: do impact continuation:
-							- Update traveled distance
+						- Else: if non-inertial: do impact continuation: (both "along the floor-no bump" and "flying away over not an edge" cases)
+							- NOTE: don't move current coords in this case
+							- NOTE: might want to do continuation only if it's not the first hit - or else we're always stuck with the first hit!
+							- Update traveled trajectory distance
 							- Return dt (as a function of traveled distance)
+							- Note: if we decide to only do continuation under condition (e.g. velocity being small, or slope), i.e. we continue, then we need to
+							  distinguish between "along the floor-no bump" and "flying away over not an edge":
+								- If "along the floor-no bump": we want to maintain isNonInertial, or else we might bump next (case of first hit, which is followed
+								  by cuspids and then encounters floor on other triangle)
+									- Found by checking that the same pair of coords has zero
+										- And we assume it's the floor edge
+								- If "flying away over not an edge": reset isNonInertial (we've decided not to do impact continuation, hence we leave the floor)
 						- Else: ...
+					- TODO: do we need to calc total edge walked, to know when to stop in the face of multiple segments?
 
 			- Option 2 (old):
 				- TraceSegment: mutable arg "raking"edgeOrdinal tells us whether we're on edge (-1 if not)
@@ -103,8 +115,10 @@
 	- Re-instate dipole - w/out human
 	- Re-instate human state machine, w/out walking
 	- Re-instate walking
+		- Discount velocity: by passing to TraceSegment - via non-inertial case, which knows it flattened - ~velocityToDiscount, calc'd along abs_start->abs_end dir
 		- TODOHERE: still need to figure it out
 			- how about: track total edge walked during tracing - use that to a) avoid gaining vel, b) knowing when to stop in the face of multiple segments
+		- OLD
 		- First version: try with voluntaryVelocity (instead of displacement)
 			- Set to purely walking velocity
 			- But then, secondary trails primary, or doesn't follow it walking

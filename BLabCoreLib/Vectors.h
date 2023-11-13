@@ -166,7 +166,7 @@ public:
 
 	inline vec2f normalise() const noexcept
 	{
-        float const squareLength = x * x + y * y;
+        float const squareLength = this->squareLength();
         if (squareLength > 0)
         {
             return (*this) / sqrtf(squareLength);
