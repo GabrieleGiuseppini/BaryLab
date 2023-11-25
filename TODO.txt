@@ -82,18 +82,28 @@
 									+ Update traveled trajectory distance
 									+ Return dt (as a function of traveled distance)
 								- Test climbing over gentle slope - as opposed to bounce
+									- TODO: asymmetric now - L vs R, going R cos is < 0
+										- normals
 							+ Else: below
 						+ Else:
 							+ Impact (& bounce)
 					
-					- Else:
+					= Else:
 						! Note: this includes along the floor (no bump), flying away over not an edge (to reach intersection on an edge), and cuspids
-						- If it's cuspid-cuspid intersection (t==0): maintain isNonInertial; climb over edge, ...
-						- Else: if non-inertial: do impact continuation: (both "along the floor-no bump" and "flying away over not an edge" cases)
-							- NOTE: don't move current coords in this case
-							- NOTE: might want to do continuation only if it's not the first hit - or else we're always stuck with the first hit!
-							- Update traveled trajectory distance
-							- Return dt (as a function of traveled distance)
+						+ If it's cuspid-cuspid intersection (t==0): maintain isNonInertial; climb over edge, ...
+						= Else: if non-inertial and not first hit (or else we're always stuck with the first hit!): do impact continuation: 
+						 (both "along the floor-no bump" and "flying away over not an edge" cases)
+							+ Don't move current coords in this case
+							+ Update traveled trajectory distance
+							+ Return dt (as a function of traveled distance)
+							= TODO: when reaching to point in triangle at non-first iter, we end up forcing next iteration to be inertial
+							= TODO: cuspid is sometimes ~0.0, hence we do continuation from there and it's inertial
+								- See if can clamp after detecting cuspid
+							- TODO: if TraceSegment starts on a cuspid, and traveling by t=0.0 makes it hit a floor, and slope is small, then we do continuation
+							  consuming dt=0.0 => infinite loop
+								- Fix (to this and others above)" do custom TraceSegment at NonInertial
+									- With all the simplifications of knowing that we're on an edge, and on which
+									- Incorporate (re-simplified) TraceSegment into Inertial
 							- Note: if we decide to only do continuation under condition (e.g. velocity being small, or slope), i.e. we continue, then we need to
 							  distinguish between "along the floor-no bump" and "flying away over not an edge":
 								- If "along the floor-no bump": we want to maintain isNonInertial, or else we might bump next (case of first hit, which is followed

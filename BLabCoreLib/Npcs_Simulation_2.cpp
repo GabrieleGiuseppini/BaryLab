@@ -282,6 +282,8 @@ void Npcs::UpdateNpcParticle2(
 
                 assert(isPrimaryParticle || dipoleArg.has_value());
 
+                LogMessage("      edge ", edgeOrdinal, ": isFloor=", IsEdgeFloorToParticle(currentEdgeElementIndex, currentTriangleElementIndex, mesh));
+
                 // Check if this is really a floor to this particle
                 if (IsEdgeFloorToParticle(currentEdgeElementIndex, currentTriangleElementIndex, mesh)
                     && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
@@ -337,6 +339,10 @@ void Npcs::UpdateNpcParticle2(
                         hasFoundNonInertial = true;
 
                         break;
+                    }
+                    else
+                    {
+                        LogMessage("      Traj.EdgeN=", trajectory.dot(edgeNormal));
                     }
                 }
             }
@@ -596,7 +602,7 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
     // 3. Impact with bounce: simulation step is half-completed, a portion remains for another constrained step
     //
 
-    for (int i = 0; ; ++i)
+    for (int iIter = 0; ; ++iIter)
     {
         assert(particle.ConstrainedState.has_value());
 
@@ -606,7 +612,7 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
             assert(particle.ConstrainedState->CurrentTriangleBarycentricCoords[2] >= 0.0f && particle.ConstrainedState->CurrentTriangleBarycentricCoords[2] <= 1.0f);
         }
 
-        LogMessage("    SegmentTrace ", i, ": (IsNonInertial=", isNonInertial ? "Y" : "N", ")");
+        LogMessage("    SegmentTrace ", iIter, ": (IsNonInertial=", isNonInertial ? "Y" : "N", ")");
         LogMessage("      triangle=", particle.ConstrainedState->CurrentTriangle, " bCoords=", particle.ConstrainedState->CurrentTriangleBarycentricCoords, 
             " trajStartBCoords=", trajectoryStartBarycentricCoords, " trajEndBCoords=", trajectoryEndBarycentricCoords);
 
@@ -618,6 +624,45 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
             && trajectoryEndBarycentricCoords.y >= 0.0f && trajectoryEndBarycentricCoords.y <= 1.0f
             && trajectoryEndBarycentricCoords.z >= 0.0f && trajectoryEndBarycentricCoords.z <= 1.0f)
         {
+            // TODOTEST:START
+            if (iIter > 0)
+            {
+                // Not first hit: impact continuation
+                LogMessage("      Non-inertial impact continuation");
+
+                // Calculate actual traveled distance along trajectory
+                vec2f const currentAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
+                    particle.ConstrainedState->CurrentTriangleBarycentricCoords,
+                    particle.ConstrainedState->CurrentTriangle,
+                    mesh.GetVertices());
+                float const actualTrajectoryDistanceTraveled = (currentAbsolutePosition - trajectoryStartAbsolutePosition).length();
+
+                // Calculate trajectory
+                vec2f const trajectoryEndAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
+                    trajectoryEndBarycentricCoords,
+                    particle.ConstrainedState->CurrentTriangle,
+                    mesh.GetVertices());
+                vec2f const trajectory = trajectoryEndAbsolutePosition - trajectoryStartAbsolutePosition;
+                float const trajectoryLength = trajectory.length();
+
+                // Calculate consumed time quantum
+                float consumedDt;
+                if (trajectoryLength != 0.0f)
+                {
+                    consumedDt = dt * actualTrajectoryDistanceTraveled / trajectoryLength;
+                }
+                else
+                {
+                    // If no distance was to be traveled in this time quantum, then we've consumed it all
+                    consumedDt = dt;
+                }
+
+                LogMessage("        consumedDt=", consumedDt);
+
+                return dt - consumedDt;
+            }
+            // TODOTEST:END
+
             LogMessage("      Target is on/in triangle, moving to target");
 
             //
@@ -794,22 +839,27 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
             vec2f const trajectory = trajectoryEndAbsolutePosition - trajectoryStartAbsolutePosition;
             float const trajectoryLength = trajectory.length();
 
-            vec2f const edgeDir =
+            vec2f const intersectionEdgeDir =
                 mesh.GetTriangles().GetSubEdgeVector(particle.ConstrainedState->CurrentTriangle, intersectionEdgeOrdinal, mesh.GetVertices())
                 .normalise();
+            vec2f const intersectionEdgeNormal = intersectionEdgeDir.to_perpendicular();
 
             if (isNonInertial)
             {
                 // Check angle between desired (original) trajectory and edge
                 // - Can safely use original as we're in non-inertial case and thus first hit
-                float const sinAngle = trajectory.normalise_approx(trajectoryLength).cross(edgeDir);
-                if (std::abs(sinAngle) <= 0.87f) // PI / 3
+                // TODOTEST
+                ////float const cosAngle = trajectory.normalise_approx(trajectoryLength).dot(edgeDir);
+                ////if (cosAngle >= 0.69f) // PI/4+
+                float const trajProjOntoEdgeNormal = trajectory.normalise_approx(trajectoryLength).dot(intersectionEdgeNormal);
+                LogMessage("TODOTEST: trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal);
+                if (trajProjOntoEdgeNormal <= 0.71f) // PI/4+
                 {
                     //
                     // Impact continuation
                     //
 
-                    LogMessage("      Non-inertial impact continuation (sinAngle=", sinAngle, ")");
+                    LogMessage("      Non-inertial impact continuation (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
 
                     // Calculate actual traveled distance along trajectory
                     float const actualTrajectoryDistanceTraveled = (intersectionAbsolutePosition - trajectoryStartAbsolutePosition).length();
@@ -832,7 +882,7 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
                 }
                 else
                 { 
-                    LogMessage("      Non-inertial full impact (sinAngle=", sinAngle, ")");
+                    LogMessage("      Non-inertial full impact (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
                 }
             }
 
@@ -848,10 +898,9 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
             vec2f const apparentParticleVelocity = trajectory / dt;
 
             LogMessage("        apparentParticleVelocity=", apparentParticleVelocity);
-
-            vec2f const edgeNormal = edgeDir.to_perpendicular();
-            float const apparentParticleVelocityAlongNormal = apparentParticleVelocity.dot(edgeNormal);
-            vec2f const normalVelocity = edgeNormal * apparentParticleVelocityAlongNormal;
+            
+            float const apparentParticleVelocityAlongNormal = apparentParticleVelocity.dot(intersectionEdgeNormal);
+            vec2f const normalVelocity = intersectionEdgeNormal * apparentParticleVelocityAlongNormal;
             vec2f const tangentialVelocity = apparentParticleVelocity - normalVelocity;
 
             // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
@@ -889,10 +938,75 @@ float Npcs::UpdateNpcParticle_ConstrainedTraceSegment2(
             //
             // Not floor
             //
+            // Cases here:
+            //  A: Travel to intersection is tangent to floor
+            //  B: Travel to intersection is not tangent to a floor or to an edge (flying away)
+            //  C: Travel to intersection is nul (cuspid)
+            //
 
-            // TODOHERE: if cuspid-to-cuspid, maintain isNonInertial
-            // Else: reset isNonInertial (for now), later we'll do impact continuation
-            //isNonInertial = false;
+            if (isNonInertial)
+            {
+                // Check if cuspid move
+                // TODOTEST
+                //if (minIntersectionT == 0.0f)
+                if (std::abs(minIntersectionT) < 1.e-06)
+                {
+                    // Cuspid
+                    LogMessage("      Cuspid move");
+
+                    // Maintain non-inertiality: technically we don't lose the floor if we move (by nop) along a cuspid
+
+                    // ...proceed to moving to intersection and climbing over edge
+                }
+                else 
+                {
+                    if (iIter > 0)
+                    {
+                        // Not first hit: impact continuation
+                        LogMessage("      Non-inertial impact continuation");
+
+                        // Calculate actual traveled distance along trajectory
+                        float const actualTrajectoryDistanceTraveled = (intersectionAbsolutePosition - trajectoryStartAbsolutePosition).length();
+
+                        // Calculate trajectory
+                        vec2f const trajectoryEndAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
+                            trajectoryEndBarycentricCoords,
+                            particle.ConstrainedState->CurrentTriangle,
+                            mesh.GetVertices());
+                        vec2f const trajectory = trajectoryEndAbsolutePosition - trajectoryStartAbsolutePosition;
+                        float const trajectoryLength = trajectory.length();
+
+                        // Calculate consumed time quantum
+                        float consumedDt;
+                        if (trajectoryLength != 0.0f)
+                        {
+                            consumedDt = dt * actualTrajectoryDistanceTraveled / trajectoryLength;
+                        }
+                        else
+                        {
+                            // If no distance was to be traveled in this time quantum, then we've consumed it all
+                            consumedDt = dt;
+                        }
+
+                        LogMessage("        consumedDt=", consumedDt);
+
+                        return dt - consumedDt;
+                    }
+                    else
+                    {
+                        // First hit
+                        LogMessage("      First hit");
+
+                        // After this we *assume* we're not anymore in a non-inertial state.
+                        // In reality we might as well be, if this is a floor and we've moving
+                        // tangent to it; however, if that's the case, later we'll re-adjust trajectory
+                        // TODOTEST
+                        //isNonInertial = false;
+
+                        // ...proceed to moving to intersection and climbing over edge
+                    }
+                }
+            }
 
             //
             // Move to intersection, by moving barycentric coords
