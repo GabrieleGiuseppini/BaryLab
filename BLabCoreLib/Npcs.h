@@ -308,7 +308,9 @@ private:
 
 	void RenderParticle(
 		StateType::NpcParticleStateType const & particleState,
-		RenderContext & renderContext);	
+		RenderContext & renderContext);
+
+	void Publish(Mesh const & mesh);
 
 private:
 
@@ -486,24 +488,23 @@ private:
 	float UpdateNpcParticle_ConstrainedNonInertial2(
 		StateType::NpcParticleStateType & particle,
 		std::optional<DipoleArg> const & dipoleArg,
-		bool isPrimaryParticle,
+		bool const isPrimaryParticle,
 		int edgeOrdinal,
 		vec2f const & edgeDir,
 		vec2f const & trajectoryStartAbsolutePosition,
-		vec2f const & trajectory,
+		vec2f const & theoreticalTrajectory,
 		vec2f const meshVelocity,
 		float dt,
 		NpcParticles & particles,
 		Mesh const & mesh,
 		LabParameters const & labParameters) const;
 
-	float UpdateNpcParticle_ConstrainedTraceSegment2(
+	float UpdateNpcParticle_ConstrainedInertial2(
 		StateType::NpcParticleStateType & particle,
 		std::optional<DipoleArg> const & dipoleArg,
 		bool const isPrimaryParticle,
 		vec3f const trajectoryStartBarycentricCoords,
 		vec3f trajectoryEndBarycentricCoords,
-		bool isNonInertial,
 		vec2f const meshVelocity,
 		float dt,
 		NpcParticles & particles,

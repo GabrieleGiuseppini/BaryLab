@@ -113,6 +113,11 @@
 								- If "flying away over not an edge": reset isNonInertial (we've decided not to do impact continuation, hence we leave the floor)
 						- Else: ...
 					- TODO: do we need to calc total edge walked, to know when to stop in the face of multiple segments?
+			- Option 1b: two separate loops replacing TraceSegment
+				+ 1: Copy what's needed from trace segment into inertial
+					- Leave TraceSegment around for later
+				- 2: Do own loop into non-inertial
+					- To test:
 
 			- Option 2 (old):
 				- TraceSegment: mutable arg "raking"edgeOrdinal tells us whether we're on edge (-1 if not)
