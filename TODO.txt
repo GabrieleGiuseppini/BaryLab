@@ -116,8 +116,12 @@
 			- Option 1b: two separate loops replacing TraceSegment
 				+ 1: Copy what's needed from trace segment into inertial
 					- Leave TraceSegment around for later
-				- 2: Do own loop into non-inertial
-					- To test:
+				= 2: Do own loop into non-inertial
+					- Verify codepath at continuation
+						- Make sure we exit out to main loop as we might have stopped being inertial
+							- Add this as comment
+				- Repro infinite loop when distance traveled is zero, and fix
+					- TODO: fix: remembering previous?
 
 			- Option 2 (old):
 				- TraceSegment: mutable arg "raking"edgeOrdinal tells us whether we're on edge (-1 if not)
@@ -143,3 +147,5 @@
 		- Nuke imparted trajectory (tool and all)
 		- Nuke step-by-step
 	- Go back to solving walking reached injuction of two floors
+
+	- Add plan with own triangles for "staircases"

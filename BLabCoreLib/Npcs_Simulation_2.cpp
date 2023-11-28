@@ -260,7 +260,7 @@ void Npcs::UpdateNpcParticle2(
         // amounts to pure physical displacement.
         //
 
-        // Note: this is the same as physicsDeltaPos + meshDisplacement
+        // Note: on first iteration this is the same as physicsDeltaPos + meshDisplacement
         vec2f const trajectory = trajectoryEndAbsolutePosition - trajectoryStartAbsolutePosition;
 
         //
@@ -623,92 +623,280 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
 
     assert(particle.ConstrainedState->CurrentTriangleBarycentricCoords[(edgeOrdinal + 2) % 3] == 0.0f);
 
-    int intersectionVertexOrdinal;
-    int intersectionEdgeOrdinal;
-    vec3f intersectionBarycentricCoords = vec3f::zero();
+    // Figure out if we're moving clockwise or counter-clockwise (fron the point of view of inside
+    // the triangle); this will hold for all the triangles traveled while going through a cuspid
+    bool isClockwise;
     if (trajectoryEndBarycentricCoords[edgeOrdinal] < 0.0f)
     {
         // It's the vertex at the end of our edge
         assert(trajectoryEndBarycentricCoords[(edgeOrdinal + 1) % 3] > 0.0f); // Because target is outside of triangle
-        intersectionVertexOrdinal = (edgeOrdinal + 1) % 3;
-        intersectionEdgeOrdinal = (edgeOrdinal + 1) % 3;                
+        isClockwise = true;
     }
     else
     {
         // It's the vertex before our edge
         assert(trajectoryEndBarycentricCoords[(edgeOrdinal + 1) % 3] < 0.0f);
-        intersectionVertexOrdinal = edgeOrdinal;
-        intersectionEdgeOrdinal = (edgeOrdinal + 2) % 3;        
+        isClockwise = false;
     }
 
-    intersectionBarycentricCoords[intersectionVertexOrdinal] = 1.0f;
+    int intersectionEdgeOrdinal = (isClockwise)
+        ? (edgeOrdinal + 1) % 3 // Next edge
+        : (edgeOrdinal + 2) % 3; // Previous edge
 
-    // TODO: loop from here?
+    // Vertex we end at
+    int intersectionVertexOrdinal = (isClockwise)
+        ? intersectionEdgeOrdinal // Initial vertex
+        : (intersectionEdgeOrdinal + 1) % 3; // Final vertex
 
-    //
-    // Move to intersection (which is a vertex by now)
-    //
+    // In a loop:
+    //  - Move to edge intersection
+    //  - Check floor & bumps
+    //  - Climb triangle
+    //  - Find edge intersection
 
-    LogMessage("      Moving to intersection with edge ordinal ", intersectionEdgeOrdinal, ": ", intersectionBarycentricCoords);
-
-    particle.ConstrainedState->CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
-
-    // Update distance traveled
-
-    vec2f const intersectionAbsolutePosition = mesh.GetVertices().GetPosition(mesh.GetTriangles().GetVertexIndices(particle.ConstrainedState->CurrentTriangle)[intersectionVertexOrdinal]);
-    assert(intersectionAbsolutePosition == mesh.GetTriangles().FromBarycentricCoordinates(
-        intersectionBarycentricCoords,
-        particle.ConstrainedState->CurrentTriangle,
-        mesh.GetVertices()));
-
-    distanceTraveledAlongEdge += (intersectionAbsolutePosition - trajectoryStartAbsolutePosition).length();
-
-    LogMessage("        distanceTraveledAlongEdge=", distanceTraveledAlongEdge);
-
-    //
-    // Check if impacted with floor
-    //
-        
-    ElementIndex const intersectionEdgeElementIndex = mesh.GetTriangles().GetSubEdges(particle.ConstrainedState->CurrentTriangle).EdgeIndices[intersectionEdgeOrdinal];
-
-    assert(isPrimaryParticle || dipoleArg.has_value());
-    
-    if (IsEdgeFloorToParticle(intersectionEdgeElementIndex, particle.ConstrainedState->CurrentTriangle, mesh)
-        && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
-            mParticles.GetPosition(dipoleArg->OtherParticle.ParticleIndex),
-            intersectionAbsolutePosition,
-            intersectionEdgeElementIndex,
-            mesh)))
+    for (vec2f lastTrajectoryStartAbsolutePosition = trajectoryStartAbsolutePosition; ;)
     {
         //
-        // Impact
-        //
-        
-        LogMessage("      Impact");
-                
-        //
-        // We might have hit a tiny bump (e.g. because of triangles slightly bent); in this case we don't want to bounce
+        // Move to intersection (which is a vertex by now)
         //
 
-        float const trajectoryLength = flattenedTrajectory.length();
+        vec3f intersectionBarycentricCoords = vec3f::zero();
+        intersectionBarycentricCoords[intersectionVertexOrdinal] = 1.0f;
 
-        vec2f const intersectionEdgeDir =
-            mesh.GetTriangles().GetSubEdgeVector(particle.ConstrainedState->CurrentTriangle, intersectionEdgeOrdinal, mesh.GetVertices())
-            .normalise();
-        vec2f const intersectionEdgeNormal = intersectionEdgeDir.to_perpendicular();
-        
-        // Check angle between desired (original) trajectory and edge
-        float const trajProjOntoEdgeNormal = flattenedTrajectory.normalise_approx(trajectoryLength).dot(intersectionEdgeNormal);
-        if (trajProjOntoEdgeNormal <= 0.71f) // PI/4+
+        LogMessage("      Moving to intersection with edge ordinal ", intersectionEdgeOrdinal, ": ", intersectionBarycentricCoords);
+
+        particle.ConstrainedState->CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
+
+        // Update distance traveled
+
+        vec2f const intersectionAbsolutePosition = mesh.GetVertices().GetPosition(mesh.GetTriangles().GetVertexIndices(particle.ConstrainedState->CurrentTriangle)[intersectionVertexOrdinal]);
+        assert(intersectionAbsolutePosition == mesh.GetTriangles().FromBarycentricCoordinates(
+            intersectionBarycentricCoords,
+            particle.ConstrainedState->CurrentTriangle,
+            mesh.GetVertices()));
+
+        distanceTraveledAlongEdge += (intersectionAbsolutePosition - lastTrajectoryStartAbsolutePosition).length();
+
+        LogMessage("        distanceTraveledAlongEdge=", distanceTraveledAlongEdge);
+
+        lastTrajectoryStartAbsolutePosition = intersectionAbsolutePosition;
+
+        //
+        // Check if impacted with floor
+        //
+
+        ElementIndex const intersectionEdgeElementIndex = mesh.GetTriangles().GetSubEdges(particle.ConstrainedState->CurrentTriangle).EdgeIndices[intersectionEdgeOrdinal];
+
+        assert(isPrimaryParticle || dipoleArg.has_value());
+
+        if (IsEdgeFloorToParticle(intersectionEdgeElementIndex, particle.ConstrainedState->CurrentTriangle, mesh)
+            && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
+                mParticles.GetPosition(dipoleArg->OtherParticle.ParticleIndex),
+                intersectionAbsolutePosition,
+                intersectionEdgeElementIndex,
+                mesh)))
         {
             //
-            // Impact continuation
+            // Impact
             //
-        
-            LogMessage("      Impact continuation (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
-        
+
+            LogMessage("      Impact");
+
+            //
+            // We might have hit a tiny bump (e.g. because of triangles slightly bent); in this case we don't want to bounce
+            //
+
+            float const trajectoryLength = flattenedTrajectory.length();
+
+            vec2f const intersectionEdgeDir =
+                mesh.GetTriangles().GetSubEdgeVector(particle.ConstrainedState->CurrentTriangle, intersectionEdgeOrdinal, mesh.GetVertices())
+                .normalise();
+            vec2f const intersectionEdgeNormal = intersectionEdgeDir.to_perpendicular();
+
+            // Check angle between desired (original) trajectory and edge
+            float const trajProjOntoEdgeNormal = flattenedTrajectory.normalise_approx(trajectoryLength).dot(intersectionEdgeNormal);
+            if (trajProjOntoEdgeNormal <= 0.71f) // PI/4+
+            {
+                //
+                // Impact continuation
+                //
+
+                LogMessage("      Impact continuation (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
+
+                // Calculate consumed time quantum
+                float consumedDt;
+                if (trajectoryLength != 0.0f)
+                {
+                    consumedDt = dt * distanceTraveledAlongEdge / trajectoryLength;
+                }
+                else
+                {
+                    // If no distance was to be traveled in this time quantum, then we've consumed it all
+                    consumedDt = dt;
+                }
+
+                LogMessage("        consumedDt=", consumedDt);
+
+                return dt - consumedDt;
+            }
+            else
+            {
+                //
+                // Bounce - calculate bounce response, using the *apparent* (trajectory) 
+                // velocity - since this one includes the mesh velocity
+                //
+
+                LogMessage("      Bounce (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
+
+                // Decompose apparent particle velocity into normal and tangential
+
+                vec2f const apparentParticleVelocity = flattenedTrajectory / dt;
+
+                LogMessage("        apparentParticleVelocity=", apparentParticleVelocity);
+
+                float const apparentParticleVelocityAlongNormal = apparentParticleVelocity.dot(intersectionEdgeNormal);
+                vec2f const normalVelocity = intersectionEdgeNormal * apparentParticleVelocityAlongNormal;
+                vec2f const tangentialVelocity = apparentParticleVelocity - normalVelocity;
+
+                // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
+                vec2f const normalResponse =
+                    -normalVelocity
+                    * labParameters.Elasticity;
+
+                // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
+                vec2f const tangentialResponse =
+                    tangentialVelocity
+                    * (1.0f - labParameters.KineticFriction);
+
+                // Given that we've been working in *apparent* space (we've calc'd the collision response to *trajectory* which is apparent displacement),
+                // we need to transform velocity to absolute particle velocity
+                vec2f const resultantAbsoluteVelocity = (normalResponse + tangentialResponse) - meshVelocity;
+
+                LogMessage("        nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantAbsoluteVelocity);
+
+                //
+                // Exit, consuming whole time quantum
+                //
+                // Note: we consume whole time quantum as a subsequent bounce during the same simulation step wouldn't see mesh moving
+                //
+
+                particles.SetPosition(particle.ParticleIndex, intersectionAbsolutePosition);
+
+                particles.SetVelocity(particle.ParticleIndex, resultantAbsoluteVelocity);
+                particle.ConstrainedState->MeshRelativeVelocity = resultantAbsoluteVelocity + meshVelocity;
+
+                // Consume the entire time quantum
+                return 0.0f;
+            }
+        }
+
+        //
+        // Not floor, climb over edge
+        //
+
+        LogMessage("      Climbing over non-floor edge");
+
+        // Find opposite triangle
+        ElementIndex const oppositeTriangle = mesh.GetEdges().GetOppositeTriangle(intersectionEdgeElementIndex, particle.ConstrainedState->CurrentTriangle);
+        if (oppositeTriangle == NoneElementIndex)
+        {
+            //
+            // Become free
+            //
+
+            LogMessage("      No opposite triangle found, becoming free");
+
+            //
+            // Move to endpoint and exit, consuming whole quantum
+            //
+
+            particle.ConstrainedState.reset();
+
+            UpdateNpcParticle_Free2(
+                particle,
+                particleStartAbsolutePosition,
+                mesh.GetTriangles().FromBarycentricCoordinates(
+                    trajectoryEndBarycentricCoords,
+                    particle.ConstrainedState->CurrentTriangle,
+                    mesh.GetVertices()),
+                particles);
+
+            return 0.0f;
+        }
+
+        //
+        // Move to edge of opposite triangle 
+        //
+
+        int const oppositeTriangleIntersectionEdgeOrdinal = mesh.GetTriangles().GetSubEdgeOrdinal(oppositeTriangle, intersectionEdgeElementIndex);
+
+        LogMessage("      Moving to edge ", oppositeTriangleIntersectionEdgeOrdinal, " of opposite triangle ", oppositeTriangle);
+
+        // Save current absolute trajectory end
+        vec2f const oldTrajectoryEndAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
+            trajectoryEndBarycentricCoords,
+            particle.ConstrainedState->CurrentTriangle,
+            mesh.GetVertices());
+
+        particle.ConstrainedState->CurrentTriangle = oppositeTriangle;
+
+        // Calculate new current barycentric coords (wrt opposite triangle)
+        vec3f newBarycentricCoords; // In new triangle
+        newBarycentricCoords[(oppositeTriangleIntersectionEdgeOrdinal + 2) % 3] = 0.0f;
+        newBarycentricCoords[oppositeTriangleIntersectionEdgeOrdinal] = particle.ConstrainedState->CurrentTriangleBarycentricCoords[(intersectionEdgeOrdinal + 1) % 3];
+        newBarycentricCoords[(oppositeTriangleIntersectionEdgeOrdinal + 1) % 3] = particle.ConstrainedState->CurrentTriangleBarycentricCoords[intersectionEdgeOrdinal];
+
+        LogMessage("        B-Coords: ", particle.ConstrainedState->CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
+
+        {
+            assert(newBarycentricCoords[0] >= 0.0f && newBarycentricCoords[0] <= 1.0f);
+            assert(newBarycentricCoords[1] >= 0.0f && newBarycentricCoords[1] <= 1.0f);
+            assert(newBarycentricCoords[2] >= 0.0f && newBarycentricCoords[2] <= 1.0f);
+        }
+
+        particle.ConstrainedState->CurrentTriangleBarycentricCoords = newBarycentricCoords;
+
+        //
+        // Translate trajectory end coords to this triangle, for next iteration
+        //
+
+        auto const oldTrajectoryEndBarycentricCoords = trajectoryEndBarycentricCoords;
+
+        // TODOHERE: here we introduce a lot of error
+        trajectoryEndBarycentricCoords = mesh.GetTriangles().ToBarycentricCoordinates(
+            oldTrajectoryEndAbsolutePosition,
+            oppositeTriangle,
+            mesh.GetVertices());
+
+        LogMessage("        TrajEndB-Coords: ", oldTrajectoryEndBarycentricCoords, " -> ", trajectoryEndBarycentricCoords);
+
+        //
+        // Now move on to this triangle
+        //
+
+        //
+        // See if trajectory requires another edge intersection & crossing
+        //
+
+        // Vertex we end at
+        intersectionVertexOrdinal = (isClockwise)
+            ? (oppositeTriangleIntersectionEdgeOrdinal + 1) % 3 // Final vertex of intersection edge
+            : oppositeTriangleIntersectionEdgeOrdinal; // First vertex of intersection edge
+
+        LogMessage("        Vertex=", intersectionVertexOrdinal);
+
+        if (trajectoryEndBarycentricCoords[(intersectionVertexOrdinal + 1) % 3] >= 0.0f
+            && trajectoryEndBarycentricCoords[(intersectionVertexOrdinal + 2) % 3] >= 0.0f)
+        {
+            //
+            // It's inside this triangle - stop where we are, we'll do another trajectory flattening from here on
+            //
+
+            LogMessage("      Trajectory extends inside new triangle - exiting and continuing");
+
             // Calculate consumed time quantum
             float consumedDt;
+            float const trajectoryLength = flattenedTrajectory.length();
             if (trajectoryLength != 0.0f)
             {
                 consumedDt = dt * distanceTraveledAlongEdge / trajectoryLength;
@@ -718,222 +906,22 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
                 // If no distance was to be traveled in this time quantum, then we've consumed it all
                 consumedDt = dt;
             }
-        
+
             LogMessage("        consumedDt=", consumedDt);
-        
+
             return dt - consumedDt;
         }
-        else
-        {
-            //
-            // Bounce - calculate bounce response, using the *apparent* (trajectory) 
-            // velocity - since this one includes the mesh velocity
-            //
-
-            LogMessage("      Bounce (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
-
-            // Decompose apparent particle velocity into normal and tangential
-
-            vec2f const apparentParticleVelocity = flattenedTrajectory / dt;
-
-            LogMessage("        apparentParticleVelocity=", apparentParticleVelocity);
-
-            float const apparentParticleVelocityAlongNormal = apparentParticleVelocity.dot(intersectionEdgeNormal);
-            vec2f const normalVelocity = intersectionEdgeNormal * apparentParticleVelocityAlongNormal;
-            vec2f const tangentialVelocity = apparentParticleVelocity - normalVelocity;
-
-            // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
-            vec2f const normalResponse =
-                -normalVelocity
-                * labParameters.Elasticity;
-
-            // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
-            vec2f const tangentialResponse =
-                tangentialVelocity
-                * (1.0f - labParameters.KineticFriction);
-
-            // Given that we've been working in *apparent* space (we've calc'd the collision response to *trajectory* which is apparent displacement),
-            // we need to transform velocity to absolute particle velocity
-            vec2f const resultantAbsoluteVelocity = (normalResponse + tangentialResponse) - meshVelocity;
-
-            LogMessage("        nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantAbsoluteVelocity);
-
-            //
-            // Exit, consuming whole time quantum
-            //
-            // Note: we consume whole time quantum as a subsequent bounce during the same simulation step wouldn't see mesh moving
-            //
-
-            particles.SetPosition(particle.ParticleIndex, intersectionAbsolutePosition);
-
-            particles.SetVelocity(particle.ParticleIndex, resultantAbsoluteVelocity);
-            particle.ConstrainedState->MeshRelativeVelocity = resultantAbsoluteVelocity + meshVelocity;
-
-            // Consume the entire time quantum
-            return 0.0f;
-        }
-    }
-
-    //
-    // Not floor, climb over edge
-    //
-
-    LogMessage("      Climbing over non-floor edge");
-
-    // Find opposite triangle
-    ElementIndex const oppositeTriangle = mesh.GetEdges().GetOppositeTriangle(intersectionEdgeElementIndex, particle.ConstrainedState->CurrentTriangle);
-    if (oppositeTriangle == NoneElementIndex)
-    {
-        //
-        // Become free
-        //
-
-        LogMessage("      No opposite triangle found, becoming free");
 
         //
-        // Move to endpoint and exit, consuming whole quantum
+        // Find next edge that we intersect at this cuspid
         //
 
-        particle.ConstrainedState.reset();
+        LogMessage("      Trajectory crosses new triangle - finding next edge intersected at cuspid");
 
-        UpdateNpcParticle_Free2(
-            particle,
-            particleStartAbsolutePosition,
-            mesh.GetTriangles().FromBarycentricCoordinates(
-                trajectoryEndBarycentricCoords,
-                particle.ConstrainedState->CurrentTriangle,
-                mesh.GetVertices()),
-            particles);
-
-        return 0.0f;
+        intersectionEdgeOrdinal = (isClockwise)
+            ? intersectionVertexOrdinal // Edge following vertex
+            : (intersectionVertexOrdinal + 2) % 3; // Edge preceding vertex
     }
-
-    //
-    // Move to edge of opposite triangle 
-    //
-
-    int const oppositeTriangleIntersectionEdgeOrdinal = mesh.GetTriangles().GetSubEdgeOrdinal(oppositeTriangle, intersectionEdgeElementIndex);
-
-    LogMessage("      Moving to edge ", oppositeTriangleIntersectionEdgeOrdinal, " of opposite triangle ", oppositeTriangle);
-
-    // Save current absolute trajectory end
-    vec2f const oldTrajectoryEndAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
-        trajectoryEndBarycentricCoords,
-        particle.ConstrainedState->CurrentTriangle,
-        mesh.GetVertices());
-
-    particle.ConstrainedState->CurrentTriangle = oppositeTriangle;
-
-    // Calculate new current barycentric coords (wrt opposite triangle)
-    vec3f newBarycentricCoords; // In new triangle
-    newBarycentricCoords[(oppositeTriangleIntersectionEdgeOrdinal + 2) % 3] = 0.0f;
-    newBarycentricCoords[oppositeTriangleIntersectionEdgeOrdinal] = particle.ConstrainedState->CurrentTriangleBarycentricCoords[(intersectionEdgeOrdinal + 1) % 3];
-    newBarycentricCoords[(oppositeTriangleIntersectionEdgeOrdinal + 1) % 3] = particle.ConstrainedState->CurrentTriangleBarycentricCoords[intersectionEdgeOrdinal];
-
-    LogMessage("        B-Coords: ", particle.ConstrainedState->CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
-
-    {
-        assert(newBarycentricCoords[0] >= 0.0f && newBarycentricCoords[0] <= 1.0f);
-        assert(newBarycentricCoords[1] >= 0.0f && newBarycentricCoords[1] <= 1.0f);
-        assert(newBarycentricCoords[2] >= 0.0f && newBarycentricCoords[2] <= 1.0f);
-    }
-
-    particle.ConstrainedState->CurrentTriangleBarycentricCoords = newBarycentricCoords;
-
-    //
-    // Translate trajectory end coords to this triangle, for next iteration
-    //
-
-    auto const oldTrajectoryEndBarycentricCoords = trajectoryEndBarycentricCoords;
-
-    // TODOHERE: here we introduce a lot of error
-    trajectoryEndBarycentricCoords = mesh.GetTriangles().ToBarycentricCoordinates(
-        oldTrajectoryEndAbsolutePosition,
-        oppositeTriangle,
-        mesh.GetVertices());
-
-    LogMessage("        TrajEndB-Coords: ", oldTrajectoryEndBarycentricCoords, " -> ", trajectoryEndBarycentricCoords);
-
-    //
-    // Now move on to this triangle
-    //
-
-    //
-    // See if trajectory requires another edge intersection & crossing
-    //
-
-    // TODO: seems too much, find simpler way
-    int oppositeTriangleIntersectionVertexOrdinal;
-    if (newBarycentricCoords[0] == 1.0f)
-    {
-        oppositeTriangleIntersectionVertexOrdinal = 0;
-    }
-    else
-    {
-        assert(newBarycentricCoords[0] == 0.0f);
-        if (newBarycentricCoords[1] == 1.0f)
-        {
-            oppositeTriangleIntersectionVertexOrdinal = 1;
-        }
-        else
-        {
-            assert(newBarycentricCoords[1] == 0.0f);
-            assert(newBarycentricCoords[2] == 1.0f);
-            oppositeTriangleIntersectionVertexOrdinal = 2;
-        }
-    }
-
-    if (trajectoryEndBarycentricCoords[(oppositeTriangleIntersectionVertexOrdinal + 1) % 3] >= 0.0f
-        && trajectoryEndBarycentricCoords[(oppositeTriangleIntersectionVertexOrdinal + 2) % 3] >= 0.0f)
-    {
-        //
-        // It's inside this triangle - stop where we are, we'll do another trajectory flattening from here on
-        //
-
-        LogMessage("      Trajectory extends inside new triangle - exiting and continuing");
-
-        // Calculate consumed time quantum
-        float consumedDt;
-        float const trajectoryLength = flattenedTrajectory.length();
-        if (trajectoryLength != 0.0f)
-        {
-            consumedDt = dt * distanceTraveledAlongEdge / trajectoryLength;
-        }
-        else
-        {
-            // If no distance was to be traveled in this time quantum, then we've consumed it all
-            consumedDt = dt;
-        }
-
-        LogMessage("        consumedDt=", consumedDt);
-
-        return dt - consumedDt;
-    }
-
-    //
-    // Find next intersection
-    //
-
-    LogMessage("      Trajectory crosses new triangle - finding intersection");
-
-    // TODOHERE: calculate intersectionEdgeOrdinal, intersectionBarycentricCoords
-
-
-    // TODOHERE
-    (void)dt;
-    return 0.0f;
-    ////return UpdateNpcParticle_ConstrainedTraceSegment2(
-    ////    particle,
-    ////    dipoleArg,
-    ////    isPrimaryParticle,
-    ////    particle.ConstrainedState->CurrentTriangleBarycentricCoords, // trajectoryStartBarycentricCoords
-    ////    targetBarycentricCoords,
-    ////    true, // IsNonInertial
-    ////    meshVelocity,
-    ////    dt,
-    ////    particles,
-    ////    mesh,
-    ////    labParameters);
 }
 
 float Npcs::UpdateNpcParticle_ConstrainedInertial2(
