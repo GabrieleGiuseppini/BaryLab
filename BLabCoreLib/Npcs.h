@@ -499,7 +499,7 @@ private:
 		Mesh const & mesh,
 		LabParameters const & labParameters) const;
 
-	float UpdateNpcParticle_ConstrainedInertial2(
+	void UpdateNpcParticle_ConstrainedInertial2(
 		StateType::NpcParticleStateType & particle,
 		std::optional<DipoleArg> const & dipoleArg,
 		bool const isPrimaryParticle,

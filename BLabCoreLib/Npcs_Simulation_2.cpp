@@ -370,8 +370,7 @@ void Npcs::UpdateNpcParticle2(
             // Move towards target bary coords
             //
 
-            // TODOHERE: will it ever be remainingDt != 0, here that we are in inertial case? No, nuke it
-            remainingDt = UpdateNpcParticle_ConstrainedInertial2(
+            UpdateNpcParticle_ConstrainedInertial2(
                 particle,
                 dipoleArg,
                 isPrimaryParticle,
@@ -391,6 +390,9 @@ void Npcs::UpdateNpcParticle2(
             {
                 LogMessage("    EndPosition=", mParticles.GetPosition(particle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(particle.ParticleIndex));
             }
+
+            // Consume whole time quantum
+            remainingDt = 0.0f;
         }
 
         if (remainingDt <= 0.0f)
@@ -718,7 +720,9 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
             if (trajProjOntoEdgeNormal <= 0.71f) // PI/4+
             {
                 //
-                // Impact continuation
+                // Impact continuation (no bounce)
+                //
+                // Stop here and then check trajectory in new situation
                 //
 
                 LogMessage("      Impact continuation (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
@@ -889,7 +893,7 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
             && trajectoryEndBarycentricCoords[(intersectionVertexOrdinal + 2) % 3] >= 0.0f)
         {
             //
-            // It's inside this triangle - stop where we are, we'll do another trajectory flattening from here on
+            // It's inside this triangle - stop where we are, we'll then check trajectory in new situation
             //
 
             LogMessage("      Trajectory extends inside new triangle - exiting and continuing");
@@ -924,7 +928,7 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
     }
 }
 
-float Npcs::UpdateNpcParticle_ConstrainedInertial2(
+void Npcs::UpdateNpcParticle_ConstrainedInertial2(
     StateType::NpcParticleStateType & particle,
     std::optional<DipoleArg> const & dipoleArg,
     bool const isPrimaryParticle,
@@ -993,7 +997,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial2(
             particle.ConstrainedState->MeshRelativeVelocity = absoluteVelocity + meshVelocity;
 
             // We have consumed the whole time quantum
-            return 0.0f;
+            return;
         }
 
         //
@@ -1181,7 +1185,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial2(
             particle.ConstrainedState->MeshRelativeVelocity = resultantAbsoluteVelocity + meshVelocity;
 
             // Consume the entire time quantum
-            return 0.0f;
+            return;
         }
         else
         {
@@ -1218,7 +1222,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial2(
                     trajectoryEndAbsolutePosition,
                     particles);
 
-                return 0.0f;
+                return;
             }
             else
             {
