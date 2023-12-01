@@ -491,6 +491,7 @@ private:
 		bool const isPrimaryParticle,
 		int edgeOrdinal,
 		vec2f const & edgeDir,
+		vec2f const & particleStartAbsolutePosition,
 		vec2f const & trajectoryStartAbsolutePosition,
 		vec2f const & theoreticalTrajectory,
 		vec2f const meshVelocity,

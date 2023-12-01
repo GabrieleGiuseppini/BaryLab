@@ -119,9 +119,9 @@
 				= 2: Do own loop into non-inertial
 					= Verify codepath at continuation, especially velocities
 				= Fix for infinite loop when distance traveled is zero:
-					- Detect previous, then interrupt						
-						- Set velocity to zero, and automatically relative velocity to mesh velocity
-							- TODOHERE: really to zero, or to moved so far? Can we actually have moved in this case?
+					= Detect previous, then interrupt						
+						= Set velocity to zero, and automatically relative velocity to mesh velocity
+							+ TODOHERE: really to zero, or to moved so far? Can we actually have moved in this case?
 				- Tests:
 					- Well with bounce
 					- Climbing (impact continuation), both L and R
