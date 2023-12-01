@@ -232,6 +232,24 @@ void Npcs::UpdateNpcParticle2(
     // Calculate mesh displacement for the whole loop
     vec2f const meshVelocity = (particleStartAbsolutePosition - trajectoryStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration;
 
+    // Machinery to detect 3-iteration paths that doesn't move particle (positional well)
+
+    struct PastBarycentricPosition
+    {
+        ElementIndex TriangleElementIndex;
+        vec3f BarycentricCoords;
+
+        PastBarycentricPosition(
+            ElementIndex triangleElementIndex,
+            vec3f barycentricCoords)
+            : TriangleElementIndex(triangleElementIndex)
+            , BarycentricCoords(barycentricCoords)
+        {}
+    };
+
+    std::optional<PastBarycentricPosition> pastPastBarycentricPosition;
+    std::optional<PastBarycentricPosition> pastBarycentricPosition;
+
     for (float remainingDt = dt; ; )
     {
         assert(remainingDt > 0.0f);
@@ -313,7 +331,8 @@ void Npcs::UpdateNpcParticle2(
                         LogMessage("    ConstrainedNonInertial: triangle=", currentTriangleElementIndex, " edgeOrdinal=", edgeOrdinal, " bCoords=", particle.ConstrainedState->CurrentTriangleBarycentricCoords, " trajectory=", trajectory);
                         LogMessage("    StartPosition=", mParticles.GetPosition(particle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(particle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", particle.ConstrainedState->MeshRelativeVelocity);
 
-                        remainingDt = UpdateNpcParticle_ConstrainedNonInertial2(
+                        // Ray-trace using non-inertial physics
+                        float const newRemainingDt = UpdateNpcParticle_ConstrainedNonInertial2(
                             particle,
                             dipoleArg,
                             isPrimaryParticle,
@@ -326,6 +345,43 @@ void Npcs::UpdateNpcParticle2(
                             mParticles,
                             mesh,
                             labParameters);
+
+                        if (newRemainingDt == remainingDt)
+                        {
+                            // We haven't moved positions - possibly only triangle and barycentric coords
+
+                            // Check if we're in a well
+                            if (pastPastBarycentricPosition.has_value()
+                                && pastPastBarycentricPosition->TriangleElementIndex == particle.ConstrainedState->CurrentTriangle
+                                && pastPastBarycentricPosition->BarycentricCoords == particle.ConstrainedState->CurrentTriangleBarycentricCoords)
+                            {
+                                //
+                                // Well - stop here
+                                //
+
+                                LogMessage("    Detected well - stopping here");
+
+                                // TODOHERE
+
+                                remainingDt = 0.0f;
+                            }
+                            else
+                            {
+                                // Update well detection machinery
+                                pastPastBarycentricPosition = pastBarycentricPosition;
+                                pastBarycentricPosition.emplace(particle.ConstrainedState->CurrentTriangle, particle.ConstrainedState->CurrentTriangleBarycentricCoords);
+                            }
+                        }
+                        else
+                        {
+                            // We have moved
+                            assert(newRemainingDt < remainingDt);
+                            remainingDt = newRemainingDt;
+
+                            // Reset well detection machinery
+                            pastPastBarycentricPosition.reset();
+                            pastBarycentricPosition.reset();
+                        }
 
                         if (particle.ConstrainedState.has_value())
                         {
@@ -346,7 +402,7 @@ void Npcs::UpdateNpcParticle2(
                     }
                 }
             }
-        }
+        } // for (vertex)
 
         if (!hasFoundNonInertial)
         {

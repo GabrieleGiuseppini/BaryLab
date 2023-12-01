@@ -1,7 +1,7 @@
 - Walking rearc attempt:
 	+ Step 1: replace voluntary displacement *superimposed* with normal force, on primary only
 		+ Kinda work - but secondary acquires more velocity than primary, because primary has friction
-	= Step 2: Merge CalculateTraj with StepSimulation
+	+ Step 2: Merge CalculateTraj with StepSimulation
 		+ Each Update...() step moves a segment and sets velocity based on movement achieved in its remainingDt
 		= Issue at ConstrainedSegmentMove:
 			! If we hit edge before end of a trajectory which is completely due to mesh movement, the particle position
@@ -44,20 +44,20 @@
 							+ Becoming free:
 								+ Do whole free movement here, consuming whole dt
 					+ NonInertial case
-			= Restructure loop now, to account for multiple on-edge loops:
+			+ Restructure loop now, to account for multiple on-edge loops:
 				! TraceSegment either exits (completes), or moves currenty bary coords (and calcs remaining dt) when it wants to "continue" an impact while on edge-moving-against-it, i.e.
 				  wants to recalculate a new flattened traj
 					! Doesn't change current absolute pos, nor velocity
 				+ In this case, at next iteration:
 					+ TrajectoryStart (==current bary coords) is new
 					+ TrajectoryEnd (==current absolute pos + physicsDeltaPos) is same as before
-				= Loop restructure:
+				+ Loop restructure:
 					+ Free by itself
-					= Loop (else if constrained):
-						- See if DT really necessary - especially after Impact Continuation work below
+					+ Loop (else if constrained):
+						+ See if DT really necessary - especially after Impact Continuation work below
 	= Impact continuation
 		= Mechanics:
-			= Option 1:
+			X Option 1:
 				+ TraceSegment gets boolean to say if it's on an edge/non-inertial
 				! If it's in non-inertial, the first trajectory intersection will be a) on same edge, and b) also on another edge (i.e. on a cuspid)
 				! Potentially useful facts:
@@ -66,71 +66,69 @@
 						- Second hit with cuspid: t == 0, intersection b-coords are (1,0,0) - seems that it should be zero always at original edge
 						- Third hit with cuspid: t == 0, intersection b-coords are (1,0,0) - seems that it should be zero always at original edge
 						- Now it's a floor, and impact
-				= Algo:
+				~ Algo:
 					+ ...arrive at point where target is outside triangle
 					+ Calculate intersection coords
 					+ Move to intersection coords?
 					! If non-inertial, we are on a floor edge
-					= If intersection is heads-on with a floor edge:
+					+ If intersection is heads-on with a floor edge:
 						! Here we normally declare "impact", as we by definition consider an intersection as being hit along the trajectory
 						! This is the bump case
-						= If non-inertial:
+						+ If non-inertial:
 							+ Check cross product with current trajectory (stand-in of edge)
 								! Because if we're in non-inertial case, trajectory is flattened against origin edge, hence we can take its dir as being the edge dir
-							= If abs(cross product) < epsilon1 AND/OR TODO: walking condition/slow velocity:
+							+ If abs(cross product) < epsilon1 AND/OR TODO: walking condition/slow velocity:
 								+ Do impact continuation:
 									+ Update traveled trajectory distance
 									+ Return dt (as a function of traveled distance)
-								- Test climbing over gentle slope - as opposed to bounce
-									- TODO: asymmetric now - L vs R, going R cos is < 0
-										- normals
+								+ Test climbing over gentle slope - as opposed to bounce
+									+ TODO: asymmetric now - L vs R, going R cos is < 0
+										+ normals
 							+ Else: below
 						+ Else:
 							+ Impact (& bounce)
 					
-					= Else:
+					X Else:
 						! Note: this includes along the floor (no bump), flying away over not an edge (to reach intersection on an edge), and cuspids
 						+ If it's cuspid-cuspid intersection (t==0): maintain isNonInertial; climb over edge, ...
-						= Else: if non-inertial and not first hit (or else we're always stuck with the first hit!): do impact continuation: 
+						X Else: if non-inertial and not first hit (or else we're always stuck with the first hit!): do impact continuation: 
 						 (both "along the floor-no bump" and "flying away over not an edge" cases)
 							+ Don't move current coords in this case
 							+ Update traveled trajectory distance
 							+ Return dt (as a function of traveled distance)
-							= TODO: when reaching to point in triangle at non-first iter, we end up forcing next iteration to be inertial
-							= TODO: cuspid is sometimes ~0.0, hence we do continuation from there and it's inertial
-								- See if can clamp after detecting cuspid
-							- TODO: if TraceSegment starts on a cuspid, and traveling by t=0.0 makes it hit a floor, and slope is small, then we do continuation
+							X TODO: when reaching to point in triangle at non-first iter, we end up forcing next iteration to be inertial
+							X TODO: cuspid is sometimes ~0.0, hence we do continuation from there and it's inertial
+								X See if can clamp after detecting cuspid
+							+ TODO: if TraceSegment starts on a cuspid, and traveling by t=0.0 makes it hit a floor, and slope is small, then we do continuation
 							  consuming dt=0.0 => infinite loop
-								- Fix (to this and others above)" do custom TraceSegment at NonInertial
-									- With all the simplifications of knowing that we're on an edge, and on which
-									- Incorporate (re-simplified) TraceSegment into Inertial
-							- Note: if we decide to only do continuation under condition (e.g. velocity being small, or slope), i.e. we continue, then we need to
+								+ Fix (to this and others above)" do custom TraceSegment at NonInertial
+									+ With all the simplifications of knowing that we're on an edge, and on which
+									+ Incorporate (re-simplified) TraceSegment into Inertial
+							X Note: if we decide to only do continuation under condition (e.g. velocity being small, or slope), i.e. we continue, then we need to
 							  distinguish between "along the floor-no bump" and "flying away over not an edge":
-								- If "along the floor-no bump": we want to maintain isNonInertial, or else we might bump next (case of first hit, which is followed
+								X If "along the floor-no bump": we want to maintain isNonInertial, or else we might bump next (case of first hit, which is followed
 								  by cuspids and then encounters floor on other triangle)
-									- Found by checking that the same pair of coords has zero
-										- And we assume it's the floor edge
-								- If "flying away over not an edge": reset isNonInertial (we've decided not to do impact continuation, hence we leave the floor)
-						- Else: ...
-					- TODO: do we need to calc total edge walked, to know when to stop in the face of multiple segments?
+									X Found by checking that the same pair of coords has zero
+										X And we assume it's the floor edge
+								X If "flying away over not an edge": reset isNonInertial (we've decided not to do impact continuation, hence we leave the floor)
+						X Else: ...
+					
 			- Option 1b: two separate loops replacing TraceSegment
 				+ 1: Copy what's needed from trace segment into inertial
 					- Leave TraceSegment around for later
 				= 2: Do own loop into non-inertial
-					- Verify codepath at continuation
-						- Make sure we exit out to main loop as we might have stopped being inertial
-							- Add this as comment
-				- Repro infinite loop when distance traveled is zero, and fix
-					- TODO: fix: remembering previous?
-
-			- Option 2 (old):
-				- TraceSegment: mutable arg "raking"edgeOrdinal tells us whether we're on edge (-1 if not)
-				- After calculating intersection, we check if it's still on (carried over) edge
-					- It is if same ordinal vertex is still zero
-				- If Impact: decide continuation by using current "raking"edgeOrdinal
-					- TODO: isn't enough to relax tolerance to dot product in current algo?
-				- Else: TODO: see if could being onto an edge with minimal slope
-				- TODO: consider alternative: when changing triangle *and in non-inertial case*, return immediately - so that we recalc traj and flatten on new floor
+					= Verify codepath at continuation, especially velocities
+				= Fix for infinite loop when distance traveled is zero:
+					- Detect previous, then interrupt						
+						- Set velocity to zero, and automatically relative velocity to mesh velocity
+							- TODOHERE: really to zero, or to moved so far? Can we actually have moved in this case?
+				- Tests:
+					- Well with bounce
+					- Climbing (impact continuation), both L and R
+					- Bouncing, both L and R
+					- Relative velocity
+				
+	- Cleanup old code
 	- Re-instate dipole - w/out human
 	- Re-instate human state machine, w/out walking
 	- Re-instate walking
@@ -146,6 +144,7 @@
 		- Nuke old "1" simulations and rename "2"
 		- Nuke imparted trajectory (tool and all)
 		- Nuke step-by-step
+	- Merge into master
 	- Go back to solving walking reached injuction of two floors
 
 	- Add plan with own triangles for "staircases"
