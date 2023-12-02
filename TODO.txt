@@ -118,10 +118,13 @@
 					- Leave TraceSegment around for later
 				= 2: Do own loop into non-inertial
 					= Verify codepath at continuation, especially velocities
-				= Fix for infinite loop when distance traveled is zero:
-					= Detect previous, then interrupt						
-						= Set velocity to zero, and automatically relative velocity to mesh velocity
-							+ TODOHERE: really to zero, or to moved so far? Can we actually have moved in this case?
+				+ Fix for infinite loop when distance traveled is zero:
+					+ Detect previous, then interrupt						
+						+ Redo 3 times no movement
+						+ Set velocity to zero, and automatically relative velocity to mesh velocity
+				- Wanna fix? Bounce now gets velocity
+				- Extract bounce into helper method
+				- Extract velocity calculation (if still needed) into helper method
 				- Tests:
 					- Well with bounce
 					- Climbing (impact continuation), both L and R

@@ -332,7 +332,7 @@ void Npcs::UpdateNpcParticle2(
                         LogMessage("    StartPosition=", mParticles.GetPosition(particle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(particle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", particle.ConstrainedState->MeshRelativeVelocity);
 
                         // Ray-trace using non-inertial physics
-                        remainingDt = UpdateNpcParticle_ConstrainedNonInertial2(
+                        float const newRemainingDt = UpdateNpcParticle_ConstrainedNonInertial2(
                             particle,
                             dipoleArg,
                             isPrimaryParticle,
@@ -347,40 +347,51 @@ void Npcs::UpdateNpcParticle2(
                             mesh,
                             labParameters);
 
-                        // Check if we're in a well
-                        if (pastPastBarycentricPosition.has_value()
-                            && pastPastBarycentricPosition->TriangleElementIndex == particle.ConstrainedState->CurrentTriangle
-                            && pastPastBarycentricPosition->BarycentricCoords == particle.ConstrainedState->CurrentTriangleBarycentricCoords)
+                        if (newRemainingDt == remainingDt)
                         {
-                            //
-                            // Well - stop here
-                            //
+                            // No movement
 
-                            LogMessage("    Detected well - stopping here");
+                            // Check if we're in a well
+                            if (pastPastBarycentricPosition.has_value()
+                                && pastPastBarycentricPosition->TriangleElementIndex == particle.ConstrainedState->CurrentTriangle
+                                && pastPastBarycentricPosition->BarycentricCoords == particle.ConstrainedState->CurrentTriangleBarycentricCoords)
+                            {
+                                //
+                                // Well - stop here
+                                //
 
-                            // Update particle's physics, considering that it might have moved
+                                LogMessage("    Detected well - stopping here");
 
-                            vec2f const particleEndAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
-                                particle.ConstrainedState->CurrentTriangleBarycentricCoords,
-                                particle.ConstrainedState->CurrentTriangle,
-                                mesh.GetVertices());
+                                // Update particle's physics, considering that we are in a well and thus still
 
-                            mParticles.SetPosition(particle.ParticleIndex, particleEndAbsolutePosition);
+                                vec2f const particleEndAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
+                                    particle.ConstrainedState->CurrentTriangleBarycentricCoords,
+                                    particle.ConstrainedState->CurrentTriangle,
+                                    mesh.GetVertices());
 
-                            // Use whole time quantum for velocity, as particleStartAbsolutePosition is fixed at t0        
-                            vec2f const absoluteVelocity = (particleEndAbsolutePosition - particleStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration;
-                            mParticles.SetVelocity(particle.ParticleIndex, absoluteVelocity);
-                            particle.ConstrainedState->MeshRelativeVelocity = absoluteVelocity + meshVelocity;
+                                mParticles.SetPosition(particle.ParticleIndex, particleEndAbsolutePosition);
 
-                            // Consume the whole time quantum
-                           remainingDt = 0.0f;
+                                // Use whole time quantum for velocity, as particleStartAbsolutePosition is fixed at t0        
+                                mParticles.SetVelocity(particle.ParticleIndex, vec2f::zero());
+                                particle.ConstrainedState->MeshRelativeVelocity = meshVelocity;
+
+                                // Consume the whole time quantum
+                                remainingDt = 0.0f;
+                            }
                         }
                         else
                         {
-                            // Update well detection machinery
-                            pastPastBarycentricPosition = pastBarycentricPosition;
-                            pastBarycentricPosition.emplace(particle.ConstrainedState->CurrentTriangle, particle.ConstrainedState->CurrentTriangleBarycentricCoords);
+                            // We have moved
+                            remainingDt = newRemainingDt;
+
+                            // Reset well detection machinery
+                            pastPastBarycentricPosition.reset();
+                            pastBarycentricPosition.reset();
                         }
+                            
+                        // Update well detection machinery
+                        pastPastBarycentricPosition = pastBarycentricPosition;
+                        pastBarycentricPosition.emplace(particle.ConstrainedState->CurrentTriangle, particle.ConstrainedState->CurrentTriangleBarycentricCoords);
 
                         if (particle.ConstrainedState.has_value())
                         {
