@@ -817,42 +817,16 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
 
                 LogMessage("      Bounce (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
 
-                // Decompose apparent particle velocity into normal and tangential
-
-                vec2f const apparentParticleVelocity = flattenedTrajectory / dt;
-
-                LogMessage("        apparentParticleVelocity=", apparentParticleVelocity);
-
-                float const apparentParticleVelocityAlongNormal = apparentParticleVelocity.dot(intersectionEdgeNormal);
-                vec2f const normalVelocity = intersectionEdgeNormal * apparentParticleVelocityAlongNormal;
-                vec2f const tangentialVelocity = apparentParticleVelocity - normalVelocity;
-
-                // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
-                vec2f const normalResponse =
-                    -normalVelocity
-                    * labParameters.Elasticity;
-
-                // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
-                vec2f const tangentialResponse =
-                    tangentialVelocity
-                    * (1.0f - labParameters.KineticFriction);
-
-                // Given that we've been working in *apparent* space (we've calc'd the collision response to *trajectory* which is apparent displacement),
-                // we need to transform velocity to absolute particle velocity
-                vec2f const resultantAbsoluteVelocity = (normalResponse + tangentialResponse) - meshVelocity;
-
-                LogMessage("        nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantAbsoluteVelocity);
-
-                //
-                // Exit, consuming whole time quantum
-                //
-                // Note: we consume whole time quantum as a subsequent bounce during the same simulation step wouldn't see mesh moving
-                //
-
-                particles.SetPosition(particle.ParticleIndex, intersectionAbsolutePosition);
-
-                particles.SetVelocity(particle.ParticleIndex, resultantAbsoluteVelocity);
-                particle.ConstrainedState->MeshRelativeVelocity = resultantAbsoluteVelocity + meshVelocity;
+                BounceConstrainedNpcParticle(
+                    particle.ParticleIndex,
+                    *particle.ConstrainedState,
+                    flattenedTrajectory,
+                    intersectionAbsolutePosition,
+                    intersectionEdgeNormal,
+                    meshVelocity,
+                    dt,
+                    particles,
+                    labParameters);
 
                 // Consume the entire time quantum
                 return 0.0f;
@@ -1205,49 +1179,22 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial2(
                 mesh.GetVertices());
 
             vec2f const trajectory = trajectoryEndAbsolutePosition - trajectoryStartAbsolutePosition;
-            float const trajectoryLength = trajectory.length();
 
             vec2f const intersectionEdgeDir =
                 mesh.GetTriangles().GetSubEdgeVector(particle.ConstrainedState->CurrentTriangle, intersectionEdgeOrdinal, mesh.GetVertices())
                 .normalise();
             vec2f const intersectionEdgeNormal = intersectionEdgeDir.to_perpendicular();
 
-            // Decompose apparent particle velocity into normal and tangential
-
-            vec2f const apparentParticleVelocity = trajectory / dt;
-
-            LogMessage("        apparentParticleVelocity=", apparentParticleVelocity);
-
-            float const apparentParticleVelocityAlongNormal = apparentParticleVelocity.dot(intersectionEdgeNormal);
-            vec2f const normalVelocity = intersectionEdgeNormal * apparentParticleVelocityAlongNormal;
-            vec2f const tangentialVelocity = apparentParticleVelocity - normalVelocity;
-
-            // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
-            vec2f const normalResponse =
-                -normalVelocity
-                * labParameters.Elasticity;
-
-            // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
-            vec2f const tangentialResponse =
-                tangentialVelocity
-                * (1.0f - labParameters.KineticFriction);
-
-            // Given that we've been working in *apparent* space (we've calc'd the collision response to *trajectory* which is apparent displacement),
-            // we need to transform velocity to absolute particle velocity
-            vec2f const resultantAbsoluteVelocity = (normalResponse + tangentialResponse) - meshVelocity;
-
-            LogMessage("        nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantAbsoluteVelocity);
-
-            //
-            // Exit, consuming whole time quantum
-            //
-            // Note: we consume whole time quantum as a subsequent bounce during the same simulation step wouldn't see mesh moving
-            //
-
-            particles.SetPosition(particle.ParticleIndex, intersectionAbsolutePosition);
-
-            particles.SetVelocity(particle.ParticleIndex, resultantAbsoluteVelocity);
-            particle.ConstrainedState->MeshRelativeVelocity = resultantAbsoluteVelocity + meshVelocity;
+            BounceConstrainedNpcParticle(
+                particle.ParticleIndex,
+                *particle.ConstrainedState,
+                trajectory,
+                intersectionAbsolutePosition,
+                intersectionEdgeNormal,
+                meshVelocity,
+                dt,
+                particles,
+                labParameters);
 
             // Consume the entire time quantum
             return;
@@ -1339,4 +1286,53 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial2(
             }
         }
     }
+}
+
+void Npcs::BounceConstrainedNpcParticle(
+    ElementIndex particleIndex,
+    StateType::NpcParticleStateType::ConstrainedStateType & particleConstrainedState,
+    vec2f const & trajectory,
+    vec2f const & bouncePosition,
+    vec2f const & bounceEdgeNormal,
+    vec2f const meshVelocity,
+    float dt,
+    NpcParticles & particles,
+    LabParameters const & labParameters) const
+{
+    // Decompose apparent particle velocity into normal and tangential
+
+    vec2f const apparentParticleVelocity = trajectory / dt;
+
+    LogMessage("        apparentParticleVelocity=", apparentParticleVelocity);
+
+    float const apparentParticleVelocityAlongNormal = apparentParticleVelocity.dot(bounceEdgeNormal);
+    vec2f const normalVelocity = bounceEdgeNormal * apparentParticleVelocityAlongNormal;
+    vec2f const tangentialVelocity = apparentParticleVelocity - normalVelocity;
+
+    // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
+    vec2f const normalResponse =
+        -normalVelocity
+        * labParameters.Elasticity;
+
+    // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
+    vec2f const tangentialResponse =
+        tangentialVelocity
+        * (1.0f - labParameters.KineticFriction);
+
+    // Given that we've been working in *apparent* space (we've calc'd the collision response to *trajectory* which is apparent displacement),
+    // we need to transform velocity to absolute particle velocity
+    vec2f const resultantAbsoluteVelocity = (normalResponse + tangentialResponse) - meshVelocity;
+
+    LogMessage("        nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantAbsoluteVelocity);
+
+    //
+    // Exit, consuming whole time quantum
+    //
+    // Note: we consume whole time quantum as a subsequent bounce during the same simulation step wouldn't see mesh moving
+    //
+
+    particles.SetPosition(particleIndex, bouncePosition);
+
+    particles.SetVelocity(particleIndex, resultantAbsoluteVelocity);
+    particleConstrainedState.MeshRelativeVelocity = resultantAbsoluteVelocity + meshVelocity;
 }

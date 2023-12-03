@@ -124,7 +124,7 @@
 						+ Redo 3 times no movement
 						+ Set velocity to zero, and automatically relative velocity to mesh velocity
 				- Wanna fix? Bounce now gets velocity when in well
-				- Extract bounce into helper method
+				+ Extract bounce into helper method
 				- Extract velocity calculation (if still needed) into helper method
 				- Tests:
 					- Well with bounce

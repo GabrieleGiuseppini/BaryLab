@@ -512,6 +512,17 @@ private:
 		Mesh const & mesh,
 		LabParameters const & labParameters) const;
 
+	inline void BounceConstrainedNpcParticle(
+		ElementIndex particleIndex,
+		StateType::NpcParticleStateType::ConstrainedStateType & particleConstrainedState,
+		vec2f const & trajectory,
+		vec2f const & bouncePosition,
+		vec2f const & bounceEdgeNormal,
+		vec2f const meshVelocity,
+		float dt,
+		NpcParticles & particles,
+		LabParameters const & labParameters) const;
+
 private:
 
 	//
