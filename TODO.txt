@@ -113,16 +113,17 @@
 								X If "flying away over not an edge": reset isNonInertial (we've decided not to do impact continuation, hence we leave the floor)
 						X Else: ...
 					
-			- Option 1b: two separate loops replacing TraceSegment
+			= Option 1b: two separate loops replacing TraceSegment
 				+ 1: Copy what's needed from trace segment into inertial
 					- Leave TraceSegment around for later
-				= 2: Do own loop into non-inertial
-					= Verify codepath at continuation, especially velocities
+				+ 2: Do own loop into non-inertial
+					+ Verify codepath at continuation, especially velocities
+						+ Velocities are *all* calculated as (end abs - start abs) / LabParameters::DT
 				+ Fix for infinite loop when distance traveled is zero:
 					+ Detect previous, then interrupt						
 						+ Redo 3 times no movement
 						+ Set velocity to zero, and automatically relative velocity to mesh velocity
-				- Wanna fix? Bounce now gets velocity
+				- Wanna fix? Bounce now gets velocity when in well
 				- Extract bounce into helper method
 				- Extract velocity calculation (if still needed) into helper method
 				- Tests:
