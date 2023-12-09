@@ -628,7 +628,7 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
     trajectoryEndBarycentricCoords[edgeVertexOrdinal] = 0.0f;
     trajectoryEndBarycentricCoords[(edgeVertexOrdinal + 1) % 3] = 1.0f - trajectoryEndBarycentricCoords[(edgeVertexOrdinal + 2) % 3];
 
-    LogMessage("        trajectoryEndAbsolutePosition=", trajectoryEndAbsolutePosition, " trajectoryEndBarycentricCoords=", trajectoryEndBarycentricCoords);
+    LogMessage("        flattenedTrajectory=", flattenedTrajectory, " trajectoryEndAbsolutePosition=", trajectoryEndAbsolutePosition, " trajectoryEndBarycentricCoords=", trajectoryEndBarycentricCoords);
 
     //
     // Ray-trace along the flattened trajectory, ending only at one of the following three conditions:

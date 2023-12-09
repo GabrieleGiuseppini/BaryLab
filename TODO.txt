@@ -55,8 +55,8 @@
 					+ Free by itself
 					+ Loop (else if constrained):
 						+ See if DT really necessary - especially after Impact Continuation work below
-	= Impact continuation
-		= Mechanics:
+	+ Impact continuation
+		+ Mechanics:
 			X Option 1:
 				+ TraceSegment gets boolean to say if it's on an edge/non-inertial
 				! If it's in non-inertial, the first trajectory intersection will be a) on same edge, and b) also on another edge (i.e. on a cuspid)
@@ -113,7 +113,7 @@
 								X If "flying away over not an edge": reset isNonInertial (we've decided not to do impact continuation, hence we leave the floor)
 						X Else: ...
 					
-			= Option 1b: two separate loops replacing TraceSegment
+			+ Option 1b: two separate loops replacing TraceSegment
 				+ 1: Copy what's needed from trace segment into inertial
 					- Leave TraceSegment around for later
 				+ 2: Do own loop into non-inertial
@@ -131,9 +131,9 @@
 					+ Test flying off surface
 					+ Relative velocity
 						+ Fix ghost bounce: due to zeroing of vel at well
-				- Test with refreshing trajectory at impact continuation
-					- Removes sudden well
-					- ...but also might break "smooth slide" and make it bumpy again
+				X Test with refreshing trajectory at impact continuation
+					+ Removes sudden well
+					X ...but also might break "smooth slide" and make it bumpy again
 				
 	- Re-instate dipole - w/out human
 	- Re-instate human state machine, w/out walking
