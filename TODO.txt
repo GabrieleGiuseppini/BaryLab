@@ -123,19 +123,29 @@
 					+ Detect previous, then interrupt						
 						+ Redo 3 times no movement
 						+ Set velocity to zero, and automatically relative velocity to mesh velocity
+				- Does reduced dt do anything?
 				- Wanna fix? Bounce now gets velocity when in well
 				+ Extract bounce into helper method
 				- Extract velocity calculation (if still needed) into helper method
-				- Tests:
-					- Well with bounce
-					- Climbing (impact continuation), both L and R
-					- Bouncing, both L and R
-					- Relative velocity
+				= Tests:
+					+ Well with bounce
+					+ Climbing (impact continuation), both L and R
+					+ Bouncing, both L and R
+					- Test flying off surface
+					+ Relative velocity
+						+ Fix ghost bounce: due to zeroing of vel at well
 				
-	- Cleanup old code
 	- Re-instate dipole - w/out human
 	- Re-instate human state machine, w/out walking
 	- Re-instate walking
+		- Principles:
+			- Walk vector - splattered along edge - is added to end position
+				- During loop, current pos changes and gets closer and closer - that's how we make progress
+			- This displacement is added to secondary particle
+			- This displacement is given to func as ~velocityToDiscount, albeit it's mesh-relative
+		- TODOOLD:
+		- Imparting displacement to secondary:
+			- Try: if walking, secondary end position is calculated based on primary, not based on secondary's physics
 		- Discount velocity: by passing to TraceSegment - via non-inertial case, which knows it flattened - ~velocityToDiscount, calc'd along abs_start->abs_end dir
 		- TODOHERE: still need to figure it out
 			- how about: track total edge walked during tracing - use that to a) avoid gaining vel, b) knowing when to stop in the face of multiple segments
@@ -151,4 +161,12 @@
 	- Merge into master
 	- Go back to solving walking reached injuction of two floors
 
-	- Add plan with own triangles for "staircases"
+	- Add plan for "staircases"
+		- 1: floors can be marked as "stairs", and that is used in two places:
+			- Bounce detection: when walking, no bounce regardless of slope (do continuation case)
+				- Only when we're walking
+			- Walk vector flattening: forcibly extend walk along edge, even if exactly orthogonal
+			- Auto-build: when two three consecutive edges wind up to 360 degrees
+		- 2: own triangles (and edges)
+	- Add plan for "manholes"
+		- Floor info is on Triangle, not on Spring

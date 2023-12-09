@@ -362,7 +362,7 @@ void Npcs::UpdateNpcParticle2(
 
                                 LogMessage("    Detected well - stopping here");
 
-                                // Update particle's physics, considering that we are in a well and thus still
+                                // Update particle's physics, considering that we are in a well and thus still (wrt mesh)
 
                                 vec2f const particleEndAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
                                     particle.ConstrainedState->CurrentTriangleBarycentricCoords,
@@ -371,9 +371,9 @@ void Npcs::UpdateNpcParticle2(
 
                                 mParticles.SetPosition(particle.ParticleIndex, particleEndAbsolutePosition);
 
-                                // Use whole time quantum for velocity, as particleStartAbsolutePosition is fixed at t0        
-                                mParticles.SetVelocity(particle.ParticleIndex, vec2f::zero());
-                                particle.ConstrainedState->MeshRelativeVelocity = meshVelocity;
+                                // No (relative) velocity
+                                mParticles.SetVelocity(particle.ParticleIndex, -meshVelocity);
+                                particle.ConstrainedState->MeshRelativeVelocity = vec2f::zero();
 
                                 // Consume the whole time quantum
                                 remainingDt = 0.0f;

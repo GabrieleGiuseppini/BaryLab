@@ -45,6 +45,8 @@ LoggingDialog::LoggingDialog(wxWindow * parent)
 		wxSize(200, 200),
 		wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH | wxVSCROLL | wxHSCROLL | wxBORDER_NONE);
 
+    mTextCtrl->SetMaxLength(65536*10);
+
 	wxFont font(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
 	mTextCtrl->SetFont(font);
 
