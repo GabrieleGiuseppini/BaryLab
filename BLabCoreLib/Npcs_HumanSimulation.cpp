@@ -82,6 +82,9 @@ void Npcs::UpdateHuman(
 	Mesh const & mesh,
 	LabParameters const & labParameters)
 {
+	// TODOTEST
+	(void)mesh;
+
 	float const ToRisingConvergenceRate = 0.067f;
 	float const ToWalkingConvergenceRate = 0.09f;
 	float constexpr MaxRelativeVelocityForEquilibrium = 2.9f; // We slip a lot while we try to stand up
@@ -314,12 +317,13 @@ void Npcs::UpdateHuman(
 				assert(humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking);
 
 				// Impart walk displacement & run walking state machine
-				RunWalkingHumanStateMachine(
-					humanState,
-					primaryParticleState,
-					secondaryParticleState,
-					mesh,
-					labParameters);
+				// TODOTEST
+				////RunWalkingHumanStateMachine(
+				////	humanState,
+				////	primaryParticleState,
+				////	secondaryParticleState,
+				////	mesh,
+				////	labParameters);
 			}
 
 			break;

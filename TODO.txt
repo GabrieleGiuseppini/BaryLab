@@ -135,8 +135,8 @@
 					+ Removes sudden well
 					X ...but also might break "smooth slide" and make it bumpy again
 				
-	- Re-instate dipole - w/out human
-	- Re-instate human state machine, w/out walking
+	+ Re-instate dipole - w/out human
+	= Re-instate human state machine, w/out walking
 	- Re-instate walking
 		- Principles:
 			- Walk vector - splattered along edge - is added to end position
@@ -158,6 +158,7 @@
 		- Does reduced dt do anything?
 		- Extract velocity calculation (if still needed) into helper method
 		- Nuke old "1" simulations and rename "2"
+			- Watch out: there are methods in 1 that we still need; port those to 2 before nuking & renaming
 		- Nuke imparted trajectory (tool and all)
 		- Nuke step-by-step
 	- Merge into master

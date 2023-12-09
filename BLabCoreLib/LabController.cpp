@@ -108,8 +108,8 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
 
         npcs->Add(
             // TODOTEST
-            Npcs::NpcType::Furniture,
-            //Npcs::NpcType::Human,
+            //Npcs::NpcType::Furniture,
+            Npcs::NpcType::Human,
             position,
             *mesh);
 

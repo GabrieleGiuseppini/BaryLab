@@ -173,7 +173,8 @@ void Npcs::UpdateNpcParticle2(
     vec2f const physicalForces =
         mParticles.GetWorldForce(particle.ParticleIndex)
         + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * particleMass
-        + mParticles.GetSpringForces(particle.ParticleIndex);
+        + mParticles.GetSpringForces(particle.ParticleIndex)
+        + mParticles.GetVoluntaryForces(particle.ParticleIndex);
 
     vec2f const physicsDeltaPos =
         mParticles.GetVelocity(particle.ParticleIndex) * dt
@@ -390,13 +391,13 @@ void Npcs::UpdateNpcParticle2(
                             pastBarycentricPosition.reset();
                         }
                             
-                        // Update well detection machinery
-                        pastPastBarycentricPosition = pastBarycentricPosition;
-                        pastBarycentricPosition.emplace(particle.ConstrainedState->CurrentTriangle, particle.ConstrainedState->CurrentTriangleBarycentricCoords);
-
                         if (particle.ConstrainedState.has_value())
                         {
                             LogMessage("    EndPosition=", mParticles.GetPosition(particle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(particle.ParticleIndex), " EndMRVelocity=", particle.ConstrainedState->MeshRelativeVelocity);
+
+                            // Update well detection machinery
+                            pastPastBarycentricPosition = pastBarycentricPosition;
+                            pastBarycentricPosition.emplace(particle.ConstrainedState->CurrentTriangle, particle.ConstrainedState->CurrentTriangleBarycentricCoords);
                         }
                         else
                         {
@@ -482,12 +483,15 @@ void Npcs::UpdateNpcParticle2(
             mesh.GetVertices());
     }
     
-    // Publish final velocities
+    if (mCurrentlySelectedParticle == particle.ParticleIndex)
+    {
+        // Publish final velocities
 
-    vec2f const particleVelocity = (mParticles.GetPosition(particle.ParticleIndex) - particleStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration;
+        vec2f const particleVelocity = (mParticles.GetPosition(particle.ParticleIndex) - particleStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration;
 
-    mEventDispatcher.OnCustomProbe("VelX", particleVelocity.x);
-    mEventDispatcher.OnCustomProbe("VelY", particleVelocity.y);
+        mEventDispatcher.OnCustomProbe("VelX", particleVelocity.x);
+        mEventDispatcher.OnCustomProbe("VelY", particleVelocity.y);
+    }
 }
 
 void Npcs::UpdateNpcParticle_Free2(
@@ -854,15 +858,17 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
             // Move to endpoint and exit, consuming whole quantum
             //
 
+            vec2f const endPosition = mesh.GetTriangles().FromBarycentricCoordinates(
+                trajectoryEndBarycentricCoords,
+                particle.ConstrainedState->CurrentTriangle,
+                mesh.GetVertices());
+
             particle.ConstrainedState.reset();
 
             UpdateNpcParticle_Free2(
                 particle,
                 particleStartAbsolutePosition,
-                mesh.GetTriangles().FromBarycentricCoordinates(
-                    trajectoryEndBarycentricCoords,
-                    particle.ConstrainedState->CurrentTriangle,
-                    mesh.GetVertices()),
+                endPosition,
                 particles);
 
             return 0.0f;
