@@ -331,7 +331,8 @@ void Npcs::UpdateNpcParticle2(
                         LogMessage("    ConstrainedNonInertial: triangle=", currentTriangleElementIndex, " edgeOrdinal=", edgeOrdinal, " bCoords=", particle.ConstrainedState->CurrentTriangleBarycentricCoords, " trajectory=", trajectory);
                         LogMessage("    StartPosition=", mParticles.GetPosition(particle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(particle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", particle.ConstrainedState->MeshRelativeVelocity);
 
-                        // Ray-trace using non-inertial physics
+                        // Ray-trace using non-inertial physics;
+                        // will return when completed or when current edge is over
                         float const newRemainingDt = UpdateNpcParticle_ConstrainedNonInertial2(
                             particle,
                             dipoleArg,
