@@ -122,18 +122,18 @@
 				+ Fix for infinite loop when distance traveled is zero:
 					+ Detect previous, then interrupt						
 						+ Redo 3 times no movement
-						+ Set velocity to zero, and automatically relative velocity to mesh velocity
-				- Does reduced dt do anything?
-				- Wanna fix? Bounce now gets velocity when in well
+						+ Set velocity to zero, and automatically relative velocity to mesh velocity				
 				+ Extract bounce into helper method
-				- Extract velocity calculation (if still needed) into helper method
-				= Tests:
+				+ Tests:
 					+ Well with bounce
 					+ Climbing (impact continuation), both L and R
 					+ Bouncing, both L and R
-					- Test flying off surface
+					+ Test flying off surface
 					+ Relative velocity
 						+ Fix ghost bounce: due to zeroing of vel at well
+				- Test with refreshing trajectory at impact continuation
+					- Removes sudden well
+					- ...but also might break "smooth slide" and make it bumpy again
 				
 	- Re-instate dipole - w/out human
 	- Re-instate human state machine, w/out walking
@@ -155,6 +155,8 @@
 			- But then, secondary trails primary, or doesn't follow it walking
 				- Wanna try by forecasting primary when we calc walk vector at HumanWalkingStateMachine?
 	- Cleanups:
+		- Does reduced dt do anything?
+		- Extract velocity calculation (if still needed) into helper method
 		- Nuke old "1" simulations and rename "2"
 		- Nuke imparted trajectory (tool and all)
 		- Nuke step-by-step
