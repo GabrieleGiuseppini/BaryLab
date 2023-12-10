@@ -538,7 +538,7 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
 
     //
     // Calculate magnitude of flattened trajectory - i.e. component of trajectory
-    // along (tangent) edge, positive when in the direction of the edge
+    // along (i.e. tangent) edge, positive when in the direction of the edge
     //
 
     float trajectoryT = theoreticalTrajectory.dot(edgeDir);
@@ -643,8 +643,6 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
     //      - Without bounce: advance simulation by how much walked, re-flatten trajectory, and continue
     //
 
-    float distanceTraveledAlongEdge = 0.0f;
-
     //
     // If target is on/in triangle, we move to target
     //
@@ -668,10 +666,23 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
 
         particles.SetPosition(particle.ParticleIndex, particleEndAbsolutePosition);
 
-        // Use whole time quantum for velocity, as particleStartAbsolutePosition is fixed at t0        
-        vec2f const absoluteVelocity = (particleEndAbsolutePosition - particleStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration;
-        particles.SetVelocity(particle.ParticleIndex, absoluteVelocity);
-        particle.ConstrainedState->MeshRelativeVelocity = absoluteVelocity + meshVelocity;
+        // Velocity: given that we've completed *along the edge*, then we can calculate
+        // our (relative) velocity based on the total distance traveled along this time quantum,
+        // but discounting the distance we've walked - so not to impart walking velocity
+        // our velocity is then that distance in this time quantum
+
+        // TODO: discount walked trajectory vector
+        vec2f const distanceTraveledAlongEdge = particleEndAbsolutePosition - trajectoryStartAbsolutePosition;
+        vec2f const relativeVelocity = distanceTraveledAlongEdge / dt;
+
+        particles.SetVelocity(particle.ParticleIndex, relativeVelocity - meshVelocity);
+        particle.ConstrainedState->MeshRelativeVelocity = relativeVelocity;
+
+        ////// TODOOLD
+        ////// Use whole time quantum for velocity, as particleStartAbsolutePosition is fixed at t0        
+        ////vec2f const absoluteVelocity = (particleEndAbsolutePosition - particleStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration;
+        ////particles.SetVelocity(particle.ParticleIndex, absoluteVelocity);
+        ////particle.ConstrainedState->MeshRelativeVelocity = absoluteVelocity + meshVelocity;
 
         // We have consumed the whole time quantum
         return 0.0f;
@@ -726,6 +737,8 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
     //  - Climb triangle
     //  - Find edge intersection
 
+    float totalDistanceTraveledAlongEdge = 0.0f;
+
     for (vec2f lastTrajectoryStartAbsolutePosition = trajectoryStartAbsolutePosition; ;)
     {
         //
@@ -747,9 +760,9 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
             particle.ConstrainedState->CurrentTriangle,
             mesh.GetVertices()));
 
-        distanceTraveledAlongEdge += (intersectionAbsolutePosition - lastTrajectoryStartAbsolutePosition).length();
+        totalDistanceTraveledAlongEdge += (intersectionAbsolutePosition - lastTrajectoryStartAbsolutePosition).length();
 
-        LogMessage("        distanceTraveledAlongEdge=", distanceTraveledAlongEdge);
+        LogMessage("        totalDistanceTraveledAlongEdge=", totalDistanceTraveledAlongEdge);
 
         lastTrajectoryStartAbsolutePosition = intersectionAbsolutePosition;
 
@@ -778,7 +791,7 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
             // We might have hit a tiny bump (e.g. because of triangles slightly bent); in this case we don't want to bounce
             //
 
-            float const trajectoryLength = flattenedTrajectory.length();
+            float const trajectoryLength = std::abs(trajectoryT);
 
             vec2f const intersectionEdgeDir =
                 mesh.GetTriangles().GetSubEdgeVector(particle.ConstrainedState->CurrentTriangle, intersectionEdgeOrdinal, mesh.GetVertices())
@@ -801,7 +814,7 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
                 float consumedDt;
                 if (trajectoryLength != 0.0f)
                 {
-                    consumedDt = dt * distanceTraveledAlongEdge / trajectoryLength;
+                    consumedDt = dt * totalDistanceTraveledAlongEdge / trajectoryLength;
                 }
                 else
                 {
@@ -912,7 +925,8 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
 
         auto const oldTrajectoryEndBarycentricCoords = trajectoryEndBarycentricCoords;
 
-        // TODOHERE: here we introduce a lot of error
+        // Note: here we introduce a lot of error - the target bary coords are not anymore
+        // guaranteed to lie exactly on the (continuation of the) edge
         trajectoryEndBarycentricCoords = mesh.GetTriangles().ToBarycentricCoordinates(
             oldTrajectoryEndAbsolutePosition,
             oppositeTriangle,
@@ -949,7 +963,7 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
             float const trajectoryLength = flattenedTrajectory.length();
             if (trajectoryLength != 0.0f)
             {
-                consumedDt = dt * distanceTraveledAlongEdge / trajectoryLength;
+                consumedDt = dt * totalDistanceTraveledAlongEdge / trajectoryLength;
             }
             else
             {

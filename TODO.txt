@@ -138,6 +138,16 @@
 	+ Re-instate dipole - w/out human
 	= Re-instate human state machine, w/out walking
 	- Re-instate walking
+		+ Step 1: Calc (relative) velocity @ exit of NC based off distance traveled, so that we may discount distance walked
+			- TODO: do we need to do that as well for the other exits? Any risk there we gain walk velocity?
+		- Step 2:
+			- Human state: walk==<dir, strength>
+			- Before NC loop: add flattened walk vector to trajectory and remember walked trajectory vector
+				- Also add (just) walk displacement to secondary particle - which does the same as primary but using this saved displacement
+			- At velocity calc'n, discount that velocity
+
+
+		- TODOOLD:
 		- Principles:
 			- Walk vector - splattered along edge - is added to end position
 				- During loop, current pos changes and gets closer and closer - that's how we make progress
