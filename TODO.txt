@@ -136,15 +136,56 @@
 					X ...but also might break "smooth slide" and make it bumpy again
 				
 	+ Re-instate dipole - w/out human
-	= Re-instate human state machine, w/out walking
-	- Re-instate walking
-		+ Step 1: Calc (relative) velocity @ exit of NC based off distance traveled, so that we may discount distance walked
-			- TODO: do we need to do that as well for the other exits? Any risk there we gain walk velocity?
-		- Step 2:
-			- Human state: walk==<dir, strength>
-			- Before NC loop: add flattened walk vector to trajectory and remember walked trajectory vector
+	+ Re-instate human state machine, w/out walking
+	= Re-instate walking
+		+ Step 1: restructure loops so that traj flattening happens in main loop
+		+ Step 2: main loop initializes distanceToDisplaceInStep, distanceToWalkInStep, totalDistanceDisplaced
+		+ Step 3: inner loop returns distanceDisplaced, outer loop calcs dt based off distance asked to displace in step and distanceDisplaced
+		= Step 4: redo velocity calculation at "plain" termination of non-inertial step : use displacement and edgeDir, assuming it all happened on last edge
+			+ Compare the two: publish deltax and deltay
+			- Redo new velocity algo: should use _signed_ displacements when summing up to total walked, 
+
+			- At final velocity cal'n, we do (signed_phys_distance_traveled - signed_distance_walked) * edgeDir / whole_dt
+				- signed_phys_distance_traveled == totalEdgeTraveled
+					- For now: proxy; best would be: TODOHERE
+				- signed_distance_walked == totalEdgeWalked
+					- For now: proxy; best would be: TODOHERE
+		- TODO: can we go back to simply calculating "displacementToWalk" (and "physicalDisplacement") separately at the beginning of each step, as a function of the current time quantum?
+			! Fact: at each iteration, the actual movement of the particle will be the result of phys traj and imposed walk displacement
+				! Phys traj displacement is itself dependant from remaining_dt, because of advancement of particle's current bary coords
+				! Walk displacement must be dependant from remaining_dt, for example by means of using walk velocity
+			! Fact: so, the actual movement includes the consumed_dt's portion (fraction) of both phys traj and imposed walk
+			- Total signed distance traveled during a step - returned at impact continuation - is implicitly result of (signed_edge_phys_traveled + signed_edge_walked)
+				- 1. Make it return signed distance - so just keep track of signed distance
+			- consumed_dt fraction may be calculated as signed_edge_traveled_planned / signed_edge_traveled_actual
+				- signed_edge_traveled_planned = (signed_edge_phys_traveled_planned + signed_edge_walked_planned)
+					- Recalc'd at each iteration, for the remaining dt
+						- Valid as long as signed_edge_walked_planned takes into account remaining dt
+					- signed_edge_walked_planned == walk_vector.dot(edgeDir)
+				- signed_edge_traveled_actual = returned (signed_edge_phys_traveled + signed_edge_walked) (implicit)
+				- 2. Do the above
+			- final velocity cal'n: we do (signed_edge_traveled_actual (implicit, simply on-edge traveled) - signed_edge_walked_actual) * edgeDir / this_dt
+				! Note: at this moment we've reached the planned end of the iteration's sub-trajectory
+				- So, we can assume that signed_edge_traveled_actual == signed_edge_traveled_planned
+					- Verify (allowing for numerical slack)
+				- And in particular, we can assume that signed_edge_walked_actual == signed_edge_walked_planned
+					- Which needs now to be passed as an arg
+
+
+
+		- Step 5: test with torque being a quantity on its own, and calc'd at secondary after primary has moved
+			- If it works, we might not need to impart distance walked to secondary
+			- Warning: when we calculate torque strength primary and secondary might be aligned; so, torque needs to depend on unalignment
+				- Just "TorqueWill", alignment is calc'd (at sec'ry) based on vertical at that moment
+				- Should also require spring force to be calc'd for secondary _at_ secondary's turn
+		
+		- Step 6:
+			- Human state: walk==<dir, velocity_strength>
+			- TODOHERE: depends on various above
+			- Before NC loop: add flattened walk vector to trajectory (and initialize distance to walk), and remember walked distance
 				- Also add (just) walk displacement to secondary particle - which does the same as primary but using this saved displacement
-			- At velocity calc'n, discount that velocity
+					- TODOHERE: should be absolute displacement
+			- At velocity calc'n, discount walked distance
 
 
 		- TODOOLD:
