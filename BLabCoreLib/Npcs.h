@@ -485,15 +485,17 @@ private:
 		vec2f const & endPosition,
 		NpcParticles & particles) const;
 
-	float UpdateNpcParticle_ConstrainedNonInertial2(
+	std::optional<float> UpdateNpcParticle_ConstrainedNonInertial2(
 		StateType::NpcParticleStateType & particle,
 		std::optional<DipoleArg> const & dipoleArg,
 		bool const isPrimaryParticle,
 		int edgeOrdinal,
 		vec2f const & edgeDir,
-		vec2f const & particleStartAbsolutePosition,
+		vec2f const & particleStartAbsolutePosition,				
 		vec2f const & trajectoryStartAbsolutePosition,
-		vec2f const & theoreticalTrajectory,
+		vec3f trajectoryEndBarycentricCoords,
+		vec2f const & flattenedTrajectory,
+		float actualTotalDistanceDisplaced,
 		vec2f const meshVelocity,
 		float dt,
 		NpcParticles & particles,

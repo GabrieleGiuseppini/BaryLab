@@ -213,7 +213,7 @@ void Npcs::UpdateNpcParticle2(
 
     // Loop tracing trajectory from TrajectoryStart (== current bary coords) to TrajectoryEnd (== start absolute pos + deltaPos); 
     // each step moves the next TrajectoryStart a bit ahead.
-    // Each iteration of the loop either exits (completes), or moves currenty bary coords (and calcs remaining dt) when it wants 
+    // Each iteration of the loop either exits (completes), or moves current bary coords (and calcs remaining dt) when it wants 
     // to "continue" an impact while on edge-moving-against-it, i.e. when it wants to recalculate a new flattened traj.
     //    - In this case, the iteration doesn't change current absolute position, nor velocity; it only updates current bary coords 
     //      to what will become the next TrajectoryStart
@@ -250,6 +250,12 @@ void Npcs::UpdateNpcParticle2(
 
     std::optional<PastBarycentricPosition> pastPastBarycentricPosition;
     std::optional<PastBarycentricPosition> pastBarycentricPosition;
+
+    // In order to discount walk velocity, we remember the first calculated distances, as (ap-)proxies of the actual distance we'll travel
+    std::optional<float> distanceToDisplaceInStep;
+    std::optional<float> distanceToWalkInStep;
+    // Sum of actual distances traveled during (non-inertial) iterations
+    float actualTotalDistanceDisplaced = 0.0f;
 
     for (float remainingDt = dt; ; )
     {
@@ -332,9 +338,126 @@ void Npcs::UpdateNpcParticle2(
                         LogMessage("    ConstrainedNonInertial: triangle=", currentTriangleElementIndex, " edgeOrdinal=", edgeOrdinal, " bCoords=", particle.ConstrainedState->CurrentTriangleBarycentricCoords, " trajectory=", trajectory);
                         LogMessage("    StartPosition=", mParticles.GetPosition(particle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(particle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", particle.ConstrainedState->MeshRelativeVelocity);
 
+                        //
+                        // We're moving against the floor, hence we are in a non-inertial frame...
+                        // ...take friction into account and flaten trajectory
+                        //
+
+                        //
+                        // Calculate magnitude of flattened trajectory - i.e. component of trajectory
+                        // along (i.e. tangent) edge, positive when in the direction of the edge
+                        //
+
+                        float trajectoryT = trajectory.dot(edgeDir);
+
+                        //
+                        // Update tangential component of trajectory with friction
+                        //
+
+                        {
+                            // Normal trajectory: apparent (integrated) force against the floor;
+                            // positive when against the floor
+
+                            float const trajectoryN = trajectory.dot(edgeDir.to_perpendicular());
+
+                            //
+                            // Choose between kinetic and static friction
+                            //
+                            // Note that we want to check actual velocity here, not
+                            // *intention* to move (which is trajectory)
+                            //
+
+                            float frictionCoefficient;
+                            if (std::abs(particle.ConstrainedState->MeshRelativeVelocity.dot(edgeDir)) > 0.01f) // Magic number
+                            {
+                                // Kinetic friction
+                                frictionCoefficient = labParameters.KineticFriction;
+                            }
+                            else
+                            {
+                                // Static friction
+                                frictionCoefficient = labParameters.StaticFriction;
+                            }
+
+                            // Calculate friction (integrated) force magnitude (along edgeDir),
+                            // which is the same as apparent force, up to max friction threshold
+                            float tFriction = std::min(std::abs(trajectoryT), frictionCoefficient * std::max(trajectoryN, 0.0f));
+                            if (trajectoryT >= 0.0f)
+                            {
+                                tFriction *= -1.0f;
+                            }
+
+                            LogMessage("        friction: trajectoryN=", trajectoryN, " relVel=", particle.ConstrainedState->MeshRelativeVelocity,
+                                " trajectoryT=", trajectoryT, " tFriction=", tFriction);
+
+                            // Update trajectory with friction
+                            trajectoryT += tFriction;
+                        }
+
+                        if (!distanceToDisplaceInStep.has_value())
+                        {
+                            // We take this first calculation of total distance to displace
+                            // as representative of the whole step; in reality, the actual
+                            // distance traveled may vary, but we use this only to calculate
+                            // final velocity
+
+                            distanceToDisplaceInStep = std::abs(trajectoryT);
+
+                            LogMessage("        distanceToDisplaceInStep=", *distanceToDisplaceInStep);
+                        }
+
+                        //
+                        // Recovered flattened trajectory as a vector
+                        //
+
+                        vec2f const flattenedTrajectory = edgeDir * trajectoryT;
+
+                        //
+                        // Calculate trajectory target
+                        //
+
+                        vec2f flattenedTrajectoryEndAbsolutePosition = trajectoryStartAbsolutePosition + flattenedTrajectory;
+
+                        ////// TODOHERE: walking
+                        ////// Adjust target pos with superimposed displacement - which is NOT taken into account for velocity
+                        ////std::optional<vec2f> secondaryVoluntarySuperimposedDisplacement;
+                        ////if (npc.HumanNpcState.has_value())
+                        ////{
+                        ////    vec2f const walkVector = edgeDir * edgeDir.dot(vec2f(1.0f, 0.0f)) * mParticles.GetVoluntarySuperimposedDisplacement(particle.ParticleIndex);
+                        ////    if (walkVector != vec2f::zero())
+                        ////    {
+                        ////        LogMessage("WalkVector@1: ", walkVector, " ", npc.HumanNpcState->CurrentWalkingMagnitude);
+                        ////    }
+
+                        ////    flattenedTrajectoryEndAbsolutePosition += walkVector;
+
+                        ////    if (isPrimaryParticle)
+                        ////    {
+                        ////        // Impart same displacement to secondary particle
+                        ////        secondaryVoluntarySuperimposedDisplacement = walkVector;
+                        ////    }
+                        ////}
+
+                        // TODO: if first time, save distanceToWalk
+
+                        vec3f flattenedTrajectoryEndBarycentricCoords = mesh.GetTriangles().ToBarycentricCoordinates(
+                            flattenedTrajectoryEndAbsolutePosition,
+                            particle.ConstrainedState->CurrentTriangle,
+                            mesh.GetVertices());
+
+                        //
+                        // Due to numerical slack, ensure target barycentric coords are still along edge
+                        //
+
+                        int const edgeVertexOrdinal = (edgeOrdinal + 2) % 3;
+                        flattenedTrajectoryEndBarycentricCoords[edgeVertexOrdinal] = 0.0f;
+                        flattenedTrajectoryEndBarycentricCoords[(edgeVertexOrdinal + 1) % 3] = 1.0f - flattenedTrajectoryEndBarycentricCoords[(edgeVertexOrdinal + 2) % 3];
+
+                        LogMessage("        flattenedTrajectory=", flattenedTrajectory, " flattenedTrajectoryEndAbsolutePosition=", flattenedTrajectoryEndAbsolutePosition, " flattenedTrajectoryEndBarycentricCoords=", flattenedTrajectoryEndBarycentricCoords);
+
                         // Ray-trace using non-inertial physics;
                         // will return when completed or when current edge is over
-                        float const newRemainingDt = UpdateNpcParticle_ConstrainedNonInertial2(
+                        std::optional<float> const distanceDisplaced = UpdateNpcParticle_ConstrainedNonInertial2(
                             particle,
                             dipoleArg,
                             isPrimaryParticle,
@@ -342,53 +465,73 @@ void Npcs::UpdateNpcParticle2(
                             edgeDir,
                             particleStartAbsolutePosition,
                             trajectoryStartAbsolutePosition,
-                            trajectory,
+                            flattenedTrajectoryEndBarycentricCoords,
+                            flattenedTrajectory,
+                            actualTotalDistanceDisplaced,
                             meshVelocity,
                             remainingDt,
                             mParticles,
                             mesh,
                             labParameters);
 
-                        if (newRemainingDt == remainingDt)
+                        LogMessage("    Distance displaced in non-inertial step: ", distanceDisplaced.has_value() ? std::to_string(*distanceDisplaced) : "N/A");
+
+                        if (!distanceDisplaced.has_value())
                         {
-                            // No movement
-
-                            // Check if we're in a well
-                            if (pastPastBarycentricPosition.has_value()
-                                && pastPastBarycentricPosition->TriangleElementIndex == particle.ConstrainedState->CurrentTriangle
-                                && pastPastBarycentricPosition->BarycentricCoords == particle.ConstrainedState->CurrentTriangleBarycentricCoords)
-                            {
-                                //
-                                // Well - stop here
-                                //
-
-                                LogMessage("    Detected well - stopping here");
-
-                                // Update particle's physics, considering that we are in a well and thus still (wrt mesh)
-
-                                vec2f const particleEndAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
-                                    particle.ConstrainedState->CurrentTriangleBarycentricCoords,
-                                    particle.ConstrainedState->CurrentTriangle,
-                                    mesh.GetVertices());
-
-                                mParticles.SetPosition(particle.ParticleIndex, particleEndAbsolutePosition);
-
-                                // No (relative) velocity
-                                mParticles.SetVelocity(particle.ParticleIndex, -meshVelocity);
-                                particle.ConstrainedState->MeshRelativeVelocity = vec2f::zero();
-
-                                // Consume the whole time quantum
-                                remainingDt = 0.0f;
-                            }
+                            // Completed
+                            remainingDt = 0.0f;
                         }
                         else
                         {
-                            // We have moved
-                            remainingDt = newRemainingDt;
+                            if (*distanceDisplaced == 0.0f)
+                            {
+                                // No movement
 
-                            // Reset well detection machinery
-                            pastPastBarycentricPosition.reset();
-                            pastBarycentricPosition.reset();
+                                // Check if we're in a well
+                                if (pastPastBarycentricPosition.has_value()
+                                    && pastPastBarycentricPosition->TriangleElementIndex == particle.ConstrainedState->CurrentTriangle
+                                    && pastPastBarycentricPosition->BarycentricCoords == particle.ConstrainedState->CurrentTriangleBarycentricCoords)
+                                {
+                                    //
+                                    // Well - stop here
+                                    //
+
+                                    LogMessage("    Detected well - stopping here");
+
+                                    // Update particle's physics, considering that we are in a well and thus still (wrt mesh)
+
+                                    vec2f const particleEndAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
+                                        particle.ConstrainedState->CurrentTriangleBarycentricCoords,
+                                        particle.ConstrainedState->CurrentTriangle,
+                                        mesh.GetVertices());
+
+                                    mParticles.SetPosition(particle.ParticleIndex, particleEndAbsolutePosition);
+
+                                    // No (relative) velocity
+                                    mParticles.SetVelocity(particle.ParticleIndex, -meshVelocity);
+                                    particle.ConstrainedState->MeshRelativeVelocity = vec2f::zero();
+
+                                    // Consume the whole time quantum
+                                    remainingDt = 0.0f;
+                                }
+                            }
+                            else
+                            {
+                                // We have moved
+
+                                actualTotalDistanceDisplaced += *distanceDisplaced;
+
+                                // Calculate consumed dt
+                                assert(distanceToDisplaceInStep.has_value());
+                                float const fractionConsumed = *distanceToDisplaceInStep != 0.0f
+                                    ? std::min(*distanceDisplaced / *distanceToDisplaceInStep, 1.0f)
+                                    : 0.0f;
+                                remainingDt *= (1.0f - fractionConsumed);
+
+                                // Reset well detection machinery
+                                pastPastBarycentricPosition.reset();
+                                pastBarycentricPosition.reset();
+                            }
                         }
                             
                         if (particle.ConstrainedState.has_value())
@@ -514,7 +657,7 @@ void Npcs::UpdateNpcParticle_Free2(
         (endPosition - startPosition) / LabParameters::SimulationTimeStepDuration);
 }
 
-float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
+std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
     StateType::NpcParticleStateType & particle,
     std::optional<DipoleArg> const & dipoleArg,
     bool const isPrimaryParticle,
@@ -522,7 +665,9 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
     vec2f const & edgeDir,
     vec2f const & particleStartAbsolutePosition,
     vec2f const & trajectoryStartAbsolutePosition,
-    vec2f const & theoreticalTrajectory,
+    vec3f trajectoryEndBarycentricCoords,
+    vec2f const & flattenedTrajectory,
+    float actualTotalDistanceDisplaced,
     vec2f const meshVelocity,
     float dt,
     NpcParticles & particles,
@@ -532,109 +677,6 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
     assert(particle.ConstrainedState.has_value());
 
     //
-    // We're moving against the floor, hence we are in a non-inertial frame...
-    // ...take friction into account and flaten trajectory
-    //
-
-    //
-    // Calculate magnitude of flattened trajectory - i.e. component of trajectory
-    // along (i.e. tangent) edge, positive when in the direction of the edge
-    //
-
-    float trajectoryT = theoreticalTrajectory.dot(edgeDir);
-
-    //
-    // Update tangential component of trajectory with friction
-    //
-
-    {
-        // Normal trajectory: apparent (integrated) force against the floor;
-        // positive when against the floor
-
-        float const trajectoryN = theoreticalTrajectory.dot(edgeDir.to_perpendicular());
-
-        //
-        // Choose between kinetic and static friction
-        //
-        // Note that we want to check actual velocity here, not
-        // *intention* to move (which is trajectory)
-        //
-
-        float frictionCoefficient;
-        if (std::abs(particle.ConstrainedState->MeshRelativeVelocity.dot(edgeDir)) > 0.01f) // Magic number
-        {
-            // Kinetic friction
-            frictionCoefficient = labParameters.KineticFriction;
-        }
-        else
-        {
-            // Static friction
-            frictionCoefficient = labParameters.StaticFriction;
-        }
-
-        // Calculate friction (integrated) force magnitude (along edgeDir),
-        // which is the same as apparent force, up to max friction threshold
-        float tFriction = std::min(std::abs(trajectoryT), frictionCoefficient * std::max(trajectoryN, 0.0f));
-        if (trajectoryT >= 0.0f)
-        {
-            tFriction *= -1.0f;
-        }
-
-        LogMessage("        friction: trajectoryN=", trajectoryN, " relVel=", particle.ConstrainedState->MeshRelativeVelocity, 
-            " trajectoryT=", trajectoryT, " tFriction=", tFriction);
-
-        // Update trajectory with friction
-        trajectoryT += tFriction;
-    }
-
-    //
-    // Recovered flattened trajectory as a vector
-    //
-
-    vec2f const flattenedTrajectory = edgeDir * trajectoryT;
-
-    //
-    // Calculate trajectory target
-    //
-
-    vec2f trajectoryEndAbsolutePosition = trajectoryStartAbsolutePosition + flattenedTrajectory;
-
-    ////// TODOHERE: walking
-    ////// Adjust target pos with superimposed displacement - which is NOT taken into account for velocity
-    ////std::optional<vec2f> secondaryVoluntarySuperimposedDisplacement;
-    ////if (npc.HumanNpcState.has_value())
-    ////{
-    ////    vec2f const walkVector = edgeDir * edgeDir.dot(vec2f(1.0f, 0.0f)) * mParticles.GetVoluntarySuperimposedDisplacement(particle.ParticleIndex);
-    ////    if (walkVector != vec2f::zero())
-    ////    {
-    ////        LogMessage("WalkVector@1: ", walkVector, " ", npc.HumanNpcState->CurrentWalkingMagnitude);
-    ////    }
-
-    ////    trajectoryEndAbsolutePosition += walkVector;
-
-    ////    if (isPrimaryParticle)
-    ////    {
-    ////        // Impart same displacement to secondary particle
-    ////        secondaryVoluntarySuperimposedDisplacement = walkVector;
-    ////    }
-    ////}
-
-    vec3f trajectoryEndBarycentricCoords = mesh.GetTriangles().ToBarycentricCoordinates(
-        trajectoryEndAbsolutePosition,
-        particle.ConstrainedState->CurrentTriangle,
-        mesh.GetVertices());
-
-    //
-    // Due to numerical slack, ensure target barycentric coords are still along edge
-    //
-
-    int const edgeVertexOrdinal = (edgeOrdinal + 2) % 3;
-    trajectoryEndBarycentricCoords[edgeVertexOrdinal] = 0.0f;
-    trajectoryEndBarycentricCoords[(edgeVertexOrdinal + 1) % 3] = 1.0f - trajectoryEndBarycentricCoords[(edgeVertexOrdinal + 2) % 3];
-
-    LogMessage("        flattenedTrajectory=", flattenedTrajectory, " trajectoryEndAbsolutePosition=", trajectoryEndAbsolutePosition, " trajectoryEndBarycentricCoords=", trajectoryEndBarycentricCoords);
-
-    //
     // Ray-trace along the flattened trajectory, ending only at one of the following three conditions:
     // 1. Reached destination: terminate
     // 2. Becoming free: do free movement and terminate
@@ -642,6 +684,33 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
     //      - With bounce: impart bounce velocity and terminate
     //      - Without bounce: advance simulation by how much walked, re-flatten trajectory, and continue
     //
+
+    // Figure out if we're moving clockwise or counter-clockwise (fron the point of view of inside
+    // the triangle); this will hold for all the triangles traveled while going through a cuspid
+    // TODO: rewrite if it works
+    bool isClockwise;
+    if (trajectoryEndBarycentricCoords[edgeOrdinal] < particle.ConstrainedState->CurrentTriangleBarycentricCoords[edgeOrdinal])
+    {
+        isClockwise = true;
+    }
+    else
+    {
+        isClockwise = false;
+    }
+
+    // TODOTEST
+    ////if (trajectoryEndBarycentricCoords[edgeOrdinal] < 0.0f)
+    ////{
+    ////    // It's the vertex at the end of our edge
+    ////    assert(trajectoryEndBarycentricCoords[(edgeOrdinal + 1) % 3] > 0.0f); // Because target is outside of triangle
+    ////    isClockwise = true;
+    ////}
+    ////else
+    ////{
+    ////    // It's the vertex before our edge
+    ////    assert(trajectoryEndBarycentricCoords[(edgeOrdinal + 1) % 3] < 0.0f);
+    ////    isClockwise = false;
+    ////}
 
     //
     // If target is on/in triangle, we move to target
@@ -671,9 +740,9 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
         // but discounting the distance we've walked - so not to impart walking velocity
         // our velocity is then that distance in this time quantum
 
-        // TODO: discount walked trajectory vector
+        // TODO: new algo here (with totalWalked + thisWalked), discounting walked trajectory vector
         vec2f const distanceTraveledAlongEdge = particleEndAbsolutePosition - trajectoryStartAbsolutePosition;
-        vec2f const relativeVelocity = distanceTraveledAlongEdge / dt;
+        vec2f const relativeVelocity = distanceTraveledAlongEdge / dt; // TODO: see if dt still needed after this; if not, nuke
 
         particles.SetVelocity(particle.ParticleIndex, relativeVelocity - meshVelocity);
         particle.ConstrainedState->MeshRelativeVelocity = relativeVelocity;
@@ -684,9 +753,27 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
         ////particles.SetVelocity(particle.ParticleIndex, absoluteVelocity);
         ////particle.ConstrainedState->MeshRelativeVelocity = absoluteVelocity + meshVelocity;
 
-        // We have consumed the whole time quantum
-        return 0.0f;
+        // TODOTEST: early attempt at second algo here
+        // Take as final velocity the whole distance traveled - net of planned walking distance - along the current (last)
+        // edge, in the whole time quantum
+        vec2f const relativeVelocityTODOTEST =
+            edgeDir
+            * (distanceTraveledAlongEdge.length() + actualTotalDistanceDisplaced)
+            * (isClockwise ? 1.0f : -1.0f)
+            / LabParameters::SimulationTimeStepDuration;
+        vec2f const absoluteVelocityTODOTEST = relativeVelocityTODOTEST - meshVelocity;
+
+        LogMessage("  TODOTESTHERE: distanceTraveledAlongEdge=", distanceTraveledAlongEdge.length(), " actualTotalDistanceDisplaced=", actualTotalDistanceDisplaced,
+            " absoluteVelocity=", particles.GetVelocity(particle.ParticleIndex), " absoluteVelocityTODOTEST=", absoluteVelocityTODOTEST);
+
+        mEventDispatcher.OnCustomProbe("DeltaVX", std::abs(absoluteVelocityTODOTEST.x - particles.GetVelocity(particle.ParticleIndex).x));
+        mEventDispatcher.OnCustomProbe("DeltaVY", std::abs(absoluteVelocityTODOTEST.y - particles.GetVelocity(particle.ParticleIndex).y));
+
+        // Complete
+        return std::nullopt;
     }
+
+    // TODOHERE
 
     //
     // Target is outside triangle
@@ -706,22 +793,6 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
 
     assert(particle.ConstrainedState->CurrentTriangleBarycentricCoords[(edgeOrdinal + 2) % 3] == 0.0f);
 
-    // Figure out if we're moving clockwise or counter-clockwise (fron the point of view of inside
-    // the triangle); this will hold for all the triangles traveled while going through a cuspid
-    bool isClockwise;
-    if (trajectoryEndBarycentricCoords[edgeOrdinal] < 0.0f)
-    {
-        // It's the vertex at the end of our edge
-        assert(trajectoryEndBarycentricCoords[(edgeOrdinal + 1) % 3] > 0.0f); // Because target is outside of triangle
-        isClockwise = true;
-    }
-    else
-    {
-        // It's the vertex before our edge
-        assert(trajectoryEndBarycentricCoords[(edgeOrdinal + 1) % 3] < 0.0f);
-        isClockwise = false;
-    }
-
     int intersectionEdgeOrdinal = (isClockwise)
         ? (edgeOrdinal + 1) % 3 // Next edge
         : (edgeOrdinal + 2) % 3; // Previous edge
@@ -737,7 +808,7 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
     //  - Climb triangle
     //  - Find edge intersection
 
-    float totalDistanceTraveledAlongEdge = 0.0f;
+    float totalDistanceDisplacedAlongEdge = 0.0f;
 
     for (vec2f lastTrajectoryStartAbsolutePosition = trajectoryStartAbsolutePosition; ;)
     {
@@ -760,9 +831,9 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
             particle.ConstrainedState->CurrentTriangle,
             mesh.GetVertices()));
 
-        totalDistanceTraveledAlongEdge += (intersectionAbsolutePosition - lastTrajectoryStartAbsolutePosition).length();
+        totalDistanceDisplacedAlongEdge += (intersectionAbsolutePosition - lastTrajectoryStartAbsolutePosition).length();
 
-        LogMessage("        totalDistanceTraveledAlongEdge=", totalDistanceTraveledAlongEdge);
+        LogMessage("        totalDistanceDisplacedAlongEdge=", totalDistanceDisplacedAlongEdge);
 
         lastTrajectoryStartAbsolutePosition = intersectionAbsolutePosition;
 
@@ -791,7 +862,7 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
             // We might have hit a tiny bump (e.g. because of triangles slightly bent); in this case we don't want to bounce
             //
 
-            float const trajectoryLength = std::abs(trajectoryT);
+            float const flattenedTrajectoryLength = flattenedTrajectory.length();
 
             vec2f const intersectionEdgeDir =
                 mesh.GetTriangles().GetSubEdgeVector(particle.ConstrainedState->CurrentTriangle, intersectionEdgeOrdinal, mesh.GetVertices())
@@ -799,7 +870,7 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
             vec2f const intersectionEdgeNormal = intersectionEdgeDir.to_perpendicular();
 
             // Check angle between desired (original) trajectory and edge
-            float const trajProjOntoEdgeNormal = flattenedTrajectory.normalise_approx(trajectoryLength).dot(intersectionEdgeNormal);
+            float const trajProjOntoEdgeNormal = flattenedTrajectory.normalise_approx(flattenedTrajectoryLength).dot(intersectionEdgeNormal);
             if (trajProjOntoEdgeNormal <= 0.71f) // PI/4+
             {
                 //
@@ -809,22 +880,8 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
                 //
 
                 LogMessage("      Impact continuation (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
-
-                // Calculate consumed time quantum
-                float consumedDt;
-                if (trajectoryLength != 0.0f)
-                {
-                    consumedDt = dt * totalDistanceTraveledAlongEdge / trajectoryLength;
-                }
-                else
-                {
-                    // If no distance was to be traveled in this time quantum, then we've consumed it all
-                    consumedDt = dt;
-                }
-
-                LogMessage("        consumedDt=", consumedDt);
-
-                return dt - consumedDt;
+                
+                return totalDistanceDisplacedAlongEdge;
             }
             else
             {
@@ -846,8 +903,8 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
                     particles,
                     labParameters);
 
-                // Consume the entire time quantum
-                return 0.0f;
+                // Terminate
+                return std::nullopt;
             }
         }
 
@@ -884,7 +941,7 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
                 endPosition,
                 particles);
 
-            return 0.0f;
+            return std::nullopt;
         }
 
         //
@@ -958,22 +1015,7 @@ float Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
 
             LogMessage("      Trajectory extends inside new triangle - exiting and continuing");
 
-            // Calculate consumed time quantum
-            float consumedDt;
-            float const trajectoryLength = flattenedTrajectory.length();
-            if (trajectoryLength != 0.0f)
-            {
-                consumedDt = dt * totalDistanceTraveledAlongEdge / trajectoryLength;
-            }
-            else
-            {
-                // If no distance was to be traveled in this time quantum, then we've consumed it all
-                consumedDt = dt;
-            }
-
-            LogMessage("        consumedDt=", consumedDt);
-
-            return dt - consumedDt;
+            return totalDistanceDisplacedAlongEdge;
         }
 
         //
