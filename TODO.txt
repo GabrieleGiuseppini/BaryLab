@@ -141,36 +141,28 @@
 		+ Step 1: restructure loops so that traj flattening happens in main loop
 		+ Step 2: main loop initializes distanceToDisplaceInStep, distanceToWalkInStep, totalDistanceDisplaced
 		+ Step 3: inner loop returns distanceDisplaced, outer loop calcs dt based off distance asked to displace in step and distanceDisplaced
-		= Step 4: redo velocity calculation at "plain" termination of non-inertial step : use displacement and edgeDir, assuming it all happened on last edge
-			+ Compare the two: publish deltax and deltay
-			- Redo new velocity algo: should use _signed_ displacements when summing up to total walked, 
-
-			- At final velocity cal'n, we do (signed_phys_distance_traveled - signed_distance_walked) * edgeDir / whole_dt
-				- signed_phys_distance_traveled == totalEdgeTraveled
-					- For now: proxy; best would be: TODOHERE
-				- signed_distance_walked == totalEdgeWalked
-					- For now: proxy; best would be: TODOHERE
-		- TODO: can we go back to simply calculating "displacementToWalk" (and "physicalDisplacement") separately at the beginning of each step, as a function of the current time quantum?
+		= Step 4: undo: go back to simply calculating "displacementToWalk" (and "physicalDisplacement") separately at the beginning of each step, as a function of the current time quantum
 			! Fact: at each iteration, the actual movement of the particle will be the result of phys traj and imposed walk displacement
 				! Phys traj displacement is itself dependant from remaining_dt, because of advancement of particle's current bary coords
 				! Walk displacement must be dependant from remaining_dt, for example by means of using walk velocity
 			! Fact: so, the actual movement includes the consumed_dt's portion (fraction) of both phys traj and imposed walk
-			- Total signed distance traveled during a step - returned at impact continuation - is implicitly result of (signed_edge_phys_traveled + signed_edge_walked)
-				- 1. Make it return signed distance - so just keep track of signed distance
-			- consumed_dt fraction may be calculated as signed_edge_traveled_planned / signed_edge_traveled_actual
-				- signed_edge_traveled_planned = (signed_edge_phys_traveled_planned + signed_edge_walked_planned)
-					- Recalc'd at each iteration, for the remaining dt
-						- Valid as long as signed_edge_walked_planned takes into account remaining dt
-					- signed_edge_walked_planned == walk_vector.dot(edgeDir)
-				- signed_edge_traveled_actual = returned (signed_edge_phys_traveled + signed_edge_walked) (implicit)
-				- 2. Do the above
-			- final velocity cal'n: we do (signed_edge_traveled_actual (implicit, simply on-edge traveled) - signed_edge_walked_actual) * edgeDir / this_dt
+			+ Total signed distance traveled during a step - returned at impact continuation - is implicitly result of (signed_edge_phys_traveled + signed_edge_walked)
+				+ 1. Make it return signed distance - so just keep track of signed distance
+			= consumed_dt fraction may be calculated as signed_edge_traveled_actual / signed_edge_traveled_planned
+				+ signed_edge_traveled_actual = returned (signed_edge_phys_traveled + signed_edge_walked) (implicit)
+				+ signed_edge_traveled_planned = (signed_edge_phys_traveled_planned + signed_edge_walked_planned)
+					+ Recalc'd at each iteration, for the remaining dt
+						+ Valid as long as signed_edge_walked_planned takes into account remaining dt
+					= signed_edge_walked_planned == walk_vector.dot(edgeDir)
+				= 2. Do the above
+			= final velocity cacl'n: we do (signed_edge_traveled_actual (implicit, simply on-edge traveled) - signed_edge_walked_actual) * edgeDir / this_dt
 				! Note: at this moment we've reached the planned end of the iteration's sub-trajectory
-				- So, we can assume that signed_edge_traveled_actual == signed_edge_traveled_planned
-					- Verify (allowing for numerical slack)
-				- And in particular, we can assume that signed_edge_walked_actual == signed_edge_walked_planned
-					- Which needs now to be passed as an arg
-
+				+ So, we can assume that signed_edge_traveled_actual == signed_edge_traveled_planned
+					+ Verify (allowing for numerical slack)
+				+ And in particular, we can assume that signed_edge_walked_actual == signed_edge_walked_planned
+					+ Which needs now to be passed as an arg
+				- Verify that delta w/current is OK (once we're walking)
+				- Change vel calc algo to new now
 
 
 		- Step 5: test with torque being a quantity on its own, and calc'd at secondary after primary has moved
@@ -180,8 +172,15 @@
 				- Should also require spring force to be calc'd for secondary _at_ secondary's turn
 		
 		- Step 6:
-			- Human state: walk==<dir, velocity_strength>
-			- TODOHERE: depends on various above
+			- Human state: walk==<face dir x, velocity_strength>
+			- TODOHERE: depends on various above, but if we go for that, then secondary displacement must be sum of all signed_edge_walked_actual *as vectors*,
+			  which in turn may be calculated as signed_edge_traveled_actual * (signed_edge_walked_planned / signed_edge_traveled_planned)
+				- If returned is zero, it's either because planned (total) was zero, or we've cut short 
+					- If planned (total) was zero then we've reached target - this step should have completed; however, for safety, we may assume this happens (returns zero when planned was zero)
+						- Do nothing, as we'll complete later on
+					- Else (i.e. we've cut short): since planned was non-zero and actual is zero, then walked now is also zero
+				- If returned is completed: actual walked is planned walked
+			- OLD:
 			- Before NC loop: add flattened walk vector to trajectory (and initialize distance to walk), and remember walked distance
 				- Also add (just) walk displacement to secondary particle - which does the same as primary but using this saved displacement
 					- TODOHERE: should be absolute displacement
