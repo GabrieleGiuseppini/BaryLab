@@ -48,8 +48,9 @@ private:
     wxPen mGridPen;
 
     float mMaxValue;
-    float mMinValue;
+    float mMinValue;    
     float mGridValueSize;
 
     CircularList<float, 200> mSamples;
+    float mMaxAbsoluteValue;
 };

@@ -56,11 +56,13 @@ ScalarTimeSeriesProbeControl::~ScalarTimeSeriesProbeControl()
 void ScalarTimeSeriesProbeControl::RegisterSample(float value)
 {
     mMaxValue = std::max(mMaxValue, value);
-    mMinValue = std::min(mMinValue, value);
+    mMinValue = std::min(mMinValue, value);    
 
     mSamples.emplace(
         [](float) {},
         value);
+
+    mMaxAbsoluteValue = std::max(mMaxAbsoluteValue, std::abs(value));
 }
 
 void ScalarTimeSeriesProbeControl::Update()
@@ -70,12 +72,13 @@ void ScalarTimeSeriesProbeControl::Update()
 
 void ScalarTimeSeriesProbeControl::Reset()
 {
-    mSamples.clear();
-
     mMaxValue = std::numeric_limits<float>::lowest();
     mMinValue = std::numeric_limits<float>::max();
 
     mGridValueSize = 0.0f;
+
+    mSamples.clear();
+    mMaxAbsoluteValue = std::numeric_limits<float>::min();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -90,6 +93,9 @@ void ScalarTimeSeriesProbeControl::OnMouseClick(wxMouseEvent & /*event*/)
         mMaxValue = std::max(mMaxValue, it);
         mMinValue = std::min(mMinValue, it);
     }
+
+    // Reset stats
+    mMaxAbsoluteValue = std::numeric_limits<float>::min();
 
     Refresh();
 }
@@ -215,7 +221,7 @@ void ScalarTimeSeriesProbeControl::Render(wxDC & dc)
         //
 
         std::stringstream ss;
-        ss << std::fixed << std::setprecision(3) << *mSamples.cbegin() << " (" << mMaxValue << ")";
+        ss << std::fixed << std::setprecision(3) << *mSamples.cbegin() << " (" << mMaxAbsoluteValue << ")";
 
         wxString labelText(ss.str());
         dc.DrawText(labelText, 0, 1);
