@@ -58,6 +58,9 @@ Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 	particles.SetVoluntarySuperimposedDisplacement(primaryParticleState.ParticleIndex, vec2f::zero());
 	particles.SetVoluntarySuperimposedDisplacement(secondaryParticleState.ParticleIndex, vec2f::zero());
 
+	particles.SetVoluntaryVelocity(primaryParticleState.ParticleIndex, vec2f::zero());
+	particles.SetVoluntaryVelocity(secondaryParticleState.ParticleIndex, vec2f::zero());
+
 	// Return state
 
 	if (!primaryParticleState.ConstrainedState.has_value()
@@ -174,6 +177,14 @@ void Npcs::UpdateHuman(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
+				mParticles.SetVoluntaryVelocity(
+					primaryParticleState.ParticleIndex,
+					vec2f::zero());
+
+				mParticles.SetVoluntaryVelocity(
+					secondaryParticleState.ParticleIndex,
+					vec2f::zero());
+
 				humanState.CurrentWalkingMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
@@ -198,7 +209,6 @@ void Npcs::UpdateHuman(
 						0.0f,
 						0.0f);
 
-					// TODO: pick direction
 					humanState.CurrentWalkingMagnitude = 0.1f;
 
 					// Keep torque
@@ -245,6 +255,14 @@ void Npcs::UpdateHuman(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
+				mParticles.SetVoluntaryVelocity(
+					primaryParticleState.ParticleIndex,
+					vec2f::zero());
+
+				mParticles.SetVoluntaryVelocity(
+					secondaryParticleState.ParticleIndex,
+					vec2f::zero());
+
 				humanState.CurrentWalkingMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
@@ -276,6 +294,14 @@ void Npcs::UpdateHuman(
 					vec2f::zero());
 
 				mParticles.SetVoluntarySuperimposedDisplacement(
+					secondaryParticleState.ParticleIndex,
+					vec2f::zero());
+
+				mParticles.SetVoluntaryVelocity(
+					primaryParticleState.ParticleIndex,
+					vec2f::zero());
+
+				mParticles.SetVoluntaryVelocity(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
@@ -317,13 +343,12 @@ void Npcs::UpdateHuman(
 				assert(humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking);
 
 				// Impart walk displacement & run walking state machine
-				// TODOTEST
-				////RunWalkingHumanStateMachine(
-				////	humanState,
-				////	primaryParticleState,
-				////	secondaryParticleState,
-				////	mesh,
-				////	labParameters);
+				RunWalkingHumanStateMachine(
+					humanState,
+					primaryParticleState,
+					secondaryParticleState,
+					mesh,
+					labParameters);
 			}
 
 			break;
@@ -493,7 +518,7 @@ bool Npcs::MaintainAndCheckHumanEquilibrium(
 		torqueDisplacement 
 		* LabParameters::ParticleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
 
-	LogMessage("TODOHERE: StaticDisplacementAngleCW:", staticDisplacementAngleCW, " VelocityAngleCW:", velocityAngleCW, " Total TorqueAngleCW:", totalTorqueAngleCW, " TorqueDisplacement:", torqueDisplacement);
+	LogMessage("        torque: staticDisplacementAngleCW=", staticDisplacementAngleCW, " velocityAngleCW=", velocityAngleCW, " totalTorqueAngleCW=", totalTorqueAngleCW, " torqueDisplacement=", torqueDisplacement);
 
 	particles.SetVoluntaryForces(
 		secondaryParticleIndex,
@@ -510,16 +535,20 @@ void Npcs::RunWalkingHumanStateMachine(
 	LabParameters const & labParameters)
 {
 	// TODOHERE
-	(void)primaryParticleState;
-	(void)secondaryParticleState;
 	(void)mesh;
 
-	// Advance
-	humanState.CurrentWalkingMagnitude = std::min(1.0f, humanState.CurrentWalkingMagnitude + (1.0f - humanState.CurrentWalkingMagnitude) * 0.03f);
-	LogMessage(humanState.CurrentWalkingMagnitude);
+	// Advance towards 1.0
+	// TODOTEST: turned off
+	//humanState.CurrentWalkingMagnitude = std::min(1.0f, humanState.CurrentWalkingMagnitude + (1.0f - humanState.CurrentWalkingMagnitude) * 0.03f);
+	
+	LogMessage("        walking: ", humanState.CurrentWalkingMagnitude);
 
-	// Impart displacement
-	mParticles.SetVoluntarySuperimposedDisplacement(
+	// Impart velocity
+	mParticles.SetVoluntaryVelocity(
 		primaryParticleState.ParticleIndex,
-		vec2f(humanState.CurrentWalkingMagnitude * labParameters.HumanNpcWalkingSpeed * LabParameters::SimulationTimeStepDuration, 0.0f));
+		vec2f(humanState.CurrentFaceDirectionX * labParameters.HumanNpcWalkingSpeed * humanState.CurrentWalkingMagnitude, 0.0f));
+	// TODOTEST
+	mParticles.SetVoluntaryVelocity(
+		secondaryParticleState.ParticleIndex,
+		vec2f(humanState.CurrentFaceDirectionX * labParameters.HumanNpcWalkingSpeed * humanState.CurrentWalkingMagnitude, 0.0f));
 }

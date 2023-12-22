@@ -109,16 +109,19 @@ public:
 
 			BehaviorType CurrentBehavior;
 
+			float CurrentFaceDirectionX; // [-1.0f, 1.0f]
+
 			float CurrentStateValue;
 			float TargetStateValue;
 
-			float CurrentWalkingMagnitude; // [-1.0f, 1.0f]
+			float CurrentWalkingMagnitude; // [0.0f -> 1.0f]
 
 			HumanNpcStateType(
 				BehaviorType initialBehavior,
 				float currentStateValue,
 				float targetStateValue)
 				: CurrentBehavior(initialBehavior)
+				, CurrentFaceDirectionX(1.0f) // Futurework: randomize
 				, CurrentStateValue(currentStateValue)
 				, TargetStateValue(targetStateValue)
 				, CurrentWalkingMagnitude(0.0f)

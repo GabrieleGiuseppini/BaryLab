@@ -388,44 +388,38 @@ void Npcs::UpdateNpcParticle2(
                                 trajectoryT += tFriction;
                             }
 
-                            //
-                            // Recovered flattened trajectory as a vector
-                            //
-
-                            vec2f const flattenedTrajectory = edgeDir * trajectoryT;
-
                             // The (signed) edge length that we plan to travel independently from walking
                             float const edgePhysicalTraveledPlanned = trajectoryT;
+
+                            //
+                            // Calculate displacement due to walking, if any
+                            //
+
+                            // The (signed) edge length that we plan to travel exclusively via walking
+                            float edgeWalkedPlanned = 0.0f; 
+
+                            if (npc.HumanNpcState.has_value())
+                            {
+                                vec2f const idealWalkVector = mParticles.GetVoluntaryVelocity(particle.ParticleIndex) * remainingDt;
+                                edgeWalkedPlanned = idealWalkVector.dot(edgeDir);
+                                vec2f const walkVector = edgeDir * edgeWalkedPlanned;
+                                if (walkVector != vec2f::zero())
+                                {
+                                    LogMessage("        walkVector: ", walkVector, " (@", npc.HumanNpcState->CurrentWalkingMagnitude, ")");
+                                }
+                            }
+
+                            //
+                            // Recover flattened trajectory as a vector
+                            //
+
+                            vec2f const flattenedTrajectory = edgeDir * (edgePhysicalTraveledPlanned + edgeWalkedPlanned);
 
                             //
                             // Calculate trajectory target
                             //
 
                             vec2f flattenedTrajectoryEndAbsolutePosition = trajectoryStartAbsolutePosition + flattenedTrajectory;
-
-                            ////// TODOHERE: walking, and TODO: do with velocity (so that it depends on dt)
-                            ////// Adjust target pos with superimposed displacement - which is NOT taken into account for velocity
-                            ////std::optional<vec2f> secondaryVoluntarySuperimposedDisplacement;
-                            ////if (npc.HumanNpcState.has_value())
-                            ////{
-                            ////    vec2f const walkVector = edgeDir * edgeDir.dot(vec2f(1.0f, 0.0f)) * mParticles.GetVoluntarySuperimposedDisplacement(particle.ParticleIndex);
-                            ////    if (walkVector != vec2f::zero())
-                            ////    {
-                            ////        LogMessage("WalkVector@1: ", walkVector, " ", npc.HumanNpcState->CurrentWalkingMagnitude);
-                            ////    }
-
-                            ////    flattenedTrajectoryEndAbsolutePosition += walkVector;
-
-                            ////    if (isPrimaryParticle)
-                            ////    {
-                            ////        // Impart same displacement to secondary particle
-                            ////        secondaryVoluntarySuperimposedDisplacement = walkVector;
-                            ////    }
-                            ////}
-
-                            // TODO: should be walk_vector.dot(edgeDir)
-                            // The (signed) edge length that we plan to travel exclusively via walking
-                            float const edgeWalkedPlanned = 0.0f;
 
                             vec3f flattenedTrajectoryEndBarycentricCoords = mesh.GetTriangles().ToBarycentricCoordinates(
                                 flattenedTrajectoryEndAbsolutePosition,
@@ -721,43 +715,33 @@ std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial2(
 
         particles.SetPosition(particle.ParticleIndex, particleEndAbsolutePosition);
 
+        //
         // Velocity: given that we've completed *along the edge*, then we can calculate
-        // our (relative) velocity based on the total distance traveled along this time quantum,
-        // but discounting the distance we've walked - so not to impart walking velocity
-        // our velocity is then that distance in this time quantum
+        // our (relative) velocity based on the distance traveled along this time quantum,
+        // but discounting the distance we've walked in it - so not to impart walking velocity.
+        //
+        // We take into account only the edge traveled at this moment, divided by the length of this time quantum:
+        // V = (signed_edge_traveled_actual (implicit, simply on-edge traveled) - signed_edge_walked_actual) * edgeDir / this_dt
+        //
+        // Now: consider that at this moment we've reached the planned end of the iteration's sub-trajectory;
+        // we can then assume that signed_edge_traveled_actual == signed_edge_traveled_planned (verified via assert)
+        // and, in particular, we can assume that signed_edge_walked_actual == signed_edge_walked_planned
+        //
 
         vec2f const vectorTraveledAlongEdge = particleEndAbsolutePosition - trajectoryStartAbsolutePosition;
-        vec2f const relativeVelocity = vectorTraveledAlongEdge / dt; // TODO: see if dt still needed after this; if not, nuke
+
+        assert(std::abs(vectorTraveledAlongEdge.dot(edgeDir) - (edgePhysicalTraveledPlanned + edgeWalkedPlanned)) < 0.001f);
+
+        vec2f const relativeVelocity =
+            edgeDir
+            * (vectorTraveledAlongEdge.dot(edgeDir) - edgeWalkedPlanned)
+            / dt;
 
         particles.SetVelocity(particle.ParticleIndex, relativeVelocity - meshVelocity);
         particle.ConstrainedState->MeshRelativeVelocity = relativeVelocity;
 
-        // TODOTEST: test for second velocity algo follows
-
-        //
-        // Velocity: we take into account only the edge traveled at this moment, divided by the length of this time quantum:
-        // V = (signed_edge_traveled_actual (implicit, simply on-edge traveled) - signed_edge_walked_actual) * edgeDir / this_dt
-        //
-        // Now: consider that at this moment we've reached the planned end of the iteration's sub-trajectory;
-        // we can then assume that signed_edge_traveled_actual == signed_edge_traveled_planned
-        // TODO: Verify (allowing for numerical slack)
-        // and, in particular, we can assume that signed_edge_walked_actual == signed_edge_walked_planned
-        //
-
-        assert(std::abs(vectorTraveledAlongEdge.dot(edgeDir) - edgePhysicalTraveledPlanned) < 0.001f);
-
-        vec2f const relativeVelocityTODOTEST =
-            edgeDir
-            * (vectorTraveledAlongEdge.dot(edgeDir) - edgeWalkedPlanned)
-            / dt;
-        
-        vec2f const absoluteVelocityTODOTEST = relativeVelocityTODOTEST - meshVelocity;
-
-        LogMessage("  TODOTESTHERE: edgeTraveledActual=", vectorTraveledAlongEdge.dot(edgeDir), " edgeWalkedPlanned=", edgeWalkedPlanned,
-            " absoluteVelocity=", particles.GetVelocity(particle.ParticleIndex), " absoluteVelocityTODOTEST=", absoluteVelocityTODOTEST);
-
-        mEventDispatcher.OnCustomProbe("DeltaVX", std::abs(absoluteVelocityTODOTEST.x - particles.GetVelocity(particle.ParticleIndex).x));
-        mEventDispatcher.OnCustomProbe("DeltaVY", std::abs(absoluteVelocityTODOTEST.y - particles.GetVelocity(particle.ParticleIndex).y));
+        LogMessage("        edgeTraveledActual=", vectorTraveledAlongEdge.dot(edgeDir), " edgeWalkedPlanned=", edgeWalkedPlanned,
+            " absoluteVelocity=", particles.GetVelocity(particle.ParticleIndex));
 
         // Complete
         return std::nullopt;
