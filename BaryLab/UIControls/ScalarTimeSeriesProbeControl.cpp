@@ -85,17 +85,16 @@ void ScalarTimeSeriesProbeControl::Reset()
 
 void ScalarTimeSeriesProbeControl::OnMouseClick(wxMouseEvent & /*event*/)
 {
-    // Reset extent
+    // Reset extent and limit
     mMaxValue = std::numeric_limits<float>::lowest();
     mMinValue = std::numeric_limits<float>::max();
-    for (auto it : mSamples)
-    {
-        mMaxValue = std::max(mMaxValue, it);
-        mMinValue = std::min(mMinValue, it);
-    }
-
-    // Reset stats
     mMaxAbsoluteValue = std::numeric_limits<float>::min();
+    for (auto s : mSamples)
+    {
+        mMaxValue = std::max(mMaxValue, s);
+        mMinValue = std::min(mMinValue, s);
+        mMaxAbsoluteValue = std::max(mMaxAbsoluteValue, std::abs(s));
+    }
 
     Refresh();
 }

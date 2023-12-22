@@ -163,10 +163,10 @@
 					+ Which needs now to be passed as an arg
 				+ Verify that delta w/current is OK (once we're walking)
 				+ Change vel calc algo to new now
-		- Fix issue 1: final velocity calc'n: has bump sometimes when crossing triangle
-			- Due to trajectory (end) not taking into account walk; due to walk, we overshoot end and thus have to go back
-			- Attempt 1: 
-				- At each iteration: move endpoiny by total distance walked so far - ~equiv to not moving start by walked
+		= Fix issue 1: final velocity calc'n: has bump sometimes when crossing triangle
+			! Due to trajectory (end) not taking into account walk; because of walk, we overshoot end and thus have to go back
+			= Attempt 1: 
+				= At each iteration: move endpoiny by total distance walked so far - ~equiv to not moving start by walked
 					- Even if this impacts floor check - let's see if this hurts
 		- Fix issue 2: sometimes bounces when crossing triangle
 
@@ -187,6 +187,9 @@
 					- Else (i.e. we've cut short): since planned was non-zero and actual is zero, then walked now is also zero
 				- If returned is completed: actual walked is planned walked
 			- Note that we only need to store and use secondary displacement if our current code for calculating walk vector for secondary as well doesn't work
+			- Also note that sec'ry displacement needs to be applied even when sec'ry particle is not in non-inertial mode
+			- NOTE: secondary displacement must also be handled by inertial case (as secondary might be inertial), complete with taking into account
+			  walked in final velocity calculation
 			- OLD:
 			- Before NC loop: add flattened walk vector to trajectory (and initialize distance to walk), and remember walked distance
 				- Also add (just) walk displacement to secondary particle - which does the same as primary but using this saved displacement

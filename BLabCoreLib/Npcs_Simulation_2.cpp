@@ -121,8 +121,7 @@ void Npcs::UpdateNpcs2(
 
     for (auto const n : *this)
     {
-        LogMessage("NPC ", n);
-        LogMessage("----------------------------------");
+        LogMessage("NPC ", n);        
 
         auto & npcState = mStateBuffer[n];
 
@@ -160,6 +159,7 @@ void Npcs::UpdateNpcParticle2(
     // TODOHERE: might be needed later for walking
     (void)npc;
 
+    LogMessage("----------------------------------");
     LogMessage("  ", isPrimaryParticle ? "Primary" : "Secondary");
 
     float const particleMass = LabParameters::ParticleMass * labParameters.MassAdjustment;
@@ -251,6 +251,9 @@ void Npcs::UpdateNpcParticle2(
         std::optional<PastBarycentricPosition> pastPastBarycentricPosition;
         std::optional<PastBarycentricPosition> pastBarycentricPosition;
 
+        // Total displacement walked along the edge - as a sum of the vectors from the individual steps
+        vec2f totalEdgeWalkedActual = vec2f::zero();
+
         for (float remainingDt = dt; ; )
         {
             assert(remainingDt > 0.0f);
@@ -280,7 +283,12 @@ void Npcs::UpdateNpcParticle2(
             //
 
             // Note: on first iteration this is the same as physicsDeltaPos + meshDisplacement
-            vec2f const trajectory = trajectoryEndAbsolutePosition - trajectoryStartAbsolutePosition;
+            // TODOTEST: adding total walked vector to traje
+            //vec2f const trajectory = trajectoryEndAbsolutePosition - trajectoryStartAbsolutePosition;
+            vec2f const trajectory = (trajectoryEndAbsolutePosition + totalEdgeWalkedActual) - trajectoryStartAbsolutePosition;
+
+            LogMessage("    TrajectoryStartAbsolutePosition=", trajectoryStartAbsolutePosition, " TrajectoryEndAbsolutePosition=", trajectoryEndAbsolutePosition,
+                " TotalEdgeWalkedActual=", totalEdgeWalkedActual, " Trajectory=", trajectory);
 
             //
             // Check which of two cases applies at this moment:
@@ -472,10 +480,15 @@ void Npcs::UpdateNpcParticle2(
 
                             LogMessage("    Actual edge traveled in non-inertial step: ", edgeTraveledActual.has_value() ? std::to_string(*edgeTraveledActual) : "N/A");
 
+                            float edgeWalkedActual;
+
                             if (!edgeTraveledActual.has_value())
                             {
                                 // Completed
                                 remainingDt = 0.0f;
+
+                                // Walked is the planned one
+                                edgeWalkedActual = edgeWalkedPlanned;
                             }
                             else
                             {
@@ -517,6 +530,16 @@ void Npcs::UpdateNpcParticle2(
                                         //
                                         // For now, assume no dt consumed and continue
                                     }
+
+                                    // Calculated walked actual
+                                    //
+                                    // If actual resultant is zero, it's either because planned resultant was zero, 
+                                    // or because we've cut short a trajectory.
+                                    // If planned resultant was zero then we've reached target - this step should have completed;
+                                    // however, for safety, we may assume this happens (i.e. that it may return zero when planned was zero).
+                                    // In this case do nothing, as we'll complete later on.
+                                    // If on the other hand we've cut short, since planned was non-zero and actual is zero, then walked now is also zero
+                                    edgeWalkedActual = 0.0f;
                                 }
                                 else
                                 {
@@ -533,11 +556,20 @@ void Npcs::UpdateNpcParticle2(
                                     LogMessage("        dtFractionConsumed=", dtFractionConsumed);
                                     remainingDt *= (1.0f - dtFractionConsumed);
 
+                                    // Calculate actual walked via planned walked's proportion with total
+                                    edgeWalkedActual = edgeTraveledPlanned != 0.0f
+                                        ? *edgeTraveledActual * (edgeWalkedPlanned / edgeTraveledPlanned)
+                                        : 0.0f; // Unlikely, but read above for rationale behind 0.0
+
                                     // Reset well detection machinery
                                     pastPastBarycentricPosition.reset();
                                     pastBarycentricPosition.reset();
                                 }
                             }
+
+                            // Update total vector walked along edge
+                            totalEdgeWalkedActual += edgeDir * edgeWalkedActual;
+                            LogMessage("        totalEdgeWalkedActual=", totalEdgeWalkedActual);
 
                             if (particle.ConstrainedState.has_value())
                             {
