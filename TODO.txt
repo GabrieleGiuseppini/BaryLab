@@ -170,6 +170,8 @@
 					- Even if this impacts floor check - let's see if this hurts
 		- Fix issue 2: sometimes bounces when crossing triangle
 
+		- Fix: torque of sec'ry makes primary move
+
 
 		- Step 5: test with torque being a quantity on its own, and calc'd at secondary after primary has moved
 			- If it works, we might not need to impart distance walked to secondary

@@ -535,6 +535,7 @@ void Npcs::RunWalkingHumanStateMachine(
 	LabParameters const & labParameters)
 {
 	// TODOHERE
+	(void)secondaryParticleState;
 	(void)mesh;
 
 	// Advance towards 1.0

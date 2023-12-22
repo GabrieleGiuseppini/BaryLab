@@ -180,10 +180,6 @@ void Npcs::UpdateNpcParticle2(
         mParticles.GetVelocity(particle.ParticleIndex) * dt
         + (physicalForces / particleMass) * dt * dt;
 
-    // Absolute position of particle if it only moved due to physical forces; constant
-    // during the whole loop
-    vec2f const trajectoryEndAbsolutePosition = particleStartAbsolutePosition + physicsDeltaPos;
-
     if (!particle.ConstrainedState.has_value())
     {
         // 
@@ -196,7 +192,7 @@ void Npcs::UpdateNpcParticle2(
         UpdateNpcParticle_Free2(
             particle,
             particleStartAbsolutePosition,
-            trajectoryEndAbsolutePosition,
+            particleStartAbsolutePosition + physicsDeltaPos,
             mParticles);
 
         LogMessage("    EndPosition=", mParticles.GetPosition(particle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(particle.ParticleIndex));
@@ -265,13 +261,15 @@ void Npcs::UpdateNpcParticle2(
             // We ray-trace the particle along a trajectory that starts at the position at which the particle
             // would be if it moved with the mesh (i.e. staying at its position wrt its triangle) and ends
             // at the position at which the particle would be if it were only subject to physical forces
+            // and to walking
             //
 
             //
             // Calculate trajectory
             //
             // Trajectory is the apparent displacement, i.e. the displacement of the particle
-            // *from the point of view of the mesh* (or of the particle itself).
+            // *from the point of view of the mesh* (or of the particle itself), thus made up of
+            // both the physical displacement and the mesh displacement.
             //
             // Given that trajectory discounts physics move, trajectory is the displacement
             // caused by the apparent forces. In fact, we've verified that when the particle has
@@ -282,10 +280,12 @@ void Npcs::UpdateNpcParticle2(
             // amounts to pure physical displacement.
             //
 
+            // Absolute position of particle if it only moved due to physical forces and walking;
+            vec2f const trajectoryEndAbsolutePosition = particleStartAbsolutePosition + physicsDeltaPos + totalEdgeWalkedActual;
+
+            // Trajectory
             // Note: on first iteration this is the same as physicsDeltaPos + meshDisplacement
-            // TODOTEST: adding total walked vector to traje
-            //vec2f const trajectory = trajectoryEndAbsolutePosition - trajectoryStartAbsolutePosition;
-            vec2f const trajectory = (trajectoryEndAbsolutePosition + totalEdgeWalkedActual) - trajectoryStartAbsolutePosition;
+            vec2f const trajectory = trajectoryEndAbsolutePosition - trajectoryStartAbsolutePosition;
 
             LogMessage("    TrajectoryStartAbsolutePosition=", trajectoryStartAbsolutePosition, " TrajectoryEndAbsolutePosition=", trajectoryEndAbsolutePosition,
                 " TotalEdgeWalkedActual=", totalEdgeWalkedActual, " Trajectory=", trajectory);
@@ -411,6 +411,7 @@ void Npcs::UpdateNpcParticle2(
                                 vec2f const idealWalkVector = mParticles.GetVoluntaryVelocity(particle.ParticleIndex) * remainingDt;
                                 edgeWalkedPlanned = idealWalkVector.dot(edgeDir);
                                 vec2f const walkVector = edgeDir * edgeWalkedPlanned;
+
                                 if (walkVector != vec2f::zero())
                                 {
                                     LogMessage("        walkVector: ", walkVector, " (@", npc.HumanNpcState->CurrentWalkingMagnitude, ")");
@@ -454,7 +455,7 @@ void Npcs::UpdateNpcParticle2(
                             //
                             // Fact: at each iteration, the actual movement of the particle will be the result of phys traj and imposed walk displacement
                             // Fact: phys traj displacement (planned) is itself dependant from remaining_dt, because of advancement of particle's current bary coords
-                            // TODO: walk displacement (planned) must be dependant from remaining_dt, for example by means of using walk velocity
+                            // Fat: walk displacement (planned) is also dependant from remaining_dt, because we use walk velocity
                             // Fact: so, the actual movement includes the consumed_dt's portion (fraction) of both phys traj and imposed walk
                             //
 
