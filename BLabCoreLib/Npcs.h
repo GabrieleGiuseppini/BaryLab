@@ -482,6 +482,14 @@ private:
 		Mesh const & mesh,
 		LabParameters const & labParameters);
 
+	vec2f CalculateNpcParticleWorldForce(
+		StateType::NpcParticleStateType & particle,
+		float particleMass,
+		std::optional<DipoleArg> const & dipoleArg,
+		bool isPrimaryParticle,
+		StateType & npc,
+		LabParameters const & labParameters) const;
+
 	void UpdateNpcParticle_Free2(
 		StateType::NpcParticleStateType & particle,
 		vec2f const & startPosition,

@@ -421,7 +421,7 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
     //
 
     vec2f const physicalForces =
-        mParticles.GetWorldForce(particle.ParticleIndex)
+        mParticles.GetExternalForce(particle.ParticleIndex)
         + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * labParameters.ParticleMass * labParameters.MassAdjustment
         + mParticles.GetSpringForces(particle.ParticleIndex)
         + mParticles.GetVoluntaryForces(particle.ParticleIndex);

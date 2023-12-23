@@ -169,7 +169,14 @@
 				+ At each iteration: move endpoiny by total distance walked so far - ~equiv to not moving start by walked
 					+ Even if this impacts floor check - let's see if this hurts
 
-		- Step 5: test with torque being a quantity on its own, and calc'd at secondary after primary has moved
+		- Step 5a: test with spring forces being calc'd at each particle
+			- Step 1:
+				- vec2f CalculateWorldForces(...)
+				- Impl like now
+			- Step 2:
+				- Move spring forces to it
+
+		- Step 5b: test with torque being a quantity on its own, and calc'd at secondary after primary has moved
 			- If it works, we might not need to impart distance walked to secondary
 			- Warning: when we calculate torque strength, primary and secondary might be aligned; so, torque needs to depend on unalignment at that moment
 				- Just "TorqueWill", alignment is calc'd (at sec'ry) based on vertical at that moment
@@ -179,7 +186,7 @@
 		
 		- Step 6:
 			+ Human state: walk==<face dir x, velocity_strength>
-			- Secondary displacement: must be sum of all signed_edge_walked_actual *as vectors*,
+			- Secondary displacement: sum of all signed_edge_walked_actual *as vectors*,
 			  which in turn may be calculated as signed_edge_traveled_actual * (signed_edge_walked_planned / signed_edge_traveled_planned)
 				- If returned is zero, it's either because planned (total) was zero, or we've cut short 
 					- If planned (total) was zero then we've reached target - this step should have completed; however, for safety, we may assume this happens (returns zero when planned was zero)

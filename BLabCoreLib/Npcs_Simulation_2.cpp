@@ -156,9 +156,6 @@ void Npcs::UpdateNpcParticle2(
     Mesh const & mesh,
     LabParameters const & labParameters)
 {
-    // TODOHERE: might be needed later for walking
-    (void)npc;
-
     LogMessage("----------------------------------");
     LogMessage("  ", isPrimaryParticle ? "Primary" : "Secondary");
 
@@ -170,11 +167,13 @@ void Npcs::UpdateNpcParticle2(
     // Calculate physical displacement - once and for all, as whole loop
     // will attempt to move to trajectory that always ends here
 
-    vec2f const physicalForces =
-        mParticles.GetWorldForce(particle.ParticleIndex)
-        + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * particleMass
-        + mParticles.GetSpringForces(particle.ParticleIndex)
-        + mParticles.GetVoluntaryForces(particle.ParticleIndex);
+    vec2f const physicalForces = CalculateNpcParticleWorldForce(
+        particle,
+        particleMass,
+        dipoleArg,
+        isPrimaryParticle,
+        npc,
+        labParameters);
 
     vec2f const physicsDeltaPos =
         mParticles.GetVelocity(particle.ParticleIndex) * dt
@@ -674,6 +673,27 @@ void Npcs::UpdateNpcParticle2(
         mEventDispatcher.OnCustomProbe("VelX", particleVelocity.x);
         mEventDispatcher.OnCustomProbe("VelY", particleVelocity.y);
     }
+}
+
+vec2f Npcs::CalculateNpcParticleWorldForce(
+    StateType::NpcParticleStateType & particle,
+    float particleMass,
+    std::optional<DipoleArg> const & dipoleArg,
+    bool isPrimaryParticle,
+    StateType & npc,
+    LabParameters const & labParameters) const
+{
+    vec2f const physicalForces =
+        mParticles.GetExternalForce(particle.ParticleIndex)
+        + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * particleMass
+        + mParticles.GetSpringForces(particle.ParticleIndex)
+        + mParticles.GetVoluntaryForces(particle.ParticleIndex);
+
+    (void)dipoleArg;
+    (void)isPrimaryParticle;
+    (void)npc;
+
+    return physicalForces;
 }
 
 void Npcs::UpdateNpcParticle_Free2(
