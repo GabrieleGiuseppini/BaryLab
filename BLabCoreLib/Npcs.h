@@ -482,7 +482,7 @@ private:
 		Mesh const & mesh,
 		LabParameters const & labParameters);
 
-	vec2f CalculateNpcParticleWorldForce(
+	vec2f CalculateNpcParticlePhysicalForces(
 		StateType::NpcParticleStateType & particle,
 		float particleMass,
 		std::optional<DipoleArg> const & dipoleArg,

@@ -30,7 +30,7 @@ public:
         // Physics
         , mPositionBuffer(mBufferElementCount, particleCount, vec2f::zero())
         , mVelocityBuffer(mBufferElementCount, particleCount, vec2f::zero())
-        , mExternalForceBuffer(mBufferElementCount, particleCount, vec2f::zero())
+        , mExternalForcesBuffer(mBufferElementCount, particleCount, vec2f::zero())
         , mSpringForcesBuffer(mBufferElementCount, particleCount, vec2f::zero())
         , mVoluntaryForcesBuffer(mBufferElementCount, particleCount, vec2f::zero())
         , mVoluntarySuperimposedDisplacementBuffer(mBufferElementCount, particleCount, vec2f::zero())
@@ -103,21 +103,21 @@ public:
         mVelocityBuffer[particleElementIndex] = value;
     }
 
-    vec2f const & GetExternalForce(ElementIndex particleElementIndex) const noexcept
+    vec2f const & GetExternalForces(ElementIndex particleElementIndex) const noexcept
     {
-        return mExternalForceBuffer[particleElementIndex];
+        return mExternalForcesBuffer[particleElementIndex];
     }
 
-    vec2f * GetExternalForceBuffer() noexcept
+    vec2f * GetExternalForcesBuffer() noexcept
     {
-        return mExternalForceBuffer.data();
+        return mExternalForcesBuffer.data();
     }
 
-    void SetExternalForce(
+    void SetExternalForces(
         ElementIndex particleElementIndex,
         vec2f const & value) noexcept
     {
-        mExternalForceBuffer[particleElementIndex] = value;
+        mExternalForcesBuffer[particleElementIndex] = value;
     }
 
     vec2f const & GetSpringForces(ElementIndex particleElementIndex) const noexcept
@@ -223,7 +223,7 @@ private:
 
     Buffer<vec2f> mPositionBuffer;
     Buffer<vec2f> mVelocityBuffer;
-    Buffer<vec2f> mExternalForceBuffer;
+    Buffer<vec2f> mExternalForcesBuffer;
     Buffer<vec2f> mSpringForcesBuffer; // Hooke+Damp
     Buffer<vec2f> mVoluntaryForcesBuffer;
     Buffer<vec2f> mVoluntarySuperimposedDisplacementBuffer;

@@ -167,7 +167,7 @@ void Npcs::UpdateNpcParticle2(
     // Calculate physical displacement - once and for all, as whole loop
     // will attempt to move to trajectory that always ends here
 
-    vec2f const physicalForces = CalculateNpcParticleWorldForce(
+    vec2f const physicalForces = CalculateNpcParticlePhysicalForces(
         particle,
         particleMass,
         dipoleArg,
@@ -675,7 +675,7 @@ void Npcs::UpdateNpcParticle2(
     }
 }
 
-vec2f Npcs::CalculateNpcParticleWorldForce(
+vec2f Npcs::CalculateNpcParticlePhysicalForces(
     StateType::NpcParticleStateType & particle,
     float particleMass,
     std::optional<DipoleArg> const & dipoleArg,
@@ -684,7 +684,7 @@ vec2f Npcs::CalculateNpcParticleWorldForce(
     LabParameters const & labParameters) const
 {
     vec2f const physicalForces =
-        mParticles.GetExternalForce(particle.ParticleIndex)
+        mParticles.GetExternalForces(particle.ParticleIndex)
         + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * particleMass
         + mParticles.GetSpringForces(particle.ParticleIndex)
         + mParticles.GetVoluntaryForces(particle.ParticleIndex);

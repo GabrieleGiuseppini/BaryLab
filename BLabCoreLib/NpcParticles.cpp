@@ -13,7 +13,7 @@ void NpcParticles::Add(
 {
     mPositionBuffer.emplace_back(position);
     mVelocityBuffer.emplace_back(vec2f::zero());
-    mExternalForceBuffer.emplace_back(vec2f::zero());
+    mExternalForcesBuffer.emplace_back(vec2f::zero());
     mSpringForcesBuffer.emplace_back(vec2f::zero());
     mVoluntaryForcesBuffer.emplace_back(vec2f::zero());
     mVoluntarySuperimposedDisplacementBuffer.emplace_back(vec2f::zero());

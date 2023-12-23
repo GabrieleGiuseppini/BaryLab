@@ -168,13 +168,12 @@
 			+ Attempt 1: 
 				+ At each iteration: move endpoiny by total distance walked so far - ~equiv to not moving start by walked
 					+ Even if this impacts floor check - let's see if this hurts
-
-		- Step 5a: test with spring forces being calc'd at each particle
-			- Step 1:
-				- vec2f CalculateWorldForces(...)
-				- Impl like now
-			- Step 2:
-				- Move spring forces to it
+		X Step 5a: test with spring forces being calc'd at each particle
+			+ Step 1:
+				+ vec2f CalculateWorldForces(...)
+				+ Impl like now
+			X Step 2:
+				X Move spring forces to it
 
 		- Step 5b: test with torque being a quantity on its own, and calc'd at secondary after primary has moved
 			- If it works, we might not need to impart distance walked to secondary
