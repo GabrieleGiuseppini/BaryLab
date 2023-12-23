@@ -444,8 +444,7 @@ void Npcs::RunWalkingHumanStateMachine(
 	(void)mesh;
 
 	// Advance towards 1.0
-	// TODOTEST: turned off
-	//humanState.CurrentWalkingMagnitude = std::min(1.0f, humanState.CurrentWalkingMagnitude + (1.0f - humanState.CurrentWalkingMagnitude) * 0.03f);
+	humanState.CurrentWalkingMagnitude = std::min(1.0f, humanState.CurrentWalkingMagnitude + (1.0f - humanState.CurrentWalkingMagnitude) * 0.03f);
 	
 	LogMessage("        walking: ", humanState.CurrentWalkingMagnitude);
 
