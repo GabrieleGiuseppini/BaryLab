@@ -182,6 +182,8 @@
 				+ Reset at transitions out of Rising, Equlibrium, and Walking
 			+ CalculatePhysicalForces() uses it to calculate torque, when sec'ry and it's human
 			- Cleanup code
+			- Human friction in parameters:
+				- HumanHead & HumanFeet multipliers over basis kinetic?
 		- Fix: torque of sec'ry makes primary move
 			- Because of friction loss?
 				- Try particle-specific friction, head being negligible and feet being majority (e.g. 10-90)

@@ -385,11 +385,11 @@ void Npcs::UpdateNpcParticle2(
                                 {
                                     if (isPrimaryParticle)
                                     {
-                                        frictionCoefficient *= 0.9f;
+                                        frictionCoefficient = 0.9f;
                                     }
                                     else
                                     {
-                                        frictionCoefficient *= 0.1f;
+                                        frictionCoefficient = 0.1f;
                                     }
                                 }
 
