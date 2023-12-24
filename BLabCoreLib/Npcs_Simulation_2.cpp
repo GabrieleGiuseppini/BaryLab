@@ -380,6 +380,19 @@ void Npcs::UpdateNpcParticle2(
                                     frictionCoefficient = labParameters.StaticFriction;
                                 }
 
+                                // If human: feet:90% head:10%
+                                if (npc.HumanNpcState.has_value())
+                                {
+                                    if (isPrimaryParticle)
+                                    {
+                                        frictionCoefficient *= 0.9f;
+                                    }
+                                    else
+                                    {
+                                        frictionCoefficient *= 0.1f;
+                                    }
+                                }
+
                                 // Calculate friction (integrated) force magnitude (along edgeDir),
                                 // which is the same as apparent force, up to max friction threshold
                                 float tFriction = std::min(std::abs(trajectoryT), frictionCoefficient * std::max(trajectoryN, 0.0f));

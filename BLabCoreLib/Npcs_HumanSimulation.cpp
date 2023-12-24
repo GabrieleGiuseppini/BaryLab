@@ -439,11 +439,10 @@ void Npcs::RunWalkingHumanStateMachine(
 	
 	LogMessage("        walking: ", humanState.CurrentWalkingMagnitude);
 
-	// TODOTEST
-	////// Impart walking velocity to primary particle
-	////mParticles.SetVoluntaryVelocity(
-	////	primaryParticleState.ParticleIndex,
-	////	vec2f(humanState.CurrentFaceDirectionX * labParameters.HumanNpcWalkingSpeed * humanState.CurrentWalkingMagnitude, 0.0f));
+	// Impart walking velocity to primary particle
+	mParticles.SetVoluntaryVelocity(
+		primaryParticleState.ParticleIndex,
+		vec2f(humanState.CurrentFaceDirectionX * labParameters.HumanNpcWalkingSpeed * humanState.CurrentWalkingMagnitude, 0.0f));
 	(void)labParameters;
 	(void)primaryParticleState;
 }

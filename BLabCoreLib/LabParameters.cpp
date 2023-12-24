@@ -12,10 +12,10 @@ LabParameters::LabParameters()
 	, SpringDampingCoefficient(0.5f)
 	, Elasticity(0.6f)
 	, StaticFriction(0.4f)
-	, KineticFriction(0.031f)
+	, KineticFriction(0.22f)
 	// NPC
-	, HumanNpcEquilibriumTorqueStiffnessCoefficient(0.003f)
-	, HumanNpcEquilibriumTorqueDampingCoefficient(0.066f)
+	, HumanNpcEquilibriumTorqueStiffnessCoefficient(0.0025f)
+	, HumanNpcEquilibriumTorqueDampingCoefficient(0.055f)
 	, HumanNpcWalkingSpeed(1.42f)
 {
 }

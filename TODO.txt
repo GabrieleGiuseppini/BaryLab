@@ -183,7 +183,8 @@
 			+ CalculatePhysicalForces() uses it to calculate torque, when sec'ry and it's human
 			- Cleanup code
 		- Fix: torque of sec'ry makes primary move
-			- Gone w/above?
+			- Because of friction loss?
+				- Try particle-specific friction, head being negligible and feet being majority (e.g. 10-90)
 		
 		- Step 6:
 			+ Human state: walk==<face dir x, velocity_strength>
