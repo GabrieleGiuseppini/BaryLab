@@ -185,6 +185,7 @@ void Npcs::UpdateHuman(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
+				humanState.CurrentEquilibriumTorqueMagnitude = 0.0f;
 				humanState.CurrentWalkingMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
@@ -263,6 +264,7 @@ void Npcs::UpdateHuman(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
+				humanState.CurrentEquilibriumTorqueMagnitude = 0.0f;
 				humanState.CurrentWalkingMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
@@ -273,6 +275,7 @@ void Npcs::UpdateHuman(
 			// Maintain equilibrium
 
 			if (!MaintainAndCheckHumanEquilibrium(
+				humanState,
 				primaryParticleState.ParticleIndex,
 				secondaryParticleState.ParticleIndex,
 				mParticles,
@@ -305,6 +308,7 @@ void Npcs::UpdateHuman(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
+				humanState.CurrentEquilibriumTorqueMagnitude = 0.0f;
 				humanState.CurrentWalkingMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
@@ -365,6 +369,7 @@ void Npcs::UpdateHuman(
 }
 
 bool Npcs::MaintainAndCheckHumanEquilibrium(
+	StateType::HumanNpcStateType & humanState,
 	ElementIndex primaryParticleIndex,
 	ElementIndex secondaryParticleIndex,
 	NpcParticles & particles,
@@ -408,26 +413,11 @@ bool Npcs::MaintainAndCheckHumanEquilibrium(
 		return false;
 	}
 
-	//
-	// Calculate and apply torque: from raise force and from velocity damp
-	//
+	// Converge equilibrium torque
+	float const ToFullEquilibriumTorqueConvergenceRate = 0.09f;
+	humanState.CurrentEquilibriumTorqueMagnitude += (1.0f - humanState.CurrentEquilibriumTorqueMagnitude) * ToFullEquilibriumTorqueConvergenceRate;
 
-	float const totalTorqueAngleCW =
-		-staticDisplacementAngleCW * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient
-		- velocityAngleCW * labParameters.HumanNpcEquilibriumTorqueDampingCoefficient;
-
-	// Calculate linear force that generates this rotation
-	vec2f const endPosition = humanVector.rotate(-totalTorqueAngleCW) + feetPosition;
-	vec2f const torqueDisplacement = endPosition - headPosition;
-	vec2f const torqueLinearForce = 
-		torqueDisplacement 
-		* LabParameters::ParticleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
-
-	LogMessage("        torque: staticDisplacementAngleCW=", staticDisplacementAngleCW, " velocityAngleCW=", velocityAngleCW, " totalTorqueAngleCW=", totalTorqueAngleCW, " torqueDisplacement=", torqueDisplacement);
-
-	particles.SetVoluntaryForces(
-		secondaryParticleIndex,
-		torqueLinearForce);
+	(void)labParameters;
 
 	return true;
 }
@@ -444,12 +434,16 @@ void Npcs::RunWalkingHumanStateMachine(
 	(void)mesh;
 
 	// Advance towards 1.0
+	// TODO: not needed to be public
 	humanState.CurrentWalkingMagnitude = std::min(1.0f, humanState.CurrentWalkingMagnitude + (1.0f - humanState.CurrentWalkingMagnitude) * 0.03f);
 	
 	LogMessage("        walking: ", humanState.CurrentWalkingMagnitude);
 
-	// Impart walking velocity to primary particle
-	mParticles.SetVoluntaryVelocity(
-		primaryParticleState.ParticleIndex,
-		vec2f(humanState.CurrentFaceDirectionX * labParameters.HumanNpcWalkingSpeed * humanState.CurrentWalkingMagnitude, 0.0f));
+	// TODOTEST
+	////// Impart walking velocity to primary particle
+	////mParticles.SetVoluntaryVelocity(
+	////	primaryParticleState.ParticleIndex,
+	////	vec2f(humanState.CurrentFaceDirectionX * labParameters.HumanNpcWalkingSpeed * humanState.CurrentWalkingMagnitude, 0.0f));
+	(void)labParameters;
+	(void)primaryParticleState;
 }

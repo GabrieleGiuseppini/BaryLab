@@ -175,18 +175,12 @@
 			X Step 2:
 				X Move spring forces to it
 
-		- Step 5b: test with torque being a quantity on its own, and calc'd at secondary after primary has moved
+		+ Step 5b: test with torque being a quantity on its own, and calc'd at secondary after primary has moved
 			! If it works, we might not need to impart distance walked to secondary
-			- HumanState has EquilibriumTorqueTODO
-				- Calc'd as TODO
-				- Reset at transitions out of Rising, Equlibrium, and Walking
-			- CalculatePhysicalForces() uses it to calculate torque, when sec'ry and it's human
-
-			
-			- OLD
-			- Warning: when we calculate torque strength, primary and secondary might be aligned; so, torque needs to depend on unalignment at that moment
-				- Just "TorqueWill", alignment is calc'd (at sec'ry) based on vertical at that moment
-				- Should also require spring force to be calc'd for secondary _at_ secondary's turn
+			+ HumanState has EquilibriumTorqueTODO
+				+ Calc'd as converging 1.0
+				+ Reset at transitions out of Rising, Equlibrium, and Walking
+			+ CalculatePhysicalForces() uses it to calculate torque, when sec'ry and it's human
 		- Fix: torque of sec'ry makes primary move
 			- Gone w/above?
 		
