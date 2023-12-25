@@ -32,12 +32,12 @@ std::unique_ptr<LabController> LabController::Create(
 
     return std::unique_ptr<LabController>(
         new LabController(
-        std::move(structuralMaterialDatabase),
+            std::move(structuralMaterialDatabase),
             std::move(renderContext)));
 }
 
 LabController::LabController(
-    StructuralMaterialDatabase structuralMaterialDatabase,
+    StructuralMaterialDatabase && structuralMaterialDatabase,
     std::unique_ptr<RenderContext> renderContext)
     : mStructuralMaterialDatabase(std::move(structuralMaterialDatabase))
     , mRenderContext(std::move(renderContext))
@@ -111,6 +111,7 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
             //Npcs::NpcType::Furniture,
             Npcs::NpcType::Human,
             position,
+            mStructuralMaterialDatabase,
             *mesh);
 
         // Select particle

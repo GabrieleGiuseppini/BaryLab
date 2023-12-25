@@ -38,8 +38,6 @@ struct LabParameters
 
     static float constexpr SimulationTimeStepDuration = 1.0f / 64.0f;
 
-    static float constexpr ParticleMass = 68.95f; // Kg
-
     float MassAdjustment;
     static float constexpr MinMassAdjustment = 0.0001f;
     static float constexpr MaxMassAdjustment = 1000.0f;
@@ -60,13 +58,13 @@ struct LabParameters
     static float constexpr MinElasticity = 0.0f;
     static float constexpr MaxElasticity = 1.0f;
 
-    float StaticFriction;
-    static float constexpr MinStaticFriction = 0.0f;
-    static float constexpr MaxStaticFriction = 1.0f;
+    float StaticFrictionAdjustment;
+    static float constexpr MinStaticFrictionAdjustment = 0.0f;
+    static float constexpr MaxStaticFrictionAdjustment = 40.0f;
 
-    float KineticFriction;
-    static float constexpr MinKineticFriction = 0.0f;
-    static float constexpr MaxKineticFriction = 1.0f;
+    float KineticFrictionAdjustment;
+    static float constexpr MinKineticFrictionAdjustment = 0.0f;
+    static float constexpr MaxKineticFrictionAdjustment = 40.0f;
 
     // Misc
 

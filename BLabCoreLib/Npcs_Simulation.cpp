@@ -115,7 +115,7 @@ void Npcs::UpdateNpcs(
     {
         auto & npcState = mStateBuffer[mSimulationStepState.CurrentNpcIndex];
 
-        const auto [npcParticleState, dipoleArg, isPrimaryParticle] = [&]()
+        auto const [npcParticleState, dipoleArg, isPrimaryParticle] = [&]()
             {
                 if (mSimulationStepState.CurrentIsPrimaryParticle)
                 {
@@ -408,7 +408,7 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
     LabParameters const & labParameters) const
 {
     float const dt = LabParameters::SimulationTimeStepDuration;
-    float const particleMass = LabParameters::ParticleMass * labParameters.MassAdjustment;
+    float const particleMass = mParticles.GetPhysicalProperties(particle.ParticleIndex).Mass * labParameters.MassAdjustment;
 
     Vertices const & vertices = mesh.GetVertices();
     Edges const & edges = mesh.GetEdges();
@@ -422,7 +422,7 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
 
     vec2f const physicalForces =
         mParticles.GetExternalForces(particle.ParticleIndex)
-        + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * labParameters.ParticleMass * labParameters.MassAdjustment
+        + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * particleMass
         + mParticles.GetSpringForces(particle.ParticleIndex)
         + mParticles.GetVoluntaryForces(particle.ParticleIndex);
 
@@ -548,12 +548,16 @@ Npcs::CalculatedTrajectoryTargetRetVal Npcs::CalculateTrajectoryTarget(
                             if (std::abs(particle.ConstrainedState->MeshRelativeVelocity.dot(edgeDir)) > 0.01f) // Magic number
                             {
                                 // Kinetic friction
-                                frictionCoefficient = labParameters.KineticFriction;
+                                // TODOTEST
+                                //frictionCoefficient = labParameters.KineticFriction;
+                                frictionCoefficient = 1.0f;
                             }
                             else
                             {
                                 // Static friction
-                                frictionCoefficient = labParameters.StaticFriction;
+                                // TODOTEST
+                                //frictionCoefficient = labParameters.StaticFriction;
+                                frictionCoefficient = 1.0f;
                             }
 
                             // Calculate friction (integrated) force magnitude (along edgeDir),
@@ -946,7 +950,9 @@ std::optional<Npcs::FinalParticleState> Npcs::UpdateParticleTrajectoryTrace(
         // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
         vec2f const tangentialResponse =
             tangentialVelocity
-            * (1.0f - labParameters.KineticFriction);
+            // TODOTEST
+            //* (1.0f - labParameters.KineticFriction);
+            * (1.0f - 1.0f * labParameters.KineticFrictionAdjustment);
 
         LogMessage("      traj=", trajectory, " apv=", apparentParticleVelocity, " nr=", normalResponse, " tr=", tangentialResponse);
 

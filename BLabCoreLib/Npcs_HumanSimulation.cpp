@@ -236,8 +236,8 @@ void Npcs::UpdateHuman(
 				// Transition
 
 				LogMessage("Going to Constrained_KnockedOut; primary's barycentric coords: ", 
-					primaryParticleState.ConstrainedState.has_value() ? primaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords.toString() : "",
-					" primary's relative velocity: ", primaryParticleState.ConstrainedState->MeshRelativeVelocity.length());
+					primaryParticleState.ConstrainedState.has_value() ? primaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords.toString() : "N/A",
+					" primary's relative velocity: ", primaryParticleState.ConstrainedState.has_value() ? std::to_string(primaryParticleState.ConstrainedState->MeshRelativeVelocity.length()) : "N/A");
 
 				humanState.TransitionToState(
 					StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut,

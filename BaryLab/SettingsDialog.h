@@ -49,8 +49,8 @@ private:
 
     // Simulator
     SliderControl<float> * mElasticitySlider;
-    SliderControl<float> * mStaticFrictionSlider;
-    SliderControl<float> * mKineticFrictionSlider;
+    SliderControl<float> * mStaticFrictionAdjustmentSlider;
+    SliderControl<float> * mKineticFrictionAdjustmentSlider;
     SliderControl<float> * mMassAdjustmentSlider;
     SliderControl<float> * mGravityAdjustmentSlider;
     SliderControl<float> * mSpringReductionFractionSlider;

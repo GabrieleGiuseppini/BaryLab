@@ -24,8 +24,8 @@ BaseSettingsManager<SLabSettings>::BaseSettingsManagerFactory SettingsManager::M
     BaseSettingsManagerFactory factory;
 
     ADD_SETTING(float, Elasticity);
-    ADD_SETTING(float, StaticFriction);
-    ADD_SETTING(float, KineticFriction);
+    ADD_SETTING(float, StaticFrictionAdjustment);
+    ADD_SETTING(float, KineticFrictionAdjustment);
     ADD_SETTING(float, MassAdjustment);
     ADD_SETTING(float, GravityAdjustment);
     ADD_SETTING(float, SpringReductionFraction);

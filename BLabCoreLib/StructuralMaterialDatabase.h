@@ -24,6 +24,13 @@ public:
 
     using ColorKey = rgbColor;
 
+    enum class UniqueMaterialKeyType
+    {
+        Furniture,
+        HumanHead,
+        HumanFeet
+    };
+
 public:
 
     static StructuralMaterialDatabase Load()
@@ -40,6 +47,7 @@ public:
         //
 
         std::map<ColorKey, StructuralMaterial> structuralMaterialsMap;
+        std::map<UniqueMaterialKeyType, ColorKey> structuralMaterialByUniqueKeyMap;
 
         picojson::array const & structuralMaterialsRootArray = structuralMaterialsRoot.get<picojson::array>();
         for (auto const & materialElem : structuralMaterialsRootArray)
@@ -54,7 +62,9 @@ public:
             ColorKey colorKey = Utils::Hex2RgbColor(
                 Utils::GetMandatoryJsonMember<std::string>(materialObject, "color_key"));
 
-            StructuralMaterial material = StructuralMaterial::Create(materialObject);
+            StructuralMaterial material = StructuralMaterial::Create(
+                rgbaColor(colorKey, rgbaColor::data_type_max),
+                materialObject);
 
             // Make sure there are no dupes
             if (structuralMaterialsMap.count(colorKey) != 0)
@@ -67,9 +77,28 @@ public:
                 std::make_pair(
                     colorKey,
                     material));
+
+            assert(storedEntry.second);
+
+            // Store by unique key, if any
+            auto const uniqueKeyStr = Utils::GetOptionalJsonMember<std::string>(materialObject, "unique_material");
+            if (uniqueKeyStr.has_value())
+            {
+                UniqueMaterialKeyType const uniqueMaterialKey = StrToUniqueMaterialKey(*uniqueKeyStr);
+                auto [_, isUniqueMaterialInserted] = structuralMaterialByUniqueKeyMap.emplace(
+                    std::make_pair(
+                        uniqueMaterialKey,
+                        colorKey));
+                if (!isUniqueMaterialInserted)
+                {
+                    throw BLabException("Found more than one material with unique key \"" + *uniqueKeyStr + "\"");
+                }
+            }
         }
 
-        return StructuralMaterialDatabase(std::move(structuralMaterialsMap));
+        return StructuralMaterialDatabase(
+            std::move(structuralMaterialsMap),
+            std::move(structuralMaterialByUniqueKeyMap));
     }
 
     StructuralMaterial const * FindStructuralMaterial(ColorKey const & colorKey) const
@@ -85,12 +114,33 @@ public:
         return nullptr;
     }
 
+    StructuralMaterial const & GetStructuralMaterial(UniqueMaterialKeyType const & uniqueKey) const
+    {
+        return mStructuralMaterialMap.at(mStructuralMaterialByUniqueKeyMap.at(uniqueKey));
+    }
+
 private:
 
-    explicit StructuralMaterialDatabase(std::map<ColorKey, StructuralMaterial> structuralMaterialMap)
+    StructuralMaterialDatabase(
+        std::map<ColorKey, StructuralMaterial> && structuralMaterialMap,
+        std::map<UniqueMaterialKeyType, ColorKey> && structuralMaterialByUniqueKeyMap)
         : mStructuralMaterialMap(std::move(structuralMaterialMap))
+        , mStructuralMaterialByUniqueKeyMap(std::move(structuralMaterialByUniqueKeyMap))
     {
     }
 
+    static UniqueMaterialKeyType StrToUniqueMaterialKey(std::string const & str)
+    {
+        if (Utils::CaseInsensitiveEquals(str, "Furniture"))
+            return UniqueMaterialKeyType::Furniture;
+        else if (Utils::CaseInsensitiveEquals(str, "HumanFeet"))
+            return UniqueMaterialKeyType::HumanFeet;
+        else if (Utils::CaseInsensitiveEquals(str, "HumanHead"))
+            return UniqueMaterialKeyType::HumanHead;
+        else
+            throw BLabException("Unrecognized unique material key \"" + str + "\"");
+    }
+
     std::map<ColorKey, StructuralMaterial> const mStructuralMaterialMap;
+    std::map<UniqueMaterialKeyType, ColorKey> const mStructuralMaterialByUniqueKeyMap;
 };

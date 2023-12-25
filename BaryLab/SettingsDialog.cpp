@@ -345,50 +345,52 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
                     CellBorder);
             }
 
-            // Static Friction
+            // Static Friction Adjustment
             {
-                mStaticFrictionSlider = new SliderControl<float>(
+                mStaticFrictionAdjustmentSlider = new SliderControl<float>(
                     mechanicsBox,
                     SliderWidth,
                     SliderHeight,
-                    "Static Friction",
-                    "The static friction of particles against floor surfaces.",
+                    "Static Friction Adjust",
+                    "The adjustment for the static friction of particles against floor surfaces.",
 					[this](float value)
                     {
-                        this->mLiveSettings.SetValue(SLabSettings::StaticFriction, value);
+                        this->mLiveSettings.SetValue(SLabSettings::StaticFrictionAdjustment, value);
                         this->OnLiveSettingsChanged();
                     },
-                    std::make_unique<LinearSliderCore>(
-                        mLabController->GetMinStaticFriction(),
-                        mLabController->GetMaxStaticFriction()));
+                    std::make_unique<ExponentialSliderCore>(
+                        mLabController->GetMinStaticFrictionAdjustment(),
+                        1.0f,
+                        mLabController->GetMaxStaticFrictionAdjustment()));
 
                 mechanicsSizer->Add(
-                    mStaticFrictionSlider,
+                    mStaticFrictionAdjustmentSlider,
                     wxGBPosition(0, 1),
                     wxGBSpan(1, 1),
                     wxEXPAND | wxALL,
                     CellBorder);
             }
 
-            // Kinetic Friction
+            // Kinetic Friction Adjustment
             {
-                mKineticFrictionSlider = new SliderControl<float>(
+                mKineticFrictionAdjustmentSlider = new SliderControl<float>(
                     mechanicsBox,
                     SliderWidth,
                     SliderHeight,
-                    "Kinetic Friction",
-                    "The kinetic friction of particles against floor surfaces.",
+                    "Kinetic Friction Adjust",
+                    "The adjustment for the kinetic friction of particles against floor surfaces.",
                     [this](float value)
                     {
-                        this->mLiveSettings.SetValue(SLabSettings::KineticFriction, value);
+                        this->mLiveSettings.SetValue(SLabSettings::KineticFrictionAdjustment, value);
                         this->OnLiveSettingsChanged();
                     },
-                    std::make_unique<LinearSliderCore>(
-                        mLabController->GetMinKineticFriction(),
-                        mLabController->GetMaxKineticFriction()));
+                    std::make_unique<ExponentialSliderCore>(
+                        mLabController->GetMinKineticFrictionAdjustment(),
+                        1.0f,
+                        mLabController->GetMaxKineticFrictionAdjustment()));
 
                 mechanicsSizer->Add(
-                    mKineticFrictionSlider,
+                    mKineticFrictionAdjustmentSlider,
                     wxGBPosition(0, 2),
                     wxGBSpan(1, 1),
                     wxEXPAND | wxALL,
@@ -607,8 +609,8 @@ void SettingsDialog::SyncControlsWithSettings(Settings<SLabSettings> const & set
 {
     // Simulator
     mElasticitySlider->SetValue(settings.GetValue<float>(SLabSettings::Elasticity));
-    mStaticFrictionSlider->SetValue(settings.GetValue<float>(SLabSettings::StaticFriction));
-    mKineticFrictionSlider->SetValue(settings.GetValue<float>(SLabSettings::KineticFriction));
+    mStaticFrictionAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::StaticFrictionAdjustment));
+    mKineticFrictionAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::KineticFrictionAdjustment));
     mMassAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::MassAdjustment));
     mGravityAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::GravityAdjustment));    
     mSpringReductionFractionSlider->SetValue(settings.GetValue<float>(SLabSettings::SpringReductionFraction));

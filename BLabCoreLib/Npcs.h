@@ -12,6 +12,7 @@
 #include "Mesh.h"
 #include "NpcParticles.h"
 #include "RenderContext.h"
+#include "StructuralMaterialDatabase.h"
 #include "Vectors.h"
 
 #include <optional>
@@ -178,6 +179,7 @@ public:
 	void Add(
 		NpcType npcType,
 		vec2f const & primaryPosition,
+		StructuralMaterialDatabase const & materialDatabase,
 		Mesh const & mesh);
 
 	void MoveParticleBy(

@@ -12,16 +12,14 @@
 void Npcs::Add(
 	NpcType npcType,
 	vec2f const & primaryPosition,
+	StructuralMaterialDatabase const & materialDatabase,
 	Mesh const & mesh)
 {
 	assert(mParticles.GetParticleCount() < LabParameters::MaxNpcs);
 
-	//
-	// Add primary particle
-	//
+	// Primary particle state
 
 	ElementIndex const primaryParticleIndex = mParticles.GetParticleCount();
-	mParticles.Add(primaryPosition, rgbaColor(0x60, 0x60, 0x60, 0xff));
 
 	StateType::NpcParticleStateType primaryParticleState = StateType::NpcParticleStateType(
 		primaryParticleIndex,
@@ -29,43 +27,135 @@ void Npcs::Add(
 			primaryPosition,
 			mesh));
 
-	//
-	// Add human
-	//
+	// Add particles and eventual other states
 
 	std::optional<StateType::DipoleStateType> dipoleState;
 	std::optional<StateType::HumanNpcStateType> humanNpcState;
 
-	if (npcType == NpcType::Human)
+	switch (npcType)
 	{
-		ElementIndex const secondaryParticleIndex = mParticles.GetParticleCount();
+		case NpcType::Furniture:
+		{
+			auto const & material = materialDatabase.GetStructuralMaterial(StructuralMaterialDatabase::UniqueMaterialKeyType::Furniture);
 
-		vec2f const secondaryPosition = primaryPosition + vec2f(0.0f, 1.0f) * LabParameters::HumanNpcLength;
-		mParticles.Add(secondaryPosition, rgbaColor(0x60, 0x60, 0x60, 0xff));
+			mParticles.Add(
+				material.Mass,
+				material.StaticFriction,
+				material.KineticFriction,
+				primaryPosition,
+				material.RenderColor);
 
-		StateType::NpcParticleStateType secondaryParticleState = StateType::NpcParticleStateType(
-			secondaryParticleIndex,
-			CalculateParticleConstrainedState(
-				secondaryPosition,			
-				mesh));
+			break;
+		}
 
-		humanNpcState = InitializeHuman(
-			primaryParticleState,
-			secondaryParticleState,
-			mParticles,
-			mesh);
+		case NpcType::Human:
+		{
+			// Feet (primary)
 
-		float const massFactor =
-			(LabParameters::ParticleMass * LabParameters::ParticleMass)
-			/ (LabParameters::ParticleMass + LabParameters::ParticleMass);
+			auto const & feetMaterial = materialDatabase.GetStructuralMaterial(StructuralMaterialDatabase::UniqueMaterialKeyType::HumanFeet);
 
-		dipoleState.emplace(
-			std::move(secondaryParticleState),
-			StateType::DipolePropertiesType(
-				LabParameters::HumanNpcLength,
-				massFactor,
-				1.0f));
+			mParticles.Add(
+				feetMaterial.Mass,
+				feetMaterial.StaticFriction,
+				feetMaterial.KineticFriction,
+				primaryPosition,
+				feetMaterial.RenderColor);
+
+			// Head (secondary)
+
+			ElementIndex const headParticleIndex = mParticles.GetParticleCount();
+
+			auto const & headMaterial = materialDatabase.GetStructuralMaterial(StructuralMaterialDatabase::UniqueMaterialKeyType::HumanHead);
+
+			vec2f const secondaryPosition = primaryPosition + vec2f(0.0f, 1.0f) * LabParameters::HumanNpcLength;
+
+			mParticles.Add(
+				headMaterial.Mass,
+				headMaterial.StaticFriction,
+				headMaterial.KineticFriction,
+				secondaryPosition,
+				headMaterial.RenderColor);
+
+			StateType::NpcParticleStateType secondaryParticleState = StateType::NpcParticleStateType(
+				headParticleIndex,
+				CalculateParticleConstrainedState(
+					secondaryPosition,
+					mesh));
+
+			humanNpcState = InitializeHuman(
+				primaryParticleState,
+				secondaryParticleState,
+				mParticles,
+				mesh);
+
+			float const massFactor =
+				(feetMaterial.Mass * headMaterial.Mass)
+				/ (feetMaterial.Mass + headMaterial.Mass);
+
+			dipoleState.emplace(
+				std::move(secondaryParticleState),
+				StateType::DipolePropertiesType(
+					LabParameters::HumanNpcLength,
+					massFactor,
+					1.0f));
+
+			break;
+		}
 	}
+
+	// TODOHERE: double-check this all
+	// TODOOLD
+
+	//////
+	////// Add primary particle
+	//////
+
+	////ElementIndex const primaryParticleIndex = mParticles.GetParticleCount();
+	////mParticles.Add(primaryPosition, rgbaColor(0x60, 0x60, 0x60, 0xff));
+
+	////StateType::NpcParticleStateType primaryParticleState = StateType::NpcParticleStateType(
+	////	primaryParticleIndex,
+	////	CalculateParticleConstrainedState(
+	////		primaryPosition,
+	////		mesh));
+
+	//////
+	////// Add human
+	//////
+
+	////std::optional<StateType::DipoleStateType> dipoleState;
+	////std::optional<StateType::HumanNpcStateType> humanNpcState;
+
+	////if (npcType == NpcType::Human)
+	////{
+	////	ElementIndex const secondaryParticleIndex = mParticles.GetParticleCount();
+
+	////	vec2f const secondaryPosition = primaryPosition + vec2f(0.0f, 1.0f) * LabParameters::HumanNpcLength;
+	////	mParticles.Add(secondaryPosition, rgbaColor(0x60, 0x60, 0x60, 0xff));
+
+	////	StateType::NpcParticleStateType secondaryParticleState = StateType::NpcParticleStateType(
+	////		secondaryParticleIndex,
+	////		CalculateParticleConstrainedState(
+	////			secondaryPosition,			
+	////			mesh));
+
+	////	humanNpcState = InitializeHuman(
+	////		primaryParticleState,
+	////		secondaryParticleState,
+	////		mParticles,
+	////		mesh);
+
+	////	float const massFactor =
+	////		(LabParameters::ParticleMass * LabParameters::ParticleMass)
+	////		/ (LabParameters::ParticleMass + LabParameters::ParticleMass);
+
+	////	dipoleState.emplace(
+	////		std::move(secondaryParticleState),
+	////		StateType::DipolePropertiesType(
+	////			LabParameters::HumanNpcLength,
+	////			massFactor,
+	////			1.0f));
+	////}
 	
 	//
 	// Calculate regime

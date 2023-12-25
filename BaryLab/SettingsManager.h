@@ -11,8 +11,8 @@
 enum class SLabSettings : size_t
 {
     Elasticity = 0,
-    StaticFriction,
-    KineticFriction,
+    StaticFrictionAdjustment,
+    KineticFrictionAdjustment,
     MassAdjustment,
     GravityAdjustment,
     SpringReductionFraction,

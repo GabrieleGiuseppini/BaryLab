@@ -178,15 +178,15 @@ public:
     float GetMinElasticity() const { return LabParameters::MinElasticity; }
     float GetMaxElasticity() const { return LabParameters::MaxElasticity; }
 
-    float GetStaticFriction() const { return mLabParameters.StaticFriction; }
-    void SetStaticFriction(float value) { mLabParameters.StaticFriction = value; }
-    float GetMinStaticFriction() const { return LabParameters::MinStaticFriction; }
-    float GetMaxStaticFriction() const { return LabParameters::MaxStaticFriction; }
+    float GetStaticFrictionAdjustment() const { return mLabParameters.StaticFrictionAdjustment; }
+    void SetStaticFrictionAdjustment(float value) { mLabParameters.StaticFrictionAdjustment = value; }
+    float GetMinStaticFrictionAdjustment() const { return LabParameters::MinStaticFrictionAdjustment; }
+    float GetMaxStaticFrictionAdjustment() const { return LabParameters::MaxStaticFrictionAdjustment; }
 
-    float GetKineticFriction() const { return mLabParameters.KineticFriction; }
-    void SetKineticFriction(float value) { mLabParameters.KineticFriction = value; }
-    float GetMinKineticFriction() const { return LabParameters::MinKineticFriction; }
-    float GetMaxKineticFriction() const { return LabParameters::MaxKineticFriction; }
+    float GetKineticFrictionAdjustment() const { return mLabParameters.KineticFrictionAdjustment; }
+    void SetKineticFrictionAdjustment(float value) { mLabParameters.KineticFrictionAdjustment = value; }
+    float GetMinKineticFrictionAdjustment() const { return LabParameters::MinKineticFrictionAdjustment; }
+    float GetMaxKineticFrictionAdjustment() const { return LabParameters::MaxKineticFrictionAdjustment; }
 
     float GetMassAdjustment() const { return mLabParameters.MassAdjustment; }
     void SetMassAdjustment(float value) { mLabParameters.MassAdjustment = value; }
@@ -221,7 +221,7 @@ public:
 private:
 
     explicit LabController(
-        StructuralMaterialDatabase structuralMaterialDatabase,
+        StructuralMaterialDatabase && structuralMaterialDatabase,
         std::unique_ptr<RenderContext> renderContext);
 
     void Reset(

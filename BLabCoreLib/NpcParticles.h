@@ -21,6 +21,22 @@ class NpcParticles final : public ElementContainer
 {
 public:
 
+    struct PhysicalProperties
+    {
+        float Mass;
+        float StaticFriction;
+        float KineticFriction;
+
+        PhysicalProperties(
+            float mass,
+            float staticFriction,
+            float kineticFriction)
+            : Mass(mass)
+            , StaticFriction(staticFriction)
+            , KineticFriction(kineticFriction)
+        {}
+    };
+
     NpcParticles(ElementCount particleCount)
         : ElementContainer(particleCount)
         , mParticleCount(0)
@@ -28,6 +44,7 @@ public:
         // Buffers
         //////////////////////////////////
         // Physics
+        , mPhysicalPropertiesBuffer(mBufferElementCount, particleCount, PhysicalProperties(0.0f, 0.0f, 0.0f))
         , mPositionBuffer(mBufferElementCount, particleCount, vec2f::zero())
         , mVelocityBuffer(mBufferElementCount, particleCount, vec2f::zero())
         , mExternalForcesBuffer(mBufferElementCount, particleCount, vec2f::zero())
@@ -48,6 +65,9 @@ public:
     }
 
     void Add(
+        float mass,
+        float staticFriction,
+        float kineticFriction,
         vec2f const & position,
         rgbaColor const & color);
 
@@ -58,6 +78,11 @@ public:
     //
     // Physics
     //
+
+    PhysicalProperties const & GetPhysicalProperties(ElementIndex particleElementIndex) const noexcept
+    {
+        return mPhysicalPropertiesBuffer[particleElementIndex];
+    }
 
     vec2f const & GetPosition(ElementIndex particleElementIndex) const noexcept
     {
@@ -221,6 +246,7 @@ private:
     // Physics
     //
 
+    Buffer<PhysicalProperties> mPhysicalPropertiesBuffer;
     Buffer<vec2f> mPositionBuffer;
     Buffer<vec2f> mVelocityBuffer;
     Buffer<vec2f> mExternalForcesBuffer;

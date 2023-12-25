@@ -159,7 +159,7 @@ void Npcs::UpdateNpcParticle2(
     LogMessage("----------------------------------");
     LogMessage("  ", isPrimaryParticle ? "Primary" : "Secondary");
 
-    float const particleMass = LabParameters::ParticleMass * labParameters.MassAdjustment;
+    float const particleMass = mParticles.GetPhysicalProperties(particle.ParticleIndex).Mass * labParameters.MassAdjustment;
     float const dt = LabParameters::SimulationTimeStepDuration;
 
     vec2f const particleStartAbsolutePosition = mParticles.GetPosition(particle.ParticleIndex);
@@ -372,25 +372,12 @@ void Npcs::UpdateNpcParticle2(
                                 if (std::abs(particle.ConstrainedState->MeshRelativeVelocity.dot(edgeDir)) > 0.01f) // Magic number
                                 {
                                     // Kinetic friction
-                                    frictionCoefficient = labParameters.KineticFriction;
+                                    frictionCoefficient = mParticles.GetPhysicalProperties(particle.ParticleIndex).KineticFriction * labParameters.KineticFrictionAdjustment;
                                 }
                                 else
                                 {
                                     // Static friction
-                                    frictionCoefficient = labParameters.StaticFriction;
-                                }
-
-                                // If human: feet:90% head:10%
-                                if (npc.HumanNpcState.has_value())
-                                {
-                                    if (isPrimaryParticle)
-                                    {
-                                        frictionCoefficient = 0.9f;
-                                    }
-                                    else
-                                    {
-                                        frictionCoefficient = 0.1f;
-                                    }
+                                    frictionCoefficient = mParticles.GetPhysicalProperties(particle.ParticleIndex).StaticFriction * labParameters.StaticFrictionAdjustment;
                                 }
 
                                 // Calculate friction (integrated) force magnitude (along edgeDir),
@@ -731,7 +718,7 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
         vec2f const torqueDisplacement = endPosition - headPosition;
         equilibriumTorqueForce =
             torqueDisplacement
-            * LabParameters::ParticleMass * labParameters.MassAdjustment / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
+            * particleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
 
         LogMessage("        torque: staticDisplacementAngleCW=", staticDisplacementAngleCW, " velocityAngleCW=", velocityAngleCW, " currentEquilibriumTorqueMagnitude=",
             npc.HumanNpcState->CurrentEquilibriumTorqueMagnitude, " totalTorqueAngleCW=", totalTorqueAngleCW, " torqueDisplacement=", torqueDisplacement);
@@ -1485,7 +1472,7 @@ void Npcs::BounceConstrainedNpcParticle(
     // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
     vec2f const tangentialResponse =
         tangentialVelocity
-        * (1.0f - labParameters.KineticFriction);
+        * std::max(0.0f, 1.0f - particles.GetPhysicalProperties(particleIndex).KineticFriction * labParameters.KineticFrictionAdjustment);
 
     // Given that we've been working in *apparent* space (we've calc'd the collision response to *trajectory* which is apparent displacement),
     // we need to transform velocity to absolute particle velocity

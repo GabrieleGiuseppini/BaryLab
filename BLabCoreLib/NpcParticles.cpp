@@ -8,9 +8,13 @@
 #include "Log.h"
 
 void NpcParticles::Add(
+    float mass,
+    float staticFriction,
+    float kineticFriction,
     vec2f const & position,
     rgbaColor const & color)
 {
+    mPhysicalPropertiesBuffer.emplace_back(mass, staticFriction, kineticFriction);
     mPositionBuffer.emplace_back(position);
     mVelocityBuffer.emplace_back(vec2f::zero());
     mExternalForcesBuffer.emplace_back(vec2f::zero());
