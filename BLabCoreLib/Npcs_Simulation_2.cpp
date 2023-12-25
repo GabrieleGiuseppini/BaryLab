@@ -699,14 +699,25 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
 
         // Calculate CW angle between head and vertical (pointing up);
         // positive when human is CW wrt vertical
+        //
+        //     H
+        // |  /
+        // |-/
+        // |/
+        //
         float const staticDisplacementAngleCW = (-LabParameters::GravityDir).angleCw(humanVector);
 
         // Calculate CW angle that would be rotated by (relative to feet) velocity alone;
         // positive when new position is CW wrt old
-        vec2f const headPositionAfterVelocity =
-            headPosition
-            + (mParticles.GetVelocity(headParticleIndex) - mParticles.GetVelocity(feetParticleIndex)) * LabParameters::SimulationTimeStepDuration;
-        float const velocityAngleCW = humanVector.angleCw(headPositionAfterVelocity - feetPosition);
+        //
+        //     H
+        // |  /
+        // | /\
+        // |/__L___H'
+        //
+        vec2f const velocityDisplacement =
+            (mParticles.GetVelocity(headParticleIndex) - mParticles.GetVelocity(feetParticleIndex)) * LabParameters::SimulationTimeStepDuration;
+        float const velocityAngleCW = humanVector.angleCw(humanVector + velocityDisplacement);
 
         // Calculate angle that we want to enforce with this torque
         float const totalTorqueAngleCW =

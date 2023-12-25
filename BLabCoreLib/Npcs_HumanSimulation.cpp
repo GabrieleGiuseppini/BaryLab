@@ -376,13 +376,10 @@ bool Npcs::MaintainAndCheckHumanEquilibrium(
 	LabParameters const & labParameters)
 {
 	//
-	// Calculates torque to maintain equilibrium, and makes sure we are not falling out of equilibrium
+	// Make sure we are not falling out of equilibrium
 	//
 
-	vec2f const headPosition = particles.GetPosition(secondaryParticleIndex);
-	vec2f const feetPosition = particles.GetPosition(primaryParticleIndex);
-
-	vec2f const humanVector = headPosition - feetPosition;
+	vec2f const humanVector = particles.GetPosition(secondaryParticleIndex) - particles.GetPosition(primaryParticleIndex);
 
 	// Calculate CW angle between head and vertical (pointing up);
 	// positive when human is CW wrt vertical
@@ -390,15 +387,13 @@ bool Npcs::MaintainAndCheckHumanEquilibrium(
 
 	// Calculate CW angle that would be rotated by (relative to feet) velocity alone;
 	// positive when new position is CW wrt old
-	vec2f const headPositionAfterVelocity =
-		headPosition
-		+ (particles.GetVelocity(secondaryParticleIndex) - particles.GetVelocity(primaryParticleIndex)) * LabParameters::SimulationTimeStepDuration;
-	float const velocityAngleCW = humanVector.angleCw(headPositionAfterVelocity - feetPosition);
+	vec2f const velocityDisplacement = (particles.GetVelocity(secondaryParticleIndex) - particles.GetVelocity(primaryParticleIndex)) * LabParameters::SimulationTimeStepDuration;
+	float const velocityAngleCW = humanVector.angleCw(humanVector + velocityDisplacement);
 
 	//
 	// Check whether we are still in equulibrium
 	//
-	// We lose equilibrium if HumanVector is outside of -alpha->alpha sector around vertical, with non-negligible rotation velocity towards outside of sector
+	// We lose equilibrium if HumanVector is outside of sector around vertical, with non-negligible rotation velocity towards outside of sector
 	//
 
 	float constexpr MaxStaticAngleForEquilibrium = Pi<float> / 7.0f;
@@ -407,8 +402,7 @@ bool Npcs::MaintainAndCheckHumanEquilibrium(
 		&& std::abs(velocityAngleCW) > 0.01f
 		&& staticDisplacementAngleCW * velocityAngleCW > 0.0f) // Equal signs
 	{
-		LogMessage("Losing equilibrium because: StaticDisplacementAngleCW=", staticDisplacementAngleCW, " (Max=", MaxStaticAngleForEquilibrium,
-			") VelocityAngleCW=", velocityAngleCW);
+		LogMessage("Losing equilibrium because: StaticDisplacementAngleCW=", staticDisplacementAngleCW, " (Max=", MaxStaticAngleForEquilibrium, ") VelocityAngleCW=", velocityAngleCW);
 
 		return false;
 	}
