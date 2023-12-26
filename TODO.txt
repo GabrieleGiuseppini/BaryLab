@@ -226,14 +226,16 @@
 		+ NpcParticles:
 			+ Nuke all Voluntary buffers except ones we care about
 		+ Replace VoluntarySuperimposedVelocity with inline calc'n based on humanState.CurrentWalkingMagnitude
-		- Add W button for enabling walking (walking gate, used at RunWalkingHumanStateMachine)
 		- HumanSimulation:
 			- No need to reset VoluntarySuperimposedDisplacement if we clear whole buffer @ each loop
 			- What about others - do we want to reset them all?
 				- And if so, should we have a single buffer for all of them?
 			- Rationalize transition code (which is repeated a ton of times)
 		+ Nuke step-by-step
-		
+
+	- See if can impart walking velocity when walking flies into constrained
+		+ Into free is already OK, verified
+
 	- Merge into master
 	- Go back to solving walking reached injuction of two floors
 
