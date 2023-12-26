@@ -43,17 +43,8 @@ namespace /*anonymous*/ {
 
 Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 	StateType::NpcParticleStateType const & primaryParticleState,
-	StateType::NpcParticleStateType const & secondaryParticleState,
-	NpcParticles & particles) const
+	StateType::NpcParticleStateType const & secondaryParticleState) const
 {
-	// Reset voluntary physics
-
-	particles.SetVoluntaryForces(primaryParticleState.ParticleIndex, vec2f::zero());
-	particles.SetVoluntaryForces(secondaryParticleState.ParticleIndex, vec2f::zero());
-
-	particles.SetVoluntarySuperimposedDisplacement(primaryParticleState.ParticleIndex, vec2f::zero());
-	particles.SetVoluntarySuperimposedDisplacement(secondaryParticleState.ParticleIndex, vec2f::zero());
-
 	// Return state
 
 	if (!primaryParticleState.ConstrainedState.has_value()
@@ -155,18 +146,6 @@ void Npcs::UpdateHuman(
 					0.0f,
 					0.0f);
 
-				mParticles.SetVoluntaryForces(
-					secondaryParticleState.ParticleIndex,
-					vec2f::zero());
-
-				mParticles.SetVoluntarySuperimposedDisplacement(
-					primaryParticleState.ParticleIndex,
-					vec2f::zero());
-
-				mParticles.SetVoluntarySuperimposedDisplacement(
-					secondaryParticleState.ParticleIndex,
-					vec2f::zero());
-
 				humanState.CurrentWalkingMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
@@ -225,18 +204,6 @@ void Npcs::UpdateHuman(
 					0.0f,
 					0.0f);
 
-				mParticles.SetVoluntaryForces(
-					secondaryParticleState.ParticleIndex,
-					vec2f::zero());
-
-				mParticles.SetVoluntarySuperimposedDisplacement(
-					primaryParticleState.ParticleIndex,
-					vec2f::zero());
-
-				mParticles.SetVoluntarySuperimposedDisplacement(
-					secondaryParticleState.ParticleIndex,
-					vec2f::zero());
-
 				humanState.CurrentWalkingMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
@@ -258,18 +225,6 @@ void Npcs::UpdateHuman(
 					StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut,
 					0.0f,
 					0.0f);
-
-				mParticles.SetVoluntaryForces(
-					secondaryParticleState.ParticleIndex,
-					vec2f::zero());
-
-				mParticles.SetVoluntarySuperimposedDisplacement(
-					primaryParticleState.ParticleIndex,
-					vec2f::zero());
-
-				mParticles.SetVoluntarySuperimposedDisplacement(
-					secondaryParticleState.ParticleIndex,
-					vec2f::zero());
 
 				humanState.CurrentWalkingMagnitude = 0.0f;
 

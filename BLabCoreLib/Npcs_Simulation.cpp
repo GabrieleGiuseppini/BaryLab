@@ -22,6 +22,7 @@ void Npcs::UpdateNpcs(
     // 0. Prepare
     //
 
+    mParticles.ResetVoluntaryForces();
     mParticles.ResetVoluntarySuperimposedDisplacement();
 
     //
@@ -1482,7 +1483,6 @@ void Npcs::BounceConstrainedNpcParticle(
 
 Npcs::StateType Npcs::MaterializeNpcState(
     ElementIndex npcIndex,
-    NpcParticles & particles,
     Mesh const & mesh) const
 {
     auto const & state = mStateBuffer[npcIndex];
@@ -1522,8 +1522,7 @@ Npcs::StateType Npcs::MaterializeNpcState(
 
         humanNpcState = InitializeHuman(
             primaryParticleState,
-            dipoleState->SecondaryParticleState,
-            particles);
+            dipoleState->SecondaryParticleState);
     }
 
     // Regime

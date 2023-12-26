@@ -178,6 +178,11 @@ public:
         mVoluntaryForcesBuffer[particleElementIndex] = value;
     }
 
+    void ResetVoluntaryForces()
+    {
+        mVoluntaryForcesBuffer.fill(vec2f::zero());
+    }
+
     vec2f const & GetVoluntarySuperimposedDisplacement(ElementIndex particleElementIndex) const noexcept
     {
         return mVoluntarySuperimposedDisplacementBuffer[particleElementIndex];

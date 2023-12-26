@@ -393,7 +393,6 @@ private:
 
 	StateType MaterializeNpcState(
 		ElementIndex npcIndex,
-		NpcParticles & particles,
 		Mesh const & mesh) const;
 
 	std::optional<StateType::NpcParticleStateType::ConstrainedStateType> CalculateParticleConstrainedState(
@@ -465,8 +464,7 @@ private:
 
 	StateType::HumanNpcStateType InitializeHuman(
 		StateType::NpcParticleStateType const & primaryParticleState,
-		StateType::NpcParticleStateType const & secondaryParticleState,
-		NpcParticles & particles) const;
+		StateType::NpcParticleStateType const & secondaryParticleState) const;
 
 	void UpdateHuman(
 		StateType::HumanNpcStateType & humanState,
