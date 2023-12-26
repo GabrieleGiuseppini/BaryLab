@@ -207,12 +207,6 @@ void Npcs::MoveParticleBy(
 	}
 
 	//
-	// Reset simulation
-	//
-
-	ResetSimulationStepState();
-
-	//
 	// Select particle
 	//
 
@@ -263,12 +257,6 @@ void Npcs::RotateParticlesWithMesh(
 				mesh);
 		}
 	}
-
-	//
-	// Reset simulation
-	//
-
-	ResetSimulationStepState();
 }
 
 void Npcs::OnVertexMoved(Mesh const & mesh)
@@ -281,12 +269,6 @@ void Npcs::OnVertexMoved(Mesh const & mesh)
 	{
 		mStateBuffer[n] = MaterializeNpcState(n, mParticles, mesh);
 	}
-
-	//
-	// Reset simulation
-	//
-
-	ResetSimulationStepState();
 }
 
 void Npcs::Update(
@@ -297,9 +279,7 @@ void Npcs::Update(
 	// Update NPCs' state
 	//
 
-	// TODOTEST
-	UpdateNpcs2(mesh, labParameters);
-	//UpdateNpcs(mesh, labParameters);
+	UpdateNpcs(mesh, labParameters);
 
 	//
 	// Publish
@@ -369,19 +349,8 @@ void Npcs::Render(RenderContext & renderContext)
 	{
 		vec2f sourcePosition;
 
-		// If the trajectory's particle is being ray-traced, use its current position in its quest to the trajectory;
-		// otherwise, use its real position
-		if (IsParticleBeingRayTraced(mCurrentParticleTrajectory->ParticleIndex))
-		{
-			sourcePosition = mSimulationStepState.TrajectoryState->CurrentPosition;
-		}
-		else
-		{
-			sourcePosition = mParticles.GetPosition(mCurrentParticleTrajectory->ParticleIndex);
-		}
-
 		renderContext.UploadParticleTrajectory(
-			sourcePosition,
+			mParticles.GetPosition(mCurrentParticleTrajectory->ParticleIndex),
 			mCurrentParticleTrajectory->TargetPosition,
 			rgbaColor(0x99, 0x99, 0x99, 0xff));
 	}
@@ -460,15 +429,6 @@ void Npcs::RenderParticle(
 		mParticles.GetPosition(particleState.ParticleIndex),
 		mParticles.GetRenderColor(particleState.ParticleIndex),
 		1.0f);
-
-	// Render shadow at end of trajectory, it this particle is being ray-traced
-	if (IsParticleBeingRayTraced(particleState.ParticleIndex))
-	{
-		renderContext.UploadParticle(
-			mSimulationStepState.TrajectoryState->CurrentPosition,
-			mParticles.GetRenderColor(particleState.ParticleIndex),
-			0.5f);
-	}
 }
 
 void Npcs::Publish(Mesh const & mesh)

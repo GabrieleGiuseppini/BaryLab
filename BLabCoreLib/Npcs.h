@@ -193,11 +193,6 @@ public:
 
 	void OnVertexMoved(Mesh const & mesh);
 
-	bool IsAtBeginningOfSimulationStep() const
-	{
-		return mSimulationStepState.IsInitial();
-	}
-
 	void Update(
 		Mesh const & mesh,
 		LabParameters const & labParameters);
@@ -320,146 +315,10 @@ private:
 private:
 
 	//
-	// Simulation
+	// Simulation 
 	//
-
-	// This struct maintains the state of a simulation step, so that we can run the whole step a sub-step at a time
-	struct SimulationStepStateType final
-	{
-		// The NPC we are simulating
-		ElementIndex CurrentNpcIndex;
-		
-		// Whether the current NPC's particle being simulated is the primary or the secondary one
-		bool CurrentIsPrimaryParticle; 
-
-		struct TrajectoryStateType
-		{
-			vec2f SourcePosition;
-			vec2f TargetPosition;
-			vec2f TargetAbsoluteVelocity;
-
-			struct ConstrainedStateType
-			{
-				vec3f TargetPositionCurrentTriangleBarycentricCoords;
-				vec2f MeshDisplacement;
-
-				ConstrainedStateType(
-					vec3f const & targetPositionCurrentTriangleBarycentricCoords,
-					vec2f const & meshDisplacement)
-					: TargetPositionCurrentTriangleBarycentricCoords(targetPositionCurrentTriangleBarycentricCoords)
-					, MeshDisplacement(meshDisplacement)
-				{}
-			};
-
-			std::optional<ConstrainedStateType> ConstrainedState; // Always set when in constrained state; updated when current triangle changes
-
-			vec2f CurrentPosition; // This is the only position we modify during the sub-steps; actual position is calculated when sub-steps are complete
-
-			TrajectoryStateType(
-				vec2f const & sourcePosition,
-				vec2f const & targetPosition,
-				vec2f const & targetAbsoluteVelocity,
-				std::optional<ConstrainedStateType> constrainedState)
-				: SourcePosition(sourcePosition)
-				, TargetPosition(targetPosition)
-				, TargetAbsoluteVelocity(targetAbsoluteVelocity)
-				, ConstrainedState(std::move(constrainedState))
-				, CurrentPosition(sourcePosition)
-			{}
-		};
-
-		// When set, we have a trajectory target for the particle; when not set, we have to calculate a target
-		std::optional<TrajectoryStateType> TrajectoryState; 
-
-		SimulationStepStateType()
-			: CurrentNpcIndex(0)
-			, CurrentIsPrimaryParticle(true)
-			, TrajectoryState()
-		{}
-
-		bool IsInitial() const
-		{
-			return CurrentNpcIndex == 0
-				&& CurrentIsPrimaryParticle == true
-				&& !TrajectoryState.has_value();
-		}
-	};
-
-	SimulationStepStateType mSimulationStepState;
 
 	void UpdateNpcs(
-		Mesh const & mesh,
-		LabParameters const & labParameters);
-
-	struct TrajectoryTargetDipoleArg final
-	{
-		StateType::NpcParticleStateType & OtherParticle;
-		StateType::DipolePropertiesType & DipoleProperties;
-
-		TrajectoryTargetDipoleArg(
-			StateType::NpcParticleStateType & otherParticle,
-			StateType::DipolePropertiesType & dipoleProperties)
-			: OtherParticle(otherParticle)
-			, DipoleProperties(dipoleProperties)
-		{}
-	};
-
-	struct CalculatedTrajectoryTargetRetVal final
-	{
-		vec2f TargetPosition;
-		vec2f TargetAbsoluteVelocity;
-		std::optional<SimulationStepStateType::TrajectoryStateType::ConstrainedStateType> ConstrainedStateInfo; // Returned when in constrained state
-		std::optional<vec2f> SecondaryVoluntarySuperimposedDisplacement;
-
-		CalculatedTrajectoryTargetRetVal(
-			vec2f const & targetPposition,
-			vec2f const & targetAbsoluteVelocity,
-			std::optional<SimulationStepStateType::TrajectoryStateType::ConstrainedStateType> constrainedStateInfo,
-			std::optional<vec2f> secondaryVoluntarySuperimposedDisplacement)
-			: TargetPosition(targetPposition)
-			, TargetAbsoluteVelocity(targetAbsoluteVelocity)
-			, ConstrainedStateInfo(std::move(constrainedStateInfo))
-			, SecondaryVoluntarySuperimposedDisplacement(std::move(secondaryVoluntarySuperimposedDisplacement))
-		{}
-	};
-
-	CalculatedTrajectoryTargetRetVal CalculateTrajectoryTarget(
-		StateType::NpcParticleStateType & particle,
-		std::optional<TrajectoryTargetDipoleArg> const & dipoleArg,
-		bool isPrimaryParticle,
-		StateType const & npc,
-		Mesh const & mesh,
-		LabParameters const & labParameters) const;
-
-	struct FinalParticleState final
-	{
-		vec2f Position;
-		vec2f AbsoluteVelocity;
-
-		FinalParticleState(
-			vec2f const & position,
-			vec2f const & absoluteVelocity)
-			: Position(position)
-			, AbsoluteVelocity(absoluteVelocity)
-		{}
-	};
-
-	// When returns a final particle state, the simulation of this particle has completed
-	std::optional<FinalParticleState> UpdateParticleTrajectoryTrace(
-		Npcs::StateType::NpcParticleStateType & particleState,
-		std::optional<TrajectoryTargetDipoleArg> const & dipoleArg,
-		bool isPrimaryParticle,
-		SimulationStepStateType::TrajectoryStateType & trajectoryState,
-		Mesh const & mesh,
-		LabParameters const & labParameters);
-
-private:
-
-	//
-	// Simulation 2
-	//
-
-	void UpdateNpcs2(
 		Mesh const & mesh,
 		LabParameters const & labParameters);
 
@@ -476,7 +335,7 @@ private:
 		{}
 	};
 
-	void UpdateNpcParticle2(
+	void UpdateNpcParticle(
 		StateType::NpcParticleStateType & particle,
 		std::optional<DipoleArg> const & dipoleArg,
 		bool isPrimaryParticle,
@@ -492,13 +351,13 @@ private:
 		StateType & npc,
 		LabParameters const & labParameters) const;
 
-	void UpdateNpcParticle_Free2(
+	void UpdateNpcParticle_Free(
 		StateType::NpcParticleStateType & particle,
 		vec2f const & startPosition,
 		vec2f const & endPosition,
 		NpcParticles & particles) const;
 
-	std::optional<float> UpdateNpcParticle_ConstrainedNonInertial2(
+	std::optional<float> UpdateNpcParticle_ConstrainedNonInertial(
 		StateType::NpcParticleStateType & particle,
 		std::optional<DipoleArg> const & dipoleArg,
 		bool const isPrimaryParticle,
@@ -516,7 +375,7 @@ private:
 		Mesh const & mesh,
 		LabParameters const & labParameters) const;
 
-	void UpdateNpcParticle_ConstrainedInertial2(
+	void UpdateNpcParticle_ConstrainedInertial(
 		StateType::NpcParticleStateType & particle,
 		std::optional<DipoleArg> const & dipoleArg,
 		bool const isPrimaryParticle,
@@ -554,15 +413,6 @@ private:
 	std::optional<StateType::NpcParticleStateType::ConstrainedStateType> CalculateParticleConstrainedState(
 		vec2f const & position,
 		Mesh const & mesh) const;
-
-	void ResetSimulationStepState();
-
-	bool IsParticleBeingRayTraced(ElementIndex particleIndex) const
-	{
-		return mSimulationStepState.TrajectoryState.has_value()
-			&& ((mSimulationStepState.CurrentIsPrimaryParticle && mStateBuffer[mSimulationStepState.CurrentNpcIndex].PrimaryParticleState.ParticleIndex == particleIndex)
-				|| (!mSimulationStepState.CurrentIsPrimaryParticle && mStateBuffer[mSimulationStepState.CurrentNpcIndex].DipoleState->SecondaryParticleState.ParticleIndex == particleIndex));
-	}
 
 	bool IsEdgeFloorToParticle(
 		ElementIndex edgeElementIndex,

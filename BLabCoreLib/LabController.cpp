@@ -141,13 +141,7 @@ void LabController::Update()
     if (mSimulationControlState == SimulationControlStateType::Play
         || mSimulationControlImpulse)
     {
-        if (mModel->GetNpcs().IsAtBeginningOfSimulationStep())
-        {
-            // Beginning of a simulation step...
-            // ...update mesh transformations
-
-            UpdateMeshTransformations();            
-        }
+        UpdateMeshTransformations();            
 
         mModel->GetNpcs().Update(
             mModel->GetMesh(),
