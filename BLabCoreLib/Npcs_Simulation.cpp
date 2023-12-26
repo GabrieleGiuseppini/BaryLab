@@ -422,7 +422,9 @@ void Npcs::UpdateNpcParticle(
 
                             if (npc.HumanNpcState.has_value() && isPrimaryParticle)
                             {
-                                // TODOHERE: simplify?
+                                //
+                                // Walking displacement projected along edge
+                                //
 
                                 vec2f const idealWalkVector =
                                     vec2f(npc.HumanNpcState->CurrentFaceDirectionX * labParameters.HumanNpcWalkingSpeed, 0.0f)
