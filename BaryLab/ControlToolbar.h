@@ -40,7 +40,6 @@ public:
     static long const ID_ACTION_SETTINGS;
 
     static long const ID_VIEW_CONTROL_GRID;
-    static long const ID_RENDER_SIMULATION_STEPS;
 
     class meshTransformationChangedEvent : public wxEvent
     {
@@ -86,8 +85,7 @@ public:
 
     void ReconcialiteUI(
         bool isGravityEnabled,
-        bool isViewGridEnabled,
-        bool isRenderSimulationStepsEnabled);
+        bool isViewGridEnabled);
 
     void ReconciliateUIWithTool(ToolType tool);
 
@@ -120,7 +118,6 @@ private:
     wxBitmapButton * mSimulationControlStepButton;
 
     wxBitmapToggleButton * mViewControlGridButton;
-    wxBitmapToggleButton * mRenderSimulationStepsButton;
 
     SliderControl<float> * mHorizontalMeshVelocitySlider;
     SliderControl<float> * mVerticalMeshVelocitySlider;

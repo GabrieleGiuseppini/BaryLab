@@ -157,18 +157,6 @@ public:
         mRenderContext->SetGridEnabled(value);
     }
 
-    bool IsRenderSimulationStepsEnabled() const
-    {
-        assert(!!mModel);
-        return mModel->GetNpcs().GetIsStepByStepMode();
-    }
-
-    void SetRenderSimulationStepsEnabled(bool value)
-    {
-        assert(!!mModel);
-        mModel->GetNpcs().SetIsStepByStepMode(value);
-    }
-
     //
     // Simmulation parameters
     //

@@ -39,7 +39,6 @@ long const ControlToolbar::ID_ACTION_LOAD_MESH = wxNewId();
 long const ControlToolbar::ID_ACTION_SETTINGS = wxNewId();
 
 long const ControlToolbar::ID_VIEW_CONTROL_GRID = wxNewId();
-long const ControlToolbar::ID_RENDER_SIMULATION_STEPS = wxNewId();
 
 wxDEFINE_EVENT(EVT_MESH_TRANSFORMATION_CHANGED, ControlToolbar::meshTransformationChangedEvent);
 
@@ -409,23 +408,6 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
             gridSizer->Add(mViewControlGridButton);
         }
 
-        // Render simulation steps
-        {
-            mRenderSimulationStepsButton = new wxBitmapToggleButton(
-                this,
-                ID_RENDER_SIMULATION_STEPS,
-                wxBitmap(
-                    (ResourceLocator::GetResourcesFolderPath() / "render_simulation_steps.png").string(),
-                    wxBITMAP_TYPE_PNG),
-                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-
-            mRenderSimulationStepsButton->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent & /*event*/) { OnViewControlButton(mRenderSimulationStepsButton); });
-
-            mRenderSimulationStepsButton->SetToolTip("Toggles rendering of simulation steps");
-
-            gridSizer->Add(mRenderSimulationStepsButton);
-        }
-
         vSizer->Add(gridSizer, 0, wxALIGN_CENTER | wxALL, 5);
     }
 
@@ -554,12 +536,10 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
 
 void ControlToolbar::ReconcialiteUI(
     bool isGravityEnabled,
-    bool isViewGridEnabled,
-    bool isRenderSimulationStepsEnabled)
+    bool isViewGridEnabled)
 {
     mSetParticleGravityButton->SetValue(isGravityEnabled);
     mViewControlGridButton->SetValue(isViewGridEnabled);
-    mRenderSimulationStepsButton->SetValue(isRenderSimulationStepsEnabled);
 }
 
 void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
@@ -763,13 +743,6 @@ void ControlToolbar::OnViewControlButton(wxBitmapToggleButton * button)
     {
         // Fire event
         wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_VIEW_CONTROL_GRID);
-        evt.SetInt(button->GetValue() ? 1 : 0);
-        ProcessEvent(evt);
-    }
-    else if (button->GetId() == ID_RENDER_SIMULATION_STEPS)
-    {
-        // Fire event
-        wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_RENDER_SIMULATION_STEPS);
         evt.SetInt(button->GetValue() ? 1 : 0);
         ProcessEvent(evt);
     }

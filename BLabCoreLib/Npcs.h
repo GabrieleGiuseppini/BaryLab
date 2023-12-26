@@ -170,7 +170,6 @@ public:
 		, mStateBuffer()
 		, mParticles(LabParameters::MaxNpcs * LabParameters::MaxParticlesPerNpc)
 		// Parameters
-		, mIsStepByStepMode(false)
 		, mGravityGate(isGravityEnabled ? 1.0f : 0.0f)
 	{}
 
@@ -227,16 +226,6 @@ public:
 	NpcParticles & GetParticles()
 	{
 		return mParticles;
-	}
-
-	bool GetIsStepByStepMode() const
-	{
-		return mIsStepByStepMode;
-	}
-
-	void SetIsStepByStepMode(bool isStepByStepMode)
-	{
-		mIsStepByStepMode = isStepByStepMode;
 	}
 
 	bool IsGravityEnabled() const
@@ -528,8 +517,6 @@ private:
 	//
 	// Simulation parameters
 	//
-
-	bool mIsStepByStepMode;
 
 	float mGravityGate;
 };
