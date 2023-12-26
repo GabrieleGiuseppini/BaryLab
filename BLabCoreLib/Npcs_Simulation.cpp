@@ -414,7 +414,7 @@ void Npcs::UpdateNpcParticle(
 
                             if (npc.HumanNpcState.has_value() && isPrimaryParticle)
                             {
-                                vec2f const idealWalkVector = mParticles.GetVoluntaryVelocity(particle.ParticleIndex) * remainingDt;
+                                vec2f const idealWalkVector = mParticles.GetVoluntarySuperimposedVelocity(particle.ParticleIndex) * remainingDt;
                                 edgeWalkedPlanned = idealWalkVector.dot(edgeDir);
                                 vec2f const walkVector = edgeDir * edgeWalkedPlanned;
 
