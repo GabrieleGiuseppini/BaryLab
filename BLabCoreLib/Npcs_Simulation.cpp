@@ -1170,8 +1170,12 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial(
             particles.SetPosition(particle.ParticleIndex, particleEndAbsolutePosition);
 
             // Use whole time quantum for velocity, as particleStartAbsolutePosition is fixed at t0,
-            // and discount walked vector
-            vec2f const absoluteVelocity = (particleEndAbsolutePosition - particleStartAbsolutePosition - totalEdgeWalkedActual) / LabParameters::SimulationTimeStepDuration;
+            // and discount walked vector - but only if secondary; if it's primary, we keep the walking 
+            // velocity
+            vec2f const absoluteVelocity = isPrimaryParticle
+                ? (particleEndAbsolutePosition - particleStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration
+                : (particleEndAbsolutePosition - particleStartAbsolutePosition - totalEdgeWalkedActual) / LabParameters::SimulationTimeStepDuration;
+
             particles.SetVelocity(particle.ParticleIndex, absoluteVelocity);
             particle.ConstrainedState->MeshRelativeVelocity = absoluteVelocity + meshVelocity;
 

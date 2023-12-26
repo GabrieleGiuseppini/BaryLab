@@ -231,9 +231,6 @@
 			- Rationalize transition code (which is repeated a ton of times)
 		+ Nuke step-by-step
 
-	- See if can impart walking velocity when walking flies into constrained
-		+ Into free is already OK, verified
-
 	- Merge into master
 	- Go back to solving walking reached injuction of two floors - IT'S SOLVED!
 
