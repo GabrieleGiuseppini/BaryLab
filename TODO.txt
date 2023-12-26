@@ -230,8 +230,7 @@
 			- What about others - do we want to reset them all?
 				- And if so, should we have a single buffer for all of them?
 			- Rationalize transition code (which is repeated a ton of times)
-		- Nuke imparted trajectory (tool and all)
-		- Nuke step-by-step
+		+ Nuke step-by-step
 		
 	- Merge into master
 	- Go back to solving walking reached injuction of two floors

@@ -173,22 +173,33 @@ void Npcs::UpdateNpcParticle(
     // Calculate physical displacement - once and for all, as whole loop
     // will attempt to move to trajectory that always ends here
 
-    vec2f const physicalForces = CalculateNpcParticlePhysicalForces(
-        particle,
-        particleMass,
-        dipoleArg,
-        isPrimaryParticle,
-        npc,
-        labParameters);
+    vec2f physicsDeltaPos;
+    if (mCurrentParticleTrajectory.has_value() && particle.ParticleIndex == mCurrentParticleTrajectory->ParticleIndex)
+    {
+        // Consume externally-supplied trajectory
 
-    vec2f const physicsDeltaPos =
-        mParticles.GetVelocity(particle.ParticleIndex) * dt
-        + (physicalForces / particleMass) * dt * dt;
+        physicsDeltaPos = mCurrentParticleTrajectory->TargetPosition - particleStartAbsolutePosition;
+        mCurrentParticleTrajectory.reset();
+    }
+    else
+    {
+        // Integrate forces
+
+        vec2f const physicalForces = CalculateNpcParticlePhysicalForces(
+            particle,
+            particleMass,
+            dipoleArg,
+            isPrimaryParticle,
+            npc,
+            labParameters);
+
+        physicsDeltaPos = mParticles.GetVelocity(particle.ParticleIndex) * dt + (physicalForces / particleMass) * dt * dt;
+    }
 
     if (!particle.ConstrainedState.has_value())
     {
         // 
-        // Free
+        // Particle is free
         //
 
         LogMessage("    Free: physicsDeltaPos=", physicsDeltaPos);

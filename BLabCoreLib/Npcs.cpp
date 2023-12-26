@@ -347,8 +347,6 @@ void Npcs::Render(RenderContext & renderContext)
 
 	if (mCurrentParticleTrajectory)
 	{
-		vec2f sourcePosition;
-
 		renderContext.UploadParticleTrajectory(
 			mParticles.GetPosition(mCurrentParticleTrajectory->ParticleIndex),
 			mCurrentParticleTrajectory->TargetPosition,
