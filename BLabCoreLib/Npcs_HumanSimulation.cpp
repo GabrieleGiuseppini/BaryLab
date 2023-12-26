@@ -58,8 +58,8 @@ Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 	particles.SetVoluntarySuperimposedDisplacement(primaryParticleState.ParticleIndex, vec2f::zero());
 	particles.SetVoluntarySuperimposedDisplacement(secondaryParticleState.ParticleIndex, vec2f::zero());
 
-	particles.SetVoluntaryVelocity(primaryParticleState.ParticleIndex, vec2f::zero());
-	particles.SetVoluntaryVelocity(secondaryParticleState.ParticleIndex, vec2f::zero());
+	particles.SetVoluntarySuperimposedVelocity(primaryParticleState.ParticleIndex, vec2f::zero());
+	particles.SetVoluntarySuperimposedVelocity(secondaryParticleState.ParticleIndex, vec2f::zero());
 
 	// Return state
 
@@ -177,11 +177,11 @@ void Npcs::UpdateHuman(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
-				mParticles.SetVoluntaryVelocity(
+				mParticles.SetVoluntarySuperimposedVelocity(
 					primaryParticleState.ParticleIndex,
 					vec2f::zero());
 
-				mParticles.SetVoluntaryVelocity(
+				mParticles.SetVoluntarySuperimposedVelocity(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
@@ -255,11 +255,11 @@ void Npcs::UpdateHuman(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
-				mParticles.SetVoluntaryVelocity(
+				mParticles.SetVoluntarySuperimposedVelocity(
 					primaryParticleState.ParticleIndex,
 					vec2f::zero());
 
-				mParticles.SetVoluntaryVelocity(
+				mParticles.SetVoluntarySuperimposedVelocity(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
@@ -297,11 +297,11 @@ void Npcs::UpdateHuman(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
-				mParticles.SetVoluntaryVelocity(
+				mParticles.SetVoluntarySuperimposedVelocity(
 					primaryParticleState.ParticleIndex,
 					vec2f::zero());
 
-				mParticles.SetVoluntaryVelocity(
+				mParticles.SetVoluntarySuperimposedVelocity(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
@@ -457,7 +457,7 @@ void Npcs::RunWalkingHumanStateMachine(
 	LogMessage("        walking: ", humanState.CurrentWalkingMagnitude);
 
 	// Impart walking velocity to primary particle
-	mParticles.SetVoluntaryVelocity(
+	mParticles.SetVoluntarySuperimposedVelocity(
 		primaryParticleState.ParticleIndex,
 		vec2f(humanState.CurrentFaceDirectionX * labParameters.HumanNpcWalkingSpeed * humanState.CurrentWalkingMagnitude, 0.0f));
 }
