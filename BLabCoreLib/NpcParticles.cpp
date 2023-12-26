@@ -21,7 +21,6 @@ void NpcParticles::Add(
     mSpringForcesBuffer.emplace_back(vec2f::zero());
     mVoluntaryForcesBuffer.emplace_back(vec2f::zero());
     mVoluntarySuperimposedDisplacementBuffer.emplace_back(vec2f::zero());
-    mVoluntarySuperimposedVelocityBuffer.emplace_back(vec2f::zero());
 
     mRenderColorBuffer.emplace_back(color);
 

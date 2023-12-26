@@ -54,9 +54,6 @@ Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 	particles.SetVoluntarySuperimposedDisplacement(primaryParticleState.ParticleIndex, vec2f::zero());
 	particles.SetVoluntarySuperimposedDisplacement(secondaryParticleState.ParticleIndex, vec2f::zero());
 
-	particles.SetVoluntarySuperimposedVelocity(primaryParticleState.ParticleIndex, vec2f::zero());
-	particles.SetVoluntarySuperimposedVelocity(secondaryParticleState.ParticleIndex, vec2f::zero());
-
 	// Return state
 
 	if (!primaryParticleState.ConstrainedState.has_value()
@@ -170,14 +167,6 @@ void Npcs::UpdateHuman(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
-				mParticles.SetVoluntarySuperimposedVelocity(
-					primaryParticleState.ParticleIndex,
-					vec2f::zero());
-
-				mParticles.SetVoluntarySuperimposedVelocity(
-					secondaryParticleState.ParticleIndex,
-					vec2f::zero());
-
 				humanState.CurrentWalkingMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
@@ -248,14 +237,6 @@ void Npcs::UpdateHuman(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
-				mParticles.SetVoluntarySuperimposedVelocity(
-					primaryParticleState.ParticleIndex,
-					vec2f::zero());
-
-				mParticles.SetVoluntarySuperimposedVelocity(
-					secondaryParticleState.ParticleIndex,
-					vec2f::zero());
-
 				humanState.CurrentWalkingMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
@@ -287,14 +268,6 @@ void Npcs::UpdateHuman(
 					vec2f::zero());
 
 				mParticles.SetVoluntarySuperimposedDisplacement(
-					secondaryParticleState.ParticleIndex,
-					vec2f::zero());
-
-				mParticles.SetVoluntarySuperimposedVelocity(
-					primaryParticleState.ParticleIndex,
-					vec2f::zero());
-
-				mParticles.SetVoluntarySuperimposedVelocity(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
@@ -438,6 +411,7 @@ void Npcs::RunWalkingHumanStateMachine(
 	LabParameters const & labParameters)
 {
 	// TODOHERE
+	(void)primaryParticleState;
 	(void)secondaryParticleState;
 	(void)mesh;
 	(void)labParameters;
@@ -446,10 +420,5 @@ void Npcs::RunWalkingHumanStateMachine(
 	float const ToWalkingConvergenceRate = 0.03f;
 	humanState.CurrentWalkingMagnitude = std::min(1.0f, humanState.CurrentWalkingMagnitude + (1.0f - humanState.CurrentWalkingMagnitude) * ToWalkingConvergenceRate);
 	
-	LogMessage("        walking: ", humanState.CurrentWalkingMagnitude);
-
-	// Impart walking velocity to primary particle
-	mParticles.SetVoluntarySuperimposedVelocity(
-		primaryParticleState.ParticleIndex,
-		vec2f(humanState.CurrentFaceDirectionX * labParameters.HumanNpcWalkingSpeed * humanState.CurrentWalkingMagnitude, 0.0f));
+	LogMessage("        walkingMagnitude: ", humanState.CurrentWalkingMagnitude);
 }
