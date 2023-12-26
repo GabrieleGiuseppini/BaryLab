@@ -44,12 +44,8 @@ namespace /*anonymous*/ {
 Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 	StateType::NpcParticleStateType const & primaryParticleState,
 	StateType::NpcParticleStateType const & secondaryParticleState,
-	NpcParticles & particles,
-	Mesh const & mesh) const
+	NpcParticles & particles) const
 {
-	// TODOHERE
-	(void)mesh;
-
 	// Reset voluntary physics
 
 	particles.SetVoluntaryForces(primaryParticleState.ParticleIndex, vec2f::zero());
@@ -85,9 +81,6 @@ void Npcs::UpdateHuman(
 	Mesh const & mesh,
 	LabParameters const & labParameters)
 {
-	// TODOTEST
-	(void)mesh;
-
 	float const ToRisingConvergenceRate = 0.067f;
 	float const ToWalkingConvergenceRate = 0.09f;
 	float constexpr MaxRelativeVelocityForEquilibrium = 2.9f; // So high because we slip a lot while we try to stand up, and thus need to be immune to ourselves
@@ -445,14 +438,13 @@ void Npcs::RunWalkingHumanStateMachine(
 	LabParameters const & labParameters)
 {
 	// TODOHERE
-	(void)primaryParticleState;
 	(void)secondaryParticleState;
 	(void)mesh;
 	(void)labParameters;
 
-	// Advance towards 1.0
-	// TODO: not needed to be public
-	humanState.CurrentWalkingMagnitude = std::min(1.0f, humanState.CurrentWalkingMagnitude + (1.0f - humanState.CurrentWalkingMagnitude) * 0.03f);
+	// Advance walking magnitude towards 1.0
+	float const ToWalkingConvergenceRate = 0.03f;
+	humanState.CurrentWalkingMagnitude = std::min(1.0f, humanState.CurrentWalkingMagnitude + (1.0f - humanState.CurrentWalkingMagnitude) * ToWalkingConvergenceRate);
 	
 	LogMessage("        walking: ", humanState.CurrentWalkingMagnitude);
 

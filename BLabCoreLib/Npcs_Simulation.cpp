@@ -188,9 +188,6 @@ void Npcs::UpdateNpcParticle(
         vec2f const physicalForces = CalculateNpcParticlePhysicalForces(
             particle,
             particleMass,
-            dipoleArg,
-            isPrimaryParticle,
-            npc,
             labParameters);
 
         physicsDeltaPos = mParticles.GetVelocity(particle.ParticleIndex) * dt + (physicalForces / particleMass) * dt * dt;
@@ -708,16 +705,8 @@ void Npcs::UpdateNpcParticle(
 vec2f Npcs::CalculateNpcParticlePhysicalForces(
     StateType::NpcParticleStateType & particle,
     float particleMass,
-    std::optional<DipoleArg> const & dipoleArg,
-    bool isPrimaryParticle,
-    StateType & npc,
     LabParameters const & labParameters) const
 {
-    // TODOTEST
-    (void)dipoleArg;
-    (void)isPrimaryParticle;
-    (void)npc;
-
     vec2f const physicalForces =
         mParticles.GetExternalForces(particle.ParticleIndex)
         + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * particleMass
@@ -1525,8 +1514,7 @@ Npcs::StateType Npcs::MaterializeNpcState(
         humanNpcState = InitializeHuman(
             primaryParticleState,
             dipoleState->SecondaryParticleState,
-            particles,
-            mesh);
+            particles);
     }
 
     // Regime

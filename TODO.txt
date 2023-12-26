@@ -225,6 +225,7 @@
 			+ Watch out: there are methods in 1 that we still need; port those to 2 before nuking & renaming
 		+ NpcParticles:
 			+ Nuke all Voluntary buffers except ones we care about
+		- Replace VoluntarySuperimposedVelocity with inline calc'n based on humanState.CurrentWalkingMagnitude
 		- HumanSimulation:
 			- No need to reset VoluntarySuperimposedDisplacement if we clear whole buffer @ each loop
 			- What about others - do we want to reset them all?

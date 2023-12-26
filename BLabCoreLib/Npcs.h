@@ -335,9 +335,6 @@ private:
 	vec2f CalculateNpcParticlePhysicalForces(
 		StateType::NpcParticleStateType & particle,
 		float particleMass,
-		std::optional<DipoleArg> const & dipoleArg,
-		bool isPrimaryParticle,
-		StateType & npc,
 		LabParameters const & labParameters) const;
 
 	void UpdateNpcParticle_Free(
@@ -469,8 +466,7 @@ private:
 	StateType::HumanNpcStateType InitializeHuman(
 		StateType::NpcParticleStateType const & primaryParticleState,
 		StateType::NpcParticleStateType const & secondaryParticleState,
-		NpcParticles & particles,
-		Mesh const & mesh) const;
+		NpcParticles & particles) const;
 
 	void UpdateHuman(
 		StateType::HumanNpcStateType & humanState,
