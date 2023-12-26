@@ -185,7 +185,6 @@ void Npcs::UpdateHuman(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
-				humanState.CurrentEquilibriumTorqueMagnitude = 0.0f;
 				humanState.CurrentWalkingMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
@@ -264,7 +263,6 @@ void Npcs::UpdateHuman(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
-				humanState.CurrentEquilibriumTorqueMagnitude = 0.0f;
 				humanState.CurrentWalkingMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
@@ -275,7 +273,6 @@ void Npcs::UpdateHuman(
 			// Maintain equilibrium
 
 			if (!MaintainAndCheckHumanEquilibrium(
-				humanState,
 				primaryParticleState.ParticleIndex,
 				secondaryParticleState.ParticleIndex,
 				mParticles,
@@ -308,7 +305,6 @@ void Npcs::UpdateHuman(
 					secondaryParticleState.ParticleIndex,
 					vec2f::zero());
 
-				humanState.CurrentEquilibriumTorqueMagnitude = 0.0f;
 				humanState.CurrentWalkingMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
@@ -369,7 +365,6 @@ void Npcs::UpdateHuman(
 }
 
 bool Npcs::MaintainAndCheckHumanEquilibrium(
-	StateType::HumanNpcStateType & humanState,
 	ElementIndex primaryParticleIndex,
 	ElementIndex secondaryParticleIndex,
 	NpcParticles & particles,
@@ -383,10 +378,22 @@ bool Npcs::MaintainAndCheckHumanEquilibrium(
 
 	// Calculate CW angle between head and vertical (pointing up);
 	// positive when human is CW wrt vertical
+	//
+	// |   H
+	// |  /
+	// |-/
+	// |/
+	//
 	float const staticDisplacementAngleCW = (-LabParameters::GravityDir).angleCw(humanVector);
 
-	// Calculate CW angle that would be rotated by (relative to feet) velocity alone;
+	// Calculate CW angle that head would rotate by (relative to feet) due to velocity alone;
 	// positive when new position is CW wrt old
+	//
+	// |   H
+	// |  /
+	// | /\
+    // |/__L___H'
+	//
 	vec2f const velocityDisplacement = (particles.GetVelocity(secondaryParticleIndex) - particles.GetVelocity(primaryParticleIndex)) * LabParameters::SimulationTimeStepDuration;
 	float const velocityAngleCW = humanVector.angleCw(humanVector + velocityDisplacement);
 
@@ -407,11 +414,25 @@ bool Npcs::MaintainAndCheckHumanEquilibrium(
 		return false;
 	}
 
-	// Converge equilibrium torque
-	float const ToFullEquilibriumTorqueConvergenceRate = 0.09f;
-	humanState.CurrentEquilibriumTorqueMagnitude += (1.0f - humanState.CurrentEquilibriumTorqueMagnitude) * ToFullEquilibriumTorqueConvergenceRate;
+	//
+	// We are still in equlibrium: calculate then torque on the secondary (head)
+	// required to maintain alignment with vertical
+	//
 
-	(void)labParameters;
+	// Calculate angle that we want to enforce with this torque
+	float const totalTorqueAngleCW =
+		staticDisplacementAngleCW * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient
+		+ velocityAngleCW * labParameters.HumanNpcEquilibriumTorqueDampingCoefficient;
+
+	// Calculate (linear) force that generates this rotation
+	vec2f const torqueDisplacement = humanVector.rotate(totalTorqueAngleCW) - humanVector;
+	float const particleMass = mParticles.GetPhysicalProperties(secondaryParticleIndex).Mass * labParameters.MassAdjustment;
+	vec2f const equilibriumTorqueForce =
+		torqueDisplacement
+		* particleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
+
+	// Store torque force for secondary
+	mParticles.SetVoluntaryForces(secondaryParticleIndex, equilibriumTorqueForce);
 
 	return true;
 }
@@ -424,8 +445,10 @@ void Npcs::RunWalkingHumanStateMachine(
 	LabParameters const & labParameters)
 {
 	// TODOHERE
+	(void)primaryParticleState;
 	(void)secondaryParticleState;
 	(void)mesh;
+	(void)labParameters;
 
 	// Advance towards 1.0
 	// TODO: not needed to be public
@@ -437,6 +460,4 @@ void Npcs::RunWalkingHumanStateMachine(
 	mParticles.SetVoluntaryVelocity(
 		primaryParticleState.ParticleIndex,
 		vec2f(humanState.CurrentFaceDirectionX * labParameters.HumanNpcWalkingSpeed * humanState.CurrentWalkingMagnitude, 0.0f));
-	(void)labParameters;
-	(void)primaryParticleState;
 }

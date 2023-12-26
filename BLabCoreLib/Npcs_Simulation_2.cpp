@@ -702,72 +702,16 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
     StateType & npc,
     LabParameters const & labParameters) const
 {
-    // Equilibrium torque - only for secondary of human dipole
-    vec2f equilibriumTorqueForce;
-    if (npc.HumanNpcState.has_value() && !isPrimaryParticle)
-    {
-        assert(dipoleArg.has_value());
-
-        ElementIndex const headParticleIndex = particle.ParticleIndex; // Secondary
-        ElementIndex const feetParticleIndex = dipoleArg->OtherParticle.ParticleIndex; // Primary
-
-        vec2f const headPosition = mParticles.GetPosition(headParticleIndex);
-        vec2f const feetPosition = mParticles.GetPosition(feetParticleIndex);
-
-        vec2f const humanVector = headPosition - feetPosition;
-
-        // Calculate CW angle between head and vertical (pointing up);
-        // positive when human is CW wrt vertical
-        //
-        // |   H
-        // |  /
-        // |-/
-        // |/
-        //
-        float const staticDisplacementAngleCW = (-LabParameters::GravityDir).angleCw(humanVector);
-
-        // Calculate CW angle that head would rotate by (relative to feet) due to velocity alone;
-        // positive when new position is CW wrt old
-        //
-        // |   H
-        // |  /
-        // | /\
-        // |/__L___H'
-        //
-        vec2f const velocityDisplacement =
-            (mParticles.GetVelocity(headParticleIndex) - mParticles.GetVelocity(feetParticleIndex)) * LabParameters::SimulationTimeStepDuration;
-        float const velocityAngleCW = humanVector.angleCw(humanVector + velocityDisplacement);
-
-        // Calculate angle that we want to enforce with this torque
-        float const totalTorqueAngleCW =
-            staticDisplacementAngleCW * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient
-            + velocityAngleCW * labParameters.HumanNpcEquilibriumTorqueDampingCoefficient;
-
-        // Calculate (linear) force that generates this rotation
-        vec2f const torqueDisplacement = humanVector.rotate(totalTorqueAngleCW) - humanVector;
-        equilibriumTorqueForce =
-            torqueDisplacement
-            * particleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration)
-            * npc.HumanNpcState->CurrentEquilibriumTorqueMagnitude;
-
-        LogMessage("        torque: staticDisplacementAngleCW=", staticDisplacementAngleCW, " velocityAngleCW=", velocityAngleCW, " currentEquilibriumTorqueMagnitude=",
-            npc.HumanNpcState->CurrentEquilibriumTorqueMagnitude, " totalTorqueAngleCW=", totalTorqueAngleCW, " torqueDisplacement=", torqueDisplacement);
-    }
-    else
-    {
-        equilibriumTorqueForce = vec2f::zero();
-    }
+    // TODOTEST
+    (void)dipoleArg;
+    (void)isPrimaryParticle;
+    (void)npc;
 
     vec2f const physicalForces =
         mParticles.GetExternalForces(particle.ParticleIndex)
         + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * particleMass
         + mParticles.GetSpringForces(particle.ParticleIndex)
-        + equilibriumTorqueForce
         + mParticles.GetVoluntaryForces(particle.ParticleIndex);
-
-    (void)dipoleArg;
-    (void)isPrimaryParticle;
-    (void)npc;
 
     return physicalForces;
 }
@@ -1220,6 +1164,9 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial2(
             vec2f const absoluteVelocity = (particleEndAbsolutePosition - particleStartAbsolutePosition - totalEdgeWalkedActual) / LabParameters::SimulationTimeStepDuration;
             particles.SetVelocity(particle.ParticleIndex, absoluteVelocity);
             particle.ConstrainedState->MeshRelativeVelocity = absoluteVelocity + meshVelocity;
+
+            LogMessage("        traveledActual=", (particleEndAbsolutePosition - particleStartAbsolutePosition), " totalEdgeWalkedActual=", totalEdgeWalkedActual,
+                " absoluteVelocity=", particles.GetVelocity(particle.ParticleIndex));
 
             // We have consumed the whole time quantum
             return;

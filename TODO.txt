@@ -137,7 +137,7 @@
 				
 	+ Re-instate dipole - w/out human
 	+ Re-instate human state machine, w/out walking
-	= Re-instate walking
+	+ Re-instate walking
 		+ Step 1: restructure loops so that traj flattening happens in main loop
 		+ Step 2: main loop initializes distanceToDisplaceInStep, distanceToWalkInStep, totalDistanceDisplaced
 		+ Step 3: inner loop returns distanceDisplaced, outer loop calcs dt based off distance asked to displace in step and distanceDisplaced
@@ -215,9 +215,10 @@
 				+ ConstrainedNonInertial discounts it from final velocity calc'n
 				+ ConstrainedInertial discounts it from final velocity calc'n
 
-		- Step 7:
-			- See if torque is the one responsible for slight bend
-				- Go back to calculating torque at HumanUpdate
+		+ Step 7:
+			+ See if torque is the one responsible for slight bend
+				+ Go back to calculating torque at HumanUpdate
+			+ If ok: move comments back into human function for torque
 
 	- Cleanups:
 		- Nuke old "1" simulations and rename "2"

@@ -115,7 +115,6 @@ public:
 			float CurrentStateValue;
 			float TargetStateValue;
 
-			float CurrentEquilibriumTorqueMagnitude; // [0.0f -> 1.0f]
 			float CurrentWalkingMagnitude; // [0.0f -> 1.0f]
 
 			HumanNpcStateType(
@@ -126,7 +125,6 @@ public:
 				, CurrentFaceDirectionX(1.0f) // Futurework: randomize
 				, CurrentStateValue(currentStateValue)
 				, TargetStateValue(targetStateValue)
-				, CurrentEquilibriumTorqueMagnitude(0.0f)
 				, CurrentWalkingMagnitude(0.0f)
 			{}
 
@@ -643,7 +641,6 @@ private:
 		LabParameters const & labParameters);
 
 	bool MaintainAndCheckHumanEquilibrium(
-		StateType::HumanNpcStateType & humanState,
 		ElementIndex primaryParticleIndex,
 		ElementIndex secondaryParticleIndex,
 		NpcParticles & particles,
