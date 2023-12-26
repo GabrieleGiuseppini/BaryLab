@@ -524,6 +524,7 @@ private:
 		bool const isPrimaryParticle,
 		vec3f const trajectoryStartBarycentricCoords,
 		vec3f trajectoryEndBarycentricCoords,
+		vec2f const & totalEdgeWalkedActual,
 		vec2f const meshVelocity,
 		float dt,
 		NpcParticles & particles,

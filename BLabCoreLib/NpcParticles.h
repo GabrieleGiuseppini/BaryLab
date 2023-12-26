@@ -196,6 +196,11 @@ public:
         mVoluntarySuperimposedDisplacementBuffer[particleElementIndex] = value;
     }
 
+    void ResetVoluntarySuperimposedDisplacement()
+    {
+        mVoluntarySuperimposedDisplacementBuffer.fill(vec2f::zero());
+    }
+
     vec2f const & GetVoluntaryVelocity(ElementIndex particleElementIndex) const noexcept
     {
         return mVoluntaryVelocityBuffer[particleElementIndex];

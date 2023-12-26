@@ -19,6 +19,12 @@ void Npcs::UpdateNpcs2(
     LogMessage("----------------------------------");
 
     //
+    // 0. Prepare
+    //
+
+    mParticles.ResetVoluntarySuperimposedDisplacement();
+
+    //
     // 1. Check if a free secondary particle should become constrained
     // 2. Update behavioral state machines
     // 3. Calculate spring forces 
@@ -246,8 +252,9 @@ void Npcs::UpdateNpcParticle2(
         std::optional<PastBarycentricPosition> pastPastBarycentricPosition;
         std::optional<PastBarycentricPosition> pastBarycentricPosition;
 
-        // Total displacement walked along the edge - as a sum of the vectors from the individual steps
-        vec2f totalEdgeWalkedActual = vec2f::zero();
+        // Total displacement walked along the edge - as a sum of the vectors from the individual steps;
+        // if this is the secondary of a human, we pickup the total walked by the primary
+        vec2f totalEdgeWalkedActual = mParticles.GetVoluntarySuperimposedDisplacement(particle.ParticleIndex);
 
         for (float remainingDt = dt; ; )
         {
@@ -405,7 +412,7 @@ void Npcs::UpdateNpcParticle2(
                             // The (signed) edge length that we plan to travel exclusively via walking
                             float edgeWalkedPlanned = 0.0f; 
 
-                            if (npc.HumanNpcState.has_value())
+                            if (npc.HumanNpcState.has_value() && isPrimaryParticle)
                             {
                                 vec2f const idealWalkVector = mParticles.GetVoluntaryVelocity(particle.ParticleIndex) * remainingDt;
                                 edgeWalkedPlanned = idealWalkVector.dot(edgeDir);
@@ -590,7 +597,7 @@ void Npcs::UpdateNpcParticle2(
                         }
                         else
                         {
-                            LogMessage("      Traj.EdgeN=", trajectory.dot(edgeNormal));
+                            LogMessage("      traj.edgeN=", trajectory.dot(edgeNormal));
                         }
                     }
                 }
@@ -624,6 +631,7 @@ void Npcs::UpdateNpcParticle2(
                     isPrimaryParticle,
                     particle.ConstrainedState->CurrentTriangleBarycentricCoords, // trajectoryStartBarycentricCoords
                     trajectoryEndBarycentricCoords,
+                    totalEdgeWalkedActual,
                     meshVelocity,
                     remainingDt,
                     mParticles,
@@ -661,6 +669,17 @@ void Npcs::UpdateNpcParticle2(
                 particle.ConstrainedState->CurrentTriangleBarycentricCoords,
                 currentTriangleElementIndex,
                 mesh.GetVertices());
+        }
+
+        //
+        // Store total edge walked for secondary to use, if this is the primary
+        // of a human
+        //
+
+        if (npc.HumanNpcState.has_value() && isPrimaryParticle)
+        {
+            assert(dipoleArg.has_value());
+            mParticles.SetVoluntarySuperimposedDisplacement(dipoleArg->OtherParticle.ParticleIndex, totalEdgeWalkedActual);
         }
     }
     
@@ -1137,7 +1156,8 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial2(
     std::optional<DipoleArg> const & dipoleArg,
     bool const isPrimaryParticle,
     vec3f const trajectoryStartBarycentricCoords,
-    vec3f trajectoryEndBarycentricCoords, // Mutable    
+    vec3f trajectoryEndBarycentricCoords, // Mutable
+    vec2f const & totalEdgeWalkedActual,
     vec2f const meshVelocity,
     float dt,
     NpcParticles & particles,
@@ -1195,8 +1215,9 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial2(
 
             particles.SetPosition(particle.ParticleIndex, particleEndAbsolutePosition);
 
-            // Use whole time quantum for velocity, as particleStartAbsolutePosition is fixed at t0
-            vec2f const absoluteVelocity = (particleEndAbsolutePosition - particleStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration;
+            // Use whole time quantum for velocity, as particleStartAbsolutePosition is fixed at t0,
+            // and discount walked vector
+            vec2f const absoluteVelocity = (particleEndAbsolutePosition - particleStartAbsolutePosition - totalEdgeWalkedActual) / LabParameters::SimulationTimeStepDuration;
             particles.SetVelocity(particle.ParticleIndex, absoluteVelocity);
             particle.ConstrainedState->MeshRelativeVelocity = absoluteVelocity + meshVelocity;
 

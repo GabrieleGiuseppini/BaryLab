@@ -194,50 +194,41 @@
 					+ Use NpcParticle::PhysicalProperties for mass everywhere
 					+ LabParameters: the two (st + ki) become "multipliers"
 		
-		- Step 6:
+		+ Step 6:
 			+ Human state: walk==<face dir x, velocity_strength>
-			- Secondary displacement: sum of all signed_edge_walked_actual *as vectors*,
+			+ Secondary displacement: sum of all signed_edge_walked_actual *as vectors*,
 			  which in turn may be calculated as signed_edge_traveled_actual * (signed_edge_walked_planned / signed_edge_traveled_planned)
-				- If returned is zero, it's either because planned (total) was zero, or we've cut short 
-					- If planned (total) was zero then we've reached target - this step should have completed; however, for safety, we may assume this happens (returns zero when planned was zero)
-						- Do nothing, as we'll complete later on
-					- Else (i.e. we've cut short): since planned was non-zero and actual is zero, then walked now is also zero
-				- If returned is completed: actual walked is planned walked
-			- Note that we only need to store and use secondary displacement if our current code for calculating walk vector for secondary as well doesn't work
-			- Also note that sec'ry displacement needs to be applied even when sec'ry particle is not in non-inertial mode
-			- NOTE: secondary displacement must also be handled by inertial case (as secondary might be inertial), complete with taking into account
-			  walked in final velocity calculation
-				- Simply pass totalEdgeWalkedActual (vector) to ConstrainedInertial, which discounts it
-			- OLD:
-			- Before NC loop: add flattened walk vector to trajectory (and initialize distance to walk), and remember walked distance
-				- Also add (just) walk displacement to secondary particle - which does the same as primary but using this saved displacement
-					- TODOHERE: should be absolute displacement
-			- At velocity calc'n, discount walked distance
+				+ If returned is zero, it's either because planned (total) was zero, or we've cut short 
+					+ If planned (total) was zero then we've reached target - this step should have completed; however, for safety, we may assume this happens (returns zero when planned was zero)
+						+ Do nothing, as we'll complete later on
+					+ Else (i.e. we've cut short): since planned was non-zero and actual is zero, then walked now is also zero
+				+ If returned is completed: actual walked is planned walked
+			+ Also note that sec'ry displacement needs to be applied even when sec'ry particle is not in non-inertial mode
+				+ Secondary displacement must also be handled by inertial case (as secondary might be inertial), complete with taking into account
+				  walked in final velocity calculation
+					- Simply pass totalEdgeWalkedActual (vector) to ConstrainedInertial, which discounts it
+			+ Plan:
+				+ NpcParticles: VoluntarySuperimposedDisplacement is to store the vector
+					+ Reset at beginning of NPC simulation loop
+				+ Primary stores totalEdgeWalkedActual into it at exit of constrained loop
+				+ totalEdgeWalkedActual is initialized with this quantity (technically @ secondary)
+				+ ConstrainedNonInertial discounts it from final velocity calc'n
+				+ ConstrainedInertial discounts it from final velocity calc'n
 
+		- Step 7:
+			- See if torque is the one responsible for slight bend
+				- Go back to calculating torque at HumanUpdate
 
-		- TODOOLD:
-		- Principles:
-			- Walk vector - splattered along edge - is added to end position
-				- During loop, current pos changes and gets closer and closer - that's how we make progress
-			- This displacement is added to secondary particle
-			- This displacement is given to func as ~velocityToDiscount, albeit it's mesh-relative
-		- TODOOLD:
-		- Imparting displacement to secondary:
-			- Try: if walking, secondary end position is calculated based on primary, not based on secondary's physics
-		- Discount velocity: by passing to TraceSegment - via non-inertial case, which knows it flattened - ~velocityToDiscount, calc'd along abs_start->abs_end dir
-		- TODOHERE: still need to figure it out
-			- how about: track total edge walked during tracing - use that to a) avoid gaining vel, b) knowing when to stop in the face of multiple segments
-		- OLD
-		- First version: try with voluntaryVelocity (instead of displacement)
-			- Set to purely walking velocity
-			- But then, secondary trails primary, or doesn't follow it walking
-				- Wanna try by forecasting primary when we calc walk vector at HumanWalkingStateMachine?
 	- Cleanups:
-		- Does reduced dt do anything?
-		- Extract velocity calculation (if still needed) into helper method
 		- Nuke old "1" simulations and rename "2"
 			- Watch out: there are methods in 1 that we still need; port those to 2 before nuking & renaming
-		- Nuke NpcParticle::mVoluntarySuperimposedDisplacementBuffer
+		- NpcParticles:
+			- Nuke all Voluntary buffers except ones we care about
+		- HumanSimulation:
+			- No need to reset VoluntarySuperimposedDisplacement if we clear whole buffer @ each loop
+			- Rationalize transition code (which is repeated a ton of times)
+		- Does reduced dt do anything?
+		- Extract velocity calculation (if still needed) into helper method
 		- Nuke imparted trajectory (tool and all)
 		- Nuke step-by-step
 		
