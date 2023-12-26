@@ -700,17 +700,17 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
         // Calculate CW angle between head and vertical (pointing up);
         // positive when human is CW wrt vertical
         //
-        //     H
+        // |   H
         // |  /
         // |-/
         // |/
         //
         float const staticDisplacementAngleCW = (-LabParameters::GravityDir).angleCw(humanVector);
 
-        // Calculate CW angle that would be rotated by (relative to feet) velocity alone;
+        // Calculate CW angle that head would rotate by (relative to feet) due to velocity alone;
         // positive when new position is CW wrt old
         //
-        //     H
+        // |   H
         // |  /
         // | /\
         // |/__L___H'
@@ -721,15 +721,15 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
 
         // Calculate angle that we want to enforce with this torque
         float const totalTorqueAngleCW =
-            (-staticDisplacementAngleCW * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient
-            - velocityAngleCW * labParameters.HumanNpcEquilibriumTorqueDampingCoefficient) * npc.HumanNpcState->CurrentEquilibriumTorqueMagnitude;
+            staticDisplacementAngleCW * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient
+            + velocityAngleCW * labParameters.HumanNpcEquilibriumTorqueDampingCoefficient;
 
-        // Calculate linear force that generates this rotation
-        vec2f const endPosition = humanVector.rotate(-totalTorqueAngleCW) + feetPosition;
-        vec2f const torqueDisplacement = endPosition - headPosition;
+        // Calculate (linear) force that generates this rotation
+        vec2f const torqueDisplacement = humanVector.rotate(totalTorqueAngleCW) - humanVector;
         equilibriumTorqueForce =
             torqueDisplacement
-            * particleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
+            * particleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration)
+            * npc.HumanNpcState->CurrentEquilibriumTorqueMagnitude;
 
         LogMessage("        torque: staticDisplacementAngleCW=", staticDisplacementAngleCW, " velocityAngleCW=", velocityAngleCW, " currentEquilibriumTorqueMagnitude=",
             npc.HumanNpcState->CurrentEquilibriumTorqueMagnitude, " totalTorqueAngleCW=", totalTorqueAngleCW, " torqueDisplacement=", torqueDisplacement);
