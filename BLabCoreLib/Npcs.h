@@ -385,6 +385,11 @@ private:
 		NpcParticles & particles,
 		LabParameters const & labParameters) const;
 
+	void OnImpact(
+		vec2f const & impactVector,
+		StateType & npc,
+		bool const isPrimaryParticle) const;
+
 private:
 
 	//

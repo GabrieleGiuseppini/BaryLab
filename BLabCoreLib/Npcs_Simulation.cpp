@@ -1474,6 +1474,15 @@ void Npcs::BounceConstrainedNpcParticle(
     LogMessage("        nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantAbsoluteVelocity);
 
     //
+    // Publish impact
+    //
+
+    OnImpact(
+        normalVelocity,
+        npc,
+        isPrimaryParticle);
+
+    //
     // Exit, consuming whole time quantum
     //
     // Note: we consume whole time quantum as a subsequent bounce during the same simulation step wouldn't see mesh moving
@@ -1483,6 +1492,17 @@ void Npcs::BounceConstrainedNpcParticle(
 
     particles.SetVelocity(particleIndex, resultantAbsoluteVelocity);
     particleConstrainedState.MeshRelativeVelocity = resultantAbsoluteVelocity + meshVelocity;
+}
+
+void Npcs::OnImpact(
+    vec2f const & impactVector,
+    StateType & npc,
+    bool const isPrimaryParticle) const
+{
+    // TODOHERE
+    LogMessage("TODOTEST: OnImpact(", impactVector, ")");
+    (void)npc;
+    (void)isPrimaryParticle;
 }
 
 Npcs::StateType Npcs::MaterializeNpcState(
