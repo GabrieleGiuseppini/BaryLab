@@ -311,24 +311,9 @@ private:
 		Mesh const & mesh,
 		LabParameters const & labParameters);
 
-	struct DipoleArg final
-	{
-		StateType::NpcParticleStateType & OtherParticle;
-		StateType::DipolePropertiesType & DipoleProperties;
-
-		DipoleArg(
-			StateType::NpcParticleStateType & otherParticle,
-			StateType::DipolePropertiesType & dipoleProperties)
-			: OtherParticle(otherParticle)
-			, DipoleProperties(dipoleProperties)
-		{}
-	};
-
 	void UpdateNpcParticle(
-		StateType::NpcParticleStateType & particle,
-		std::optional<DipoleArg> const & dipoleArg,
-		bool isPrimaryParticle,
 		StateType & npc,
+		bool isPrimaryParticle,
 		Mesh const & mesh,
 		LabParameters const & labParameters);
 
@@ -344,9 +329,8 @@ private:
 		NpcParticles & particles) const;
 
 	std::optional<float> UpdateNpcParticle_ConstrainedNonInertial(
-		StateType::NpcParticleStateType & particle,
-		std::optional<DipoleArg> const & dipoleArg,
-		bool const isPrimaryParticle,
+		StateType & npc,
+		bool isPrimaryParticle,
 		int edgeOrdinal,
 		vec2f const & edgeDir,
 		vec2f const & particleStartAbsolutePosition,				
@@ -362,9 +346,8 @@ private:
 		LabParameters const & labParameters) const;
 
 	void UpdateNpcParticle_ConstrainedInertial(
-		StateType::NpcParticleStateType & particle,
-		std::optional<DipoleArg> const & dipoleArg,
-		bool const isPrimaryParticle,
+		StateType & npc,
+		bool isPrimaryParticle,
 		vec3f const trajectoryStartBarycentricCoords,
 		vec3f trajectoryEndBarycentricCoords,
 		vec2f const & totalEdgeWalkedActual,
@@ -375,8 +358,8 @@ private:
 		LabParameters const & labParameters) const;
 
 	inline void BounceConstrainedNpcParticle(
-		ElementIndex particleIndex,
-		StateType::NpcParticleStateType::ConstrainedStateType & particleConstrainedState,
+		StateType & npc,
+		bool isPrimaryParticle,
 		vec2f const & trajectory,
 		vec2f const & bouncePosition,
 		vec2f const & bounceEdgeNormal,
@@ -388,7 +371,7 @@ private:
 	void OnImpact(
 		vec2f const & impactVector,
 		StateType & npc,
-		bool const isPrimaryParticle) const;
+		bool isPrimaryParticle) const;
 
 private:
 
