@@ -348,6 +348,7 @@ private:
 	void UpdateNpcParticle_ConstrainedInertial(
 		StateType & npc,
 		bool isPrimaryParticle,
+		vec2f const & particleStartAbsolutePosition,
 		vec3f const trajectoryStartBarycentricCoords,
 		vec3f trajectoryEndBarycentricCoords,
 		vec2f const & totalEdgeWalkedActual,
@@ -360,7 +361,8 @@ private:
 	inline void BounceConstrainedNpcParticle(
 		StateType & npc,
 		bool isPrimaryParticle,
-		vec2f const & trajectory,
+		vec2f const & totalTrajectory,
+		vec2f const & walkedTrajectory,
 		vec2f const & bouncePosition,
 		vec2f const & bounceEdgeNormal,
 		vec2f const meshVelocity,
@@ -370,6 +372,7 @@ private:
 
 	void OnImpact(
 		vec2f const & impactVector,
+		vec2f const & bounceEdgeNormal,
 		StateType & npc,
 		bool isPrimaryParticle) const;
 
@@ -438,8 +441,6 @@ private:
 		// ((y1−y2)(ax−x1)+(x2−x1)(ay−y1)) * ((y1−y2)(bx−x1)+(x2−x1)(by−y1)) < 0
 		float const magic = ((aPos.y - bPos.y) * (p1Pos.x - aPos.x) + (bPos.x - aPos.x) * (p1Pos.y - aPos.y))
 			* ((aPos.y - bPos.y) * (p2Pos.x - aPos.x) + (bPos.x - aPos.x) * (p2Pos.y - aPos.y));
-
-		LogMessage("TODOTEST: Magic=", magic, " (ppos=", p1Pos, " spos=", p2Pos, ")");
 
 		return magic < -0.0001f;
 	}

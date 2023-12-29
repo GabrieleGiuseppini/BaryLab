@@ -296,8 +296,8 @@ void Npcs::UpdateNpcParticle(
             // Note: on first iteration this is the same as physicsDeltaPos + meshDisplacement
             vec2f const trajectory = trajectoryEndAbsolutePosition - trajectoryStartAbsolutePosition;
 
-            LogMessage("    TrajectoryStartAbsolutePosition=", trajectoryStartAbsolutePosition, " TrajectoryEndAbsolutePosition=", trajectoryEndAbsolutePosition,
-                " TotalEdgeWalkedActual=", totalEdgeWalkedActual, " Trajectory=", trajectory);
+            LogMessage("    TrajectoryStartAbsolutePosition=", trajectoryStartAbsolutePosition, " PhysicsDeltaPos=", physicsDeltaPos, " TotalEdgeWalkedActual=", totalEdgeWalkedActual,
+                " TrajectoryEndAbsolutePosition=", trajectoryEndAbsolutePosition, " Trajectory=", trajectory);
 
             //
             // Check which of two cases applies at this moment:
@@ -538,6 +538,14 @@ void Npcs::UpdateNpcParticle(
                                         mParticles.SetVelocity(npcParticle.ParticleIndex, -meshVelocity);
                                         npcParticle.ConstrainedState->MeshRelativeVelocity = vec2f::zero();
 
+                                        // TODOTEST
+                                        // If we're human and walking, flip direction
+                                        // TODO: make helper for flipping
+                                        if (npc.HumanNpcState.has_value() && isPrimaryParticle && npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking)
+                                        {
+                                            npc.HumanNpcState->CurrentFaceDirectionX *= -1.0f;
+                                        }
+
                                         // Consume the whole time quantum
                                         remainingDt = 0.0f;
                                     }
@@ -639,6 +647,7 @@ void Npcs::UpdateNpcParticle(
                 UpdateNpcParticle_ConstrainedInertial(
                     npc,
                     isPrimaryParticle,
+                    particleStartAbsolutePosition,
                     npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, // trajectoryStartBarycentricCoords
                     trajectoryEndBarycentricCoords,
                     totalEdgeWalkedActual,
@@ -732,7 +741,7 @@ void Npcs::UpdateNpcParticle_Free(
         endPosition);
 
     // Update velocity
-    // Use whole time quantum for velocity, as communicated start/end positions are those planned for whole DT
+    // Use whole time quantum for velocity, as communicated start/end positions are those planned for whole dt
     particles.SetVelocity(
         particle.ParticleIndex,
         (endPosition - startPosition) / LabParameters::SimulationTimeStepDuration);
@@ -804,6 +813,7 @@ std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
         // and, in particular, we can assume that signed_edge_walked_actual == signed_edge_walked_planned
         //
 
+        // TODOHERE1
         vec2f const vectorTraveledAlongEdge = particleEndAbsolutePosition - trajectoryStartAbsolutePosition;
 
         assert(std::abs(vectorTraveledAlongEdge.dot(edgeDir) - (edgePhysicalTraveledPlanned + edgeWalkedPlanned)) < 0.001f);
@@ -964,6 +974,8 @@ std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
                     npc,
                     isPrimaryParticle,
                     flattenedTrajectory,
+                    // TODOTEST
+                    edgeDir * edgeWalkedPlanned, // Walk plan in this dt
                     intersectionAbsolutePosition,
                     intersectionEdgeNormal,
                     meshVelocity,
@@ -1101,6 +1113,7 @@ std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
 void Npcs::UpdateNpcParticle_ConstrainedInertial(
     StateType & npc,
     bool isPrimaryParticle,
+    vec2f const & particleStartAbsolutePosition, // Since beginning of whole time quantum, not just this step
     vec3f const trajectoryStartBarycentricCoords,
     vec3f trajectoryEndBarycentricCoords, // Mutable
     vec2f const & totalEdgeWalkedActual,
@@ -1113,8 +1126,6 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial(
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
     assert(npcParticle.ConstrainedState.has_value());
     auto & npcParticleConstrainedState = *npcParticle.ConstrainedState;
-
-    vec2f const particleStartAbsolutePosition = particles.GetPosition(npcParticle.ParticleIndex);
 
     vec2f const trajectoryStartAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
         trajectoryStartBarycentricCoords,
@@ -1166,6 +1177,7 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial(
             // Use whole time quantum for velocity, as particleStartAbsolutePosition is fixed at t0,
             // and discount walked vector - but only if secondary; if it's primary, we keep the walking 
             // velocity
+            // TODOHERE2
             vec2f const absoluteVelocity = isPrimaryParticle
                 ? (particleEndAbsolutePosition - particleStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration
                 : (particleEndAbsolutePosition - particleStartAbsolutePosition - totalEdgeWalkedActual) / LabParameters::SimulationTimeStepDuration;
@@ -1303,12 +1315,6 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial(
 
             LogMessage("      Impact and bounce");
 
-            // Move to intersection, by moving barycentric coords
-
-            LogMessage("      Moving bary coords to intersection with edge ", intersectionEdgeOrdinal, " ", intersectionBarycentricCoords);
-
-            npcParticleConstrainedState.CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
-
             //
             // Calculate bounce response, using the *apparent* (trajectory) 
             // velocity - since this one includes the mesh velocity
@@ -1330,6 +1336,8 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial(
                 npc,
                 isPrimaryParticle,
                 trajectory,
+                // TODOTEST
+                isPrimaryParticle ? vec2f::zero() : totalEdgeWalkedActual,
                 intersectionAbsolutePosition,
                 intersectionEdgeNormal,
                 meshVelocity,
@@ -1433,7 +1441,8 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial(
 void Npcs::BounceConstrainedNpcParticle(
     StateType & npc,
     bool isPrimaryParticle,
-    vec2f const & trajectory,
+    vec2f const & totalTrajectory,
+    vec2f const & walkedTrajectory,
     vec2f const & bouncePosition,
     vec2f const & bounceEdgeNormal,
     vec2f const meshVelocity,
@@ -1444,9 +1453,11 @@ void Npcs::BounceConstrainedNpcParticle(
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
     assert(npcParticle.ConstrainedState.has_value());
 
-    // Decompose apparent particle velocity into normal and tangential
+    // Decompose apparent (physical, not walked) particle velocity into normal and tangential
 
-    vec2f const apparentParticleVelocity = trajectory / dt;
+    // TODOHERE3
+    //vec2f const apparentParticleVelocity = totalTrajectory / dt;
+    vec2f const apparentParticleVelocity = (totalTrajectory - walkedTrajectory) / dt;
     float const apparentParticleVelocityAlongNormal = apparentParticleVelocity.dot(bounceEdgeNormal);
     vec2f const normalVelocity = bounceEdgeNormal * apparentParticleVelocityAlongNormal;
     vec2f const tangentialVelocity = apparentParticleVelocity - normalVelocity;
@@ -1465,7 +1476,7 @@ void Npcs::BounceConstrainedNpcParticle(
     // we need to transform velocity to absolute particle velocity
     vec2f const resultantAbsoluteVelocity = (normalResponse + tangentialResponse) - meshVelocity;
 
-    LogMessage("        apparentParticleVelocity=", apparentParticleVelocity, " nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantAbsoluteVelocity);
+    LogMessage("        totalTrajectory=", totalTrajectory, " walkedTrajectory=", walkedTrajectory, " apparentParticleVelocity=", apparentParticleVelocity, " nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantAbsoluteVelocity);
 
     //
     // Set position and velocity
@@ -1482,19 +1493,41 @@ void Npcs::BounceConstrainedNpcParticle(
 
     OnImpact(
         normalVelocity,
+        bounceEdgeNormal,
         npc,
         isPrimaryParticle);
 }
 
 void Npcs::OnImpact(
     vec2f const & impactVector,
+    vec2f const & bounceEdgeNormal, // Pointing outside of triangle
     StateType & npc,
     bool isPrimaryParticle) const
 {
-    // TODOHERE
-    LogMessage("TODOTEST: OnImpact(", impactVector, ")");
-    (void)npc;
-    (void)isPrimaryParticle;
+    LogMessage("    OnImpact(", impactVector, ", ", bounceEdgeNormal, ")");
+
+    // Human state machine
+    if (npc.HumanNpcState.has_value() && isPrimaryParticle)
+    {
+        switch (npc.HumanNpcState->CurrentBehavior)
+        {
+            case StateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
+            {
+                // Check alignment of impact with walking direction; if hit => flip
+                if (bounceEdgeNormal.dot(vec2f(npc.HumanNpcState->CurrentFaceDirectionX * npc.HumanNpcState->CurrentWalkingMagnitude, 0.0f)) > 0.0f)
+                {
+                    npc.HumanNpcState->CurrentFaceDirectionX *= -1.0f;
+                }
+
+                break;
+            }
+
+            default:
+            {
+                break;
+            }
+        }
+    }
 }
 
 Npcs::StateType Npcs::MaterializeNpcState(

@@ -335,6 +335,8 @@ bool Npcs::MaintainAndCheckHumanEquilibrium(
 		torqueDisplacement
 		* particleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
 
+	LogMessage("Human (secondaryParticleIndex=", secondaryParticleIndex, "): equilibriumTorqueForce=", equilibriumTorqueForce);
+
 	// Store torque force for secondary
 	mParticles.SetVoluntaryForces(secondaryParticleIndex, equilibriumTorqueForce);
 
