@@ -181,7 +181,8 @@ void Npcs::UpdateNpcParticle(
         // Integrate forces
 
         vec2f const physicalForces = CalculateNpcParticlePhysicalForces(
-            npcParticle,
+            npc,
+            isPrimaryParticle,
             particleMass,
             labParameters);
 
@@ -417,22 +418,62 @@ void Npcs::UpdateNpcParticle(
 
                             if (npc.HumanNpcState.has_value() && isPrimaryParticle)
                             {
+                                // TODOOLD
+                                //////
+                                ////// Walking displacement projected along edge
+                                //////
+
+                                ////vec2f const idealWalkVector =
+                                ////    vec2f(npc.HumanNpcState->CurrentFaceDirectionX * labParameters.HumanNpcWalkingSpeed, 0.0f)
+                                ////    * npc.HumanNpcState->CurrentWalkingMagnitude
+                                ////    * remainingDt;
+                                ////    
+                                ////edgeWalkedPlanned = idealWalkVector.dot(edgeDir);
+
+                                ////vec2f const walkVector = edgeDir * edgeWalkedPlanned;
+
+                                ////if (walkVector != vec2f::zero())
+                                ////{
+                                ////    LogMessage("        walkVector: ", walkVector, " (@", npc.HumanNpcState->CurrentWalkingMagnitude, ")");
+                                ////}
+
                                 //
-                                // Walking displacement projected along edge
+                                // Walking displacement projected along edge - what's needed to reach total desired walking
+                                // displacement, together with physical
+                                // - Never reduces physical
+                                // - Never adds to physical so much as to cause resultant to be faster than walking speed
                                 //
 
                                 vec2f const idealWalkVector =
-                                    vec2f(npc.HumanNpcState->CurrentFaceDirectionX * labParameters.HumanNpcWalkingSpeed, 0.0f)
+                                    vec2f(npc.HumanNpcState->CurrentFaceDirectionX * labParameters.HumanNpcWalkingSpeed, 0.0f) // Velocity
                                     * npc.HumanNpcState->CurrentWalkingMagnitude
                                     * remainingDt;
-                                    
-                                edgeWalkedPlanned = idealWalkVector.dot(edgeDir);
 
-                                vec2f const walkVector = edgeDir * edgeWalkedPlanned;
-
-                                if (walkVector != vec2f::zero())
+                                float const idealEdgeWalkedPlanned = idealWalkVector.dot(edgeDir);
+                                if (idealEdgeWalkedPlanned >= 0.0f)
                                 {
-                                    LogMessage("        walkVector: ", walkVector, " (@", npc.HumanNpcState->CurrentWalkingMagnitude, ")");
+                                    // Same direction as edge (ahead is towards larger)
+                                    edgeWalkedPlanned = std::min(
+                                        std::max(idealEdgeWalkedPlanned - edgePhysicalTraveledPlanned, 0.0f),
+                                        idealEdgeWalkedPlanned);
+
+                                    // TODOTEST
+                                    assert(edgeWalkedPlanned == Clamp(idealEdgeWalkedPlanned - edgePhysicalTraveledPlanned, 0.0f, idealEdgeWalkedPlanned));
+                                }
+                                else
+                                {
+                                    // Opposite direction as edge (ahead is towards smaller)
+                                    edgeWalkedPlanned = std::max(
+                                        std::min(idealEdgeWalkedPlanned - edgePhysicalTraveledPlanned, 0.0f),
+                                        idealEdgeWalkedPlanned);
+
+                                    // TODOTEST
+                                    assert(edgeWalkedPlanned == Clamp(idealEdgeWalkedPlanned - edgePhysicalTraveledPlanned, idealEdgeWalkedPlanned, 0.0f));
+                                }
+
+                                if (edgeWalkedPlanned != 0.0f)
+                                {
+                                    LogMessage("        edgeWalkedPlanned: ", edgeWalkedPlanned, " (@", npc.HumanNpcState->CurrentWalkingMagnitude, ")");
                                 }
                             }
 
@@ -440,7 +481,9 @@ void Npcs::UpdateNpcParticle(
                             // Recover flattened trajectory as a vector
                             //
 
-                            vec2f const flattenedTrajectory = edgeDir * (edgePhysicalTraveledPlanned + edgeWalkedPlanned);
+                            float const edgeTraveledPlanned = edgePhysicalTraveledPlanned + edgeWalkedPlanned; // Resultant
+
+                            vec2f const flattenedTrajectory = edgeDir * edgeTraveledPlanned;
 
                             //
                             // Calculate trajectory target
@@ -488,8 +531,7 @@ void Npcs::UpdateNpcParticle(
                                 trajectoryStartAbsolutePosition,
                                 flattenedTrajectoryEndBarycentricCoords,
                                 flattenedTrajectory,
-                                edgePhysicalTraveledPlanned,
-                                edgeWalkedPlanned,
+                                edgeTraveledPlanned,
                                 meshVelocity,
                                 remainingDt,
                                 mParticles,
@@ -574,7 +616,6 @@ void Npcs::UpdateNpcParticle(
                                     assert(edgeTraveledActual.has_value());
 
                                     // Calculate consumed dt
-                                    float const edgeTraveledPlanned = edgePhysicalTraveledPlanned + edgeWalkedPlanned;
                                     assert(*edgeTraveledActual * edgeTraveledPlanned >= 0.0f); // Should have same sign
                                     float const dtFractionConsumed = edgeTraveledPlanned != 0.0f
                                         ? std::min(*edgeTraveledActual / edgeTraveledPlanned, 1.0f) // Signs should agree anyway
@@ -650,7 +691,6 @@ void Npcs::UpdateNpcParticle(
                     particleStartAbsolutePosition,
                     npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, // trajectoryStartBarycentricCoords
                     trajectoryEndBarycentricCoords,
-                    totalEdgeWalkedActual,
                     meshVelocity,
                     remainingDt,
                     mParticles,
@@ -698,7 +738,8 @@ void Npcs::UpdateNpcParticle(
         if (npc.HumanNpcState.has_value() && isPrimaryParticle)
         {
             assert(npc.DipoleState.has_value());
-            mParticles.SetVoluntarySuperimposedDisplacement(npc.DipoleState->SecondaryParticleState.ParticleIndex, totalEdgeWalkedActual);
+            // TODOTEST
+            //mParticles.SetVoluntarySuperimposedDisplacement(npc.DipoleState->SecondaryParticleState.ParticleIndex, totalEdgeWalkedActual);
         }
     }
 
@@ -714,15 +755,128 @@ void Npcs::UpdateNpcParticle(
 }
 
 vec2f Npcs::CalculateNpcParticlePhysicalForces(
-    StateType::NpcParticleStateType & particle,
+    StateType const & npc,
+    bool isPrimaryParticle,
     float particleMass,
     LabParameters const & labParameters) const
 {
+    auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
+
     vec2f const physicalForces =
-        mParticles.GetExternalForces(particle.ParticleIndex)
+        mParticles.GetExternalForces(npcParticle.ParticleIndex)
         + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * particleMass
-        + mParticles.GetSpringForces(particle.ParticleIndex)
-        + mParticles.GetVoluntaryForces(particle.ParticleIndex);
+        + mParticles.GetSpringForces(npcParticle.ParticleIndex)
+        + mParticles.GetVoluntaryForces(npcParticle.ParticleIndex);
+
+    // TODOTEST
+    if (npc.HumanNpcState.has_value() 
+        && (npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking 
+            || npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium
+            || npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Rising)
+        && !isPrimaryParticle)
+    {
+        assert(npc.DipoleState.has_value());
+
+        // TODOTEST: old equilibrium torque algo
+
+        vec2f const humanVector = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex) - mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
+
+        // Calculate CW angle between head and vertical (pointing up);
+        // positive when human is CW wrt vertical
+        //
+        // |   H
+        // |  /
+        // |-/
+        // |/
+        //
+        float const staticDisplacementAngleCW = (-LabParameters::GravityDir).angleCw(humanVector);
+
+        // Calculate CW angle that head would rotate by (relative to feet) due to relative velocity alone;
+        // positive when new position is CW wrt old
+        //
+        // |   H
+        // |  /
+        // | /\
+        // |/__L___H'
+        //
+        vec2f const relativeVelocityDisplacement = 
+            (mParticles.GetVelocity(npc.DipoleState->SecondaryParticleState.ParticleIndex) - mParticles.GetVelocity(npc.PrimaryParticleState.ParticleIndex)) 
+            * LabParameters::SimulationTimeStepDuration;
+        float const relativeVelocityAngleCW = humanVector.angleCw(humanVector + relativeVelocityDisplacement);
+
+        //
+        // Calculate then torque on the secondary (head)
+        // required to maintain alignment with vertical
+        //
+
+        // Calculate angle that we want to enforce with this torque
+        float const totalTorqueAngleCW =
+            staticDisplacementAngleCW * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient
+            + relativeVelocityAngleCW * labParameters.HumanNpcEquilibriumTorqueDampingCoefficient;
+
+        // Calculate (linear) force that generates this rotation
+        vec2f const torqueDisplacement = humanVector.rotate(totalTorqueAngleCW) - humanVector;
+        vec2f const equilibriumTorqueForce =
+            torqueDisplacement
+            * particleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
+
+        mEventDispatcher.OnCustomProbe("Torque", equilibriumTorqueForce.length());
+
+        return physicalForces + equilibriumTorqueForce;
+
+
+
+
+
+
+
+
+        ////// TODOTEST: force for delta position after integration
+        ////vec2f const afterIntegrationPosition =
+        ////    mParticles.GetPosition(npcParticle.ParticleIndex)
+        ////    + mParticles.GetVelocity(npcParticle.ParticleIndex) * LabParameters::SimulationTimeStepDuration
+        ////    + physicalForces / particleMass * (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
+        ////vec2f const desiredEndPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex) + vec2f(0.0f, LabParameters::HumanNpcLength);
+
+        ////// Force to move about delta
+        ////vec2f const torqueForce = 
+        ////    (desiredEndPosition - afterIntegrationPosition)
+        ////    * particleMass
+        ////    / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
+
+        ////mEventDispatcher.OnCustomProbe("Torque", torqueForce.length() * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient);
+
+        ////return physicalForces
+        ////    + torqueForce * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient;
+
+
+
+
+
+
+        // TODOTEST: naive
+        ////vec2f const desiredEndPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex) + vec2f(0.0f, LabParameters::HumanNpcLength);
+        ////vec2f const desiredEndPositionForce =
+        ////    (desiredEndPosition - mParticles.GetPosition(npcParticle.ParticleIndex))
+        ////    * particleMass
+        ////    / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
+
+        ////vec2f deltaForce = (desiredEndPositionForce - (physicalForces + mParticles.GetVelocity(npcParticle.ParticleIndex) * particleMass / LabParameters::SimulationTimeStepDuration));
+        ////float const deltaForceLength = deltaForce.length();
+        ////float constexpr TODOMaxForce = 400000.0f;
+        ////float const smoothedDeltaForceLength =
+        ////    SmoothStep(0.0f, TODOMaxForce * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient, deltaForceLength)
+        ////    * TODOMaxForce * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient;
+
+        ////mEventDispatcher.OnCustomProbe("Torque", smoothedDeltaForceLength);
+
+        ////return physicalForces
+        ////    + deltaForce.normalise(deltaForceLength) * smoothedDeltaForceLength;
+
+
+
+        //return physicalForces + (desiredEndPositionForce - physicalForces) * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient;
+    }
 
     return physicalForces;
 }
@@ -756,8 +910,7 @@ std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
     vec2f const & trajectoryStartAbsolutePosition,
     vec3f trajectoryEndBarycentricCoords,
     vec2f const & flattenedTrajectory,
-    float edgePhysicalTraveledPlanned,
-    float edgeWalkedPlanned,
+    float edgeTraveledPlanned,
     vec2f const meshVelocity,
     float dt,
     NpcParticles & particles,
@@ -802,31 +955,30 @@ std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
 
         //
         // Velocity: given that we've completed *along the edge*, then we can calculate
-        // our (relative) velocity based on the distance traveled along this time quantum,
-        // but discounting the distance we've walked in it - so not to impart walking velocity.
+        // our (relative) velocity based on the distance traveled along this time quantum
         //
         // We take into account only the edge traveled at this moment, divided by the length of this time quantum:
-        // V = (signed_edge_traveled_actual (implicit, simply on-edge traveled) - signed_edge_walked_actual) * edgeDir / this_dt
+        // V = signed_edge_traveled_actual * edgeDir / this_dt
         //
         // Now: consider that at this moment we've reached the planned end of the iteration's sub-trajectory;
         // we can then assume that signed_edge_traveled_actual == signed_edge_traveled_planned (verified via assert)
-        // and, in particular, we can assume that signed_edge_walked_actual == signed_edge_walked_planned
         //
 
         // TODOHERE1
         vec2f const vectorTraveledAlongEdge = particleEndAbsolutePosition - trajectoryStartAbsolutePosition;
 
-        assert(std::abs(vectorTraveledAlongEdge.dot(edgeDir) - (edgePhysicalTraveledPlanned + edgeWalkedPlanned)) < 0.001f);
+        // TODO: if holds, replace dot product with edgeTraveledPlanned
+        assert(std::abs(vectorTraveledAlongEdge.dot(edgeDir) - edgeTraveledPlanned) < 0.001f);
 
         vec2f const relativeVelocity =
             edgeDir
-            * (vectorTraveledAlongEdge.dot(edgeDir) - edgeWalkedPlanned)
+            * vectorTraveledAlongEdge.dot(edgeDir)
             / dt;
 
         particles.SetVelocity(npcParticle.ParticleIndex, relativeVelocity - meshVelocity);
         npcParticleConstrainedState.MeshRelativeVelocity = relativeVelocity;
 
-        LogMessage("        edgeTraveledActual=", vectorTraveledAlongEdge.dot(edgeDir), " edgeWalkedPlanned=", edgeWalkedPlanned,
+        LogMessage("        edgeTraveledActual=", vectorTraveledAlongEdge.dot(edgeDir), " edgeTraveledPlanned=", edgeTraveledPlanned,
             " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
 
         // Complete
@@ -974,8 +1126,6 @@ std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
                     npc,
                     isPrimaryParticle,
                     flattenedTrajectory,
-                    // TODOTEST
-                    edgeDir * edgeWalkedPlanned, // Walk plan in this dt
                     intersectionAbsolutePosition,
                     intersectionEdgeNormal,
                     meshVelocity,
@@ -1116,7 +1266,6 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial(
     vec2f const & particleStartAbsolutePosition, // Since beginning of whole time quantum, not just this step
     vec3f const trajectoryStartBarycentricCoords,
     vec3f trajectoryEndBarycentricCoords, // Mutable
-    vec2f const & totalEdgeWalkedActual,
     vec2f const meshVelocity,
     float dt,
     NpcParticles & particles,
@@ -1174,19 +1323,13 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial(
 
             particles.SetPosition(npcParticle.ParticleIndex, particleEndAbsolutePosition);
 
-            // Use whole time quantum for velocity, as particleStartAbsolutePosition is fixed at t0,
-            // and discount walked vector - but only if secondary; if it's primary, we keep the walking 
-            // velocity
+            // Use whole time quantum for velocity, as particleStartAbsolutePosition is fixed at t0
             // TODOHERE2
-            vec2f const absoluteVelocity = isPrimaryParticle
-                ? (particleEndAbsolutePosition - particleStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration
-                : (particleEndAbsolutePosition - particleStartAbsolutePosition - totalEdgeWalkedActual) / LabParameters::SimulationTimeStepDuration;
-
+            vec2f const absoluteVelocity = (particleEndAbsolutePosition - particleStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration;
             particles.SetVelocity(npcParticle.ParticleIndex, absoluteVelocity);
             npcParticleConstrainedState.MeshRelativeVelocity = absoluteVelocity + meshVelocity;
 
-            LogMessage("        traveledActual=", (particleEndAbsolutePosition - particleStartAbsolutePosition), " totalEdgeWalkedActual=", totalEdgeWalkedActual,
-                " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
+            LogMessage("        traveledActual=", (particleEndAbsolutePosition - particleStartAbsolutePosition), " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
 
             // We have consumed the whole time quantum
             return;
@@ -1336,8 +1479,6 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial(
                 npc,
                 isPrimaryParticle,
                 trajectory,
-                // TODOTEST
-                isPrimaryParticle ? vec2f::zero() : totalEdgeWalkedActual,
                 intersectionAbsolutePosition,
                 intersectionEdgeNormal,
                 meshVelocity,
@@ -1441,8 +1582,7 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial(
 void Npcs::BounceConstrainedNpcParticle(
     StateType & npc,
     bool isPrimaryParticle,
-    vec2f const & totalTrajectory,
-    vec2f const & walkedTrajectory,
+    vec2f const & trajectory,
     vec2f const & bouncePosition,
     vec2f const & bounceEdgeNormal,
     vec2f const meshVelocity,
@@ -1456,8 +1596,7 @@ void Npcs::BounceConstrainedNpcParticle(
     // Decompose apparent (physical, not walked) particle velocity into normal and tangential
 
     // TODOHERE3
-    //vec2f const apparentParticleVelocity = totalTrajectory / dt;
-    vec2f const apparentParticleVelocity = (totalTrajectory - walkedTrajectory) / dt;
+    vec2f const apparentParticleVelocity = trajectory / dt;
     float const apparentParticleVelocityAlongNormal = apparentParticleVelocity.dot(bounceEdgeNormal);
     vec2f const normalVelocity = bounceEdgeNormal * apparentParticleVelocityAlongNormal;
     vec2f const tangentialVelocity = apparentParticleVelocity - normalVelocity;
@@ -1476,7 +1615,7 @@ void Npcs::BounceConstrainedNpcParticle(
     // we need to transform velocity to absolute particle velocity
     vec2f const resultantAbsoluteVelocity = (normalResponse + tangentialResponse) - meshVelocity;
 
-    LogMessage("        totalTrajectory=", totalTrajectory, " walkedTrajectory=", walkedTrajectory, " apparentParticleVelocity=", apparentParticleVelocity, " nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantAbsoluteVelocity);
+    LogMessage("        trajectory=", trajectory, " apparentParticleVelocity=", apparentParticleVelocity, " nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantAbsoluteVelocity);
 
     //
     // Set position and velocity

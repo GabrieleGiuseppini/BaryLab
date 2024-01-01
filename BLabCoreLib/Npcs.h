@@ -318,7 +318,8 @@ private:
 		LabParameters const & labParameters);
 
 	vec2f CalculateNpcParticlePhysicalForces(
-		StateType::NpcParticleStateType & particle,
+		StateType const & npc,
+		bool isPrimaryParticle,
 		float particleMass,
 		LabParameters const & labParameters) const;
 
@@ -337,8 +338,7 @@ private:
 		vec2f const & trajectoryStartAbsolutePosition,
 		vec3f trajectoryEndBarycentricCoords,
 		vec2f const & flattenedTrajectory,
-		float edgePhysicalTraveledPlanned,
-		float edgeWalkedPlanned,
+		float edgeTraveledPlanned,
 		vec2f const meshVelocity,
 		float dt,
 		NpcParticles & particles,
@@ -351,7 +351,6 @@ private:
 		vec2f const & particleStartAbsolutePosition,
 		vec3f const trajectoryStartBarycentricCoords,
 		vec3f trajectoryEndBarycentricCoords,
-		vec2f const & totalEdgeWalkedActual,
 		vec2f const meshVelocity,
 		float dt,
 		NpcParticles & particles,
@@ -361,8 +360,7 @@ private:
 	inline void BounceConstrainedNpcParticle(
 		StateType & npc,
 		bool isPrimaryParticle,
-		vec2f const & totalTrajectory,
-		vec2f const & walkedTrajectory,
+		vec2f const & trajectory,
 		vec2f const & bouncePosition,
 		vec2f const & bounceEdgeNormal,
 		vec2f const meshVelocity,

@@ -290,7 +290,7 @@ bool Npcs::MaintainAndCheckHumanEquilibrium(
 	//
 	float const staticDisplacementAngleCW = (-LabParameters::GravityDir).angleCw(humanVector);
 
-	// Calculate CW angle that head would rotate by (relative to feet) due to velocity alone;
+	// Calculate CW angle that head would rotate by (relative to feet) due to relative velocity alone;
 	// positive when new position is CW wrt old
 	//
 	// |   H
@@ -298,8 +298,8 @@ bool Npcs::MaintainAndCheckHumanEquilibrium(
 	// | /\
     // |/__L___H'
 	//
-	vec2f const velocityDisplacement = (particles.GetVelocity(secondaryParticleIndex) - particles.GetVelocity(primaryParticleIndex)) * LabParameters::SimulationTimeStepDuration;
-	float const velocityAngleCW = humanVector.angleCw(humanVector + velocityDisplacement);
+	vec2f const relativeVelocityDisplacement = (particles.GetVelocity(secondaryParticleIndex) - particles.GetVelocity(primaryParticleIndex)) * LabParameters::SimulationTimeStepDuration;
+	float const relativeVelocityAngleCW = humanVector.angleCw(humanVector + relativeVelocityDisplacement);
 
 	//
 	// Check whether we are still in equulibrium
@@ -308,12 +308,14 @@ bool Npcs::MaintainAndCheckHumanEquilibrium(
 	//
 
 	float constexpr MaxStaticAngleForEquilibrium = Pi<float> / 7.0f;
+	float constexpr MaxRelativeVelocityAngleForEquilibrium = 0.01f;
 
 	if (std::abs(staticDisplacementAngleCW) >= MaxStaticAngleForEquilibrium
-		&& std::abs(velocityAngleCW) > 0.01f
-		&& staticDisplacementAngleCW * velocityAngleCW > 0.0f) // Equal signs
+		&& std::abs(relativeVelocityAngleCW) > MaxRelativeVelocityAngleForEquilibrium
+		&& staticDisplacementAngleCW * relativeVelocityAngleCW > 0.0f) // Equal signs
 	{
-		LogMessage("Losing equilibrium because: StaticDisplacementAngleCW=", staticDisplacementAngleCW, " (Max=", MaxStaticAngleForEquilibrium, ") VelocityAngleCW=", velocityAngleCW);
+		LogMessage("Losing equilibrium because: StaticDisplacementAngleCW=", staticDisplacementAngleCW, " (Max=+/-", MaxStaticAngleForEquilibrium, ") RelativeVelocityAngleCW=", relativeVelocityAngleCW,
+			" (Max=+/-", MaxRelativeVelocityAngleForEquilibrium, ")");
 
 		return false;
 	}
@@ -326,7 +328,7 @@ bool Npcs::MaintainAndCheckHumanEquilibrium(
 	// Calculate angle that we want to enforce with this torque
 	float const totalTorqueAngleCW =
 		staticDisplacementAngleCW * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient
-		+ velocityAngleCW * labParameters.HumanNpcEquilibriumTorqueDampingCoefficient;
+		+ relativeVelocityAngleCW * labParameters.HumanNpcEquilibriumTorqueDampingCoefficient;
 
 	// Calculate (linear) force that generates this rotation
 	vec2f const torqueDisplacement = humanVector.rotate(totalTorqueAngleCW) - humanVector;
@@ -338,7 +340,9 @@ bool Npcs::MaintainAndCheckHumanEquilibrium(
 	LogMessage("Human (secondaryParticleIndex=", secondaryParticleIndex, "): equilibriumTorqueForce=", equilibriumTorqueForce);
 
 	// Store torque force for secondary
-	mParticles.SetVoluntaryForces(secondaryParticleIndex, equilibriumTorqueForce);
+	// TODOTEST
+	//mParticles.SetVoluntaryForces(secondaryParticleIndex, equilibriumTorqueForce);
+	mParticles.SetVoluntaryForces(secondaryParticleIndex, vec2f::zero());
 
 	return true;
 }
