@@ -418,25 +418,6 @@ void Npcs::UpdateNpcParticle(
 
                             if (npc.HumanNpcState.has_value() && isPrimaryParticle)
                             {
-                                // TODOOLD
-                                //////
-                                ////// Walking displacement projected along edge
-                                //////
-
-                                ////vec2f const idealWalkVector =
-                                ////    vec2f(npc.HumanNpcState->CurrentFaceDirectionX * labParameters.HumanNpcWalkingSpeed, 0.0f)
-                                ////    * npc.HumanNpcState->CurrentWalkingMagnitude
-                                ////    * remainingDt;
-                                ////    
-                                ////edgeWalkedPlanned = idealWalkVector.dot(edgeDir);
-
-                                ////vec2f const walkVector = edgeDir * edgeWalkedPlanned;
-
-                                ////if (walkVector != vec2f::zero())
-                                ////{
-                                ////    LogMessage("        walkVector: ", walkVector, " (@", npc.HumanNpcState->CurrentWalkingMagnitude, ")");
-                                ////}
-
                                 //
                                 // Walking displacement projected along edge - what's needed to reach total desired walking
                                 // displacement, together with physical
@@ -444,12 +425,12 @@ void Npcs::UpdateNpcParticle(
                                 // - Never adds to physical so much as to cause resultant to be faster than walking speed
                                 //
 
-                                vec2f const idealWalkVector =
+                                vec2f const idealWalkDisplacementVector =
                                     vec2f(npc.HumanNpcState->CurrentFaceDirectionX * labParameters.HumanNpcWalkingSpeed, 0.0f) // Velocity
                                     * npc.HumanNpcState->CurrentWalkingMagnitude
                                     * remainingDt;
 
-                                float const idealEdgeWalkedPlanned = idealWalkVector.dot(edgeDir);
+                                float const idealEdgeWalkedPlanned = idealWalkDisplacementVector.dot(edgeDir);
                                 if (idealEdgeWalkedPlanned >= 0.0f)
                                 {
                                     // Same direction as edge (ahead is towards larger)
