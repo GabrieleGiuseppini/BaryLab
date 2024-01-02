@@ -1188,7 +1188,7 @@ std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
         npcParticleConstrainedState.CurrentTriangleBarycentricCoords = newBarycentricCoords;
 
         //
-        // Translate trajectory end coords to this triangle, for next iteration
+        // Translate trajectory end coords to this triangle
         //
 
         auto const oldTrajectoryEndBarycentricCoords = trajectoryEndBarycentricCoords;
