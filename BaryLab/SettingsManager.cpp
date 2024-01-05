@@ -28,6 +28,7 @@ BaseSettingsManager<SLabSettings>::BaseSettingsManagerFactory SettingsManager::M
     ADD_SETTING(float, KineticFrictionAdjustment);
     ADD_SETTING(float, MassAdjustment);
     ADD_SETTING(float, GravityAdjustment);
+    ADD_SETTING(float, GlobalDamping);
     ADD_SETTING(float, SpringReductionFraction);
     ADD_SETTING(float, SpringDampingCoefficient);
     ADD_SETTING(float, HumanNpcEquilibriumTorqueStiffnessCoefficient);

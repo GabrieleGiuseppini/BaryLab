@@ -82,3 +82,15 @@ SetOriginTriangleTool::SetOriginTriangleTool(
     , mCursor(WxHelpers::MakeCursor("generic_cursor", 7, 8))
 {
 }
+
+SelectParticleTool::SelectParticleTool(
+    wxWindow * cursorWindow,
+    std::shared_ptr<LabController> labController)
+    : Tool(
+        ToolType::SelectParticle,
+        cursorWindow,
+        std::move(labController))
+    , mIsLeftMouseDown(false)
+    , mCursor(WxHelpers::MakeCursor("generic_cursor", 7, 8))
+{
+}

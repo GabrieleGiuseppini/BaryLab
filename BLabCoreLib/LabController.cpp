@@ -116,7 +116,7 @@ void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepat
 
         // Select particle
         assert(npcs->GetParticles().GetParticleCount() > 0);
-        npcs->SelectParticle(0);
+        npcs->SelectParticle(0, *mesh);
     }    
 
     // Create a new model
@@ -421,6 +421,44 @@ bool LabController::TrySelectOriginTriangle(vec2f const & screenCoordinates)
     else
     {
         mModel->GetNpcs().ResetOriginTriangle();
+        return false;
+    }
+}
+
+bool LabController::TrySelectParticle(vec2f const & screenCoordinates)
+{
+    assert(!!mModel);
+
+    //
+    // Find closest particle within the radius
+    //
+
+    vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
+
+    float constexpr SquareSearchRadius = LabParameters::ParticleRadius * LabParameters::ParticleRadius;
+
+    float bestSquareDistance = std::numeric_limits<float>::max();
+    ElementIndex bestParticle = NoneElementIndex;
+
+    auto const & particles = mModel->GetNpcs().GetParticles();
+    for (auto p : particles)
+    {
+        float const squareDistance = (particles.GetPosition(p) - worldCoordinates).squareLength();
+        if (squareDistance < SquareSearchRadius
+            && squareDistance < bestSquareDistance)
+        {
+            bestSquareDistance = squareDistance;
+            bestParticle = p;
+        }
+    }
+
+    if (bestParticle != NoneElementIndex)
+    {
+        mModel->GetNpcs().SelectParticle(bestParticle, mModel->GetMesh());
+        return true;
+    }
+    else
+    {
         return false;
     }
 }

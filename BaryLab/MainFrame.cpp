@@ -144,6 +144,7 @@ MainFrame::MainFrame(wxApp * mainApp)
         mControlToolbar->Connect(ControlToolbar::ID_MOVE_PARTICLE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnMoveParticle, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_SET_PARTICLE_TRAJECTORY, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSetParticleTrajectory, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_SET_ORIGIN_TRIANGLE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSetOriginTriangle, 0, this);
+        mControlToolbar->Connect(ControlToolbar::ID_SELECT_PARTICLE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSelectParticle, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_MOVE_VERTEX, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnMoveVertex, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_ROTATE_MESH_BY_POSITION, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnRotateMeshByPosition, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_ROTATE_MESH_BY_PARTICLE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnRotateMeshByParticle, 0, this);
@@ -671,6 +672,12 @@ void MainFrame::OnSetOriginTriangle(wxCommandEvent & /*event*/)
 {
     assert(!!mToolController);
     mToolController->SetTool(ToolType::SetOriginTriangle);
+}
+
+void MainFrame::OnSelectParticle(wxCommandEvent & /*event*/)
+{
+    assert(!!mToolController);
+    mToolController->SetTool(ToolType::SelectParticle);
 }
 
 void MainFrame::OnMoveVertex(wxCommandEvent & /*event*/)

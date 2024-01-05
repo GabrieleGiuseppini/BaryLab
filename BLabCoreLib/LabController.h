@@ -68,6 +68,8 @@ public:
 
     bool TrySelectOriginTriangle(vec2f const & screenCoordinates);
 
+    bool TrySelectParticle(vec2f const & screenCoordinates);
+
     std::optional<ElementIndex> TryPickNpcParticle(vec2f const & screenCoordinates) const;
 
     void MoveNpcParticleBy(ElementIndex npcParticleIndex, vec2f const & screenOffset, vec2f const & inertialStride);
@@ -185,6 +187,11 @@ public:
     void SetGravityAdjustment(float value) { mLabParameters.GravityAdjustment = value; }
     float GetMinGravityAdjustment() const { return LabParameters::MinGravityAdjustment; }
     float GetMaxGravityAdjustment() const { return LabParameters::MaxGravityAdjustment; }
+
+    float GetGlobalDamping() const { return mLabParameters.GlobalDamping; }
+    void SetGlobalDamping(float value) { mLabParameters.GlobalDamping = value; }
+    float GetMinGlobalDamping() const { return LabParameters::MinGlobalDamping; }
+    float GetMaxGlobalDamping() const { return LabParameters::MaxGlobalDamping; }
 
     float GetSpringReductionFraction() const { return mLabParameters.SpringReductionFraction; }
     void SetSpringReductionFraction(float value) { mLabParameters.SpringReductionFraction = value; }

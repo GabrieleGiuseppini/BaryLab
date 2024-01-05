@@ -242,9 +242,12 @@ public:
 	// Probing
 	//
 
-	void SelectParticle(ElementIndex particleIndex)
+	void SelectParticle(
+		ElementIndex particleIndex,
+		Mesh const & mesh)
 	{
 		mCurrentlySelectedParticle = particleIndex;
+		Publish(mesh);
 	}	
 
 	std::optional<ElementIndex> GetCurrentOriginTriangle() const

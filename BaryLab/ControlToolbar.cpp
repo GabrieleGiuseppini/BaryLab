@@ -24,6 +24,7 @@ wxEventType const ControlToolbar::wxEVT_TOOLBAR_ACTION = wxNewEventType();
 long const ControlToolbar::ID_MOVE_PARTICLE = wxNewId();
 long const ControlToolbar::ID_SET_PARTICLE_TRAJECTORY = wxNewId();
 long const ControlToolbar::ID_SET_ORIGIN_TRIANGLE = wxNewId();
+long const ControlToolbar::ID_SELECT_PARTICLE = wxNewId();
 long const ControlToolbar::ID_MOVE_VERTEX = wxNewId();
 long const ControlToolbar::ID_ROTATE_MESH_BY_POSITION = wxNewId();
 long const ControlToolbar::ID_ROTATE_MESH_BY_PARTICLE = wxNewId();
@@ -130,6 +131,30 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
             gridSizer->Add(mSetOriginTriangleButton);
         }
 
+        // Select particle
+        {
+            mSelectParticleButton = new wxBitmapToggleButton(
+                this,
+                ID_SELECT_PARTICLE,
+                wxBitmap(
+                    (ResourceLocator::GetResourcesFolderPath() / "select_particle_icon.png").string(),
+                    wxBITMAP_TYPE_PNG),
+                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+
+            mSelectParticleButton->Bind(wxEVT_TOGGLEBUTTON,
+                [this](wxCommandEvent & /*event*/)
+                {
+                    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_SELECT_PARTICLE);
+                    ProcessEvent(evt);
+
+                    ReconciliateUIWithTool(ToolType::SelectParticle);
+                });
+
+            mSelectParticleButton->SetToolTip("Select a particle");
+
+            gridSizer->Add(mSelectParticleButton);
+        }
+
         // Move vertex
         {
             mMoveVertexButton = new wxBitmapToggleButton(
@@ -152,6 +177,11 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
             mMoveVertexButton->SetToolTip("Move a mesh vertex");
 
             gridSizer->Add(mMoveVertexButton);
+        }
+
+        // Spacer
+        {
+            gridSizer->AddSpacer(0);
         }
 
         // Rotate mesh by position
@@ -554,6 +584,7 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mRotateMeshByParticleButton->SetValue(false);
             mSetParticleTrajectoryButton->SetValue(false);
             mSetOriginTriangleButton->SetValue(false);
+            mSelectParticleButton->SetValue(false);
 
             break;
         }
@@ -566,6 +597,7 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mRotateMeshByParticleButton->SetValue(false);
             mSetParticleTrajectoryButton->SetValue(false);
             mSetOriginTriangleButton->SetValue(false);
+            mSelectParticleButton->SetValue(false);
 
             break;
         }
@@ -578,6 +610,7 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mRotateMeshByParticleButton->SetValue(false);
             mSetParticleTrajectoryButton->SetValue(false);
             mSetOriginTriangleButton->SetValue(false);
+            mSelectParticleButton->SetValue(false);
 
             break;
         }
@@ -590,6 +623,20 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mRotateMeshByParticleButton->SetValue(true);
             mSetParticleTrajectoryButton->SetValue(false);
             mSetOriginTriangleButton->SetValue(false);
+            mSelectParticleButton->SetValue(false);
+
+            break;
+        }
+
+        case ToolType::SelectParticle:
+        {
+            mMoveParticleButton->SetValue(false);
+            mMoveVertexButton->SetValue(false);
+            mRotateMeshByPositionButton->SetValue(false);
+            mRotateMeshByParticleButton->SetValue(false);
+            mSetParticleTrajectoryButton->SetValue(false);
+            mSetOriginTriangleButton->SetValue(false);
+            mSelectParticleButton->SetValue(true);
 
             break;
         }
@@ -602,6 +649,7 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mRotateMeshByParticleButton->SetValue(false);
             mSetParticleTrajectoryButton->SetValue(true);
             mSetOriginTriangleButton->SetValue(false);
+            mSelectParticleButton->SetValue(false);
 
             break;
         }
@@ -614,6 +662,7 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mRotateMeshByParticleButton->SetValue(false);
             mSetParticleTrajectoryButton->SetValue(false);
             mSetOriginTriangleButton->SetValue(true);
+            mSelectParticleButton->SetValue(false);
 
             break;
         }

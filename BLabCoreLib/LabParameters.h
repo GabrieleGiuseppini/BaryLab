@@ -46,6 +46,10 @@ struct LabParameters
     static float constexpr MinGravityAdjustment = 0.0f;
     static float constexpr MaxGravityAdjustment = 1000.0f;
 
+    float GlobalDamping;
+    static float constexpr MinGlobalDamping = 0.0f;
+    static float constexpr MaxGlobalDamping = 1.0f;
+
     float SpringReductionFraction;
     static float constexpr MinSpringReductionFraction = 0.0f;
     static float constexpr MaxSpringReductionFraction = 2.0f;

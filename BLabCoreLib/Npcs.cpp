@@ -154,13 +154,7 @@ void Npcs::MoveParticleBy(
 	// Select particle
 	//
 
-	SelectParticle(particleIndex);
-
-	//
-	// Publish
-	//
-
-	Publish(mesh);
+	SelectParticle(particleIndex, mesh);
 
 	//
 	// Reset trajectories

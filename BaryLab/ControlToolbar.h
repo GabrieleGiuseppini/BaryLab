@@ -24,7 +24,8 @@ public:
 
     static long const ID_MOVE_PARTICLE;    
     static long const ID_SET_PARTICLE_TRAJECTORY;
-    static long const ID_SET_ORIGIN_TRIANGLE;    
+    static long const ID_SET_ORIGIN_TRIANGLE;
+    static long const ID_SELECT_PARTICLE;
     static long const ID_MOVE_VERTEX;
     static long const ID_ROTATE_MESH_BY_POSITION;
     static long const ID_ROTATE_MESH_BY_PARTICLE;
@@ -106,7 +107,8 @@ private:
 
     wxBitmapToggleButton * mMoveParticleButton;
     wxBitmapToggleButton * mSetParticleTrajectoryButton;
-    wxBitmapToggleButton * mSetOriginTriangleButton;    
+    wxBitmapToggleButton * mSetOriginTriangleButton;
+    wxBitmapToggleButton * mSelectParticleButton;
     wxBitmapToggleButton * mMoveVertexButton;
     wxBitmapToggleButton * mRotateMeshByPositionButton;
     wxBitmapToggleButton * mRotateMeshByParticleButton;

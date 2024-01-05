@@ -53,6 +53,7 @@ private:
     SliderControl<float> * mKineticFrictionAdjustmentSlider;
     SliderControl<float> * mMassAdjustmentSlider;
     SliderControl<float> * mGravityAdjustmentSlider;
+    SliderControl<float> * mGlobalDampingSlider;
     SliderControl<float> * mSpringReductionFractionSlider;
     SliderControl<float> * mSpringDampingCoefficientSlider;
 

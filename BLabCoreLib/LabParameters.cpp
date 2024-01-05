@@ -8,6 +8,7 @@
 LabParameters::LabParameters()
 	: MassAdjustment(1.0f)
 	, GravityAdjustment(1.0f)
+	, GlobalDamping(0.00010749653315f)
 	, SpringReductionFraction(0.5f)
 	, SpringDampingCoefficient(0.5f)
 	, Elasticity(0.6f)

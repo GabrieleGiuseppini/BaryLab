@@ -24,6 +24,7 @@ enum class ToolType
     RotateMeshByParticle = 3,
     SetParticleTrajectory = 4,
     SetOriginTriangle = 5,
+    SelectParticle = 6
 };
 
 struct InputState
@@ -591,6 +592,60 @@ public:
             if (!mIsLeftMouseDown)
             {
                 mLabController->TrySelectOriginTriangle(inputState.MousePosition);
+
+                mIsLeftMouseDown = true;
+            }
+        }
+        else
+        {
+            mIsLeftMouseDown = false;
+        }
+    }
+
+private:
+
+    // Our state
+
+    bool mIsLeftMouseDown;
+
+    // The cursor
+    wxCursor const mCursor;
+};
+
+class SelectParticleTool final : public Tool
+{
+public:
+
+    SelectParticleTool(
+        wxWindow * cursorWindow,
+        std::shared_ptr<LabController> labController);
+
+public:
+
+    virtual void Initialize(InputState const & /*inputState*/) override
+    {
+        mIsLeftMouseDown = false;
+
+        // Set cursor
+        SetCurrentCursor();
+    }
+
+    virtual void Deinitialize(InputState const & /*inputState*/) override
+    {
+    }
+
+    virtual void SetCurrentCursor() override
+    {
+        mCursorWindow->SetCursor(mCursor);
+    }
+
+    virtual void Update(InputState const & inputState) override
+    {
+        if (inputState.IsLeftMouseDown)
+        {
+            if (!mIsLeftMouseDown)
+            {
+                mLabController->TrySelectParticle(inputState.MousePosition);
 
                 mIsLeftMouseDown = true;
             }

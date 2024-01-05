@@ -449,6 +449,32 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
                     CellBorder);
             }
 
+            // Global Damping
+            {
+                mGlobalDampingSlider = new SliderControl<float>(
+                    mechanicsBox,
+                    SliderWidth,
+                    SliderHeight,
+                    "Global Damp",
+                    "Adjusts the global velocity damping.",
+                    [this](float value)
+                    {
+                        this->mLiveSettings.SetValue(SLabSettings::GlobalDamping, value);
+                        this->OnLiveSettingsChanged();
+                    },
+                    std::make_unique<LinearSliderCore>(
+                        mLabController->GetMinGlobalDamping(),
+                        mLabController->GetMaxGlobalDamping()));
+
+                mechanicsSizer->Add(
+                    mGlobalDampingSlider,
+                    wxGBPosition(0, 5),
+                    wxGBSpan(1, 1),
+                    wxEXPAND | wxALL,
+                    CellBorder);
+            }
+
+
             // Spring Reduction Fraction
             {
                 mSpringReductionFractionSlider = new SliderControl<float>(
@@ -468,7 +494,7 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
 
                 mechanicsSizer->Add(
                     mSpringReductionFractionSlider,
-                    wxGBPosition(0, 5),
+                    wxGBPosition(0, 6),
                     wxGBSpan(1, 1),
                     wxEXPAND | wxALL,
                     CellBorder);
@@ -493,7 +519,7 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
 
                 mechanicsSizer->Add(
                     mSpringDampingCoefficientSlider,
-                    wxGBPosition(0, 6),
+                    wxGBPosition(0, 7),
                     wxGBSpan(1, 1),
                     wxEXPAND | wxALL,
                     CellBorder);
@@ -507,7 +533,7 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
         gridSizer->Add(
             mechanicsBox,
             wxGBPosition(0, 0),
-            wxGBSpan(1, 7),
+            wxGBSpan(1, 8),
             wxEXPAND | wxALL | wxALIGN_CENTER_HORIZONTAL,
             CellBorder);
     }
@@ -613,6 +639,7 @@ void SettingsDialog::SyncControlsWithSettings(Settings<SLabSettings> const & set
     mKineticFrictionAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::KineticFrictionAdjustment));
     mMassAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::MassAdjustment));
     mGravityAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::GravityAdjustment));    
+    mGlobalDampingSlider->SetValue(settings.GetValue<float>(SLabSettings::GlobalDamping));
     mSpringReductionFractionSlider->SetValue(settings.GetValue<float>(SLabSettings::SpringReductionFraction));
     mSpringDampingCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::SpringDampingCoefficient));
 
