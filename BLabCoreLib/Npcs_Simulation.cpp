@@ -744,7 +744,7 @@ void Npcs::UpdateNpcParticle(
 
                                         // TODOTEST
                                         // If we're human and walking, flip direction
-                                        // TODO: make helper for flipping
+                                        // TODO: encapsulate in ~OnHumanWellDetected
                                         if (npc.HumanNpcState.has_value() && isPrimaryParticle && npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking)
                                         {
                                             npc.HumanNpcState->CurrentFaceDirectionX *= -1.0f;
