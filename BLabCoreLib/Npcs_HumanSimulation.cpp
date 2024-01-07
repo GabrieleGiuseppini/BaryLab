@@ -147,6 +147,7 @@ void Npcs::UpdateHuman(
 					0.0f);
 
 				humanState.CurrentWalkingMagnitude = 0.0f;
+				humanState.TargetWalkingMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
 
@@ -170,7 +171,7 @@ void Npcs::UpdateHuman(
 						0.0f,
 						0.0f);
 
-					humanState.CurrentWalkingMagnitude = 0.1f;
+					humanState.TargetWalkingMagnitude = 1.0f;
 
 					// Keep torque
 
@@ -211,6 +212,7 @@ void Npcs::UpdateHuman(
 					0.0f);
 
 				humanState.CurrentWalkingMagnitude = 0.0f;
+				humanState.TargetWalkingMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 
@@ -361,9 +363,9 @@ void Npcs::RunWalkingHumanStateMachine(
 	(void)mesh;
 	(void)labParameters;
 
-	// Advance walking magnitude towards 1.0
-	float const ToWalkingConvergenceRate = 0.03f;
-	humanState.CurrentWalkingMagnitude = std::min(1.0f, humanState.CurrentWalkingMagnitude + (1.0f - humanState.CurrentWalkingMagnitude) * ToWalkingConvergenceRate);
+	// Advance walking magnitude towards target
+	float const ToWalkingTargetConvergenceRate = 0.027f;
+	humanState.CurrentWalkingMagnitude += (humanState.TargetWalkingMagnitude - humanState.CurrentWalkingMagnitude) * ToWalkingTargetConvergenceRate;
 	
-	LogMessage("        walkingMagnitude: ", humanState.CurrentWalkingMagnitude);
+	LogMessage("        currentWalkingMagnitude: ", humanState.CurrentWalkingMagnitude);
 }

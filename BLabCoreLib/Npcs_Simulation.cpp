@@ -202,7 +202,8 @@ void Npcs::UpdateNpcParticle(
             npcParticle,
             particleStartAbsolutePosition,
             particleStartAbsolutePosition + physicsDeltaPos,
-            mParticles);
+            mParticles,
+            labParameters);
 
         LogMessage("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
 
@@ -426,7 +427,8 @@ void Npcs::UpdateNpcParticle(
                         npcParticle,
                         particleStartAbsolutePosition,
                         trajectoryEndAbsolutePosition,
-                        mParticles);
+                        mParticles,
+                        labParameters);
 
                     remainingDt = 0.0f;
                     break;
@@ -748,6 +750,7 @@ void Npcs::UpdateNpcParticle(
                                         if (npc.HumanNpcState.has_value() && isPrimaryParticle && npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking)
                                         {
                                             npc.HumanNpcState->CurrentFaceDirectionX *= -1.0f;
+                                            npc.HumanNpcState->CurrentWalkingMagnitude = 0.0f;
                                         }
 
                                         // Consume the whole time quantum
@@ -1048,7 +1051,8 @@ void Npcs::UpdateNpcParticle_Free(
     StateType::NpcParticleStateType & particle,
     vec2f const & startPosition,
     vec2f const & endPosition,
-    NpcParticles & particles) const
+    NpcParticles & particles,
+    LabParameters const & labParameters) const
 {
     assert(!particle.ConstrainedState.has_value());
 
@@ -1061,7 +1065,7 @@ void Npcs::UpdateNpcParticle_Free(
     // Use whole time quantum for velocity, as communicated start/end positions are those planned for whole dt
     particles.SetVelocity(
         particle.ParticleIndex,
-        (endPosition - startPosition) / LabParameters::SimulationTimeStepDuration);
+        (endPosition - startPosition) / LabParameters::SimulationTimeStepDuration * (1.0f - labParameters.GlobalDamping));
 }
 
 std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
@@ -1138,7 +1142,7 @@ std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
             * vectorTraveledAlongEdge.dot(edgeDir)
             / dt;
 
-        particles.SetVelocity(npcParticle.ParticleIndex, relativeVelocity - meshVelocity);
+        particles.SetVelocity(npcParticle.ParticleIndex, relativeVelocity * (1.0f - labParameters.GlobalDamping) - meshVelocity);
         npcParticleConstrainedState.MeshRelativeVelocity = relativeVelocity;
 
         LogMessage("        edgeTraveledActual=", vectorTraveledAlongEdge.dot(edgeDir), " edgeTraveledPlanned=", edgeTraveledPlanned,
@@ -1332,7 +1336,8 @@ std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
                 npcParticle,
                 particleStartAbsolutePosition,
                 endPosition,
-                particles);
+                particles,
+                labParameters);
 
             return std::nullopt;
         }
@@ -1489,7 +1494,7 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial(
             // Use whole time quantum for velocity, as particleStartAbsolutePosition is fixed at t0
             // TODOHERE2
             vec2f const absoluteVelocity = (particleEndAbsolutePosition - particleStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration;
-            particles.SetVelocity(npcParticle.ParticleIndex, absoluteVelocity);
+            particles.SetVelocity(npcParticle.ParticleIndex, absoluteVelocity * (1.0f - labParameters.GlobalDamping));
             npcParticleConstrainedState.MeshRelativeVelocity = absoluteVelocity + meshVelocity;
 
             LogMessage("        traveledActual=", (particleEndAbsolutePosition - particleStartAbsolutePosition), " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
@@ -1685,7 +1690,8 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial(
                     npcParticle,
                     particleStartAbsolutePosition,
                     trajectoryEndAbsolutePosition,
-                    particles);
+                    particles,
+                    labParameters);
 
                 return;
             }
@@ -1786,7 +1792,7 @@ void Npcs::BounceConstrainedNpcParticle(
 
     particles.SetPosition(npcParticle.ParticleIndex, bouncePosition);
 
-    particles.SetVelocity(npcParticle.ParticleIndex, resultantAbsoluteVelocity);
+    particles.SetVelocity(npcParticle.ParticleIndex, resultantAbsoluteVelocity * (1.0f - labParameters.GlobalDamping));
     npcParticle.ConstrainedState->MeshRelativeVelocity = resultantAbsoluteVelocity + meshVelocity;
 
     //
@@ -1816,9 +1822,11 @@ void Npcs::OnImpact(
             case StateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
             {
                 // Check alignment of impact with walking direction; if hit => flip
-                if (bounceEdgeNormal.dot(vec2f(npc.HumanNpcState->CurrentFaceDirectionX * npc.HumanNpcState->CurrentWalkingMagnitude, 0.0f)) > 0.0f)
+                if (bounceEdgeNormal.dot(vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f)) > 0.0f
+                    && npc.HumanNpcState->CurrentWalkingMagnitude != 0.0f)
                 {
                     npc.HumanNpcState->CurrentFaceDirectionX *= -1.0f;
+                    npc.HumanNpcState->CurrentWalkingMagnitude = 0.0f;
                 }
 
                 break;

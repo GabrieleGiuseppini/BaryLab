@@ -115,7 +115,8 @@ public:
 			float CurrentStateValue;
 			float TargetStateValue;
 
-			float CurrentWalkingMagnitude; // [0.0f -> 1.0f]
+			float CurrentWalkingMagnitude; // [0.0f, 1.0f]
+			float TargetWalkingMagnitude; // [0.0f, 1.0f]
 
 			HumanNpcStateType(
 				BehaviorType initialBehavior,
@@ -126,6 +127,7 @@ public:
 				, CurrentStateValue(currentStateValue)
 				, TargetStateValue(targetStateValue)
 				, CurrentWalkingMagnitude(0.0f)
+				, TargetWalkingMagnitude(0.0f)
 			{}
 
 			void TransitionToState(
@@ -330,7 +332,8 @@ private:
 		StateType::NpcParticleStateType & particle,
 		vec2f const & startPosition,
 		vec2f const & endPosition,
-		NpcParticles & particles) const;
+		NpcParticles & particles,
+		LabParameters const & labParameters) const;
 
 	std::optional<float> UpdateNpcParticle_ConstrainedNonInertial(
 		StateType & npc,
