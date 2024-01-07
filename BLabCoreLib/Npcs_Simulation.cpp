@@ -608,15 +608,15 @@ void Npcs::UpdateNpcParticle(
                                 // - Never adds to physical so much as to cause resultant to be faster than walking speed
                                 //
 
-                                float const idealWalkDisplacement =
-                                    labParameters.HumanNpcWalkingSpeed
-                                    * remainingDt
-                                    * npc.HumanNpcState->CurrentWalkingMagnitude;
-
                                 vec2f const idealWalkDir = vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f);
                                 assert(idealWalkDir.length() == 1.0f);
 
                                 float idealWalkDirProjOntoEdge = idealWalkDir.dot(edgeDir);
+
+                                float const idealWalkMagnitude =
+                                    labParameters.HumanNpcWalkingSpeed
+                                    * remainingDt
+                                    * npc.HumanNpcState->CurrentWalkingMagnitude;
 
                                 // We also apply gravity resistance: dot products (i.e. cos-angle) less than a threshold amount
                                 // are clamped to zero, to prevent walking on floors that are too steep
@@ -630,7 +630,7 @@ void Npcs::UpdateNpcParticle(
                                         std::max(idealWalkDirProjOntoEdge - StartFloorSteepness, 0.0f) 
                                         / (1.0f - StartFloorSteepness);
 
-                                    float const idealEdgeWalkedPlanned = idealWalkDirProjOntoEdge * idealWalkDisplacement;
+                                    float const idealEdgeWalkedPlanned = idealWalkDirProjOntoEdge * idealWalkMagnitude;
 
                                     edgeWalkedPlanned = Clamp(idealEdgeWalkedPlanned - edgePhysicalTraveledPlanned, 0.0f, idealEdgeWalkedPlanned);
                                 }
@@ -642,14 +642,14 @@ void Npcs::UpdateNpcParticle(
                                         std::min(idealWalkDirProjOntoEdge + StartFloorSteepness, 0.0f)
                                         / (1.0f - StartFloorSteepness);
 
-                                    float const idealEdgeWalkedPlanned = idealWalkDirProjOntoEdge * idealWalkDisplacement;
+                                    float const idealEdgeWalkedPlanned = idealWalkDirProjOntoEdge * idealWalkMagnitude;
 
                                     edgeWalkedPlanned = Clamp(idealEdgeWalkedPlanned - edgePhysicalTraveledPlanned, idealEdgeWalkedPlanned, 0.0f);
                                 }
 
                                 if (npc.HumanNpcState->CurrentWalkingMagnitude != 0.0f)
                                 {
-                                    LogMessage("        idealWalkDirProjOntoEdge=", idealWalkDirProjOntoEdge, " edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.HumanNpcState->CurrentWalkingMagnitude, ")");
+                                    LogMessage("        idealWalkDirProjOntoEdge=", idealWalkDirProjOntoEdge, " idealWalkMagnitude=", idealWalkMagnitude, " edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.HumanNpcState->CurrentWalkingMagnitude, ")");
                                 }
                             }
 
