@@ -608,36 +608,49 @@ void Npcs::UpdateNpcParticle(
                                 // - Never adds to physical so much as to cause resultant to be faster than walking speed
                                 //
 
-                                vec2f const idealWalkDisplacementVector =
-                                    vec2f(npc.HumanNpcState->CurrentFaceDirectionX * labParameters.HumanNpcWalkingSpeed, 0.0f) // Velocity
-                                    * npc.HumanNpcState->CurrentWalkingMagnitude
-                                    * remainingDt;
+                                float const idealWalkDisplacement =
+                                    labParameters.HumanNpcWalkingSpeed
+                                    * remainingDt
+                                    * npc.HumanNpcState->CurrentWalkingMagnitude;
 
-                                float const idealEdgeWalkedPlanned = idealWalkDisplacementVector.dot(edgeDir);
-                                if (idealEdgeWalkedPlanned >= 0.0f)
+                                vec2f const idealWalkDir = vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f);
+                                assert(idealWalkDir.length() == 1.0f);
+
+                                float idealWalkDirProjOntoEdge = idealWalkDir.dot(edgeDir);
+
+                                // We also apply gravity resistance: dot products (i.e. cos-angle) less than a threshold amount
+                                // are clamped to zero, to prevent walking on floors that are too steep
+                                //float constexpr StartFloorSteepness = 0.45f; // Anything between 0.0 and this is clamped to 0.0
+                                float constexpr StartFloorSteepness = 0.75f; // Anything between 0.0 and this is clamped to 0.0
+
+                                if (idealWalkDirProjOntoEdge >= 0.0f)
                                 {
                                     // Same direction as edge (ahead is towards larger)
-                                    edgeWalkedPlanned = std::min(
-                                        std::max(idealEdgeWalkedPlanned - edgePhysicalTraveledPlanned, 0.0f),
-                                        idealEdgeWalkedPlanned);
 
-                                    // TODOTEST
-                                    assert(edgeWalkedPlanned == Clamp(idealEdgeWalkedPlanned - edgePhysicalTraveledPlanned, 0.0f, idealEdgeWalkedPlanned));
+                                    idealWalkDirProjOntoEdge =
+                                        std::max(idealWalkDirProjOntoEdge - StartFloorSteepness, 0.0f) 
+                                        / (1.0f - StartFloorSteepness);
+
+                                    float const idealEdgeWalkedPlanned = idealWalkDirProjOntoEdge * idealWalkDisplacement;
+
+                                    edgeWalkedPlanned = Clamp(idealEdgeWalkedPlanned - edgePhysicalTraveledPlanned, 0.0f, idealEdgeWalkedPlanned);
                                 }
                                 else
                                 {
                                     // Opposite direction as edge (ahead is towards smaller)
-                                    edgeWalkedPlanned = std::max(
-                                        std::min(idealEdgeWalkedPlanned - edgePhysicalTraveledPlanned, 0.0f),
-                                        idealEdgeWalkedPlanned);
 
-                                    // TODOTEST
-                                    assert(edgeWalkedPlanned == Clamp(idealEdgeWalkedPlanned - edgePhysicalTraveledPlanned, idealEdgeWalkedPlanned, 0.0f));
+                                    idealWalkDirProjOntoEdge =
+                                        std::min(idealWalkDirProjOntoEdge + StartFloorSteepness, 0.0f)
+                                        / (1.0f - StartFloorSteepness);
+
+                                    float const idealEdgeWalkedPlanned = idealWalkDirProjOntoEdge * idealWalkDisplacement;
+
+                                    edgeWalkedPlanned = Clamp(idealEdgeWalkedPlanned - edgePhysicalTraveledPlanned, idealEdgeWalkedPlanned, 0.0f);
                                 }
 
                                 if (npc.HumanNpcState->CurrentWalkingMagnitude != 0.0f)
                                 {
-                                    LogMessage("        idealWalkDisplacementVector=", idealWalkDisplacementVector, " idealEdgeWalkedPlanned=", idealEdgeWalkedPlanned, " edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.HumanNpcState->CurrentWalkingMagnitude, ")");
+                                    LogMessage("        idealWalkDirProjOntoEdge=", idealWalkDirProjOntoEdge, " edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.HumanNpcState->CurrentWalkingMagnitude, ")");
                                 }
                             }
 
