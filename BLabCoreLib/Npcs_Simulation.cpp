@@ -620,8 +620,7 @@ void Npcs::UpdateNpcParticle(
 
                                 // We also apply gravity resistance: dot products (i.e. cos-angle) less than a threshold amount
                                 // are clamped to zero, to prevent walking on floors that are too steep
-                                //float constexpr StartFloorSteepness = 0.45f; // Anything between 0.0 and this is clamped to 0.0
-                                float constexpr StartFloorSteepness = 0.75f; // Anything between 0.0 and this is clamped to 0.0
+                                float constexpr StartFloorSteepness = 0.65f; // Anything between 0.0 and this is clamped to 0.0
 
                                 if (idealWalkDirProjOntoEdge >= 0.0f)
                                 {
