@@ -12,6 +12,7 @@
 #include "Mesh.h"
 #include "NpcParticles.h"
 #include "RenderContext.h"
+#include "StrongTypeDef.h"
 #include "StructuralMaterialDatabase.h"
 #include "Vectors.h"
 
@@ -115,8 +116,11 @@ public:
 			float CurrentStateValue;
 			float TargetStateValue;
 
-			float CurrentWalkingMagnitude; // [0.0f, 1.0f]
-			float TargetWalkingMagnitude; // [0.0f, 1.0f]
+			float CurrentWalkMagnitude; // [0.0f, 1.0f]
+			float TargetWalkMagnitude; // [0.0f, 1.0f]
+
+			float CurrentWalkFlipDecision; // [0.0f, 1.0f]
+			float TargetWalkFlipDecision; // [0.0f, 1.0f]
 
 			HumanNpcStateType(
 				BehaviorType initialBehavior,
@@ -126,8 +130,10 @@ public:
 				, CurrentFaceDirectionX(1.0f) // Futurework: randomize
 				, CurrentStateValue(currentStateValue)
 				, TargetStateValue(targetStateValue)
-				, CurrentWalkingMagnitude(0.0f)
-				, TargetWalkingMagnitude(0.0f)
+				, CurrentWalkMagnitude(0.0f)
+				, TargetWalkMagnitude(0.0f)
+				, CurrentWalkFlipDecision(0.0f)
+				, TargetWalkFlipDecision(0.0f)
 			{}
 
 			void TransitionToState(
@@ -469,6 +475,7 @@ private:
 	bool MaintainAndCheckHumanEquilibrium(
 		ElementIndex primaryParticleIndex,
 		ElementIndex secondaryParticleIndex,
+		bool isRisingState,
 		NpcParticles & particles,
 		LabParameters const & labParameters);
 
@@ -478,6 +485,12 @@ private:
 		StateType::NpcParticleStateType const & secondaryParticleState,
 		Mesh const & mesh,
 		LabParameters const & labParameters);
+
+	using DoImmediate = StrongTypedBool<struct _DoImmediate>;
+
+	void FlipHumanWalk(
+		StateType::HumanNpcStateType & humanState, 
+		DoImmediate doImmediate) const;
 
 private:
 

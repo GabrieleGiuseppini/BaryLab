@@ -616,7 +616,7 @@ void Npcs::UpdateNpcParticle(
                                 float const idealWalkMagnitude =
                                     labParameters.HumanNpcWalkingSpeed
                                     * remainingDt
-                                    * npc.HumanNpcState->CurrentWalkingMagnitude;
+                                    * npc.HumanNpcState->CurrentWalkMagnitude;
 
                                 // We also apply gravity resistance: dot products (i.e. cos-angle) less than a threshold amount
                                 // are clamped to zero, to prevent walking on floors that are too steep
@@ -647,9 +647,9 @@ void Npcs::UpdateNpcParticle(
                                     edgeWalkedPlanned = Clamp(idealEdgeWalkedPlanned - edgePhysicalTraveledPlanned, idealEdgeWalkedPlanned, 0.0f);
                                 }
 
-                                if (npc.HumanNpcState->CurrentWalkingMagnitude != 0.0f)
+                                if (npc.HumanNpcState->CurrentWalkMagnitude != 0.0f)
                                 {
-                                    LogMessage("        idealWalkDirProjOntoEdge=", idealWalkDirProjOntoEdge, " idealWalkMagnitude=", idealWalkMagnitude, " edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.HumanNpcState->CurrentWalkingMagnitude, ")");
+                                    LogMessage("        idealWalkDirProjOntoEdge=", idealWalkDirProjOntoEdge, " idealWalkMagnitude=", idealWalkMagnitude, " edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.HumanNpcState->CurrentWalkMagnitude, ")");
                                 }
                             }
 
@@ -757,13 +757,13 @@ void Npcs::UpdateNpcParticle(
                                         npcParticle.ConstrainedState->MeshRelativeVelocity = vec2f::zero();
 
                                         // TODOTEST
-                                        // If we're human and walking, flip direction
-                                        // TODO: encapsulate in ~OnHumanWellDetected
-                                        if (npc.HumanNpcState.has_value() && isPrimaryParticle && npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking)
-                                        {
-                                            npc.HumanNpcState->CurrentFaceDirectionX *= -1.0f;
-                                            npc.HumanNpcState->CurrentWalkingMagnitude = 0.0f;
-                                        }
+                                        ////// If we're human and walking, flip direction
+                                        ////// TODO: encapsulate in ~OnHumanWellDetected
+                                        ////if (npc.HumanNpcState.has_value() && isPrimaryParticle && npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking)
+                                        ////{
+                                        ////    npc.HumanNpcState->CurrentFaceDirectionX *= -1.0f;
+                                        ////    npc.HumanNpcState->CurrentWalkingMagnitude = 0.0f;
+                                        ////}
 
                                         // Consume the whole time quantum
                                         remainingDt = 0.0f;
@@ -1835,10 +1835,10 @@ void Npcs::OnImpact(
             {
                 // Check alignment of impact with walking direction; if hit => flip
                 if (bounceEdgeNormal.dot(vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f)) > 0.0f
-                    && npc.HumanNpcState->CurrentWalkingMagnitude != 0.0f)
+                    && npc.HumanNpcState->CurrentWalkMagnitude != 0.0f)
                 {
-                    npc.HumanNpcState->CurrentFaceDirectionX *= -1.0f;
-                    npc.HumanNpcState->CurrentWalkingMagnitude = 0.0f;
+                    // Flip now
+                    FlipHumanWalk(*npc.HumanNpcState, StrongTypedTrue<_DoImmediate>);
                 }
 
                 break;

@@ -61,6 +61,7 @@ set  (SOURCES
 	Settings.h
 	ShaderManager.cpp
 	ShaderManager.h
+	StrongTypeDef.h
 	StructuralMaterial.cpp
 	StructuralMaterial.h
 	StructuralMaterialDatabase.h

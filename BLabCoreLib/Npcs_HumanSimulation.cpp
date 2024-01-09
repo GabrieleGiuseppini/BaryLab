@@ -148,8 +148,8 @@ void Npcs::UpdateHuman(
 					0.0f,
 					0.0f);
 
-				humanState.CurrentWalkingMagnitude = 0.0f;
-				humanState.TargetWalkingMagnitude = 0.0f;
+				humanState.CurrentWalkMagnitude = 0.0f;
+				humanState.TargetWalkMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
 
@@ -173,7 +173,7 @@ void Npcs::UpdateHuman(
 						0.0f,
 						0.0f);
 
-					humanState.TargetWalkingMagnitude = 1.0f;
+					humanState.TargetWalkMagnitude = 1.0f;
 
 					// Keep torque
 
@@ -198,6 +198,7 @@ void Npcs::UpdateHuman(
 				|| !MaintainAndCheckHumanEquilibrium(
 					primaryParticleState.ParticleIndex,
 					secondaryParticleState.ParticleIndex,
+					humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Rising,
 					mParticles,
 					labParameters))
 			{
@@ -213,8 +214,8 @@ void Npcs::UpdateHuman(
 					0.0f,
 					0.0f);
 
-				humanState.CurrentWalkingMagnitude = 0.0f;
-				humanState.TargetWalkingMagnitude = 0.0f;
+				humanState.CurrentWalkMagnitude = 0.0f;
+				humanState.TargetWalkMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 
@@ -258,6 +259,8 @@ void Npcs::UpdateHuman(
 					secondaryParticleState,
 					mesh,
 					labParameters);
+
+				publishStateQuantity = std::make_tuple("WalkFlip", std::to_string(humanState.CurrentWalkFlipDecision));
 			}
 
 			break;
@@ -276,6 +279,7 @@ void Npcs::UpdateHuman(
 bool Npcs::MaintainAndCheckHumanEquilibrium(
 	ElementIndex primaryParticleIndex,
 	ElementIndex secondaryParticleIndex,
+	bool isRisingState,
 	NpcParticles & particles,
 	LabParameters const & labParameters)
 {
@@ -307,20 +311,23 @@ bool Npcs::MaintainAndCheckHumanEquilibrium(
 	float const relativeVelocityAngleCW = humanVector.angleCw(humanVector + relativeVelocityDisplacement);
 
 	//
-	// Check whether we are still in equulibrium
+	// Check whether we are still in equilibrium
 	//
 	// We lose equilibrium if HumanVector is outside of sector around vertical, with non-negligible rotation velocity towards outside of sector
 	//
 
 	float constexpr MaxStaticAngleForEquilibrium = Pi<float> / 7.0f;
-	float constexpr MaxRelativeVelocityAngleForEquilibrium = 0.01f;
+
+	float const maxRelativeVelocityAngleForEqulibrium = isRisingState
+		? 0.01f
+		: 0.0f;
 
 	if (std::abs(staticDisplacementAngleCW) >= MaxStaticAngleForEquilibrium
-		&& std::abs(relativeVelocityAngleCW) > MaxRelativeVelocityAngleForEquilibrium
+		&& std::abs(relativeVelocityAngleCW) >= maxRelativeVelocityAngleForEqulibrium // Large abs angle == velocity towards divergence
 		&& staticDisplacementAngleCW * relativeVelocityAngleCW > 0.0f) // Equal signs
 	{
 		LogMessage("Losing equilibrium because: StaticDisplacementAngleCW=", staticDisplacementAngleCW, " (Max=+/-", MaxStaticAngleForEquilibrium, ") RelativeVelocityAngleCW=", relativeVelocityAngleCW,
-			" (Max=+/-", MaxRelativeVelocityAngleForEquilibrium, ")");
+			" (Max=+/-", maxRelativeVelocityAngleForEqulibrium, ")");
 
 		return false;
 	}
@@ -360,14 +367,66 @@ void Npcs::RunWalkingHumanStateMachine(
 	LabParameters const & labParameters)
 {
 	// TODOHERE
-	(void)primaryParticleState;
 	(void)secondaryParticleState;
 	(void)mesh;
 	(void)labParameters;
 
-	// Advance walking magnitude towards target
-	float const ToWalkingTargetConvergenceRate = 0.027f;
-	humanState.CurrentWalkingMagnitude += (humanState.TargetWalkingMagnitude - humanState.CurrentWalkingMagnitude) * ToWalkingTargetConvergenceRate;
+	assert(primaryParticleState.ConstrainedState.has_value());
+
+	// 1. Check condition for flipping: actual (relative) velocity opposite of walking direction
+
+	if (primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(vec2f(humanState.CurrentFaceDirectionX * humanState.CurrentWalkMagnitude, 0.0f)) < 0.0f)
+	{ 
+		// Flip later
+		FlipHumanWalk(humanState, StrongTypedFalse<_DoImmediate>);
+	}
+	else
+	{
+		// We're doing good, no flipping at the horizon
+		humanState.CurrentWalkFlipDecision = 0.0f;
+		humanState.TargetWalkFlipDecision = 0.0f;
+	}
+
+	// 2. Advance CurrentFlipDecision towards TargetFlipDecision
+
+	float constexpr ToTargetConvergenceRate = 0.1f;
+
+	humanState.CurrentWalkFlipDecision += (humanState.TargetWalkFlipDecision - humanState.CurrentWalkFlipDecision) * ToTargetConvergenceRate;
+
+	// 3. Check if time to flip
+	if (humanState.CurrentWalkFlipDecision >= 0.95f)
+	{
+		// Flip now
+		FlipHumanWalk(humanState, StrongTypedTrue<_DoImmediate>);		
+	}
+
+	//
+	// 4. Advance walking magnitude towards target
+	//
+
+	float constexpr ToWalkTargetConvergenceRate = 0.027f;
+
+	humanState.CurrentWalkMagnitude += (humanState.TargetWalkMagnitude - humanState.CurrentWalkMagnitude) * ToWalkTargetConvergenceRate;
 	
-	LogMessage("        currentWalkingMagnitude: ", humanState.CurrentWalkingMagnitude);
+	LogMessage("        currentWalkMagnitude: ", humanState.CurrentWalkMagnitude);
+}
+
+void Npcs::FlipHumanWalk(
+	StateType::HumanNpcStateType & humanState,
+	DoImmediate doImmediate) const
+{
+	if (doImmediate.Value)
+	{
+		humanState.CurrentFaceDirectionX *= -1.0f;
+		humanState.CurrentWalkMagnitude = 0.0f;
+
+		LogMessage("Flipping walk: ", humanState.CurrentFaceDirectionX);
+
+		humanState.CurrentWalkFlipDecision = 0.0f;
+		humanState.CurrentWalkFlipDecision = 1.0f;
+	}
+	else
+	{
+		humanState.TargetWalkFlipDecision = 1.0f;
+	}
 }
