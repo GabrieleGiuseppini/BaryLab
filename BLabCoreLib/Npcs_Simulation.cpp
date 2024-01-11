@@ -611,45 +611,39 @@ void Npcs::UpdateNpcParticle(
                                 vec2f const idealWalkDir = vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f);
                                 assert(idealWalkDir.length() == 1.0f);
 
-                                float idealWalkDirProjOntoEdge = idealWalkDir.dot(edgeDir);
-
                                 float const idealWalkMagnitude =
                                     labParameters.HumanNpcWalkingSpeed
                                     * remainingDt
                                     * npc.HumanNpcState->CurrentWalkMagnitude;
 
-                                // We also apply gravity resistance: dot products (i.e. cos-angle) less than a threshold amount
-                                // are clamped to zero, to prevent walking on floors that are too steep
-                                float constexpr StartFloorSteepness = 0.65f; // Anything between 0.0 and this is clamped to 0.0
-
-                                if (idealWalkDirProjOntoEdge >= 0.0f)
+                                vec2f walkDir; // Actual absolute direction of walk - along the edge
+                                if (idealWalkDir.dot(edgeDir) >= 0.0f)
                                 {
                                     // Same direction as edge (ahead is towards larger)
 
-                                    idealWalkDirProjOntoEdge =
-                                        std::max(idealWalkDirProjOntoEdge - StartFloorSteepness, 0.0f) 
-                                        / (1.0f - StartFloorSteepness);
-
-                                    float const idealEdgeWalkedPlanned = idealWalkDirProjOntoEdge * idealWalkMagnitude;
-
-                                    edgeWalkedPlanned = Clamp(idealEdgeWalkedPlanned - edgePhysicalTraveledPlanned, 0.0f, idealEdgeWalkedPlanned);
+                                    walkDir = edgeDir;
+                                    edgeWalkedPlanned = Clamp(idealWalkMagnitude - edgePhysicalTraveledPlanned, 0.0f, idealWalkMagnitude);
                                 }
                                 else
                                 {
                                     // Opposite direction as edge (ahead is towards smaller)
 
-                                    idealWalkDirProjOntoEdge =
-                                        std::min(idealWalkDirProjOntoEdge + StartFloorSteepness, 0.0f)
-                                        / (1.0f - StartFloorSteepness);
-
-                                    float const idealEdgeWalkedPlanned = idealWalkDirProjOntoEdge * idealWalkMagnitude;
-
-                                    edgeWalkedPlanned = Clamp(idealEdgeWalkedPlanned - edgePhysicalTraveledPlanned, idealEdgeWalkedPlanned, 0.0f);
+                                    walkDir = -edgeDir;
+                                    edgeWalkedPlanned = Clamp(-idealWalkMagnitude - edgePhysicalTraveledPlanned, -idealWalkMagnitude, 0.0f);
                                 }
+
+                                // Apply gravity resistance: too steep slopes (wrt vertical) are gently clamped to zero, 
+                                // to prevent walking on floors that are too steep
+                                float const gravityResistance = LinearStep(
+                                    0.55f,
+                                    0.78f,
+                                    walkDir.dot(-LabParameters::GravityDir)); // TODO: perf: this is jut y
+
+                                edgeWalkedPlanned *= (1.0f - gravityResistance);
 
                                 if (npc.HumanNpcState->CurrentWalkMagnitude != 0.0f)
                                 {
-                                    LogMessage("        idealWalkDirProjOntoEdge=", idealWalkDirProjOntoEdge, " idealWalkMagnitude=", idealWalkMagnitude, " edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.HumanNpcState->CurrentWalkMagnitude, ")");
+                                    LogMessage("        idealWalkMagnitude=", idealWalkMagnitude, " gravityResistance=", gravityResistance, " => edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.HumanNpcState->CurrentWalkMagnitude, ")");
                                 }
                             }
 

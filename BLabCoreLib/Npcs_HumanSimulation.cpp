@@ -373,9 +373,12 @@ void Npcs::RunWalkingHumanStateMachine(
 
 	assert(primaryParticleState.ConstrainedState.has_value());
 
-	// 1. Check condition for flipping: actual (relative) velocity opposite of walking direction
+	// 1. Check condition for potentially flipping: actual (relative) velocity opposite of walking direction,
+	// or too small
 
-	if (primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(vec2f(humanState.CurrentFaceDirectionX * humanState.CurrentWalkMagnitude, 0.0f)) < 0.0f)
+	float constexpr MinRelativeVelocityAgreementToAcceptWalk = 0.025f;
+	float const relativeVelocityAgreement = primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(vec2f(humanState.CurrentFaceDirectionX * humanState.CurrentWalkMagnitude, 0.0f));
+	if (relativeVelocityAgreement < MinRelativeVelocityAgreementToAcceptWalk)
 	{ 
 		// Flip later
 		FlipHumanWalk(humanState, StrongTypedFalse<_DoImmediate>);
@@ -422,8 +425,8 @@ void Npcs::FlipHumanWalk(
 
 		LogMessage("Flipping walk: ", humanState.CurrentFaceDirectionX);
 
+		humanState.TargetWalkFlipDecision = 0.0f;
 		humanState.CurrentWalkFlipDecision = 0.0f;
-		humanState.CurrentWalkFlipDecision = 1.0f;
 	}
 	else
 	{
