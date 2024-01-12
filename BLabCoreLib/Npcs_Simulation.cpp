@@ -1075,21 +1075,17 @@ std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
         // we can then assume that signed_edge_traveled_actual == signed_edge_traveled_planned (verified via assert)
         //
 
-        vec2f const vectorTraveledAlongEdge = particleEndAbsolutePosition - trajectoryStartAbsolutePosition;
-
-        // TODO: if holds, replace dot product with edgeTraveledPlanned
-        assert(std::abs(vectorTraveledAlongEdge.dot(edgeDir) - edgeTraveledPlanned) < 0.001f);
+        assert(std::abs((particleEndAbsolutePosition - trajectoryStartAbsolutePosition).dot(edgeDir) - edgeTraveledPlanned) < 0.001f);
 
         vec2f const relativeVelocity =
             edgeDir
-            * vectorTraveledAlongEdge.dot(edgeDir)
+            * edgeTraveledPlanned
             / dt;
 
         particles.SetVelocity(npcParticle.ParticleIndex, relativeVelocity - meshVelocity);
         npcParticleConstrainedState.MeshRelativeVelocity = relativeVelocity;
 
-        LogMessage("        edgeTraveledActual=", vectorTraveledAlongEdge.dot(edgeDir), " edgeTraveledPlanned=", edgeTraveledPlanned,
-            " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
+        LogMessage("        edgeTraveledPlanned=", edgeTraveledPlanned, " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
 
         // Complete
         return std::nullopt;
@@ -1706,7 +1702,6 @@ void Npcs::BounceConstrainedNpcParticle(
 
     // Decompose apparent (physical, not walked) particle velocity into normal and tangential
 
-    // TODOHERE3
     vec2f const apparentParticleVelocity = trajectory / dt;
     float const apparentParticleVelocityAlongNormal = apparentParticleVelocity.dot(bounceEdgeNormal);
     vec2f const normalVelocity = bounceEdgeNormal * apparentParticleVelocityAlongNormal;
