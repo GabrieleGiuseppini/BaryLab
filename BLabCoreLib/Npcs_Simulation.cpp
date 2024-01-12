@@ -231,7 +231,7 @@ void Npcs::UpdateNpcParticle(
             currentTriangleElementIndex,
             mesh.GetVertices());
 
-        // Calculate mesh displacement for the whole loop
+        // Calculate mesh displacement for the whole loop via pure displacement of triangle containing particle
         vec2f const meshVelocity = (particleStartAbsolutePosition - trajectoryStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration;
 
         // Machinery to detect 3-iteration paths that doesn't move particle (positional well)
