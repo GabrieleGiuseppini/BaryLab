@@ -39,8 +39,8 @@
 	"name": "HumanFeet",
 	"unique_material": "HumanFeet",
 	"mass": 34.5,
-	"static_friction": 0.85,
-	"kinetic_friction": 0.75,
+	"static_friction": 1.045,
+	"kinetic_friction": 1.0,
 	"surface": "Open"
     }
 

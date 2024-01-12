@@ -10,7 +10,7 @@
 
 std::string MangleSettingName(std::string && settingName);
 
-#define ADD_SETTING(type, name)                      \
+#define ADD_SETTING(type, name)                         \
     factory.AddSetting<type>(                           \
         SLabSettings::name,                             \
         MangleSettingName(#name),                       \
@@ -33,6 +33,7 @@ BaseSettingsManager<SLabSettings>::BaseSettingsManagerFactory SettingsManager::M
     ADD_SETTING(float, SpringDampingCoefficient);
     ADD_SETTING(float, HumanNpcEquilibriumTorqueStiffnessCoefficient);
     ADD_SETTING(float, HumanNpcEquilibriumTorqueDampingCoefficient);
+    ADD_SETTING(float, HumanNpcWalkingSpeed);
 
     return factory;
 }

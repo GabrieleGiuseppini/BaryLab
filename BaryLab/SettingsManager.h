@@ -20,8 +20,9 @@ enum class SLabSettings : size_t
     SpringDampingCoefficient,
     HumanNpcEquilibriumTorqueStiffnessCoefficient,
     HumanNpcEquilibriumTorqueDampingCoefficient,
+    HumanNpcWalkingSpeed,
 
-    _Last = HumanNpcEquilibriumTorqueDampingCoefficient
+    _Last = HumanNpcWalkingSpeed
 };
 
 class SettingsManager final : public BaseSettingsManager<SLabSettings>

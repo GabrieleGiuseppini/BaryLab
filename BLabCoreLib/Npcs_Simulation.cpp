@@ -195,7 +195,7 @@ void Npcs::UpdateNpcParticle(
         // Particle is free
         //
 
-        LogMessage("    Free: physicsDeltaPos=", physicsDeltaPos);
+        LogMessage("    Free: velocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " springF=", mParticles.GetSpringForces(npcParticle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos);
         LogMessage("    StartPosition=", particleStartAbsolutePosition, " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
 
         UpdateNpcParticle_Free(
@@ -216,6 +216,8 @@ void Npcs::UpdateNpcParticle(
         //
 
         assert(npcParticle.ConstrainedState.has_value());
+
+        LogMessage("    Constrained: velocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " springF=", mParticles.GetSpringForces(npcParticle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos);
 
         // Loop tracing trajectory from TrajectoryStart (== current bary coords) to TrajectoryEnd (== start absolute pos + deltaPos); 
         // each step moves the next TrajectoryStart a bit ahead.
@@ -299,7 +301,7 @@ void Npcs::UpdateNpcParticle(
             vec2f const trajectory = trajectoryEndAbsolutePosition - trajectoryStartAbsolutePosition;
 
             LogMessage("    TrajectoryStartAbsolutePosition=", trajectoryStartAbsolutePosition, " PhysicsDeltaPos=", physicsDeltaPos, " TotalEdgeWalkedActual=", totalEdgeWalkedActual,
-                " TrajectoryEndAbsolutePosition=", trajectoryEndAbsolutePosition, " Trajectory=", trajectory);
+                " => TrajectoryEndAbsolutePosition=", trajectoryEndAbsolutePosition, " Trajectory=", trajectory);
 
             //
             // Check if we are at a corner; if we are, travel through corners - according to trajectory - until
@@ -635,9 +637,9 @@ void Npcs::UpdateNpcParticle(
                                 // Apply gravity resistance: too steep slopes (wrt vertical) are gently clamped to zero, 
                                 // to prevent walking on floors that are too steep
                                 float const gravityResistance = LinearStep(
-                                    0.55f,
-                                    0.78f,
-                                    walkDir.dot(-LabParameters::GravityDir)); // TODO: perf: this is jut y
+                                    0.60f, // Start slightly before expected 45-degree ramp
+                                    0.79f,
+                                    walkDir.dot(-LabParameters::GravityDir)); // TODO: perf: this is just y
 
                                 edgeWalkedPlanned *= (1.0f - gravityResistance);
 

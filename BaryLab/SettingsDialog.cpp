@@ -610,6 +610,31 @@ void SettingsDialog::PopulateNpcsPanel(wxPanel * panel)
                     CellBorder);
             }
 
+            // Human NPC Walking Speed
+            {
+                mHumanNpcWalkingSpeedSlider = new SliderControl<float>(
+                    npcsBox,
+                    SliderWidth,
+                    SliderHeight,
+                    "Walking Speed",
+                    "The speed at which human NPC's walk.",
+                    [this](float value)
+                    {
+                        this->mLiveSettings.SetValue(SLabSettings::HumanNpcWalkingSpeed, value);
+                        this->OnLiveSettingsChanged();
+                    },
+                    std::make_unique<LinearSliderCore>(
+                        mLabController->GetMinHumanNpcWalkingSpeed(),
+                        mLabController->GetMaxHumanNpcWalkingSpeed()));
+
+                npcsSizer->Add(
+                    mHumanNpcWalkingSpeedSlider,
+                    wxGBPosition(0, 2),
+                    wxGBSpan(1, 1),
+                    wxEXPAND | wxALL,
+                    CellBorder);
+            }
+
             npcsBoxSizer->Add(npcsSizer, 0, wxALL, StaticBoxInsetMargin);
         }
 
@@ -646,6 +671,7 @@ void SettingsDialog::SyncControlsWithSettings(Settings<SLabSettings> const & set
     // NPCs
     mHumanNpcEquilibriumTorqueStiffnessCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcEquilibriumTorqueStiffnessCoefficient));
     mHumanNpcEquilibriumTorqueDampingCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcEquilibriumTorqueDampingCoefficient));
+    mHumanNpcWalkingSpeedSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcWalkingSpeed));
 }
 
 void SettingsDialog::OnLiveSettingsChanged()

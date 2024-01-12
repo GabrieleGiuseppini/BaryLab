@@ -213,6 +213,11 @@ public:
     float GetMinHumanNpcEquilibriumTorqueDampingCoefficient() const { return LabParameters::MinHumanNpcEquilibriumTorqueDampingCoefficient; }
     float GetMaxHumanNpcEquilibriumTorqueDampingCoefficient() const { return LabParameters::MaxHumanNpcEquilibriumTorqueDampingCoefficient; }
 
+    float GetHumanNpcWalkingSpeed() const { return mLabParameters.HumanNpcWalkingSpeed; }
+    void SetHumanNpcWalkingSpeed(float value) { mLabParameters.HumanNpcWalkingSpeed = value; }
+    float GetMinHumanNpcWalkingSpeed() const { return LabParameters::MinHumanNpcWalkingSpeed; }
+    float GetMaxHumanNpcWalkingSpeed() const { return LabParameters::MaxHumanNpcWalkingSpeed; }
+
 private:
 
     explicit LabController(
