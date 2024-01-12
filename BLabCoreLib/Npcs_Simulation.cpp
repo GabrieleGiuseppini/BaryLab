@@ -931,6 +931,7 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
     // Calculate world forces
     //
 
+    // TODOHERE
 
 
     vec2f const physicalForces =

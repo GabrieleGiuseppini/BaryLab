@@ -279,7 +279,7 @@ bool Npcs::MaintainAndCheckHumanEquilibrium(
 	ElementIndex secondaryParticleIndex,
 	bool isRisingState,
 	NpcParticles & particles,
-	LabParameters const & labParameters)
+	LabParameters const & /*labParameters*/)
 {
 	//
 	// Make sure we are not falling out of equilibrium
@@ -329,30 +329,6 @@ bool Npcs::MaintainAndCheckHumanEquilibrium(
 
 		return false;
 	}
-
-	//
-	// We are still in equlibrium: calculate then torque on the secondary (head)
-	// required to maintain alignment with vertical
-	//
-
-	// Calculate angle that we want to enforce with this torque
-	float const totalTorqueAngleCW =
-		staticDisplacementAngleCW * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient
-		+ relativeVelocityAngleCW * labParameters.HumanNpcEquilibriumTorqueDampingCoefficient;
-
-	// Calculate (linear) force that generates this rotation
-	vec2f const torqueDisplacement = humanVector.rotate(totalTorqueAngleCW) - humanVector;
-	float const particleMass = mParticles.GetPhysicalProperties(secondaryParticleIndex).Mass * labParameters.MassAdjustment;
-	vec2f const equilibriumTorqueForce =
-		torqueDisplacement
-		* particleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
-
-	LogMessage("Human (secondaryParticleIndex=", secondaryParticleIndex, "): equilibriumTorqueForce=", equilibriumTorqueForce);
-
-	// Store torque force for secondary
-	// TODOTEST
-	//mParticles.SetVoluntaryForces(secondaryParticleIndex, equilibriumTorqueForce);
-	mParticles.SetVoluntaryForces(secondaryParticleIndex, vec2f::zero());
 
 	return true;
 }
