@@ -927,13 +927,24 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
 {
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
 
+    //
+    // Calculate world forces
+    //
+
+
+
     vec2f const physicalForces =
         mParticles.GetExternalForces(npcParticle.ParticleIndex)
         + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * particleMass
         + mParticles.GetSpringForces(npcParticle.ParticleIndex)
         + mParticles.GetVoluntaryForces(npcParticle.ParticleIndex);
 
-    // TODOTEST
+    //
+    // Calculate Human Equlibrium Torque
+    //
+
+    vec2f equilibriumTorqueForce;
+
     if (npc.HumanNpcState.has_value() 
         && (npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking 
             || npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium
@@ -941,8 +952,6 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
         && !isPrimaryParticle)
     {
         assert(npc.DipoleState.has_value());
-
-        // TODOTEST: old equilibrium torque algo
 
         vec2f const humanVector = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex) - mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
 
@@ -981,69 +990,16 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
 
         // Calculate (linear) force that generates this rotation
         vec2f const torqueDisplacement = humanVector.rotate(totalTorqueAngleCW) - humanVector;
-        vec2f const equilibriumTorqueForce =
+        equilibriumTorqueForce =
             torqueDisplacement
             * particleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
-
-        mEventDispatcher.OnCustomProbe("Torque", equilibriumTorqueForce.length());
-
-        return physicalForces + equilibriumTorqueForce;
-
-
-
-
-
-
-
-
-        ////// TODOTEST: force for delta position after integration
-        ////vec2f const afterIntegrationPosition =
-        ////    mParticles.GetPosition(npcParticle.ParticleIndex)
-        ////    + mParticles.GetVelocity(npcParticle.ParticleIndex) * LabParameters::SimulationTimeStepDuration
-        ////    + physicalForces / particleMass * (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
-        ////vec2f const desiredEndPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex) + vec2f(0.0f, LabParameters::HumanNpcLength);
-
-        ////// Force to move about delta
-        ////vec2f const torqueForce = 
-        ////    (desiredEndPosition - afterIntegrationPosition)
-        ////    * particleMass
-        ////    / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
-
-        ////mEventDispatcher.OnCustomProbe("Torque", torqueForce.length() * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient);
-
-        ////return physicalForces
-        ////    + torqueForce * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient;
-
-
-
-
-
-
-        // TODOTEST: naive
-        ////vec2f const desiredEndPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex) + vec2f(0.0f, LabParameters::HumanNpcLength);
-        ////vec2f const desiredEndPositionForce =
-        ////    (desiredEndPosition - mParticles.GetPosition(npcParticle.ParticleIndex))
-        ////    * particleMass
-        ////    / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
-
-        ////vec2f deltaForce = (desiredEndPositionForce - (physicalForces + mParticles.GetVelocity(npcParticle.ParticleIndex) * particleMass / LabParameters::SimulationTimeStepDuration));
-        ////float const deltaForceLength = deltaForce.length();
-        ////float constexpr TODOMaxForce = 400000.0f;
-        ////float const smoothedDeltaForceLength =
-        ////    SmoothStep(0.0f, TODOMaxForce * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient, deltaForceLength)
-        ////    * TODOMaxForce * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient;
-
-        ////mEventDispatcher.OnCustomProbe("Torque", smoothedDeltaForceLength);
-
-        ////return physicalForces
-        ////    + deltaForce.normalise(deltaForceLength) * smoothedDeltaForceLength;
-
-
-
-        //return physicalForces + (desiredEndPositionForce - physicalForces) * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient;
+    }
+    else
+    {
+        equilibriumTorqueForce = vec2f::zero();
     }
 
-    return physicalForces;
+    return physicalForces + equilibriumTorqueForce;
 }
 
 void Npcs::UpdateNpcParticle_Free(

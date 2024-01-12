@@ -474,6 +474,30 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
                     CellBorder);
             }
 
+            // Sea Level
+            {
+                mSeaLevelSlider = new SliderControl<float>(
+                    mechanicsBox,
+                    SliderWidth,
+                    SliderHeight,
+                    "Sea Level",
+                    "The level of the sea (m).",
+                    [this](float value)
+                    {
+                        this->mLiveSettings.SetValue(SLabSettings::SeaLevel, value);
+                        this->OnLiveSettingsChanged();
+                    },
+                    std::make_unique<LinearSliderCore>(
+                        mLabController->GetMinSeaLevel(),
+                        mLabController->GetMaxSeaLevel()));
+
+                mechanicsSizer->Add(
+                    mSeaLevelSlider,
+                    wxGBPosition(0, 6),
+                    wxGBSpan(1, 1),
+                    wxEXPAND | wxALL,
+                    CellBorder);
+            }
 
             // Spring Reduction Fraction
             {
@@ -494,7 +518,7 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
 
                 mechanicsSizer->Add(
                     mSpringReductionFractionSlider,
-                    wxGBPosition(0, 6),
+                    wxGBPosition(0, 7),
                     wxGBSpan(1, 1),
                     wxEXPAND | wxALL,
                     CellBorder);
@@ -519,7 +543,7 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
 
                 mechanicsSizer->Add(
                     mSpringDampingCoefficientSlider,
-                    wxGBPosition(0, 7),
+                    wxGBPosition(0, 8),
                     wxGBSpan(1, 1),
                     wxEXPAND | wxALL,
                     CellBorder);
@@ -665,6 +689,7 @@ void SettingsDialog::SyncControlsWithSettings(Settings<SLabSettings> const & set
     mMassAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::MassAdjustment));
     mGravityAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::GravityAdjustment));    
     mGlobalDampingSlider->SetValue(settings.GetValue<float>(SLabSettings::GlobalDamping));
+    mSeaLevelSlider->SetValue(settings.GetValue<float>(SLabSettings::SeaLevel));
     mSpringReductionFractionSlider->SetValue(settings.GetValue<float>(SLabSettings::SpringReductionFraction));
     mSpringDampingCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::SpringDampingCoefficient));
 

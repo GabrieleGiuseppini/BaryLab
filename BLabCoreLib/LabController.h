@@ -193,6 +193,11 @@ public:
     float GetMinGlobalDamping() const { return LabParameters::MinGlobalDamping; }
     float GetMaxGlobalDamping() const { return LabParameters::MaxGlobalDamping; }
 
+    float GetSeaLevel() const { return mLabParameters.SeaLevel; }
+    void SetSeaLevel(float value) { mLabParameters.SeaLevel = value; }
+    float GetMinSeaLevel() const { return LabParameters::MinSeaLevel; }
+    float GetMaxSeaLevel() const { return LabParameters::MaxSeaLevel; }
+
     float GetSpringReductionFraction() const { return mLabParameters.SpringReductionFraction; }
     void SetSpringReductionFraction(float value) { mLabParameters.SpringReductionFraction = value; }
     float GetMinSpringReductionFraction() const { return LabParameters::MinSpringReductionFraction; }

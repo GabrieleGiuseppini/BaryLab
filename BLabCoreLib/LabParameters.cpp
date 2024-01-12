@@ -9,6 +9,7 @@ LabParameters::LabParameters()
 	: MassAdjustment(1.0f)
 	, GravityAdjustment(1.0f)
 	, GlobalDamping(0.00010749653315f)
+	, SeaLevel(0.0f) // 0-meter NAP
 	, SpringReductionFraction(0.39f) // At least for humans, larger than this causes heads to pull up feet
 	, SpringDampingCoefficient(0.5f)
 	, Elasticity(0.6f)

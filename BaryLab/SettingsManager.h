@@ -16,6 +16,7 @@ enum class SLabSettings : size_t
     MassAdjustment,
     GravityAdjustment,
     GlobalDamping,
+    SeaLevel,
     SpringReductionFraction,
     SpringDampingCoefficient,
     HumanNpcEquilibriumTorqueStiffnessCoefficient,

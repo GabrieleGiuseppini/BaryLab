@@ -71,8 +71,6 @@ void Npcs::UpdateHuman(
 {
 	float const ToRisingConvergenceRate = 0.067f;
 	float const ToWalkingConvergenceRate = 0.09f;
-	// TODOTEST
-	//float constexpr MaxRelativeVelocityForEquilibrium = 2.9f; // So high because we slip a lot while we try to stand up, and thus need to be immune to ourselves
 	float constexpr MaxRelativeVelocityForEquilibrium = 3.0f; // So high because we slip a lot while we try to stand up, and thus need to be immune to ourselves
 
 	std::optional<std::tuple<std::string, std::string>> publishStateQuantity;
