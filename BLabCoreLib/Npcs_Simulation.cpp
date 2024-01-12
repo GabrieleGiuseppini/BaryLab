@@ -19,12 +19,6 @@ void Npcs::UpdateNpcs(
     LogMessage("----------------------------------");
 
     //
-    // 0. Prepare
-    //
-
-    mParticles.ResetVoluntarySuperimposedDisplacement();
-
-    //
     // 1. Check if a free secondary particle should become constrained
     // 2. Update behavioral state machines
     // 3. Calculate spring forces 
@@ -258,9 +252,8 @@ void Npcs::UpdateNpcParticle(
         std::optional<PastBarycentricPosition> pastPastBarycentricPosition;
         std::optional<PastBarycentricPosition> pastBarycentricPosition;
 
-        // Total displacement walked along the edge - as a sum of the vectors from the individual steps;
-        // if this is the secondary of a human, we pickup the total walked by the primary
-        vec2f totalEdgeWalkedActual = mParticles.GetVoluntarySuperimposedDisplacement(npcParticle.ParticleIndex);
+        // Total displacement walked along the edge - as a sum of the vectors from the individual steps
+        vec2f totalEdgeWalkedActual = vec2f::zero();
 
         for (float remainingDt = dt; ; )
         {
@@ -895,15 +888,12 @@ void Npcs::UpdateNpcParticle(
         }
 
         //
-        // Store total edge walked for secondary to use, if this is the primary
-        // of a human
+        // Store total edge walked, if this is the primary of a human
         //
 
         if (npc.HumanNpcState.has_value() && isPrimaryParticle)
         {
-            assert(npc.DipoleState.has_value());
-            // TODOTEST
-            //mParticles.SetVoluntarySuperimposedDisplacement(npc.DipoleState->SecondaryParticleState.ParticleIndex, totalEdgeWalkedActual);
+            // TODO: add to new HumanNpcState member
         }
     }
 
