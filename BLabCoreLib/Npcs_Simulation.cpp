@@ -22,7 +22,6 @@ void Npcs::UpdateNpcs(
     // 0. Prepare
     //
 
-    mParticles.ResetVoluntaryForces();
     mParticles.ResetVoluntarySuperimposedDisplacement();
 
     //
@@ -937,8 +936,7 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
     vec2f const physicalForces =
         mParticles.GetExternalForces(npcParticle.ParticleIndex)
         + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * particleMass
-        + mParticles.GetSpringForces(npcParticle.ParticleIndex)
-        + mParticles.GetVoluntaryForces(npcParticle.ParticleIndex);
+        + mParticles.GetSpringForces(npcParticle.ParticleIndex);
 
     //
     // Calculate Human Equlibrium Torque
@@ -980,7 +978,7 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
         float const relativeVelocityAngleCW = humanVector.angleCw(humanVector + relativeVelocityDisplacement);
 
         //
-        // Calculate then torque on the secondary (head)
+        // Calculate the torque on the secondary (head)
         // required to maintain alignment with vertical
         //
 
@@ -1087,7 +1085,6 @@ std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
         // we can then assume that signed_edge_traveled_actual == signed_edge_traveled_planned (verified via assert)
         //
 
-        // TODOHERE1
         vec2f const vectorTraveledAlongEdge = particleEndAbsolutePosition - trajectoryStartAbsolutePosition;
 
         // TODO: if holds, replace dot product with edgeTraveledPlanned
@@ -1098,7 +1095,7 @@ std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
             * vectorTraveledAlongEdge.dot(edgeDir)
             / dt;
 
-        particles.SetVelocity(npcParticle.ParticleIndex, relativeVelocity * (1.0f - labParameters.GlobalDamping) - meshVelocity);
+        particles.SetVelocity(npcParticle.ParticleIndex, relativeVelocity - meshVelocity);
         npcParticleConstrainedState.MeshRelativeVelocity = relativeVelocity;
 
         LogMessage("        edgeTraveledActual=", vectorTraveledAlongEdge.dot(edgeDir), " edgeTraveledPlanned=", edgeTraveledPlanned,
@@ -1448,9 +1445,8 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial(
             particles.SetPosition(npcParticle.ParticleIndex, particleEndAbsolutePosition);
 
             // Use whole time quantum for velocity, as particleStartAbsolutePosition is fixed at t0
-            // TODOHERE2
             vec2f const absoluteVelocity = (particleEndAbsolutePosition - particleStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration;
-            particles.SetVelocity(npcParticle.ParticleIndex, absoluteVelocity * (1.0f - labParameters.GlobalDamping));
+            particles.SetVelocity(npcParticle.ParticleIndex, absoluteVelocity);
             npcParticleConstrainedState.MeshRelativeVelocity = absoluteVelocity + meshVelocity;
 
             LogMessage("        traveledActual=", (particleEndAbsolutePosition - particleStartAbsolutePosition), " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
@@ -1748,7 +1744,7 @@ void Npcs::BounceConstrainedNpcParticle(
 
     particles.SetPosition(npcParticle.ParticleIndex, bouncePosition);
 
-    particles.SetVelocity(npcParticle.ParticleIndex, resultantAbsoluteVelocity * (1.0f - labParameters.GlobalDamping));
+    particles.SetVelocity(npcParticle.ParticleIndex, resultantAbsoluteVelocity);
     npcParticle.ConstrainedState->MeshRelativeVelocity = resultantAbsoluteVelocity + meshVelocity;
 
     //

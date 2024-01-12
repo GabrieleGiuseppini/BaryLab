@@ -482,7 +482,6 @@ private:
 	void RunWalkingHumanStateMachine(
 		StateType::HumanNpcStateType & humanState,
 		StateType::NpcParticleStateType const & primaryParticleState,
-		StateType::NpcParticleStateType const & secondaryParticleState,
 		Mesh const & mesh,
 		LabParameters const & labParameters);
 

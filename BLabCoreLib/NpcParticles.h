@@ -49,7 +49,6 @@ public:
         , mVelocityBuffer(mBufferElementCount, particleCount, vec2f::zero())
         , mExternalForcesBuffer(mBufferElementCount, particleCount, vec2f::zero())
         , mSpringForcesBuffer(mBufferElementCount, particleCount, vec2f::zero())
-        , mVoluntaryForcesBuffer(mBufferElementCount, particleCount, vec2f::zero())
         , mVoluntarySuperimposedDisplacementBuffer(mBufferElementCount, particleCount, vec2f::zero())
         // Render
         , mRenderColorBuffer(mBufferElementCount, particleCount, rgbaColor::zero())
@@ -161,28 +160,6 @@ public:
         mSpringForcesBuffer[particleElementIndex] = value;
     }
 
-    vec2f const & GetVoluntaryForces(ElementIndex particleElementIndex) const noexcept
-    {
-        return mVoluntaryForcesBuffer[particleElementIndex];
-    }
-
-    vec2f * GetVoluntaryForcesBuffer() noexcept
-    {
-        return mVoluntaryForcesBuffer.data();
-    }
-
-    void SetVoluntaryForces(
-        ElementIndex particleElementIndex,
-        vec2f const & value) noexcept
-    {
-        mVoluntaryForcesBuffer[particleElementIndex] = value;
-    }
-
-    void ResetVoluntaryForces()
-    {
-        mVoluntaryForcesBuffer.fill(vec2f::zero());
-    }
-
     vec2f const & GetVoluntarySuperimposedDisplacement(ElementIndex particleElementIndex) const noexcept
     {
         return mVoluntarySuperimposedDisplacementBuffer[particleElementIndex];
@@ -243,7 +220,6 @@ private:
     Buffer<vec2f> mVelocityBuffer;
     Buffer<vec2f> mExternalForcesBuffer;
     Buffer<vec2f> mSpringForcesBuffer; // Hooke+Damp
-    Buffer<vec2f> mVoluntaryForcesBuffer;
     Buffer<vec2f> mVoluntarySuperimposedDisplacementBuffer;
 
     //

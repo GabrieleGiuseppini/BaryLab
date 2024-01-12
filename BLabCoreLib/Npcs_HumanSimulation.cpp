@@ -254,7 +254,6 @@ void Npcs::UpdateHuman(
 				RunWalkingHumanStateMachine(
 					humanState,
 					primaryParticleState,
-					secondaryParticleState,
 					mesh,
 					labParameters);
 
@@ -336,15 +335,9 @@ bool Npcs::MaintainAndCheckHumanEquilibrium(
 void Npcs::RunWalkingHumanStateMachine(
 	StateType::HumanNpcStateType & humanState,
 	StateType::NpcParticleStateType const & primaryParticleState,
-	StateType::NpcParticleStateType const & secondaryParticleState,
-	Mesh const & mesh,
-	LabParameters const & labParameters)
+	Mesh const & /*mesh*/, // Will come useful when we'll *plan* the walk
+	LabParameters const & /*labParameters*/)
 {
-	// TODOHERE
-	(void)secondaryParticleState;
-	(void)mesh;
-	(void)labParameters;
-
 	assert(primaryParticleState.ConstrainedState.has_value());
 
 	// 1. Check condition for potentially flipping: actual (relative) velocity opposite of walking direction,
