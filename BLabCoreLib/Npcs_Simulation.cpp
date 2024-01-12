@@ -750,15 +750,6 @@ void Npcs::UpdateNpcParticle(
                                         mParticles.SetVelocity(npcParticle.ParticleIndex, -meshVelocity);
                                         npcParticle.ConstrainedState->MeshRelativeVelocity = vec2f::zero();
 
-                                        // TODOTEST
-                                        ////// If we're human and walking, flip direction
-                                        ////// TODO: encapsulate in ~OnHumanWellDetected
-                                        ////if (npc.HumanNpcState.has_value() && isPrimaryParticle && npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking)
-                                        ////{
-                                        ////    npc.HumanNpcState->CurrentFaceDirectionX *= -1.0f;
-                                        ////    npc.HumanNpcState->CurrentWalkingMagnitude = 0.0f;
-                                        ////}
-
                                         // Consume the whole time quantum
                                         remainingDt = 0.0f;
                                     }
