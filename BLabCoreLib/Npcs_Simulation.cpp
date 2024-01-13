@@ -942,14 +942,15 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
     {
         assert(npc.DipoleState.has_value());
 
-        // TODOTEST
-        //vec2f const humanVector = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex) - mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
+        // Given that we apply torque onto the secondary particle *after* the primary has been simulated
+        // (so that we take into account the primary's new position), and thus we see the primary where it 
+        // is at the end of the step - possibly far away if mesh velocity is high, we want to _predict_ 
+        // where the secondary will be by its own velocity
 
-        // TODO: see if just velocity would be enough, instead of also force
         vec2f const secondaryPredictedPosition =
             mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex)
-            + mParticles.GetVelocity(npc.DipoleState->SecondaryParticleState.ParticleIndex) * LabParameters::SimulationTimeStepDuration
-            + physicalForces / particleMass * (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
+            + mParticles.GetVelocity(npc.DipoleState->SecondaryParticleState.ParticleIndex) * LabParameters::SimulationTimeStepDuration;
+            ;
         vec2f const humanVector = secondaryPredictedPosition - mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
 
         // Calculate CW angle between head and vertical (pointing up);
