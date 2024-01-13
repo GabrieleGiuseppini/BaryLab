@@ -27,14 +27,15 @@ public:
 
     enum class ProgramType : size_t
     {
-        Vertices = 0,
-        Edges = 1,
-        Particles = 2,
-        ParticleTrajectories = 3,
-        Springs = 4,
-        Triangles = 5,
-        MeshVelocity = 6,
-        Grid = 7,
+        Background = 0,
+        Vertices = 1,
+        Edges = 2,
+        Particles = 3,
+        ParticleTrajectories = 4,
+        Springs = 5,
+        Triangles = 6,
+        MeshVelocity = 7,
+        Grid = 8,
 
         _Last = Grid
     };
@@ -43,11 +44,14 @@ public:
     {
         OrthoMatrix = 0,
         PixelWorldWidth = 1,
-        WorldStep = 2
+        SeaLevel = 2,
+        WorldStep = 3
     };
 
     enum class VertexAttributeType : size_t
     {
+        BackgroundAttributeGroup1 = 0,
+
         VertexAttributeGroup1 = 0,
 
         EdgeAttributeGroup1 = 0,

@@ -42,6 +42,42 @@ RenderContext::RenderContext(
     mShaderManager = ShaderManager::CreateInstance();
 
     //
+    // Background
+    //
+
+    glGenVertexArrays(1, &tmpGLuint);
+    mBackgroundVAO = tmpGLuint;
+    glBindVertexArray(*mBackgroundVAO);
+
+    glGenBuffers(1, &tmpGLuint);
+    mBackgroundVertexVBO = tmpGLuint;
+    glBindBuffer(GL_ARRAY_BUFFER, *mBackgroundVertexVBO);
+
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::BackgroundAttributeGroup1));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::BackgroundAttributeGroup1), 2, GL_FLOAT, GL_FALSE, sizeof(BackgroundVertex), (void *)0);
+    static_assert(sizeof(BackgroundVertex) == 2 * sizeof(float));
+
+    {
+        mBackgroundVertexBuffer.emplace_back(
+            vec2f(-1.0f, 1.0f));
+
+        mBackgroundVertexBuffer.emplace_back(
+            vec2f(-1.0f, -1.0f));
+
+        mBackgroundVertexBuffer.emplace_back(
+            vec2f(1.0f, 1.0f));
+
+        mBackgroundVertexBuffer.emplace_back(
+            vec2f(1.0f, -1.0f));
+
+        glBindBuffer(GL_ARRAY_BUFFER, *mBackgroundVertexVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(BackgroundVertex) * mBackgroundVertexBuffer.size(), mBackgroundVertexBuffer.data(), GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
+    glBindVertexArray(0);
+
+    //
     // Vertices
     //
 
@@ -209,6 +245,9 @@ RenderContext::RenderContext(
     // Disable depth test
     glDisable(GL_DEPTH_TEST);
 
+    // Set polygon mode
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
     ////////////////////////////////////////////////////////////////
     // Set parameters in all shaders
     ////////////////////////////////////////////////////////////////
@@ -218,17 +257,16 @@ RenderContext::RenderContext(
 
 void RenderContext::RenderStart()
 {
-    // Set polygon mode
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-    // Clear canvas - and depth buffer
-    //vec3f constexpr ClearColor = rgbColor(0xca, 0xf4, 0xf4).toVec3f();
-    vec3f constexpr ClearColor = rgbColor(0xff, 0xff, 0xff).toVec3f();
-    glClearColor(ClearColor.x, ClearColor.y, ClearColor.z, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     // Process setting changes
     ProcessSettingChanges();
+}
+
+void RenderContext::UploadSeaLevel(float value)
+{
+    mShaderManager->ActivateProgram<ShaderManager::ProgramType::Background>();
+    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::Background, ShaderManager::ProgramParameterType::SeaLevel>(
+        mViewModel.WorldToNdc(vec2f(0.0f, value)).y);
+
 }
 
 void RenderContext::UploadVertices(
@@ -757,6 +795,23 @@ void RenderContext::UploadMeshVelocity(
 
 void RenderContext::RenderEnd()
 {
+    ////////////////////////////////////////////////////////////////
+    // Background
+    ////////////////////////////////////////////////////////////////
+
+    {
+        glBindVertexArray(*mBackgroundVAO);
+
+        mShaderManager->ActivateProgram<ShaderManager::ProgramType::Background>();
+
+        assert(mBackgroundVertexBuffer.size() == 4);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, static_cast<GLsizei>(mBackgroundVertexBuffer.size()));
+
+        CheckOpenGLError();
+
+        glBindVertexArray(0);
+    }
+
     ////////////////////////////////////////////////////////////////
     // Triangles
     ////////////////////////////////////////////////////////////////

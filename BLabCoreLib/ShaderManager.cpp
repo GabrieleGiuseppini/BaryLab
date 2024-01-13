@@ -462,7 +462,9 @@ std::set<std::string> ShaderManager::ExtractVertexAttributeNames(std::string con
 
 ShaderManager::ProgramType ShaderManager::ShaderFilenameToProgramType(std::string const & str)
 {
-    if (Utils::CaseInsensitiveEquals(str, "Edges"))
+    if (Utils::CaseInsensitiveEquals(str, "Background"))
+        return ProgramType::Background;
+    else if (Utils::CaseInsensitiveEquals(str, "Edges"))
         return ProgramType::Edges;
     else if (Utils::CaseInsensitiveEquals(str, "Grid"))
         return ProgramType::Grid;
@@ -486,6 +488,8 @@ std::string ShaderManager::ProgramTypeToStr(ProgramType program)
 {
     switch (program)
     {
+        case ProgramType::Background:
+            return "Background";
         case ProgramType::Edges:
             return "Edges";
         case ProgramType::Grid:
@@ -514,6 +518,8 @@ ShaderManager::ProgramParameterType ShaderManager::StrToProgramParameterType(std
         return ProgramParameterType::OrthoMatrix;
     else if (str == "PixelWorldWidth")
         return ProgramParameterType::PixelWorldWidth;
+    else if (str == "SeaLevel")
+        return ProgramParameterType::SeaLevel;
     else if (str == "WorldStep")
         return ProgramParameterType::WorldStep;
     else
@@ -528,6 +534,8 @@ std::string ShaderManager::ProgramParameterTypeToStr(ProgramParameterType progra
             return "OrthoMatrix";
         case ProgramParameterType::PixelWorldWidth:
             return "PixelWorldWidth";
+        case ProgramParameterType::SeaLevel:
+            return "SeaLevel";
         case ProgramParameterType::WorldStep:
             return "WorldStep";
         default:
@@ -538,7 +546,9 @@ std::string ShaderManager::ProgramParameterTypeToStr(ProgramParameterType progra
 
 ShaderManager::VertexAttributeType ShaderManager::StrToVertexAttributeType(std::string const & str)
 {
-    if (Utils::CaseInsensitiveEquals(str, "GridAttributeGroup1"))
+    if (Utils::CaseInsensitiveEquals(str, "BackgroundAttributeGroup1"))
+        return VertexAttributeType::BackgroundAttributeGroup1;
+    else if (Utils::CaseInsensitiveEquals(str, "GridAttributeGroup1"))
         return VertexAttributeType::GridAttributeGroup1;
     else if (Utils::CaseInsensitiveEquals(str, "EdgeAttributeGroup1"))
         return VertexAttributeType::EdgeAttributeGroup1;

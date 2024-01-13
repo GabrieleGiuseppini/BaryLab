@@ -143,6 +143,8 @@ public:
 
     void RenderStart();
 
+    void UploadSeaLevel(float value);
+
     void UploadVertices(
         size_t vertexCount,
         vec2f const * vertexPositions);
@@ -223,6 +225,29 @@ private:
     void OnGridUpdated();
 
 private:
+
+    ////////////////////////////////////////////////////////////////
+    // Background
+    ////////////////////////////////////////////////////////////////
+
+#pragma pack(push)
+
+    struct BackgroundVertex
+    {
+        vec2f PositionNdc;
+
+        BackgroundVertex(
+            vec2f const & positionNdc)
+            : PositionNdc(positionNdc)
+        {}
+    };
+
+#pragma pack(pop)
+
+    BLabOpenGLVAO mBackgroundVAO;
+
+    std::vector<BackgroundVertex> mBackgroundVertexBuffer;
+    BLabOpenGLVBO mBackgroundVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // Vertices

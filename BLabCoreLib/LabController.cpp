@@ -161,6 +161,8 @@ void LabController::Render()
 
     mRenderContext->RenderStart();
 
+    mRenderContext->UploadSeaLevel(mLabParameters.SeaLevel);
+
     if (mModel)
     {
         auto const & vertices = mModel->GetMesh().GetVertices();
