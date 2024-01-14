@@ -74,7 +74,7 @@ struct LabParameters
     static float constexpr MinKineticFrictionAdjustment = 0.0f;
     static float constexpr MaxKineticFrictionAdjustment = 40.0f;
 
-    static float constexpr WaterFrictionDragCoefficient = 3.0f;
+    static float constexpr WaterFrictionDragCoefficient = 6.0f;
 
     float WaterFrictionDragCoefficientAdjustment;
     static float constexpr MinWaterFrictionDragCoefficientAdjustment = 0.0f;

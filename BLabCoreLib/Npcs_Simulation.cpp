@@ -26,92 +26,47 @@ void Npcs::UpdateNpcs(
 
     for (auto const n : *this)
     {
-        auto & state = mStateBuffer[n];
+        auto & npcState = mStateBuffer[n];
 
         // Secondary free becoming constrained
 
-        if (state.DipoleState.has_value()
-            && !state.DipoleState->SecondaryParticleState.ConstrainedState.has_value() // Secondary is free
-            && state.PrimaryParticleState.ConstrainedState.has_value()) // And primary is constrained
+        if (npcState.DipoleState.has_value()
+            && !npcState.DipoleState->SecondaryParticleState.ConstrainedState.has_value() // Secondary is free
+            && npcState.PrimaryParticleState.ConstrainedState.has_value()) // And primary is constrained
         {
-            state.DipoleState->SecondaryParticleState.ConstrainedState = CalculateParticleConstrainedState(
-                mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
+            npcState.DipoleState->SecondaryParticleState.ConstrainedState = CalculateParticleConstrainedState(
+                mParticles.GetPosition(npcState.DipoleState->SecondaryParticleState.ParticleIndex),
                 mesh);
         }
 
         // Behavior
 
-        if (state.Type == NpcType::Human)
+        if (npcState.Type == NpcType::Human)
         {
-            assert(state.DipoleState.has_value());
-            assert(state.HumanNpcState.has_value());
+            assert(npcState.DipoleState.has_value());
+            assert(npcState.HumanNpcState.has_value());
 
             UpdateHuman(
-                *state.HumanNpcState,
-                state.PrimaryParticleState,
-                state.DipoleState->SecondaryParticleState,
+                *npcState.HumanNpcState,
+                npcState.PrimaryParticleState,
+                npcState.DipoleState->SecondaryParticleState,
                 mesh,
                 labParameters);
         }
 
-        // Spring forces
+        // Preliminary Forces
 
-        if (state.DipoleState.has_value())
+        CalculateNpcParticlePreliminaryForces(
+            npcState,
+            true,
+            labParameters);
+
+        if (npcState.DipoleState.has_value())
         {
-            ElementIndex const primaryParticleIndex = state.PrimaryParticleState.ParticleIndex;
-            ElementIndex const secondaryParticleIndex = state.DipoleState->SecondaryParticleState.ParticleIndex;
-
-            float const dt = LabParameters::SimulationTimeStepDuration;
-
-            vec2f const springDisplacement = mParticles.GetPosition(secondaryParticleIndex) - mParticles.GetPosition(primaryParticleIndex); // Towards secondary particle
-            float const springDisplacementLength = springDisplacement.length();
-            vec2f const springDir = springDisplacement.normalise_approx(springDisplacementLength);
-
-            //
-            // 1. Hooke's law
-            //
-
-            float const springStiffnessCoefficient =
-                labParameters.SpringReductionFraction
-                * state.DipoleState->DipoleProperties.MassFactor * labParameters.MassAdjustment
-                / (dt * dt);
-
-            // Calculate spring force on this particle
-            float const fSpring =
-                (springDisplacementLength - state.DipoleState->DipoleProperties.DipoleLength)
-                * springStiffnessCoefficient;
-
-            //
-            // 2. Damper forces
-            //
-            // Damp the velocities of each endpoint pair, as if the points were also connected by a damper
-            // along the same direction as the spring
-            //
-
-            float const springDampingCoefficient =
-                labParameters.SpringDampingCoefficient
-                * state.DipoleState->DipoleProperties.MassFactor * labParameters.MassAdjustment
-                / dt;
-
-            // Calculate damp force on this particle
-            vec2f const relVelocity = mParticles.GetVelocity(secondaryParticleIndex) - mParticles.GetVelocity(primaryParticleIndex);
-            float const fDamp =
-                relVelocity.dot(springDir)
-                * springDampingCoefficient;
-
-            //
-            // 3. Apply forces
-            //
-
-            vec2f const primaryParticlesSpringForces = springDir * (fSpring + fDamp);
-
-            mParticles.SetSpringForces(
-                primaryParticleIndex,
-                primaryParticlesSpringForces);
-
-            mParticles.SetSpringForces(
-                secondaryParticleIndex,
-                -primaryParticlesSpringForces);
+            CalculateNpcParticlePreliminaryForces(
+                npcState,
+                false,
+                labParameters);
         }
     }
 
@@ -173,7 +128,7 @@ void Npcs::UpdateNpcParticle(
     {
         // Integrate forces
 
-        vec2f const physicalForces = CalculateNpcParticlePhysicalForces(
+        vec2f const physicalForces = CalculateNpcParticleDefinitiveForces(
             npc,
             isPrimaryParticle,
             particleMass,
@@ -188,7 +143,7 @@ void Npcs::UpdateNpcParticle(
         // Particle is free
         //
 
-        LogMessage("    Free: velocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " springF=", mParticles.GetSpringForces(npcParticle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos);
+        LogMessage("    Free: velocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " prelimF=", mParticles.GetPreliminaryForces(npcParticle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos);
         LogMessage("    StartPosition=", particleStartAbsolutePosition, " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
 
         UpdateNpcParticle_Free(
@@ -210,7 +165,7 @@ void Npcs::UpdateNpcParticle(
 
         assert(npcParticle.ConstrainedState.has_value());
 
-        LogMessage("    Constrained: velocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " springF=", mParticles.GetSpringForces(npcParticle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos);
+        LogMessage("    Constrained: velocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " prelimF=", mParticles.GetPreliminaryForces(npcParticle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos);
 
         // Loop tracing trajectory from TrajectoryStart (== current bary coords) to TrajectoryEnd (== start absolute pos + deltaPos); 
         // each step moves the next TrajectoryStart a bit ahead.
@@ -908,11 +863,10 @@ void Npcs::UpdateNpcParticle(
     }
 }
 
-vec2f Npcs::CalculateNpcParticlePhysicalForces(
+void Npcs::CalculateNpcParticlePreliminaryForces(
     StateType const & npc,
     bool isPrimaryParticle,
-    float particleMass,
-    LabParameters const & labParameters) const
+    LabParameters const & labParameters)
 {
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
 
@@ -920,12 +874,16 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
     // Calculate world forces
     //
 
+    float const particleMass = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).Mass * labParameters.MassAdjustment;
+
     // 1. World forces - gravity
-    
-    vec2f physicalForces = LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * particleMass;
+
+    vec2f preliminaryForces = LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * particleMass;
 
     if (!npcParticle.ConstrainedState.has_value())
     {
+        // TODOTEST: finding sweet spot
+        // TODO: add offset once we can look at human vector
         //float const uwCoefficient = Clamp(labParameters.SeaLevel - mParticles.GetPosition(npcParticle.ParticleIndex).y, 0.0f, 1.0f);
         float const uwCoefficient = Clamp(labParameters.SeaLevel - mParticles.GetPosition(npcParticle.ParticleIndex).y, 0.0f, 0.1f) / 0.1f;
 
@@ -933,9 +891,9 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
         {
             // Underwater
 
-            // 2 World forces - buoyancy
+            // 2. World forces - buoyancy
 
-            physicalForces.y +=
+            preliminaryForces.y +=
                 LabParameters::GravityMagnitude * 1000.0f
                 * mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).BuoyancyVolumeFill
                 * labParameters.BuoyancyAdjustment
@@ -943,22 +901,85 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
 
             // 3. World forces - water drag
 
-            physicalForces += 
-                -mParticles.GetVelocity(npcParticle.ParticleIndex) 
+            preliminaryForces +=
+                -mParticles.GetVelocity(npcParticle.ParticleIndex)
                 * LabParameters::WaterFrictionDragCoefficient
                 * labParameters.WaterFrictionDragCoefficientAdjustment;
         }
     }
 
-    // 4. Spring forces
+    // 3. Spring forces
 
-    physicalForces += mParticles.GetSpringForces(npcParticle.ParticleIndex);
-    
-    // 5. External forces
-    
-    physicalForces += mParticles.GetExternalForces(npcParticle.ParticleIndex);
+    if (npc.DipoleState.has_value())
+    {
+        ElementIndex const otherParticleIndex = isPrimaryParticle ? npc.DipoleState->SecondaryParticleState.ParticleIndex : npc.PrimaryParticleState.ParticleIndex;
 
-    // 6. Human Equlibrium Torque
+        float const dt = LabParameters::SimulationTimeStepDuration;
+
+        vec2f const springDisplacement = mParticles.GetPosition(otherParticleIndex) - mParticles.GetPosition(npcParticle.ParticleIndex); // Towards other
+        float const springDisplacementLength = springDisplacement.length();
+        vec2f const springDir = springDisplacement.normalise_approx(springDisplacementLength);
+
+        //
+        // 3a. Hooke's law
+        //
+
+        float const springStiffnessCoefficient =
+            labParameters.SpringReductionFraction
+            * npc.DipoleState->DipoleProperties.MassFactor * labParameters.MassAdjustment
+            / (dt * dt);
+
+        // Calculate spring force on this particle
+        float const fSpring =
+            (springDisplacementLength - npc.DipoleState->DipoleProperties.DipoleLength)
+            * springStiffnessCoefficient;
+
+        //
+        // 3b. Damper forces
+        //
+        // Damp the velocities of each endpoint pair, as if the points were also connected by a damper
+        // along the same direction as the spring
+        //
+
+        float const springDampingCoefficient =
+            labParameters.SpringDampingCoefficient
+            * npc.DipoleState->DipoleProperties.MassFactor * labParameters.MassAdjustment
+            / dt;
+
+        // Calculate damp force on this particle
+        vec2f const relVelocity = mParticles.GetVelocity(otherParticleIndex) - mParticles.GetVelocity(npcParticle.ParticleIndex);
+        float const fDamp =
+            relVelocity.dot(springDir)
+            * springDampingCoefficient;
+
+        //
+        // Apply forces
+        //
+
+        preliminaryForces += springDir * (fSpring + fDamp);
+    }
+
+    // 4. External forces
+
+    preliminaryForces += mParticles.GetExternalForces(npcParticle.ParticleIndex);
+
+
+    mParticles.SetPreliminaryForces(npcParticle.ParticleIndex, preliminaryForces);
+}
+
+vec2f Npcs::CalculateNpcParticleDefinitiveForces(
+    StateType const & npc,
+    bool isPrimaryParticle,
+    float particleMass,
+    LabParameters const & labParameters) const
+{
+    auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
+    
+    vec2f definitiveForces = mParticles.GetPreliminaryForces(npcParticle.ParticleIndex);
+
+    //
+    // Human Equlibrium Torque
+    //
 
     if (npc.HumanNpcState.has_value() 
         && (npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking 
@@ -1018,10 +1039,10 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
             torqueDisplacement
             * particleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
 
-        physicalForces += equilibriumTorqueForce;
+        definitiveForces += equilibriumTorqueForce;
     }
 
-    return physicalForces;
+    return definitiveForces;
 }
 
 void Npcs::UpdateNpcParticle_Free(

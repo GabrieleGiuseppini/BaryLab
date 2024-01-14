@@ -328,7 +328,12 @@ private:
 		Mesh const & mesh,
 		LabParameters const & labParameters);
 
-	vec2f CalculateNpcParticlePhysicalForces(
+	void CalculateNpcParticlePreliminaryForces(
+		StateType const & npc,
+		bool isPrimaryParticle,
+		LabParameters const & labParameters);
+
+	vec2f CalculateNpcParticleDefinitiveForces(
 		StateType const & npc,
 		bool isPrimaryParticle,
 		float particleMass,

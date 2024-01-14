@@ -50,8 +50,8 @@ public:
         , mPhysicalPropertiesBuffer(mBufferElementCount, particleCount, PhysicalProperties(0.0f, 0.0f, 0.0f, 0.0f))
         , mPositionBuffer(mBufferElementCount, particleCount, vec2f::zero())
         , mVelocityBuffer(mBufferElementCount, particleCount, vec2f::zero())
+        , mPreliminaryForcesBuffer(mBufferElementCount, particleCount, vec2f::zero())
         , mExternalForcesBuffer(mBufferElementCount, particleCount, vec2f::zero())
-        , mSpringForcesBuffer(mBufferElementCount, particleCount, vec2f::zero())
         // Render
         , mRenderColorBuffer(mBufferElementCount, particleCount, rgbaColor::zero())
     {
@@ -129,12 +129,29 @@ public:
         mVelocityBuffer[particleElementIndex] = value;
     }
 
+    vec2f const & GetPreliminaryForces(ElementIndex particleElementIndex) const noexcept
+    {
+        return mPreliminaryForcesBuffer[particleElementIndex];
+    }
+
+    vec2f * GetPreliminaryForces() noexcept
+    {
+        return mPreliminaryForcesBuffer.data();
+    }
+
+    void SetPreliminaryForces(
+        ElementIndex particleElementIndex,
+        vec2f const & value) noexcept
+    {
+        mPreliminaryForcesBuffer[particleElementIndex] = value;
+    }
+
     vec2f const & GetExternalForces(ElementIndex particleElementIndex) const noexcept
     {
         return mExternalForcesBuffer[particleElementIndex];
     }
 
-    vec2f * GetExternalForcesBuffer() noexcept
+    vec2f * GetExternalForces() noexcept
     {
         return mExternalForcesBuffer.data();
     }
@@ -144,23 +161,6 @@ public:
         vec2f const & value) noexcept
     {
         mExternalForcesBuffer[particleElementIndex] = value;
-    }
-
-    vec2f const & GetSpringForces(ElementIndex particleElementIndex) const noexcept
-    {
-        return mSpringForcesBuffer[particleElementIndex];
-    }
-
-    vec2f * GetSpringForcesBuffer() noexcept
-    {
-        return mSpringForcesBuffer.data();
-    }
-
-    void SetSpringForces(
-        ElementIndex particleElementIndex,
-        vec2f const & value) noexcept
-    {
-        mSpringForcesBuffer[particleElementIndex] = value;
     }
 
     //
@@ -199,8 +199,8 @@ private:
     Buffer<PhysicalProperties> mPhysicalPropertiesBuffer;
     Buffer<vec2f> mPositionBuffer;
     Buffer<vec2f> mVelocityBuffer;
+    Buffer<vec2f> mPreliminaryForcesBuffer;
     Buffer<vec2f> mExternalForcesBuffer;
-    Buffer<vec2f> mSpringForcesBuffer; // Hooke+Damp
 
     //
     // Render

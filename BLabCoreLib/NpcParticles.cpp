@@ -18,8 +18,8 @@ void NpcParticles::Add(
     mPhysicalPropertiesBuffer.emplace_back(mass, staticFriction, kineticFriction, buoyancyVolumeFill);
     mPositionBuffer.emplace_back(position);
     mVelocityBuffer.emplace_back(vec2f::zero());
+    mPreliminaryForcesBuffer.emplace_back(vec2f::zero());
     mExternalForcesBuffer.emplace_back(vec2f::zero());
-    mSpringForcesBuffer.emplace_back(vec2f::zero());
 
     mRenderColorBuffer.emplace_back(color);
 
