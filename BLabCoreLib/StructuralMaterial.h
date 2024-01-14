@@ -22,6 +22,7 @@ public:
     float Mass;
     float StaticFriction;
     float KineticFriction;
+    float BuoyancyVolumeFill;
 
     SurfaceType Surface;
 
@@ -37,12 +38,14 @@ public:
         float mass,
         float staticFriction,
         float kineticFriction,
+        float buoyancyVolumeFill,
         SurfaceType surface)
         : Name(name)
         , RenderColor(renderColor)
         , Mass(mass)
         , StaticFriction(staticFriction)
         , KineticFriction(kineticFriction)
+        , BuoyancyVolumeFill(buoyancyVolumeFill)
         , Surface(surface)
     {}
 };

@@ -920,19 +920,41 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
     // Calculate world forces
     //
 
-    // TODOHERE
+    // 1. World forces - gravity
+    
+    vec2f physicalForces = LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * particleMass;
 
+    if (!npcParticle.ConstrainedState.has_value())
+    {
+        //float const uwCoefficient = Clamp(labParameters.SeaLevel - mParticles.GetPosition(npcParticle.ParticleIndex).y, 0.0f, 1.0f);
+        float const uwCoefficient = Clamp(labParameters.SeaLevel - mParticles.GetPosition(npcParticle.ParticleIndex).y, 0.0f, 0.1f) / 0.1f;
 
-    vec2f const physicalForces =
-        mParticles.GetExternalForces(npcParticle.ParticleIndex)
-        + LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * particleMass
-        + mParticles.GetSpringForces(npcParticle.ParticleIndex);
+        if (uwCoefficient > 0.0f)
+        {
+            // Underwater
 
-    //
-    // Calculate Human Equlibrium Torque
-    //
+            // 2 World forces - buoyancy
 
-    vec2f equilibriumTorqueForce;
+            physicalForces.y +=
+                LabParameters::GravityMagnitude * 1000.0f
+                * mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).BuoyancyVolumeFill
+                * uwCoefficient;
+
+            // 3. World forces - water drag
+
+            physicalForces += -mParticles.GetVelocity(npcParticle.ParticleIndex) * LabParameters::WaterFrictionDragCoefficient;
+        }
+    }
+
+    // 4. Spring forces
+
+    physicalForces += mParticles.GetSpringForces(npcParticle.ParticleIndex);
+    
+    // 5. External forces
+    
+    physicalForces += mParticles.GetExternalForces(npcParticle.ParticleIndex);
+
+    // 6. Human Equlibrium Torque
 
     if (npc.HumanNpcState.has_value() 
         && (npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking 
@@ -988,16 +1010,14 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
 
         // Calculate (linear) force that generates this rotation
         vec2f const torqueDisplacement = humanVector.rotate(totalTorqueAngleCW) - humanVector;
-        equilibriumTorqueForce =
+        vec2f const equilibriumTorqueForce =
             torqueDisplacement
             * particleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
-    }
-    else
-    {
-        equilibriumTorqueForce = vec2f::zero();
+
+        physicalForces += equilibriumTorqueForce;
     }
 
-    return physicalForces + equilibriumTorqueForce;
+    return physicalForces;
 }
 
 void Npcs::UpdateNpcParticle_Free(

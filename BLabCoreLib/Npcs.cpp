@@ -42,6 +42,7 @@ void Npcs::Add(
 				material.Mass,
 				material.StaticFriction,
 				material.KineticFriction,
+				material.BuoyancyVolumeFill,
 				primaryPosition,
 				material.RenderColor);
 
@@ -58,6 +59,7 @@ void Npcs::Add(
 				feetMaterial.Mass,
 				feetMaterial.StaticFriction,
 				feetMaterial.KineticFriction,
+				feetMaterial.BuoyancyVolumeFill,
 				primaryPosition,
 				feetMaterial.RenderColor);
 
@@ -73,6 +75,7 @@ void Npcs::Add(
 				headMaterial.Mass,
 				headMaterial.StaticFriction,
 				headMaterial.KineticFriction,
+				headMaterial.BuoyancyVolumeFill,
 				secondaryPosition,
 				headMaterial.RenderColor);
 

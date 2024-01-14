@@ -11,10 +11,11 @@ void NpcParticles::Add(
     float mass,
     float staticFriction,
     float kineticFriction,
+    float buoyancyVolumeFill,
     vec2f const & position,
     rgbaColor const & color)
 {
-    mPhysicalPropertiesBuffer.emplace_back(mass, staticFriction, kineticFriction);
+    mPhysicalPropertiesBuffer.emplace_back(mass, staticFriction, kineticFriction, buoyancyVolumeFill);
     mPositionBuffer.emplace_back(position);
     mVelocityBuffer.emplace_back(vec2f::zero());
     mExternalForcesBuffer.emplace_back(vec2f::zero());
