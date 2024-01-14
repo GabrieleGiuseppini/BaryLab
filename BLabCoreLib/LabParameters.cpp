@@ -15,6 +15,8 @@ LabParameters::LabParameters()
 	, Elasticity(0.6f)
 	, StaticFrictionAdjustment(1.0f)
 	, KineticFrictionAdjustment(1.0f)
+	, WaterFrictionDragCoefficientAdjustment(1.0f)
+	, BuoyancyAdjustment(1.0f)
 	// NPC
 	, HumanNpcEquilibriumTorqueStiffnessCoefficient(0.0032f)
 	, HumanNpcEquilibriumTorqueDampingCoefficient(0.055f)

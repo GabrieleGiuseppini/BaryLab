@@ -32,6 +32,8 @@ BaseSettingsManager<SLabSettings>::BaseSettingsManagerFactory SettingsManager::M
     ADD_SETTING(float, SeaLevel);
     ADD_SETTING(float, SpringReductionFraction);
     ADD_SETTING(float, SpringDampingCoefficient);
+    ADD_SETTING(float, WaterFrictionDragCoefficientAdjustment);
+    ADD_SETTING(float, BuoyancyAdjustment);
     ADD_SETTING(float, HumanNpcEquilibriumTorqueStiffnessCoefficient);
     ADD_SETTING(float, HumanNpcEquilibriumTorqueDampingCoefficient);
     ADD_SETTING(float, HumanNpcWalkingSpeed);

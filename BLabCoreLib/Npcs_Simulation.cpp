@@ -938,11 +938,15 @@ vec2f Npcs::CalculateNpcParticlePhysicalForces(
             physicalForces.y +=
                 LabParameters::GravityMagnitude * 1000.0f
                 * mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).BuoyancyVolumeFill
+                * labParameters.BuoyancyAdjustment
                 * uwCoefficient;
 
             // 3. World forces - water drag
 
-            physicalForces += -mParticles.GetVelocity(npcParticle.ParticleIndex) * LabParameters::WaterFrictionDragCoefficient;
+            physicalForces += 
+                -mParticles.GetVelocity(npcParticle.ParticleIndex) 
+                * LabParameters::WaterFrictionDragCoefficient
+                * labParameters.WaterFrictionDragCoefficientAdjustment;
         }
     }
 

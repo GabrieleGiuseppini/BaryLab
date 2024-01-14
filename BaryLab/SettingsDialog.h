@@ -57,6 +57,8 @@ private:
     SliderControl<float> * mSeaLevelSlider;
     SliderControl<float> * mSpringReductionFractionSlider;
     SliderControl<float> * mSpringDampingCoefficientSlider;
+    SliderControl<float> * mWaterFrictionDragCoefficientAdjustmentSlider;
+    SliderControl<float> * mBuoyancyAdjustmentSlider;
 
     // NPCs
     SliderControl<float> * mHumanNpcEquilibriumTorqueStiffnessCoefficientSlider;

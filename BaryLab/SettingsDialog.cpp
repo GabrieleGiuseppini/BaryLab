@@ -549,6 +549,59 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
                     CellBorder);
             }
 
+            /////////////////////////////
+
+            // Water Friction Drag Coefficient Adjustment
+            {
+                mWaterFrictionDragCoefficientAdjustmentSlider = new SliderControl<float>(
+                    mechanicsBox,
+                    SliderWidth,
+                    SliderHeight,
+                    "Water Drag Adjust",
+                    "Adjusts the water drag.",
+                    [this](float value)
+                    {
+                        this->mLiveSettings.SetValue(SLabSettings::WaterFrictionDragCoefficientAdjustment, value);
+                        this->OnLiveSettingsChanged();
+                    },
+                    std::make_unique<LinearSliderCore>(
+                        mLabController->GetMinWaterFrictionDragCoefficientAdjustment(),
+                        mLabController->GetMaxWaterFrictionDragCoefficientAdjustment()));
+
+                mechanicsSizer->Add(
+                    mWaterFrictionDragCoefficientAdjustmentSlider,
+                    wxGBPosition(1, 0),
+                    wxGBSpan(1, 1),
+                    wxEXPAND | wxALL,
+                    CellBorder);
+            }
+
+            // Buoyancy Adjustment
+            {
+                mBuoyancyAdjustmentSlider = new SliderControl<float>(
+                    mechanicsBox,
+                    SliderWidth,
+                    SliderHeight,
+                    "Buoyancy Adjust",
+                    "Adjusts the buoyancy.",
+                    [this](float value)
+                    {
+                        this->mLiveSettings.SetValue(SLabSettings::BuoyancyAdjustment, value);
+                        this->OnLiveSettingsChanged();
+                    },
+                    std::make_unique<LinearSliderCore>(
+                        mLabController->GetMinBuoyancyAdjustment(),
+                        mLabController->GetMaxBuoyancyAdjustment()));
+
+                mechanicsSizer->Add(
+                    mBuoyancyAdjustmentSlider,
+                    wxGBPosition(1, 1),
+                    wxGBSpan(1, 1),
+                    wxEXPAND | wxALL,
+                    CellBorder);
+            }
+
+
             mechanicsBoxSizer->Add(mechanicsSizer, 0, wxALL, StaticBoxInsetMargin);
         }
 
@@ -692,6 +745,8 @@ void SettingsDialog::SyncControlsWithSettings(Settings<SLabSettings> const & set
     mSeaLevelSlider->SetValue(settings.GetValue<float>(SLabSettings::SeaLevel));
     mSpringReductionFractionSlider->SetValue(settings.GetValue<float>(SLabSettings::SpringReductionFraction));
     mSpringDampingCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::SpringDampingCoefficient));
+    mWaterFrictionDragCoefficientAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::WaterFrictionDragCoefficientAdjustment));
+    mBuoyancyAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::BuoyancyAdjustment));
 
     // NPCs
     mHumanNpcEquilibriumTorqueStiffnessCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcEquilibriumTorqueStiffnessCoefficient));

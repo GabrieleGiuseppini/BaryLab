@@ -208,6 +208,16 @@ public:
     float GetMinSpringDampingCoefficient() const { return LabParameters::MinSpringDampingCoefficient; }
     float GetMaxSpringDampingCoefficient() const { return LabParameters::MaxSpringDampingCoefficient; }
 
+    float GetWaterFrictionDragCoefficientAdjustment() const { return mLabParameters.WaterFrictionDragCoefficientAdjustment; }
+    void SetWaterFrictionDragCoefficientAdjustment(float value) { mLabParameters.WaterFrictionDragCoefficientAdjustment = value; }
+    float GetMinWaterFrictionDragCoefficientAdjustment() const { return LabParameters::MinWaterFrictionDragCoefficientAdjustment; }
+    float GetMaxWaterFrictionDragCoefficientAdjustment() const { return LabParameters::MaxWaterFrictionDragCoefficientAdjustment; }
+
+    float GetBuoyancyAdjustment() const { return mLabParameters.BuoyancyAdjustment; }
+    void SetBuoyancyAdjustment(float value) { mLabParameters.BuoyancyAdjustment = value; }
+    float GetMinBuoyancyAdjustment() const { return LabParameters::MinBuoyancyAdjustment; }
+    float GetMaxBuoyancyAdjustment() const { return LabParameters::MaxBuoyancyAdjustment; }
+
     float GetHumanNpcEquilibriumTorqueStiffnessCoefficient() const { return mLabParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient; }
     void SetHumanNpcEquilibriumTorqueStiffnessCoefficient(float value) { mLabParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient = value; }
     float GetMinHumanNpcEquilibriumTorqueStiffnessCoefficient() const { return LabParameters::MinHumanNpcEquilibriumTorqueStiffnessCoefficient; }
