@@ -32,7 +32,7 @@
 	"mass": 34.5,
 	"static_friction": 0.1,
 	"kinetic_friction": 0.1,
-	"buoyancy_volume_fill": 0.1,
+	"buoyancy_volume_fill": 0.05,
 	"surface": "Open"
     },
 
