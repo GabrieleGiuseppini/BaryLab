@@ -849,6 +849,7 @@ void Npcs::UpdateNpcParticle(
         if (npc.HumanNpcState.has_value() && isPrimaryParticle)
         {
             // TODO: add to new HumanNpcState member
+            // TODO: decied if we need total edge *walked* or total edge *traveled* for animation
         }
     }
 
