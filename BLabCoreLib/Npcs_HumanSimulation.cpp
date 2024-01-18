@@ -10,37 +10,6 @@
 
 #include <cmath>
 
-namespace /*anonymous*/ {
-
-	bool IsAtTarget(float currentValue, float targetValue)
-	{
-		return std::abs(targetValue - currentValue) < 0.01f;
-	}
-
-	bool IsOnEdge(vec3f const & barycentricCoords)
-	{
-		return barycentricCoords.x == 0.0f
-			|| barycentricCoords.y == 0.0f
-			|| barycentricCoords.z == 0.0f;
-	}
-
-	// Head->Feet
-	vec2f CalculateHumanVector(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)
-	{
-		return particles.GetPosition(primaryParticleIndex) - particles.GetPosition(secondaryParticleIndex);
-	}
-
-	float CalculateVerticalAlignment(vec2f const & humanVector)
-	{
-		return humanVector.normalise().dot(LabParameters::GravityDir);
-	}
-
-	float CalculateVerticalAlignment(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)
-	{
-		return CalculateVerticalAlignment(CalculateHumanVector(primaryParticleIndex, secondaryParticleIndex, particles));
-	}
-}
-
 Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 	StateType::NpcParticleStateType const & primaryParticleState,
 	StateType::NpcParticleStateType const & secondaryParticleState) const
@@ -120,7 +89,7 @@ void Npcs::UpdateHuman(
 			float stateCondition = 0.0f;
 
 			if (primaryParticleState.ConstrainedState.has_value()
-				&& IsOnEdge(primaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords)
+				&& IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh)
 				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium
 				&& (!secondaryParticleState.ConstrainedState.has_value()
 					|| secondaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium))
@@ -186,7 +155,7 @@ void Npcs::UpdateHuman(
 			bool stateCondition = false;
 
 			if (primaryParticleState.ConstrainedState.has_value()
-				&& IsOnEdge(primaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords)
+				&& IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh)
 				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium)
 			{
 				stateCondition = true;
@@ -336,7 +305,7 @@ void Npcs::RunWalkingHumanStateMachine(
 	StateType::HumanNpcStateType & humanState,
 	StateType::NpcParticleStateType const & primaryParticleState,
 	Mesh const & /*mesh*/, // Will come useful when we'll *plan* the walk
-	LabParameters const & /*labParameters*/)
+	LabParameters const & labParameters)
 {
 	assert(primaryParticleState.ConstrainedState.has_value());
 
@@ -345,7 +314,8 @@ void Npcs::RunWalkingHumanStateMachine(
 
 	float constexpr MinRelativeVelocityAgreementToAcceptWalk = 0.025f;
 	float const relativeVelocityAgreement = primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(vec2f(humanState.CurrentFaceDirectionX * humanState.CurrentWalkMagnitude, 0.0f));
-	if (relativeVelocityAgreement < MinRelativeVelocityAgreementToAcceptWalk)
+	if (relativeVelocityAgreement < MinRelativeVelocityAgreementToAcceptWalk
+		&& labParameters.HumanNpcWalkingAcceleration > 0.0f) // Video
 	{ 
 		// Flip later
 		FlipHumanWalk(humanState, StrongTypedFalse<_DoImmediate>);
@@ -374,9 +344,7 @@ void Npcs::RunWalkingHumanStateMachine(
 	// 4. Advance walking magnitude towards target
 	//
 
-	float constexpr ToWalkTargetConvergenceRate = 0.027f;
-
-	humanState.CurrentWalkMagnitude += (humanState.TargetWalkMagnitude - humanState.CurrentWalkMagnitude) * ToWalkTargetConvergenceRate;
+	humanState.CurrentWalkMagnitude += (humanState.TargetWalkMagnitude - humanState.CurrentWalkMagnitude) * labParameters.HumanNpcWalkingAcceleration;
 	
 	LogMessage("        currentWalkMagnitude: ", humanState.CurrentWalkMagnitude);
 }

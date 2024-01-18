@@ -11,7 +11,8 @@
 
 void Npcs::Add(
 	NpcType npcType,
-	vec2f const & primaryPosition,
+	vec2f primaryPosition,
+	std::optional<vec2f> secondaryPosition,
 	StructuralMaterialDatabase const & materialDatabase,
 	Mesh const & mesh)
 {
@@ -69,20 +70,23 @@ void Npcs::Add(
 
 			auto const & headMaterial = materialDatabase.GetStructuralMaterial(StructuralMaterialDatabase::UniqueMaterialKeyType::HumanHead);
 
-			vec2f const secondaryPosition = primaryPosition + vec2f(0.0f, 1.0f) * LabParameters::HumanNpcLength;
+			if (!secondaryPosition)
+			{
+				secondaryPosition = primaryPosition + vec2f(0.0f, 1.0f) * LabParameters::HumanNpcLength;
+			}
 
 			mParticles.Add(
 				headMaterial.Mass,
 				headMaterial.StaticFriction,
 				headMaterial.KineticFriction,
 				headMaterial.BuoyancyVolumeFill,
-				secondaryPosition,
+				*secondaryPosition,
 				headMaterial.RenderColor);
 
 			StateType::NpcParticleStateType secondaryParticleState = StateType::NpcParticleStateType(
 				headParticleIndex,
 				CalculateParticleConstrainedState(
-					secondaryPosition,
+					*secondaryPosition,
 					mesh));
 
 			humanNpcState = InitializeHuman(

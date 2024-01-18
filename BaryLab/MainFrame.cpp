@@ -376,9 +376,9 @@ void MainFrame::OnKeyDown(wxKeyEvent & event)
     }
     else if (event.GetKeyCode() == '/')
     {
-        assert(!!mToolController);
-
         // Query
+
+        assert(!!mToolController);
 
         vec2f screenCoords = mToolController->GetMouseScreenCoordinates();
         vec2f worldCoords = mLabController->ScreenToWorld(screenCoords);
@@ -386,6 +386,12 @@ void MainFrame::OnKeyDown(wxKeyEvent & event)
         LogMessage(worldCoords.toString(), ":");
 
         mLabController->QueryNearestNpcParticleAt(screenCoords);
+    }
+    else if (event.GetKeyCode() == 'V')
+    {
+        // Video
+
+        mLabController->DoStepForVideo();
     }
     else if (mControlToolbar->ProcessKeyDown(event.GetKeyCode(), event.GetModifiers()))
     {

@@ -170,6 +170,8 @@ public:
 		{}
 	};
 
+public:
+
 	Npcs(
 		EventDispatcher & eventDispatcher,
 		bool isGravityEnabled)
@@ -183,7 +185,8 @@ public:
 
 	void Add(
 		NpcType npcType,
-		vec2f const & primaryPosition,
+		vec2f primaryPosition,
+		std::optional<vec2f> secondaryPosition,
 		StructuralMaterialDatabase const & materialDatabase,
 		Mesh const & mesh);
 
@@ -297,6 +300,121 @@ public:
 
 	bool IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangleIndex) const;
 
+public:
+
+	static bool IsEdgeFloorToParticle(
+		ElementIndex edgeElementIndex,
+		ElementIndex triangleElementIndex,
+		Mesh const & mesh)
+	{
+		//
+		// An edge is a floor for a given (constrained) particle if:
+		// - It is a floor; AND
+		// - The triangle is _not_ sealed, OR it _is_ sealed but crossing the edge would make the particle free
+		//
+
+		if (mesh.GetEdges().GetSurfaceType(edgeElementIndex) != SurfaceType::Floor)
+		{
+			// Not even a floor
+			return false;
+		}
+
+		bool const isSealedTriangle =
+			mesh.GetEdges().GetSurfaceType(mesh.GetTriangles().GetSubEdgeAIndex(triangleElementIndex)) == SurfaceType::Floor
+			&& mesh.GetEdges().GetSurfaceType(mesh.GetTriangles().GetSubEdgeBIndex(triangleElementIndex)) == SurfaceType::Floor
+			&& mesh.GetEdges().GetSurfaceType(mesh.GetTriangles().GetSubEdgeCIndex(triangleElementIndex)) == SurfaceType::Floor;
+
+		if (!isSealedTriangle)
+		{
+			return true;
+		}
+
+		ElementIndex const oppositeTriangle = mesh.GetEdges().GetOppositeTriangle(edgeElementIndex, triangleElementIndex);
+		if (oppositeTriangle == NoneElementIndex)
+		{
+			// Crossing this floor makes the particle free
+			return true;
+		}
+
+		return false;
+	}
+
+	static bool DoesFloorSeparateFromPrimaryParticle(
+		vec2f const & primaryParticlePosition,
+		vec2f const & secondaryParticlePosition,
+		ElementIndex edgeElementIndex,
+		Mesh const & mesh)
+	{
+		vec2f const aPos = mesh.GetEdges().GetEndpointAPosition(edgeElementIndex, mesh.GetVertices());
+		vec2f const bPos = mesh.GetEdges().GetEndpointBPosition(edgeElementIndex, mesh.GetVertices());
+		vec2f const & p1Pos = primaryParticlePosition;
+		vec2f const & p2Pos = secondaryParticlePosition;
+
+		// ((y1−y2)(ax−x1)+(x2−x1)(ay−y1)) * ((y1−y2)(bx−x1)+(x2−x1)(by−y1)) < 0
+		float const magic = ((aPos.y - bPos.y) * (p1Pos.x - aPos.x) + (bPos.x - aPos.x) * (p1Pos.y - aPos.y))
+			* ((aPos.y - bPos.y) * (p2Pos.x - aPos.x) + (bPos.x - aPos.x) * (p2Pos.y - aPos.y));
+
+		return magic < -0.0001f;
+	}
+
+	static bool IsAtTarget(float currentValue, float targetValue)
+	{
+		return std::abs(targetValue - currentValue) < 0.01f;
+	}
+
+	static bool IsOnFloorEdge(
+		Npcs::StateType::NpcParticleStateType::ConstrainedStateType const & constrainedState,
+		Mesh const & mesh)
+	{
+		auto const & baryCoords = constrainedState.CurrentTriangleBarycentricCoords;
+		auto const & triangleIndex = constrainedState.CurrentTriangle;
+
+		if (baryCoords.x == 0.0f
+			&& IsEdgeFloorToParticle(
+				mesh.GetTriangles().GetSubEdges(triangleIndex).EdgeIndices[1],
+				triangleIndex,
+				mesh))
+		{
+			return true;
+		}
+
+		if (baryCoords.y == 0.0f
+			&& IsEdgeFloorToParticle(
+				mesh.GetTriangles().GetSubEdges(triangleIndex).EdgeIndices[2],
+				triangleIndex,
+				mesh))
+		{
+			return true;
+		}
+
+		if (baryCoords.z == 0.0f
+			&& IsEdgeFloorToParticle(
+				mesh.GetTriangles().GetSubEdges(triangleIndex).EdgeIndices[0],
+				triangleIndex,
+				mesh))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	// Head->Feet
+	static vec2f CalculateHumanVector(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)
+	{
+		return particles.GetPosition(primaryParticleIndex) - particles.GetPosition(secondaryParticleIndex);
+	}
+
+	static float CalculateVerticalAlignment(vec2f const & humanVector)
+	{
+		return humanVector.normalise().dot(LabParameters::GravityDir);
+	}
+
+	static float CalculateVerticalAlignment(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)
+	{
+		return CalculateVerticalAlignment(CalculateHumanVector(primaryParticleIndex, secondaryParticleIndex, particles));
+	}
+
 private:
 
 	void RotateParticleWithMesh(
@@ -404,61 +522,6 @@ private:
 	std::optional<StateType::NpcParticleStateType::ConstrainedStateType> CalculateParticleConstrainedState(
 		vec2f const & position,
 		Mesh const & mesh) const;
-
-	bool IsEdgeFloorToParticle(
-		ElementIndex edgeElementIndex,
-		ElementIndex triangleElementIndex,
-		Mesh const & mesh) const
-	{
-		//
-		// An edge is a floor for a given (constrained) particle if:
-		// - It is a floor; AND
-		// - The triangle is _not_ sealed, OR it _is_ sealed but crossing the edge would make the particle free
-		//
-
-		if (mesh.GetEdges().GetSurfaceType(edgeElementIndex) != SurfaceType::Floor)
-		{
-			// Not even a floor
-			return false;
-		}
-
-		bool const isSealedTriangle = 
-			mesh.GetEdges().GetSurfaceType(mesh.GetTriangles().GetSubEdgeAIndex(triangleElementIndex)) == SurfaceType::Floor
-			&& mesh.GetEdges().GetSurfaceType(mesh.GetTriangles().GetSubEdgeBIndex(triangleElementIndex)) == SurfaceType::Floor
-			&& mesh.GetEdges().GetSurfaceType(mesh.GetTriangles().GetSubEdgeCIndex(triangleElementIndex)) == SurfaceType::Floor;
-
-		if (!isSealedTriangle)
-		{
-			return true;
-		}
-
-		ElementIndex const oppositeTriangle = mesh.GetEdges().GetOppositeTriangle(edgeElementIndex, triangleElementIndex);
-		if (oppositeTriangle == NoneElementIndex)
-		{
-			// Crossing this floor makes the particle free
-			return true;
-		}
-
-		return false;
-	}
-
-	bool DoesFloorSeparateFromPrimaryParticle(
-		vec2f const & primaryParticlePosition,
-		vec2f const & secondaryParticlePosition,
-		ElementIndex edgeElementIndex,
-		Mesh const & mesh) const
-	{
-		vec2f const aPos = mesh.GetEdges().GetEndpointAPosition(edgeElementIndex, mesh.GetVertices());
-		vec2f const bPos = mesh.GetEdges().GetEndpointBPosition(edgeElementIndex, mesh.GetVertices());
-		vec2f const & p1Pos = primaryParticlePosition;
-		vec2f const & p2Pos = secondaryParticlePosition;
-
-		// ((y1−y2)(ax−x1)+(x2−x1)(ay−y1)) * ((y1−y2)(bx−x1)+(x2−x1)(by−y1)) < 0
-		float const magic = ((aPos.y - bPos.y) * (p1Pos.x - aPos.x) + (bPos.x - aPos.x) * (p1Pos.y - aPos.y))
-			* ((aPos.y - bPos.y) * (p2Pos.x - aPos.x) + (bPos.x - aPos.x) * (p2Pos.y - aPos.y));
-
-		return magic < -0.0001f;
-	}
 
 private:
 

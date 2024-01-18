@@ -60,6 +60,12 @@ public:
 		mEventDispatcher.OnTrajectoryToggled(true);
 	}
 
+	void ResetNpcs(std::unique_ptr<Npcs> npcs)
+	{
+		mNpcs.reset();
+		mNpcs = std::move(npcs);
+	}
+
 private:
 
 	EventDispatcher & mEventDispatcher;

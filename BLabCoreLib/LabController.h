@@ -88,6 +88,8 @@ public:
 
     void SetMeshVelocity(vec2f const & velocity);
 
+    void DoStepForVideo();
+
     //
     // Render controls
     //
@@ -239,6 +241,10 @@ private:
         StructuralMaterialDatabase && structuralMaterialDatabase,
         std::unique_ptr<RenderContext> renderContext);
 
+    void LoadMesh(
+        std::filesystem::path const & meshDefinitionFilepath,
+        bool addExperimentalNpc);
+
     void Reset(
         std::unique_ptr<Model> newModel,
         std::filesystem::path const & meshDefinitionFilepath);
@@ -262,6 +268,8 @@ private:
     bool mIsGravityEnabled;
     vec2f mCurrentMeshTranslationVelocity;
     float mCurrentMeshTranslationAccelerationIndicator;
+
+    int mCurrentVideoStep;
 
     //
     // Simulation control

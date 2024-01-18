@@ -49,6 +49,7 @@ LabController::LabController(
     , mIsGravityEnabled(false)
     , mCurrentMeshTranslationVelocity(vec2f::zero())
     , mCurrentMeshTranslationAccelerationIndicator(0.0f)
+    , mCurrentVideoStep(0)
     // Simulation control
     , mSimulationControlState(SimulationControlStateType::Paused)
     , mSimulationControlImpulse(false)
@@ -67,71 +68,7 @@ void LabController::SetSimulationControlPulse()
 
 void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepath)
 {
-    // Load mesh definition
-    auto meshDefinition = MeshDefinition::Load(meshDefinitionFilepath);
-
-    // Make mesh
-
-    std::unique_ptr<Mesh> mesh = MeshBuilder::BuildMesh(
-        std::move(meshDefinition),
-        mStructuralMaterialDatabase);
-
-    if (mesh->GetTriangles().GetElementCount() < 1)
-    {
-        throw BLabException("Mesh must contain at least one triangle");
-    }
-
-    // Create NPCs
-
-    std::unique_ptr<Npcs> npcs = std::make_unique<Npcs>(mEventDispatcher, mIsGravityEnabled);
-
-    {
-        // TODOTEST
-        ////vec2f const position = (
-        ////    mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexAIndex(0))
-        ////    + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexBIndex(0))
-        ////    + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexCIndex(0))) / 3.0f;
-        //vec2f const position =
-        //    mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexBIndex(0))
-        //    - vec2f(0.5f, 0.5f);
-
-        // TODOTEST
-        //vec2f const position = vec2f(0.5f, -2.0f);
-        // TODO: for small mesh, in the middle
-        //vec2f const position = vec2f(0.5f, 0.0f);
-        // TODO: for small mesh, on the floor, left triangle
-        vec2f const position = vec2f(-0.5f, -2.0f);
-        // TODO: for small mesh, on the floor, right triangle
-        //vec2f const position = vec2f(0.5f, -2.0f);
-        // TODO: for large mesh, on floor
-        //vec2f const position = vec2f(5.5f, -6.0f);
-
-        npcs->Add(
-            // TODOTEST
-            //Npcs::NpcType::Furniture,
-            Npcs::NpcType::Human,
-            position,
-            mStructuralMaterialDatabase,
-            *mesh);
-
-        // Select particle
-        assert(npcs->GetParticles().GetParticleCount() > 0);
-        npcs->SelectParticle(0, *mesh);
-    }    
-
-    // Create a new model
-    std::unique_ptr<Model> newModel = std::make_unique<Model>(
-        std::move(mesh),
-        std::move(npcs),
-        mEventDispatcher);
-
-    //
-    // No errors, so we may continue
-    //
-
-    Reset(
-        std::move(newModel),
-        meshDefinitionFilepath);
+    LoadMesh(meshDefinitionFilepath, true);
 }
 
 void LabController::Update()
@@ -572,7 +509,244 @@ void LabController::SetMeshVelocity(vec2f const & velocity)
     mCurrentMeshTranslationAccelerationIndicator = 1.0f;
 }
 
+void LabController::DoStepForVideo()
+{
+    assert(mModel);
+
+    ++mCurrentVideoStep;
+    switch (mCurrentVideoStep)
+    {
+        case 1:
+        {
+            //
+            // Load mesh and stay clean
+            //
+
+            LoadMesh(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
+
+            // Disable gravity
+            SetGravityEnabled(false);
+
+            // Enable auto-play            
+            SetSimulationControlState(SimulationControlStateType::Play);
+
+            // Other settings
+            SetSeaLevel(-7.0f);
+            SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
+
+            break;
+        }
+
+        case 2:
+        {
+            //
+            // Add one horizontal human
+            //
+
+            vec2f primaryPosition = vec2f(1.5f, -2.0f);
+            vec2f secondaryPosition = primaryPosition + vec2f(1.0f, 0.0f) * LabParameters::HumanNpcLength;
+            mModel->GetNpcs().Add(
+                Npcs::NpcType::Human,
+                primaryPosition,
+                secondaryPosition,
+                mStructuralMaterialDatabase,
+                mModel->GetMesh());
+
+            break;
+        }
+
+        case 3:
+        {
+            //
+            // Enable gravity
+            //
+
+
+            SetGravityEnabled(true);
+
+            break;
+        }
+
+        case 4:
+        {
+            //
+            // Low-rising 1
+            //
+
+            SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0010f);
+
+            break;
+        }
+
+        case 5:
+        {
+            //
+            // Stop rising
+            //
+
+            SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
+
+            break;
+        }
+
+        case 6:
+        {
+            //
+            // Low-rising 2
+            //
+
+            SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0013f);
+
+            break;
+        }
+
+        case 7:
+        {
+            //
+            // Stop rising
+            //
+
+            SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
+
+            break;
+        }
+
+        case 8:
+        {
+            //
+            // Low-rising 3
+            //
+
+            SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0018f);
+
+            break;
+        }
+
+        case 9:
+        {
+            //
+            // Stop rising
+            //
+
+            SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
+
+            break;
+        }
+
+        case 10:
+        {
+            //
+            // Definitive rising  - but no walking
+            //
+
+            SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0032f);
+
+            // But no walking
+            mLabParameters.HumanNpcWalkingAcceleration = 0.0f;
+
+            break;
+        }
+
+        case 11:
+        {
+            //
+            // Walking
+            //
+
+            mLabParameters.HumanNpcWalkingAcceleration = 0.027f;
+
+            break;
+        }
+
+        // TODOHERE
+
+        default:
+        {
+            //
+            // Wrap around
+            //
+
+            mCurrentVideoStep = 0;
+
+            break;
+        }
+    }
+}
+
 ////////////////////////////////////////////////
+
+void LabController::LoadMesh(
+    std::filesystem::path const & meshDefinitionFilepath,
+    bool addExperimentalNpc)
+{
+    // Load mesh definition
+    auto meshDefinition = MeshDefinition::Load(meshDefinitionFilepath);
+
+    // Make mesh
+
+    std::unique_ptr<Mesh> mesh = MeshBuilder::BuildMesh(
+        std::move(meshDefinition),
+        mStructuralMaterialDatabase);
+
+    if (mesh->GetTriangles().GetElementCount() < 1)
+    {
+        throw BLabException("Mesh must contain at least one triangle");
+    }
+
+    // Create NPCs
+
+    std::unique_ptr<Npcs> npcs = std::make_unique<Npcs>(mEventDispatcher, mIsGravityEnabled);
+
+    if (addExperimentalNpc)
+    {
+        // TODOTEST
+        ////vec2f const position = (
+        ////    mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexAIndex(0))
+        ////    + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexBIndex(0))
+        ////    + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexCIndex(0))) / 3.0f;
+        //vec2f const position =
+        //    mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexBIndex(0))
+        //    - vec2f(0.5f, 0.5f);
+
+        // TODOTEST
+        //vec2f const position = vec2f(0.5f, -2.0f);
+        // TODO: for small mesh, in the middle
+        //vec2f const position = vec2f(0.5f, 0.0f);
+        // TODO: for small mesh, on the floor, left triangle
+        vec2f const position = vec2f(-0.5f, -2.0f);
+        // TODO: for small mesh, on the floor, right triangle
+        //vec2f const position = vec2f(0.5f, -2.0f);
+        // TODO: for large mesh, on floor
+        //vec2f const position = vec2f(5.5f, -6.0f);
+
+        npcs->Add(
+            // TODOTEST
+            //Npcs::NpcType::Furniture,
+            Npcs::NpcType::Human,
+            position,
+            std::nullopt,
+            mStructuralMaterialDatabase,
+            *mesh);
+
+        // Select particle
+        assert(npcs->GetParticles().GetParticleCount() > 0);
+        npcs->SelectParticle(0, *mesh);
+    }
+
+    // Create a new model
+    std::unique_ptr<Model> newModel = std::make_unique<Model>(
+        std::move(mesh),
+        std::move(npcs),
+        mEventDispatcher);
+
+    //
+    // No errors, so we may continue
+    //
+
+    Reset(
+        std::move(newModel),
+        meshDefinitionFilepath);
+}
 
 void LabController::Reset(
     std::unique_ptr<Model> newModel,
@@ -615,3 +789,4 @@ void LabController::Reset(
 
     mEventDispatcher.OnReset();
 }
+

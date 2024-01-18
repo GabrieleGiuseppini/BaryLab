@@ -20,6 +20,7 @@ LabParameters::LabParameters()
 	// NPC
 	, HumanNpcEquilibriumTorqueStiffnessCoefficient(0.0032f)
 	, HumanNpcEquilibriumTorqueDampingCoefficient(0.055f)
+	, HumanNpcWalkingAcceleration(0.027f)
 	, HumanNpcWalkingSpeed(1.0f)
 {
 }
