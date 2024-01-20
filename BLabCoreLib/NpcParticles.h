@@ -26,16 +26,19 @@ public:
         float Mass;
         float StaticFriction;
         float KineticFriction;
+        float Elasticity;
         float BuoyancyVolumeFill;
 
         PhysicalProperties(
             float mass,
             float staticFriction,
             float kineticFriction,
+            float elasticity,
             float buoyancyVolumeFill)
             : Mass(mass)
             , StaticFriction(staticFriction)
             , KineticFriction(kineticFriction)
+            , Elasticity(elasticity)
             , BuoyancyVolumeFill(buoyancyVolumeFill)
         {}
     };
@@ -47,7 +50,7 @@ public:
         // Buffers
         //////////////////////////////////
         // Physics
-        , mPhysicalPropertiesBuffer(mBufferElementCount, particleCount, PhysicalProperties(0.0f, 0.0f, 0.0f, 0.0f))
+        , mPhysicalPropertiesBuffer(mBufferElementCount, particleCount, PhysicalProperties(0.0f, 0.0f, 0.0f, 0.0f, 0.0f))
         , mPositionBuffer(mBufferElementCount, particleCount, vec2f::zero())
         , mVelocityBuffer(mBufferElementCount, particleCount, vec2f::zero())
         , mPreliminaryForcesBuffer(mBufferElementCount, particleCount, vec2f::zero())
@@ -68,6 +71,7 @@ public:
         float mass,
         float staticFriction,
         float kineticFriction,
+        float elasticity,
         float buoyancyVolumeFill,
         vec2f const & position,
         rgbaColor const & color);

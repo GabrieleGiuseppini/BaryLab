@@ -20,6 +20,7 @@ StructuralMaterial StructuralMaterial::Create(
         float const mass = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "mass", 1.0f);
         float const staticFriction = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "static_friction", 1.0f);
         float const kineticFriction = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "kinetic_friction", 1.0f);
+        float const elasticity = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "elasticity", 0.0f);
         float const buoyancyVolumeFill = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "buoyancy_volume_fill", 1.0f);
 
         std::string const surfaceStr = Utils::GetMandatoryJsonMember<std::string>(structuralMaterialJson, "surface");
@@ -31,6 +32,7 @@ StructuralMaterial StructuralMaterial::Create(
             mass,
             staticFriction,
             kineticFriction,
+            elasticity,
             buoyancyVolumeFill,
             surface);
     }

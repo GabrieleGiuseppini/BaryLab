@@ -1765,7 +1765,8 @@ void Npcs::BounceConstrainedNpcParticle(
     // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
     vec2f const normalResponse =
         -normalVelocity
-        * labParameters.Elasticity;
+        * particles.GetPhysicalProperties(npcParticle.ParticleIndex).Elasticity
+        * labParameters.ElasticityAdjustment;
 
     // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
     vec2f const tangentialResponse =

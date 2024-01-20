@@ -62,9 +62,9 @@ struct LabParameters
     static float constexpr MinSpringDampingCoefficient = 0.0f;
     static float constexpr MaxSpringDampingCoefficient = 1.0f;
 
-    float Elasticity;
-    static float constexpr MinElasticity = 0.0f;
-    static float constexpr MaxElasticity = 1.0f;
+    float ElasticityAdjustment;
+    static float constexpr MinElasticityAdjustment = 0.0f;
+    static float constexpr MaxElasticityAdjustment = 4.0f;
 
     float StaticFrictionAdjustment;
     static float constexpr MinStaticFrictionAdjustment = 0.0f;

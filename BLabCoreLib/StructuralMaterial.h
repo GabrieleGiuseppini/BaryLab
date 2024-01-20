@@ -22,6 +22,7 @@ public:
     float Mass;
     float StaticFriction;
     float KineticFriction;
+    float Elasticity;
     float BuoyancyVolumeFill;
 
     SurfaceType Surface;
@@ -38,6 +39,7 @@ public:
         float mass,
         float staticFriction,
         float kineticFriction,
+        float elasticity,
         float buoyancyVolumeFill,
         SurfaceType surface)
         : Name(name)
@@ -45,6 +47,7 @@ public:
         , Mass(mass)
         , StaticFriction(staticFriction)
         , KineticFriction(kineticFriction)
+        , Elasticity(elasticity)
         , BuoyancyVolumeFill(buoyancyVolumeFill)
         , Surface(surface)
     {}

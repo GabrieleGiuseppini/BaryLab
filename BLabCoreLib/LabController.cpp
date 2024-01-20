@@ -6,6 +6,7 @@
 #include "LabController.h"
 
 #include "AABB.h"
+#include "GameRandomEngine.h"
 #include "MeshBuilder.h"
 #include "ResourceLocator.h"
 
@@ -514,163 +515,289 @@ void LabController::DoStepForVideo()
     assert(mModel);
 
     ++mCurrentVideoStep;
-    switch (mCurrentVideoStep)
+
+    int matchIndex = 0;
+
+    ////++matchIndex;
+    ////if (mCurrentVideoStep == matchIndex)
+    ////{
+    ////    //
+    ////    // Load mesh and stay clean
+    ////    //
+
+    ////    LoadMesh(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
+
+    ////    // Enable gravity
+    ////    SetGravityEnabled(true);
+
+    ////    // Enable auto-play            
+    ////    SetSimulationControlState(SimulationControlStateType::Play);
+
+    ////    // Other settings
+    ////    SetSeaLevel(-7.0f);        
+
+    ////    return;
+    ////}
+
+    ////++matchIndex;
+    ////if (mCurrentVideoStep == matchIndex)
+    ////{
+    ////    //
+    ////    // Create one ball
+    ////    //
+
+    ////    mModel->GetNpcs().Add(
+    ////        Npcs::NpcType::Furniture,
+    ////        vec2f(0.0f, 0.0f),
+    ////        std::nullopt,
+    ////        mStructuralMaterialDatabase,
+    ////        mModel->GetMesh());
+
+    ////    return;
+    ////}
+
+    ////++matchIndex;
+    ////if (mCurrentVideoStep == matchIndex)
+    ////{
+    ////    //
+    ////    // Reset
+    ////    //
+
+    ////    LoadMesh(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
+
+    ////    return;
+    ////}
+
+    ////++matchIndex;
+    ////if (mCurrentVideoStep == matchIndex)
+    ////{
+    ////    //
+    ////    // Create a few balls
+    ////    //
+
+    ////    for (int i = 0; i < 9; ++i)
+    ////    {
+    ////        vec2f const position = vec2f(
+    ////            GameRandomEngine::GetInstance().GenerateUniformReal(-9.0f, 8.0f),
+    ////            GameRandomEngine::GetInstance().GenerateUniformReal(-5.0f, 5.0f));
+
+    ////        mModel->GetNpcs().Add(
+    ////            Npcs::NpcType::Furniture,
+    ////            position,
+    ////            std::nullopt,
+    ////            mStructuralMaterialDatabase,
+    ////            mModel->GetMesh());
+    ////    }
+
+    ////    return;
+    ////}
+
+    ////++matchIndex;
+    ////if (mCurrentVideoStep == matchIndex)
+    ////{
+    ////    //
+    ////    // Reset
+    ////    //
+
+    ////    LoadMesh(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
+
+    ////    return;
+    ////}
+
+    ////++matchIndex;
+    ////if (mCurrentVideoStep == matchIndex)
+    ////{
+    ////    //
+    ////    // Create many balls
+    ////    //
+
+    ////    for (int i = 0; i < 25; ++i)
+    ////    {
+    ////        vec2f const position = vec2f(
+    ////            GameRandomEngine::GetInstance().GenerateUniformReal(-9.0f, 8.0f),
+    ////            GameRandomEngine::GetInstance().GenerateUniformReal(-5.0f, 5.0f));
+
+    ////        mModel->GetNpcs().Add(
+    ////            Npcs::NpcType::Furniture,
+    ////            position,
+    ////            std::nullopt,
+    ////            mStructuralMaterialDatabase,
+    ////            mModel->GetMesh());
+    ////    }
+
+    ////    return;
+    ////}
+
+    /////////////////////////////////////////////////////////
+    // Humans
+    /////////////////////////////////////////////////////////
+
+    ++matchIndex;
+    if (mCurrentVideoStep == matchIndex)
     {
-        case 1:
-        {
-            //
-            // Load mesh and stay clean
-            //
+        //
+        // Load mesh and stay clean
+        //
 
-            LoadMesh(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
+        LoadMesh(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
 
-            // Disable gravity
-            SetGravityEnabled(false);
+        // Enable auto-play            
+        SetSimulationControlState(SimulationControlStateType::Play);
 
-            // Enable auto-play            
-            SetSimulationControlState(SimulationControlStateType::Play);
+        // Disable gravity
+        SetGravityEnabled(false);
 
-            // Other settings
-            SetSeaLevel(-7.0f);
-            SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
+        // Other settings
+        SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
+        SetSeaLevel(-7.0f);        
 
-            break;
-        }
+        return;
+    }
 
-        case 2:
-        {
-            //
-            // Add one horizontal human
-            //
+    ++matchIndex;
+    if (mCurrentVideoStep == matchIndex)
+    {
+        //
+        // Add one horizontal human
+        //
 
-            vec2f primaryPosition = vec2f(1.5f, -2.0f);
-            vec2f secondaryPosition = primaryPosition + vec2f(1.0f, 0.0f) * LabParameters::HumanNpcLength;
-            mModel->GetNpcs().Add(
-                Npcs::NpcType::Human,
-                primaryPosition,
-                secondaryPosition,
-                mStructuralMaterialDatabase,
-                mModel->GetMesh());
+        vec2f primaryPosition = vec2f(1.5f, -2.0f);
+        vec2f secondaryPosition = primaryPosition + vec2f(1.0f, 0.0f) * LabParameters::HumanNpcLength;
+        mModel->GetNpcs().Add(
+            Npcs::NpcType::Human,
+            primaryPosition,
+            secondaryPosition,
+            mStructuralMaterialDatabase,
+            mModel->GetMesh());
 
-            break;
-        }
+        return;
+    }
 
-        case 3:
-        {
-            //
-            // Enable gravity
-            //
+    ++matchIndex;
+    if (mCurrentVideoStep == matchIndex)
+    {
+        //
+        // Enable gravity
+        //
 
 
-            SetGravityEnabled(true);
+        SetGravityEnabled(true);
 
-            break;
-        }
+        return;
+    }
 
-        case 4:
-        {
-            //
-            // Low-rising 1
-            //
+    ++matchIndex;
+    if (mCurrentVideoStep == matchIndex)
+    {
+        //
+        // Low-rising 1
+        //
 
-            SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0010f);
+        SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0010f);
 
-            break;
-        }
+        return;
+    }
 
-        case 5:
-        {
-            //
-            // Stop rising
-            //
+    ++matchIndex;
+    if (mCurrentVideoStep == matchIndex)
+    {
+        //
+        // Stop rising
+        //
 
-            SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
+        SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
 
-            break;
-        }
+        return;
+    }
 
-        case 6:
-        {
-            //
-            // Low-rising 2
-            //
+    ++matchIndex;
+    if (mCurrentVideoStep == matchIndex)
+    {
+        //
+        // Low-rising 2
+        //
 
-            SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0013f);
+        SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0013f);
 
-            break;
-        }
+        return;
+    }
 
-        case 7:
-        {
-            //
-            // Stop rising
-            //
+    ++matchIndex;
+    if (mCurrentVideoStep == matchIndex)
+    {
+        //
+        // Stop rising
+        //
 
-            SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
+        SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
 
-            break;
-        }
+        return;
+    }
 
-        case 8:
-        {
-            //
-            // Low-rising 3
-            //
+    ++matchIndex;
+    if (mCurrentVideoStep == matchIndex)
+    {
+        //
+        // Low-rising 3
+        //
 
-            SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0018f);
+        SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0018f);
 
-            break;
-        }
+        return;
+    }
 
-        case 9:
-        {
-            //
-            // Stop rising
-            //
+    ++matchIndex;
+    if (mCurrentVideoStep == matchIndex)
+    {
+        //
+        // Stop rising
+        //
 
-            SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
+        SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
 
-            break;
-        }
+        return;
+    }
 
-        case 10:
-        {
-            //
-            // Definitive rising  - but no walking
-            //
+    ++matchIndex;
+    if (mCurrentVideoStep == matchIndex)
+    {
+        //
+        // Definitive rising  - but no walking
+        //
 
-            SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0032f);
+        SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0032f);
 
-            // But no walking
-            mLabParameters.HumanNpcWalkingAcceleration = 0.0f;
+        // But no walking
+        mLabParameters.HumanNpcWalkingAcceleration = 0.0f;
 
-            break;
-        }
+        return;
+    }
 
-        case 11:
-        {
-            //
-            // Walking
-            //
+    ++matchIndex;
+    if (mCurrentVideoStep == matchIndex)
+    {
+        //
+        // Walking
+        //
 
-            mLabParameters.HumanNpcWalkingAcceleration = 0.027f;
+        mLabParameters.HumanNpcWalkingAcceleration = 0.027f;
 
-            break;
-        }
+        return;
+    }
 
+    ++matchIndex;
+    if (mCurrentVideoStep == matchIndex)
+    {
         // TODOHERE
 
-        default:
-        {
-            //
-            // Wrap around
-            //
-
-            mCurrentVideoStep = 0;
-
-            break;
-        }
+        return;
     }
+
+    //
+    // Wrap around
+    //
+
+    mCurrentVideoStep = 0;
 }
 
 ////////////////////////////////////////////////

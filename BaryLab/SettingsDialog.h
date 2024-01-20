@@ -48,7 +48,7 @@ private:
     //////////////////////////////////////////////////////
 
     // Simulator
-    SliderControl<float> * mElasticitySlider;
+    SliderControl<float> * mElasticityAdjustmentSlider;
     SliderControl<float> * mStaticFrictionAdjustmentSlider;
     SliderControl<float> * mKineticFrictionAdjustmentSlider;
     SliderControl<float> * mMassAdjustmentSlider;

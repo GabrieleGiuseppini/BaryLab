@@ -28,6 +28,7 @@ set  (SOURCES
 	FileSystem.h
 	FixedSizeVector.h
 	FloatingPoint.h
+	GameRandomEngine.h
 	IEventHandler.h
 	ImageData.h
 	ImageFileTools.cpp
