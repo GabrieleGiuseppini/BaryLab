@@ -116,7 +116,6 @@ void Npcs::UpdateHuman(
 					0.0f);
 
 				humanState.CurrentWalkMagnitude = 0.0f;
-				humanState.TargetWalkMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
 
@@ -140,7 +139,12 @@ void Npcs::UpdateHuman(
 						0.0f,
 						0.0f);
 
+					humanState.CurrentWalkMagnitude = 0.0f;
 					humanState.TargetWalkMagnitude = 1.0f;
+					humanState.CurrentWalkFlipDecision = 0.0f;
+					humanState.TargetWalkFlipDecision = 0.0f;
+					humanState.CurrentWalkTerminationDecision = 0.0f;
+					humanState.TargetWalkTerminationDecision = 0.0f;
 
 					// Keep torque
 
@@ -152,16 +156,50 @@ void Npcs::UpdateHuman(
 
 			// Check conditions to stay & maintain equilibrium
 
-			bool stateCondition = false;
+			bool const isOnEdge = 
+				primaryParticleState.ConstrainedState.has_value()
+				&& IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh);
 
-			if (primaryParticleState.ConstrainedState.has_value()
-				&& IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh)
-				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium)
+			bool isStateMaintained;
+			if (humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking)
 			{
-				stateCondition = true;
+				if (!isOnEdge)
+				{
+					// When walking, we want to be a bit more tolerant about "losing the edge"
+
+					// TODO: target is not needed here
+
+					humanState.TargetWalkTerminationDecision = 1.0f;
+
+					// Advance
+					float constexpr ToAbandonWalkingConvergenceRate = 0.25f;
+					humanState.CurrentWalkTerminationDecision += (humanState.TargetWalkTerminationDecision - humanState.CurrentWalkTerminationDecision) * ToAbandonWalkingConvergenceRate;
+
+					// Check if enough
+					if (IsAtTarget(humanState.CurrentWalkTerminationDecision, 1.0f))
+					{
+						isStateMaintained = false;
+					}
+					else
+					{
+						isStateMaintained = true;
+					}
+				}
+				else
+				{
+					humanState.TargetWalkTerminationDecision = 0.0f;
+					humanState.CurrentWalkTerminationDecision = 0.0f;
+
+					isStateMaintained = true;
+				}
+			}
+			else
+			{
+				isStateMaintained = isOnEdge;
 			}
 
-			if (!stateCondition
+			if (!isStateMaintained
+				|| primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() >= MaxRelativeVelocityForEquilibrium
 				|| !MaintainAndCheckHumanEquilibrium(
 					primaryParticleState.ParticleIndex,
 					secondaryParticleState.ParticleIndex,
@@ -169,7 +207,7 @@ void Npcs::UpdateHuman(
 					mParticles,
 					labParameters))
 			{
-				// Transition
+				// Transition to knocked out
 
 				LogMessage("Going to Constrained_KnockedOut; primary's barycentric coords: ", 
 					primaryParticleState.ConstrainedState.has_value() ? primaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords.toString() : "N/A",
@@ -182,7 +220,6 @@ void Npcs::UpdateHuman(
 					0.0f);
 
 				humanState.CurrentWalkMagnitude = 0.0f;
-				humanState.TargetWalkMagnitude = 0.0f;
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 
@@ -219,14 +256,20 @@ void Npcs::UpdateHuman(
 			{
 				assert(humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking);
 
-				// Impart walk displacement & run walking state machine
-				RunWalkingHumanStateMachine(
-					humanState,
-					primaryParticleState,
-					mesh,
-					labParameters);
+				if (isOnEdge) // Note: no need to silence walk as we don't apply walk displacement in inertial (i.e. not-on-edge) case
+				{
+					// Impart walk displacement & run walking state machine
+					RunWalkingHumanStateMachine(
+						humanState,
+						primaryParticleState,
+						mesh,
+						labParameters);
+				}
 
-				publishStateQuantity = std::make_tuple("WalkFlip", std::to_string(humanState.CurrentWalkFlipDecision));
+				if (humanState.CurrentWalkFlipDecision != 0.0f)
+					publishStateQuantity = std::make_tuple("WalkFlip", std::to_string(humanState.CurrentWalkFlipDecision));
+				else
+					publishStateQuantity = std::make_tuple("WalkTermination", std::to_string(humanState.CurrentWalkTerminationDecision));
 			}
 
 			break;

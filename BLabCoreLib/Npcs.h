@@ -122,6 +122,9 @@ public:
 			float CurrentWalkFlipDecision; // [0.0f, 1.0f]
 			float TargetWalkFlipDecision; // [0.0f, 1.0f]
 
+			float CurrentWalkTerminationDecision; // [0.0f, 1.0f]
+			float TargetWalkTerminationDecision; // [0.0f, 1.0f]
+
 			HumanNpcStateType(
 				BehaviorType initialBehavior,
 				float currentStateValue,
@@ -134,6 +137,8 @@ public:
 				, TargetWalkMagnitude(0.0f)
 				, CurrentWalkFlipDecision(0.0f)
 				, TargetWalkFlipDecision(0.0f)
+				, CurrentWalkTerminationDecision(0.0f)
+				, TargetWalkTerminationDecision(0.0f)
 			{}
 
 			void TransitionToState(
