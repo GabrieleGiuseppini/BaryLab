@@ -144,7 +144,6 @@ void Npcs::UpdateHuman(
 					humanState.CurrentWalkFlipDecision = 0.0f;
 					humanState.TargetWalkFlipDecision = 0.0f;
 					humanState.CurrentWalkTerminationDecision = 0.0f;
-					humanState.TargetWalkTerminationDecision = 0.0f;
 
 					// Keep torque
 
@@ -167,13 +166,12 @@ void Npcs::UpdateHuman(
 				{
 					// When walking, we want to be a bit more tolerant about "losing the edge"
 
-					// TODO: target is not needed here
-
-					humanState.TargetWalkTerminationDecision = 1.0f;
+					// This is a quite important parameter: it's the duration through which we tolerate temporarily losing contact
+					// with the ground
+					float constexpr ToAbandonWalkingConvergenceRate = 0.25f;
 
 					// Advance
-					float constexpr ToAbandonWalkingConvergenceRate = 0.25f;
-					humanState.CurrentWalkTerminationDecision += (humanState.TargetWalkTerminationDecision - humanState.CurrentWalkTerminationDecision) * ToAbandonWalkingConvergenceRate;
+					humanState.CurrentWalkTerminationDecision += (1.0f - humanState.CurrentWalkTerminationDecision) * ToAbandonWalkingConvergenceRate;
 
 					// Check if enough
 					if (IsAtTarget(humanState.CurrentWalkTerminationDecision, 1.0f))
@@ -187,7 +185,6 @@ void Npcs::UpdateHuman(
 				}
 				else
 				{
-					humanState.TargetWalkTerminationDecision = 0.0f;
 					humanState.CurrentWalkTerminationDecision = 0.0f;
 
 					isStateMaintained = true;
