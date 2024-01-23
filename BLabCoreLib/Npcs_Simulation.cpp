@@ -883,11 +883,19 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
 
     if (!npcParticle.ConstrainedState.has_value())
     {
-        // TODOTEST: finding sweet spot
-        // TODO: add offset once we can look at human vector
-        //float const uwCoefficient = Clamp(labParameters.SeaLevel - mParticles.GetPosition(npcParticle.ParticleIndex).y, 0.0f, 1.0f);
-        float const uwCoefficient = Clamp(labParameters.SeaLevel - mParticles.GetPosition(npcParticle.ParticleIndex).y, 0.0f, 0.1f) / 0.1f;
+        // Check whether we are underwater
 
+        float constexpr BuoyancyInterfaceWidth = 0.4f;
+
+        vec2f testParticlePosition = mParticles.GetPosition(npcParticle.ParticleIndex);
+        if (npc.Type == NpcType::Human && !isPrimaryParticle)
+        {
+            // Head - use an offset
+            assert(npc.DipoleState.has_value());
+            testParticlePosition += (mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex) - testParticlePosition) * BuoyancyInterfaceWidth * 2.0f / 3.0f;
+        }
+
+        float const uwCoefficient = Clamp(labParameters.SeaLevel - testParticlePosition.y, 0.0f, BuoyancyInterfaceWidth) / BuoyancyInterfaceWidth;
         if (uwCoefficient > 0.0f)
         {
             // Underwater
