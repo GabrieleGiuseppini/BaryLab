@@ -1811,12 +1811,12 @@ void Npcs::OnImpact(
     vec2f const & impactVector,
     vec2f const & bounceEdgeNormal, // Pointing outside of triangle
     StateType & npc,
-    bool isPrimaryParticle) const
+    bool /*isPrimaryParticle*/) const
 {
     LogMessage("    OnImpact(", impactVector, ", ", bounceEdgeNormal, ")");
 
     // Human state machine
-    if (npc.HumanNpcState.has_value() && isPrimaryParticle)
+    if (npc.HumanNpcState.has_value())
     {
         switch (npc.HumanNpcState->CurrentBehavior)
         {
