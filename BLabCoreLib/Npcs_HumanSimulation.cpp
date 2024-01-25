@@ -79,6 +79,8 @@ void Npcs::UpdateHuman(
 					0.0f,
 					0.0f);
 
+				humanState.CurrentEquilibriumSoftTerminationDecision = 0.0f;
+
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Rising");
 
 				break;
@@ -122,77 +124,72 @@ void Npcs::UpdateHuman(
 				break;
 			}
 
+			bool const isOnEdge =
+				primaryParticleState.ConstrainedState.has_value()
+				&& IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh);
+
 			if (humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium)
 			{
-				// Advance towards walking
-
-				humanState.CurrentStateValue += (humanState.TargetStateValue - humanState.CurrentStateValue) * ToWalkingConvergenceRate;
-
-				publishStateQuantity = std::make_tuple("CurrentStateValue", std::to_string(humanState.CurrentStateValue));
-
-				if (IsAtTarget(humanState.CurrentStateValue, 1.0f))
+				if (isOnEdge)
 				{
-					// Transition
+					// Advance towards walking
 
-					humanState.TransitionToState(
-						StateType::HumanNpcStateType::BehaviorType::Constrained_Walking,
-						0.0f,
-						0.0f);
+					humanState.CurrentStateValue += (humanState.TargetStateValue - humanState.CurrentStateValue) * ToWalkingConvergenceRate;
 
-					humanState.CurrentWalkMagnitude = 0.0f;
-					humanState.TargetWalkMagnitude = 1.0f;
-					humanState.CurrentWalkFlipDecision = 0.0f;
-					humanState.TargetWalkFlipDecision = 0.0f;
-					humanState.CurrentWalkTerminationDecision = 0.0f;
+					publishStateQuantity = std::make_tuple("CurrentStateValue", std::to_string(humanState.CurrentStateValue));
 
-					// Keep torque
+					if (IsAtTarget(humanState.CurrentStateValue, 1.0f))
+					{
+						// Transition
 
-					mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Walking");
+						humanState.TransitionToState(
+							StateType::HumanNpcStateType::BehaviorType::Constrained_Walking,
+							0.0f,
+							0.0f);
 
-					break;
+						humanState.CurrentWalkMagnitude = 0.0f;
+						humanState.TargetWalkMagnitude = 1.0f;
+						humanState.CurrentWalkFlipDecision = 0.0f;
+						humanState.TargetWalkFlipDecision = 0.0f;
+
+						// Keep torque
+
+						mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Walking");
+
+						break;
+					}
 				}
 			}
 
 			// Check conditions to stay & maintain equilibrium
 
-			bool const isOnEdge = 
-				primaryParticleState.ConstrainedState.has_value()
-				&& IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh);
-
 			bool isStateMaintained;
-			if (humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking)
+			if (!isOnEdge)
 			{
-				if (!isOnEdge)
+				// When walking, we want to be a bit more tolerant about "losing the edge"
+
+				// This is a quite important parameter: it's the duration through which we tolerate temporarily losing contact
+				// with the ground
+				float constexpr ToTerminateEquilibriumConvergenceRate = 0.25f;
+
+				// Advance
+				humanState.CurrentEquilibriumSoftTerminationDecision += (1.0f - humanState.CurrentEquilibriumSoftTerminationDecision) * ToTerminateEquilibriumConvergenceRate;
+
+				// Check if enough
+				if (IsAtTarget(humanState.CurrentEquilibriumSoftTerminationDecision, 1.0f))
 				{
-					// When walking, we want to be a bit more tolerant about "losing the edge"
-
-					// This is a quite important parameter: it's the duration through which we tolerate temporarily losing contact
-					// with the ground
-					float constexpr ToAbandonWalkingConvergenceRate = 0.25f;
-
-					// Advance
-					humanState.CurrentWalkTerminationDecision += (1.0f - humanState.CurrentWalkTerminationDecision) * ToAbandonWalkingConvergenceRate;
-
-					// Check if enough
-					if (IsAtTarget(humanState.CurrentWalkTerminationDecision, 1.0f))
-					{
-						isStateMaintained = false;
-					}
-					else
-					{
-						isStateMaintained = true;
-					}
+					isStateMaintained = false;
 				}
 				else
 				{
-					humanState.CurrentWalkTerminationDecision = 0.0f;
-
 					isStateMaintained = true;
 				}
 			}
 			else
 			{
-				isStateMaintained = isOnEdge;
+				humanState.CurrentEquilibriumSoftTerminationDecision = 0.0f;
+
+				isStateMaintained = true;
 			}
 
 			if (!isStateMaintained
@@ -266,7 +263,7 @@ void Npcs::UpdateHuman(
 				if (humanState.CurrentWalkFlipDecision != 0.0f)
 					publishStateQuantity = std::make_tuple("WalkFlip", std::to_string(humanState.CurrentWalkFlipDecision));
 				else
-					publishStateQuantity = std::make_tuple("WalkTermination", std::to_string(humanState.CurrentWalkTerminationDecision));
+					publishStateQuantity = std::make_tuple("EquilibriumTermination", std::to_string(humanState.CurrentEquilibriumSoftTerminationDecision));
 			}
 
 			break;

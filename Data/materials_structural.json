@@ -21,7 +21,7 @@
 	"unique_material": "Furniture",
 	"static_friction": 0.2,
 	"kinetic_friction": 0.11,
-	"elasticity": 0.9,
+	"elasticity": 0.6,
 	"buoyancy_volume_fill": 1.0,
 	"surface": "Open"
     },
