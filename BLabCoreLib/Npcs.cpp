@@ -243,6 +243,7 @@ void Npcs::Render(RenderContext & renderContext)
 	//
 
 	renderContext.UploadParticlesStart();
+	renderContext.UploadNpcHumanLimbsStart();
 
 	for (auto const i : *this)
 	{
@@ -254,8 +255,27 @@ void Npcs::Render(RenderContext & renderContext)
 		{
 			RenderParticle(state.DipoleState->SecondaryParticleState, renderContext);
 		}
+
+		if (state.HumanNpcState.has_value())
+		{
+			renderContext.UploadNpcHumanLimb(
+				state.HumanNpcState->TopPoint,
+				state.HumanNpcState->CrotchPoint,
+				LabParameters::HumanNpcLength * 0.25f);
+
+			renderContext.UploadNpcHumanLimb(
+				state.HumanNpcState->CrotchPoint,
+				state.HumanNpcState->LeftLegPoint,
+				LabParameters::HumanNpcLength * 0.14f);
+
+			renderContext.UploadNpcHumanLimb(
+				state.HumanNpcState->CrotchPoint,
+				state.HumanNpcState->RightLegPoint,
+				LabParameters::HumanNpcLength * 0.14f);
+		}
 	}
 
+	renderContext.UploadNpcHumanLimbsEnd();
 	renderContext.UploadParticlesEnd();
 
 	//

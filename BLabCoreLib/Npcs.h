@@ -124,6 +124,12 @@ public:
 
 			float CurrentEquilibriumSoftTerminationDecision; // [0.0f, 1.0f]
 
+			// Animation
+			vec2f TopPoint;
+			vec2f CrotchPoint;
+			vec2f RightLegPoint;
+			vec2f LeftLegPoint;
+
 			HumanNpcStateType(
 				BehaviorType initialBehavior,
 				float currentStateValue,
@@ -511,6 +517,12 @@ private:
 		vec2f const & bounceEdgeNormal,
 		StateType & npc,
 		bool isPrimaryParticle) const;
+
+	void UpdateNpcAnimation(
+		StateType & npc,
+		bool isPrimaryParticle,
+		Mesh const & mesh,
+		LabParameters const & labParameters);
 
 private:
 

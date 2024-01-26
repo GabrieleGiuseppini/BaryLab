@@ -19,16 +19,16 @@ void Npcs::UpdateNpcs(
     LogMessage("----------------------------------");
 
     //
-    // 0. Reset buffers
+    // 1. Reset buffers
     //
 
     mParticles.ResetEquilibriumTorque();
     // Note: no need to reset PreliminaryForces as we'll recalculate all of them
 
     //
-    // 1. Check if a free secondary particle should become constrained
-    // 2. Update behavioral state machines
-    // 3. Calculate spring forces 
+    // 2. Check if a free secondary particle should become constrained
+    // 3. Update behavioral state machines
+    // 4. Calculate preliminary forces 
     //
 
     for (auto const n : *this)
@@ -78,7 +78,7 @@ void Npcs::UpdateNpcs(
     }
 
     //
-    // 3. Update state
+    // 5. Update state
     //
 
     for (auto const n : *this)
@@ -96,6 +96,30 @@ void Npcs::UpdateNpcs(
         if (npcState.DipoleState.has_value())
         {
             UpdateNpcParticle(
+                npcState,
+                false,
+                mesh,
+                labParameters);
+        }
+    }
+
+    //
+    // 6. Update animation
+    //
+
+    for (auto const n : *this)
+    {
+        auto & npcState = mStateBuffer[n];
+
+        UpdateNpcAnimation(
+            npcState,
+            true,
+            mesh,
+            labParameters);
+
+        if (npcState.DipoleState.has_value())
+        {
+            UpdateNpcAnimation(
                 npcState,
                 false,
                 mesh,
@@ -1840,6 +1864,42 @@ void Npcs::OnImpact(
                     // Flip now
                     FlipHumanWalk(*npc.HumanNpcState, StrongTypedTrue<_DoImmediate>);
                 }
+
+                break;
+            }
+
+            default:
+            {
+                break;
+            }
+        }
+    }
+}
+
+void Npcs::UpdateNpcAnimation(
+    StateType & npc,
+    bool isPrimaryParticle,
+    Mesh const & /*mesh*/,
+    LabParameters const & /*labParameters*/)
+{
+    if (npc.Type == NpcType::Human && isPrimaryParticle) // TODO: should we invoke it directly on UpdateHumanNpcAnimation?
+    {
+        assert(npc.DipoleState.has_value());
+        assert(npc.HumanNpcState.has_value());
+
+        switch (npc.HumanNpcState->CurrentBehavior)
+        {
+            case StateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
+            {
+                ElementIndex const primaryParticleIndex = npc.PrimaryParticleState.ParticleIndex;
+                ElementIndex const secondaryParticleIndex = npc.DipoleState->SecondaryParticleState.ParticleIndex;
+
+                npc.HumanNpcState->TopPoint = mParticles.GetPosition(secondaryParticleIndex);
+                npc.HumanNpcState->CrotchPoint = mParticles.GetPosition(secondaryParticleIndex) + (mParticles.GetPosition(primaryParticleIndex) - mParticles.GetPosition(secondaryParticleIndex)) * 0.5f;
+                npc.HumanNpcState->RightLegPoint = npc.HumanNpcState->CrotchPoint + vec2f(0.5f, -0.5f) * LabParameters::HumanNpcLength;
+                npc.HumanNpcState->LeftLegPoint = npc.HumanNpcState->CrotchPoint + vec2f(-0.5f, -0.5f) * LabParameters::HumanNpcLength;
+
+                // TODOHERE
 
                 break;
             }

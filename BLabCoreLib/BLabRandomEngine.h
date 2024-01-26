@@ -5,7 +5,7 @@
 ***************************************************************************************/
 #pragma once
 
-#include "GameMath.h"
+#include "BLabMath.h"
 #include "Vectors.h"
 
 #include <random>

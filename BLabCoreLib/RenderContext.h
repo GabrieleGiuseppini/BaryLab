@@ -167,6 +167,15 @@ public:
 
     void UploadParticlesEnd();
 
+    void UploadNpcHumanLimbsStart();
+
+    void UploadNpcHumanLimb(
+        vec2f const & startPosition,
+        vec2f const & endPosition,
+        float width);
+
+    void UploadNpcHumanLimbsEnd();
+
     void UploadParticleTrajectoriesStart();
 
     void UploadParticleTrajectory(
@@ -363,6 +372,29 @@ private:
 
     std::vector<ParticleVertex> mParticleVertexBuffer;
     BLabOpenGLVBO mParticleVertexVBO;
+
+    ////////////////////////////////////////////////////////////////
+    // NPC Limbs
+    ////////////////////////////////////////////////////////////////
+
+#pragma pack(push)
+
+    struct NpcLimbVertex
+    {
+        vec2f Position;
+
+        NpcLimbVertex(
+            vec2f const & position)
+            : Position(position)
+        {}
+    };
+
+#pragma pack(pop)
+
+    BLabOpenGLVAO mNpcLimbVAO;
+
+    std::vector<NpcLimbVertex> mNpcLimbVertexBuffer;
+    BLabOpenGLVBO mNpcLimbVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // Particle trajectory

@@ -31,11 +31,12 @@ public:
         Vertices = 1,
         Edges = 2,
         Particles = 3,
-        ParticleTrajectories = 4,
-        Springs = 5,
-        Triangles = 6,
-        MeshVelocity = 7,
-        Grid = 8,
+        NpcLimbs = 4,
+        ParticleTrajectories = 5,
+        Springs = 6,
+        Triangles = 7,
+        MeshVelocity = 8,
+        Grid = 9,
 
         _Last = Grid
     };
@@ -59,6 +60,8 @@ public:
 
         ParticleAttributeGroup1 = 0,
         ParticleAttributeGroup2 = 1,
+
+        NpcLimbAttributeGroup1 = 0,
 
         ParticleTrajectoryAttributeGroup1 = 0,
         ParticleTrajectoryAttributeGroup2 = 1,

@@ -158,6 +158,24 @@ RenderContext::RenderContext(
     glBindVertexArray(0);
 
     //
+    // NPC Limbs
+    //
+
+    glGenVertexArrays(1, &tmpGLuint);
+    mNpcLimbVAO = tmpGLuint;
+    glBindVertexArray(*mNpcLimbVAO);
+
+    glGenBuffers(1, &tmpGLuint);
+    mNpcLimbVertexVBO = tmpGLuint;
+    glBindBuffer(GL_ARRAY_BUFFER, *mNpcLimbVertexVBO);
+
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcLimbAttributeGroup1));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcLimbAttributeGroup1), 2, GL_FLOAT, GL_FALSE, sizeof(NpcLimbVertex), (void *)0);
+    static_assert(sizeof(NpcLimbVertex) == (2) * sizeof(float));
+
+    glBindVertexArray(0);
+
+    //
     // Particle trajectories
     //
 
@@ -568,6 +586,66 @@ void RenderContext::UploadParticlesEnd()
     }
 }
 
+void RenderContext::UploadNpcHumanLimbsStart()
+{
+    //
+    // Prepare buffer
+    //
+
+    mNpcLimbVertexBuffer.clear();
+}
+
+void RenderContext::UploadNpcHumanLimb(
+    vec2f const & startPosition,
+    vec2f const & endPosition,
+    float width)
+{
+    vec2f const dirP = (endPosition - startPosition).normalise().to_perpendicular();
+
+    vec2f const topLeft = startPosition - dirP * width * 0.5f;
+    vec2f const topRight = startPosition + dirP * width * 0.5f;
+    vec2f const bottomLeft = endPosition - dirP * width * 0.5f;
+    vec2f const bottomRight = endPosition + dirP * width * 0.5f;
+
+    // Left, bottom
+    mNpcLimbVertexBuffer.emplace_back(
+        bottomLeft);
+
+    // Left, top
+    mNpcLimbVertexBuffer.emplace_back(
+        topLeft);
+
+    // Right, bottom
+    mNpcLimbVertexBuffer.emplace_back(
+        bottomRight);
+
+    // Left, top
+    mNpcLimbVertexBuffer.emplace_back(
+        topLeft);
+
+    // Right, bottom
+    mNpcLimbVertexBuffer.emplace_back(
+        bottomRight);
+
+    // Right, top
+    mNpcLimbVertexBuffer.emplace_back(
+        topRight);
+}
+
+void RenderContext::UploadNpcHumanLimbsEnd()
+{
+    //
+    // Upload buffer, if needed
+    //
+
+    if (!mNpcLimbVertexBuffer.empty())
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, *mNpcLimbVertexVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(NpcLimbVertex) * mNpcLimbVertexBuffer.size(), mNpcLimbVertexBuffer.data(), GL_STREAM_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+}
+
 void RenderContext::UploadParticleTrajectoriesStart()
 {
     //
@@ -917,6 +995,24 @@ void RenderContext::RenderEnd()
     }
 
     ////////////////////////////////////////////////////////////////
+    // NPC Limbs
+    ////////////////////////////////////////////////////////////////
+
+    if (!mNpcLimbVertexBuffer.empty())
+    {
+        glBindVertexArray(*mNpcLimbVAO);
+
+        mShaderManager->ActivateProgram<ShaderManager::ProgramType::NpcLimbs>();
+
+        assert((mNpcLimbVertexBuffer.size() % 6) == 0);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mNpcLimbVertexBuffer.size()));
+
+        CheckOpenGLError();
+
+        glBindVertexArray(0);
+    }
+
+    ////////////////////////////////////////////////////////////////
     // Particle trajectories
     ////////////////////////////////////////////////////////////////
 
@@ -1002,6 +1098,10 @@ void RenderContext::OnViewModelUpdated()
 
     mShaderManager->ActivateProgram<ShaderManager::ProgramType::Particles>();
     mShaderManager->SetProgramParameter<ShaderManager::ProgramType::Particles, ShaderManager::ProgramParameterType::OrthoMatrix>(
+        orthoMatrix);
+
+    mShaderManager->ActivateProgram<ShaderManager::ProgramType::NpcLimbs>();
+    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::NpcLimbs, ShaderManager::ProgramParameterType::OrthoMatrix>(
         orthoMatrix);
 
     mShaderManager->ActivateProgram<ShaderManager::ProgramType::Vertices>();
