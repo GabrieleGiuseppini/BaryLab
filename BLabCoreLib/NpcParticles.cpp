@@ -19,6 +19,7 @@ void NpcParticles::Add(
     mPhysicalPropertiesBuffer.emplace_back(mass, staticFriction, kineticFriction, elasticity, buoyancyVolumeFill);
     mPositionBuffer.emplace_back(position);
     mVelocityBuffer.emplace_back(vec2f::zero());
+    mEquilibriumTorqueBuffer.emplace_back(0.0f);
     mPreliminaryForcesBuffer.emplace_back(vec2f::zero());
     mExternalForcesBuffer.emplace_back(vec2f::zero());
 

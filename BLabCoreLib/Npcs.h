@@ -543,10 +543,11 @@ private:
 		Mesh const & mesh,
 		LabParameters const & labParameters);
 
-	bool MaintainAndCheckHumanEquilibrium(
+	bool CheckAndMaintainHumanEquilibrium(
 		ElementIndex primaryParticleIndex,
 		ElementIndex secondaryParticleIndex,
 		bool isRisingState,
+		bool isOnEdge,
 		NpcParticles & particles,
 		LabParameters const & labParameters);
 

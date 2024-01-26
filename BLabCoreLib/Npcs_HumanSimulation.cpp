@@ -194,10 +194,11 @@ void Npcs::UpdateHuman(
 
 			if (!isStateMaintained
 				|| primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() >= MaxRelativeVelocityForEquilibrium
-				|| !MaintainAndCheckHumanEquilibrium(
+				|| !CheckAndMaintainHumanEquilibrium(
 					primaryParticleState.ParticleIndex,
 					secondaryParticleState.ParticleIndex,
 					humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Rising,
+					isOnEdge,
 					mParticles,
 					labParameters))
 			{
@@ -279,10 +280,11 @@ void Npcs::UpdateHuman(
 	mEventDispatcher.OnHumanNpcStateQuantityChanged(publishStateQuantity);
 }
 
-bool Npcs::MaintainAndCheckHumanEquilibrium(
+bool Npcs::CheckAndMaintainHumanEquilibrium(
 	ElementIndex primaryParticleIndex,
 	ElementIndex secondaryParticleIndex,
 	bool isRisingState,
+	bool isOnEdge,
 	NpcParticles & particles,
 	LabParameters const & /*labParameters*/)
 {
@@ -333,6 +335,19 @@ bool Npcs::MaintainAndCheckHumanEquilibrium(
 			" (Max=+/-", maxRelativeVelocityAngleForEqulibrium, ")");
 
 		return false;
+	}
+
+	//
+	// We are in equilibrium
+	//
+
+	//
+	// Maintain equilibrium
+	//
+
+	if (isOnEdge)
+	{
+		particles.SetEquilibriumTorque(secondaryParticleIndex, 1.0f);
 	}
 
 	return true;

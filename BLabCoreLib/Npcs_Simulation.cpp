@@ -19,6 +19,13 @@ void Npcs::UpdateNpcs(
     LogMessage("----------------------------------");
 
     //
+    // 0. Reset buffers
+    //
+
+    mParticles.ResetEquilibriumTorque();
+    // Note: no need to reset PreliminaryForces as we'll recalculate all of them
+
+    //
     // 1. Check if a free secondary particle should become constrained
     // 2. Update behavioral state machines
     // 3. Calculate spring forces 
@@ -998,16 +1005,19 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
     {
         assert(npc.DipoleState.has_value());
 
+        ElementIndex const primaryParticleIndex = npc.PrimaryParticleState.ParticleIndex;
+        ElementIndex const secondaryParticleIndex = npc.DipoleState->SecondaryParticleState.ParticleIndex;
+
         // Given that we apply torque onto the secondary particle *after* the primary has been simulated
         // (so that we take into account the primary's new position), and thus we see the primary where it 
         // is at the end of the step - possibly far away if mesh velocity is high, we want to _predict_ 
         // where the secondary will be by its own velocity
 
         vec2f const secondaryPredictedPosition =
-            mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex)
-            + mParticles.GetVelocity(npc.DipoleState->SecondaryParticleState.ParticleIndex) * LabParameters::SimulationTimeStepDuration;
+            mParticles.GetPosition(secondaryParticleIndex)
+            + mParticles.GetVelocity(secondaryParticleIndex) * LabParameters::SimulationTimeStepDuration;
             ;
-        vec2f const humanVector = secondaryPredictedPosition - mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
+        vec2f const humanVector = secondaryPredictedPosition - mParticles.GetPosition(primaryParticleIndex);
 
         // Calculate CW angle between head and vertical (pointing up);
         // positive when human is CW wrt vertical
@@ -1028,7 +1038,7 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
         // |/__L___H'
         //
         vec2f const relativeVelocityDisplacement = 
-            (mParticles.GetVelocity(npc.DipoleState->SecondaryParticleState.ParticleIndex) - mParticles.GetVelocity(npc.PrimaryParticleState.ParticleIndex)) 
+            (mParticles.GetVelocity(secondaryParticleIndex) - mParticles.GetVelocity(primaryParticleIndex))
             * LabParameters::SimulationTimeStepDuration;
         float const relativeVelocityAngleCW = humanVector.angleCw(humanVector + relativeVelocityDisplacement);
 
@@ -1046,7 +1056,8 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
         vec2f const torqueDisplacement = humanVector.rotate(totalTorqueAngleCW) - humanVector;
         vec2f const equilibriumTorqueForce =
             torqueDisplacement
-            * particleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration);
+            * particleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration)
+            * mParticles.GetEquilibriumTorque(secondaryParticleIndex);
 
         definitiveForces += equilibriumTorqueForce;
     }
