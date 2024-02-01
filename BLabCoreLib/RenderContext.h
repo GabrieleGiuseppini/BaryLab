@@ -382,10 +382,13 @@ private:
     struct NpcLimbVertex
     {
         vec2f Position;
+        vec2f VertexSpacePosition;
 
         NpcLimbVertex(
-            vec2f const & position)
+            vec2f const & position,
+            vec2f vertexSpacePosition)
             : Position(position)
+            , VertexSpacePosition(vertexSpacePosition)
         {}
     };
 

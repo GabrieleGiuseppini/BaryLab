@@ -1913,8 +1913,8 @@ void Npcs::UpdateNpcAnimation(
 
                 npc.HumanNpcState->TopPoint = mParticles.GetPosition(secondaryParticleIndex);
                 npc.HumanNpcState->CrotchPoint = mParticles.GetPosition(secondaryParticleIndex) + (mParticles.GetPosition(primaryParticleIndex) - mParticles.GetPosition(secondaryParticleIndex)) * 0.5f;
-                npc.HumanNpcState->RightLegPoint = npc.HumanNpcState->CrotchPoint + vec2f(0.5f, -0.5f) * LabParameters::HumanNpcLength;
-                npc.HumanNpcState->LeftLegPoint = npc.HumanNpcState->CrotchPoint + vec2f(-0.5f, -0.5f) * LabParameters::HumanNpcLength;
+                npc.HumanNpcState->RightLegPoint = npc.HumanNpcState->CrotchPoint + vec2f(1.0f, -1.0f).normalise() * 0.5f * LabParameters::HumanNpcLength;
+                npc.HumanNpcState->LeftLegPoint = npc.HumanNpcState->CrotchPoint + vec2f(-1.0f, -1.0f).normalise() * 0.5f * LabParameters::HumanNpcLength;
 
                 // TODOHERE
 

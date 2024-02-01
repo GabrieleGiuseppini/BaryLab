@@ -170,8 +170,8 @@ RenderContext::RenderContext(
     glBindBuffer(GL_ARRAY_BUFFER, *mNpcLimbVertexVBO);
 
     glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcLimbAttributeGroup1));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcLimbAttributeGroup1), 2, GL_FLOAT, GL_FALSE, sizeof(NpcLimbVertex), (void *)0);
-    static_assert(sizeof(NpcLimbVertex) == (2) * sizeof(float));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcLimbAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(NpcLimbVertex), (void *)0);
+    static_assert(sizeof(NpcLimbVertex) == (4) * sizeof(float));
 
     glBindVertexArray(0);
 
@@ -609,27 +609,33 @@ void RenderContext::UploadNpcHumanLimb(
 
     // Left, bottom
     mNpcLimbVertexBuffer.emplace_back(
-        bottomLeft);
+        bottomLeft,
+        vec2f(-1.0f, -1.0f));
 
     // Left, top
     mNpcLimbVertexBuffer.emplace_back(
-        topLeft);
+        topLeft,
+        vec2f(-1.0f, 1.0f));
 
     // Right, bottom
     mNpcLimbVertexBuffer.emplace_back(
-        bottomRight);
+        bottomRight,
+        vec2f(1.0f, -1.0f));
 
     // Left, top
     mNpcLimbVertexBuffer.emplace_back(
-        topLeft);
+        topLeft,
+        vec2f(-1.0f, 1.0f));
 
     // Right, bottom
     mNpcLimbVertexBuffer.emplace_back(
-        bottomRight);
+        bottomRight,
+        vec2f(1.0f, -1.0f));
 
     // Right, top
     mNpcLimbVertexBuffer.emplace_back(
-        topRight);
+        topRight,
+        vec2f(1.0f, 1.0f));
 }
 
 void RenderContext::UploadNpcHumanLimbsEnd()
