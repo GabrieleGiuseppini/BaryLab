@@ -126,6 +126,12 @@ void Npcs::UpdateNpcs(
                 labParameters);
         }
     }
+
+    // TODOTEST
+    if (mStateBuffer[0].PrimaryParticleState.ConstrainedState.has_value())
+        mEventDispatcher.OnCustomProbe("CurrentVitEdge", float(mStateBuffer[0].PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex));
+    else
+        mEventDispatcher.OnCustomProbe("CurrentVitEdge", -1.0f);
 }
 
 void Npcs::UpdateNpcParticle(
@@ -513,6 +519,8 @@ void Npcs::UpdateNpcParticle(
                             LogMessage("    ConstrainedNonInertial: triangle=", currentTriangleElementIndex, " edgeOrdinal=", edgeOrdinal, " bCoords=", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " trajectory=", trajectory);
                             LogMessage("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
 
+                            npcParticle.ConstrainedState->CurrentVirtualEdgeElementIndex = currentEdgeElementIndex;
+
                             //
                             // We're moving against the floor, hence we are in a non-inertial frame...
                             // ...take friction into account and flaten trajectory
@@ -813,6 +821,8 @@ void Npcs::UpdateNpcParticle(
 
                 LogMessage("    ConstrainedInertial: triangle=", currentTriangleElementIndex, " bCoords=", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " physicsDeltaPos=", physicsDeltaPos);
                 LogMessage("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
+
+                npcParticle.ConstrainedState->CurrentVirtualEdgeElementIndex = NoneElementIndex;
 
                 //
                 // Calculate target barycentric coords

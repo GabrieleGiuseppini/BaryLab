@@ -123,22 +123,37 @@ void LabController::Render()
 
         mRenderContext->UploadEdgesStart();
 
-        for (auto t : triangles)
+        // TODOTEST
+        ////for (auto t : triangles)
+        ////{
+        ////    mRenderContext->UploadEdge(
+        ////        vertices.GetPosition(triangles.GetVertexAIndex(t)),
+        ////        vertices.GetPosition(triangles.GetVertexBIndex(t)),
+        ////        edges.GetRenderColor(triangles.GetSubEdgeAIndex(t)));
+
+        ////    mRenderContext->UploadEdge(
+        ////        vertices.GetPosition(triangles.GetVertexBIndex(t)),
+        ////        vertices.GetPosition(triangles.GetVertexCIndex(t)),
+        ////        edges.GetRenderColor(triangles.GetSubEdgeBIndex(t)));
+
+        ////    mRenderContext->UploadEdge(
+        ////        vertices.GetPosition(triangles.GetVertexCIndex(t)),
+        ////        vertices.GetPosition(triangles.GetVertexAIndex(t)),
+        ////        edges.GetRenderColor(triangles.GetSubEdgeCIndex(t)));
+        ////}
+
+        for (auto e : edges)
         {
-            mRenderContext->UploadEdge(
-                vertices.GetPosition(triangles.GetVertexAIndex(t)),
-                vertices.GetPosition(triangles.GetVertexBIndex(t)),
-                edges.GetRenderColor(triangles.GetSubEdgeAIndex(t)));
+            rgbaColor color = edges.GetRenderColor(e);
+            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(e))
+            {
+                color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
+            }
 
             mRenderContext->UploadEdge(
-                vertices.GetPosition(triangles.GetVertexBIndex(t)),
-                vertices.GetPosition(triangles.GetVertexCIndex(t)),
-                edges.GetRenderColor(triangles.GetSubEdgeBIndex(t)));
-
-            mRenderContext->UploadEdge(
-                vertices.GetPosition(triangles.GetVertexCIndex(t)),
-                vertices.GetPosition(triangles.GetVertexAIndex(t)),
-                edges.GetRenderColor(triangles.GetSubEdgeCIndex(t)));
+                vertices.GetPosition(edges.GetEndpointAIndex(e)),
+                vertices.GetPosition(edges.GetEndpointBIndex(e)),
+                color);
         }
 
         mRenderContext->UploadEdgesEnd();

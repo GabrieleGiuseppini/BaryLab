@@ -47,6 +47,8 @@ public:
 
 				vec3f CurrentTriangleBarycentricCoords;
 
+				ElementIndex CurrentVirtualEdgeElementIndex; // When set, we are "conceptually" along this edge - might not be really the case e.g. when we're at a vertex
+
 				vec2f MeshRelativeVelocity; // Velocity of particle (as in velocity buffer), but relative to mesh at the moment velocity was calculated
 
 				ConstrainedStateType(
@@ -54,6 +56,7 @@ public:
 					vec3f const & currentTriangleBarycentricCoords)
 					: CurrentTriangle(currentTriangle)
 					, CurrentTriangleBarycentricCoords(currentTriangleBarycentricCoords)
+					, CurrentVirtualEdgeElementIndex(NoneElementIndex)
 					, MeshRelativeVelocity(vec2f::zero())
 				{}
 			};
@@ -308,6 +311,8 @@ public:
 	}
 
 	bool IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangleIndex) const;
+
+	bool IsEdgeHostingCurrentlySelectedParticle(ElementIndex edgeIndex) const;
 
 public:
 

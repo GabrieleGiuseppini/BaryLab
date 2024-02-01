@@ -239,7 +239,7 @@ void Npcs::Update(
 void Npcs::Render(RenderContext & renderContext)
 {
 	//
-	// Particles
+	// Particles & limbs
 	//
 
 	renderContext.UploadParticlesStart();
@@ -345,6 +345,36 @@ bool Npcs::IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangle
 				&& triangleIndex == state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangle)
 			{
 				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool Npcs::IsEdgeHostingCurrentlySelectedParticle(ElementIndex edgeIndex) const
+{
+	if (mCurrentlySelectedParticle.has_value())
+	{
+		for (auto const i : *this)
+		{
+			auto const & state = mStateBuffer[i];
+
+			if (state.PrimaryParticleState.ParticleIndex == *mCurrentlySelectedParticle ||
+				(state.DipoleState.has_value() && state.DipoleState->SecondaryParticleState.ParticleIndex == *mCurrentlySelectedParticle))
+			{
+				if (state.PrimaryParticleState.ConstrainedState.has_value()
+					&& edgeIndex == state.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex)
+				{
+					return true;
+				}
+
+				if (state.DipoleState.has_value()
+					&& state.DipoleState->SecondaryParticleState.ConstrainedState.has_value()
+					&& edgeIndex == state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex)
+				{
+					return true;
+				}
 			}
 		}
 	}
