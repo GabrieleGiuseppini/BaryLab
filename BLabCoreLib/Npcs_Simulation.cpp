@@ -22,13 +22,11 @@ void Npcs::UpdateNpcs(
     // 1. Reset buffers
     //
 
-    mParticles.ResetEquilibriumTorque();
     // Note: no need to reset PreliminaryForces as we'll recalculate all of them
 
     //
     // 2. Check if a free secondary particle should become constrained
-    // 3. Update behavioral state machines
-    // 4. Calculate preliminary forces 
+    // 3. Calculate preliminary forces 
     //
 
     for (auto const n : *this)
@@ -44,21 +42,6 @@ void Npcs::UpdateNpcs(
             npcState.DipoleState->SecondaryParticleState.ConstrainedState = CalculateParticleConstrainedState(
                 mParticles.GetPosition(npcState.DipoleState->SecondaryParticleState.ParticleIndex),
                 mesh);
-        }
-
-        // Behavior
-
-        if (npcState.Type == NpcType::Human)
-        {
-            assert(npcState.DipoleState.has_value());
-            assert(npcState.HumanNpcState.has_value());
-
-            UpdateHuman(
-                *npcState.HumanNpcState,
-                npcState.PrimaryParticleState,
-                npcState.DipoleState->SecondaryParticleState,
-                mesh,
-                labParameters);
         }
 
         // Preliminary Forces
@@ -78,7 +61,7 @@ void Npcs::UpdateNpcs(
     }
 
     //
-    // 5. Update state
+    // 4. Update state
     //
 
     for (auto const n : *this)
@@ -98,6 +81,30 @@ void Npcs::UpdateNpcs(
             UpdateNpcParticle(
                 npcState,
                 false,
+                mesh,
+                labParameters);
+        }
+    }
+
+    //
+    // 5. Update behavioral state machines
+    //
+
+    mParticles.ResetEquilibriumTorque();
+
+    for (auto const n : *this)
+    {
+        auto & npcState = mStateBuffer[n];
+
+        if (npcState.Type == NpcType::Human)
+        {
+            assert(npcState.DipoleState.has_value());
+            assert(npcState.HumanNpcState.has_value());
+
+            UpdateHuman(
+                *npcState.HumanNpcState,
+                npcState.PrimaryParticleState,
+                npcState.DipoleState->SecondaryParticleState,
                 mesh,
                 labParameters);
         }
