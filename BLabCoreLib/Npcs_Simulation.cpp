@@ -795,6 +795,14 @@ void Npcs::UpdateNpcParticle(
                             totalEdgeWalkedActual += edgeDir * edgeWalkedActual;
                             LogMessage("        totalEdgeWalkedActual=", totalEdgeWalkedActual);
 
+                            // Update total edge traveled
+                            // TODOHERE: technically we have also walked if we have bounced - also above;
+                            // SO: make UpdateNpcParticle_ConstrainedNonInertial return opt<totalEdgeWalked, doContinue>
+                            if (npc.HumanNpcState.has_value() && isPrimaryParticle)
+                            {
+                                npc.HumanNpcState->TotalEdgeTraveledSinceWalkStart += std::abs(edgeTraveledPlanned);
+                            }
+
                             if (npcParticle.ConstrainedState.has_value())
                             {
                                 LogMessage("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " EndMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
@@ -888,16 +896,6 @@ void Npcs::UpdateNpcParticle(
                 npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords,
                 currentTriangleElementIndex,
                 mesh.GetVertices());
-        }
-
-        //
-        // Store total edge walked, if this is the primary of a human
-        //
-
-        if (npc.HumanNpcState.has_value() && isPrimaryParticle)
-        {
-            // TODO: add to new HumanNpcState member
-            // TODO: decied if we need total edge *walked* or total edge *traveled* for animation
         }
     }
 
@@ -1904,28 +1902,62 @@ void Npcs::UpdateNpcAnimation(
         assert(npc.DipoleState.has_value());
         assert(npc.HumanNpcState.has_value());
 
+        ElementIndex const primaryParticleIndex = npc.PrimaryParticleState.ParticleIndex;
+        ElementIndex const secondaryParticleIndex = npc.DipoleState->SecondaryParticleState.ParticleIndex;
+
+        float constexpr LegAngleConvergenceRate = 1.0f; // TODOTEST
+        float constexpr LegLength = 0.5f * LabParameters::HumanNpcLength;
+
+        float targetLegRightAngle = 0.0f;
+        float targetLegLeftAngle = 0.0f;
+
         switch (npc.HumanNpcState->CurrentBehavior)
         {
-            case StateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
+            case StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
+            case StateType::HumanNpcStateType::BehaviorType::Constrained_Rising:
+            case StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
             {
-                ElementIndex const primaryParticleIndex = npc.PrimaryParticleState.ParticleIndex;
-                ElementIndex const secondaryParticleIndex = npc.DipoleState->SecondaryParticleState.ParticleIndex;
-
-                npc.HumanNpcState->TopPoint = mParticles.GetPosition(secondaryParticleIndex);
-                npc.HumanNpcState->CrotchPoint = mParticles.GetPosition(secondaryParticleIndex) + (mParticles.GetPosition(primaryParticleIndex) - mParticles.GetPosition(secondaryParticleIndex)) * 0.5f;
-                npc.HumanNpcState->RightLegPoint = npc.HumanNpcState->CrotchPoint + vec2f(1.0f, -1.0f).normalise() * 0.5f * LabParameters::HumanNpcLength;
-                npc.HumanNpcState->LeftLegPoint = npc.HumanNpcState->CrotchPoint + vec2f(-1.0f, -1.0f).normalise() * 0.5f * LabParameters::HumanNpcLength;
-
-                // TODOHERE
+                targetLegRightAngle = 0.0f;
+                targetLegLeftAngle = 0.0f;
 
                 break;
             }
 
-            default:
+            case StateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
             {
+                // FUTUREWORK: in NPC database
+                float constexpr StepLength = 0.61f;
+                float const MaxAngle = std::atan(StepLength / (2.0f * LegLength));
+
+                float const distanceInTwoSteps = std::fmod(npc.HumanNpcState->TotalEdgeTraveledSinceWalkStart + 3.0f * StepLength / 2.0f, StepLength * 2.0f);
+                LogMessage("distanceInTwoSteps=", distanceInTwoSteps);
+                targetLegRightAngle = std::abs(StepLength - distanceInTwoSteps) / StepLength * 2.0f * MaxAngle - MaxAngle;
+                targetLegLeftAngle = -targetLegRightAngle;
+
+                mEventDispatcher.OnCustomProbe("RLegAngle", targetLegRightAngle);
+
+                break;
+            }
+
+            case StateType::HumanNpcStateType::BehaviorType::Free_KnockedOut:
+            {
+                targetLegRightAngle = 0.0f;
+                targetLegLeftAngle = 0.0f;
+
                 break;
             }
         }
+
+        npc.HumanNpcState->LegRightAngle += (targetLegRightAngle - npc.HumanNpcState->LegRightAngle) * LegAngleConvergenceRate;
+        npc.HumanNpcState->LegLeftAngle += (targetLegLeftAngle - npc.HumanNpcState->LegLeftAngle) * LegAngleConvergenceRate;
+
+        vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
+        vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
+
+        npc.HumanNpcState->TopPoint = headPosition;
+        npc.HumanNpcState->CrotchPoint = headPosition + (feetPosition - headPosition) * 0.5f;
+        npc.HumanNpcState->LegRightPoint = feetPosition + vec2f(1.0f, 0.0f) * std::tan(npc.HumanNpcState->LegRightAngle) * LegLength;
+        npc.HumanNpcState->LegLeftPoint = feetPosition + vec2f(1.0f, 0.0f) * std::tan(npc.HumanNpcState->LegLeftAngle) * LegLength;
     }
 }
 

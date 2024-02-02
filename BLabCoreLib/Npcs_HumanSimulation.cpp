@@ -151,6 +151,7 @@ void Npcs::UpdateHuman(
 						humanState.TargetWalkMagnitude = 1.0f;
 						humanState.CurrentWalkFlipDecision = 0.0f;
 						humanState.TargetWalkFlipDecision = 0.0f;
+						humanState.TotalEdgeTraveledSinceWalkStart = 0.0f;
 
 						// Keep torque
 

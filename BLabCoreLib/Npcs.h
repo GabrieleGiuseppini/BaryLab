@@ -119,19 +119,26 @@ public:
 			float CurrentStateValue;
 			float TargetStateValue;
 
+			float CurrentEquilibriumSoftTerminationDecision; // [0.0f, 1.0f]
+
 			float CurrentWalkMagnitude; // [0.0f, 1.0f]
 			float TargetWalkMagnitude; // [0.0f, 1.0f]
 
 			float CurrentWalkFlipDecision; // [0.0f, 1.0f]
 			float TargetWalkFlipDecision; // [0.0f, 1.0f]
 
-			float CurrentEquilibriumSoftTerminationDecision; // [0.0f, 1.0f]
+			// Updated in any state, but reset when starting to walk
+			float TotalEdgeTraveledSinceWalkStart; // [0.0f, +INF]
 
 			// Animation
+
+			float LegRightAngle;
+			float LegLeftAngle;
+
 			vec2f TopPoint;
 			vec2f CrotchPoint;
-			vec2f RightLegPoint;
-			vec2f LeftLegPoint;
+			vec2f LegRightPoint;			
+			vec2f LegLeftPoint;
 
 			HumanNpcStateType(
 				BehaviorType initialBehavior,
@@ -141,11 +148,15 @@ public:
 				, CurrentFaceDirectionX(1.0f) // Futurework: randomize
 				, CurrentStateValue(currentStateValue)
 				, TargetStateValue(targetStateValue)
+				, CurrentEquilibriumSoftTerminationDecision(0.0f)
 				, CurrentWalkMagnitude(0.0f)
 				, TargetWalkMagnitude(0.0f)
 				, CurrentWalkFlipDecision(0.0f)
 				, TargetWalkFlipDecision(0.0f)
-				, CurrentEquilibriumSoftTerminationDecision(0.0f)
+				, TotalEdgeTraveledSinceWalkStart(0.0f)
+				// Animation
+				, LegRightAngle(0.0f)
+				, LegLeftAngle(0.0f)
 			{}
 
 			void TransitionToState(
