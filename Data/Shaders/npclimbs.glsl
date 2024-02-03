@@ -32,7 +32,8 @@ in vec2 vertexSpacePosition; // [(-1.0, -1.0), (1.0, 1.0)]
 
 void main()
 {
-    float d1 = distance(vertexSpacePosition, vec2(.0, .0));
+    vec2 uv = vec2(pow(vertexSpacePosition.x, 3.0), vertexSpacePosition.y);
+    float d1 = distance(uv, vec2(.0, .0));
     float alpha = 1.0 - smoothstep(0.9, 1.0, d1);
 
     gl_FragColor = vec4(0.560, 0.788, 0.950, alpha);

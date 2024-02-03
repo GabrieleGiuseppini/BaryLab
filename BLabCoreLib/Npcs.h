@@ -136,6 +136,7 @@ public:
 			float LegLeftAngle;
 
 			vec2f TopPoint;
+			vec2f NeckPoint;
 			vec2f CrotchPoint;
 			vec2f LegRightPoint;			
 			vec2f LegLeftPoint;

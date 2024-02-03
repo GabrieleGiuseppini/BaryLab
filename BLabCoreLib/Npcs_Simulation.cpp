@@ -1906,6 +1906,8 @@ void Npcs::UpdateNpcAnimation(
         ElementIndex const secondaryParticleIndex = npc.DipoleState->SecondaryParticleState.ParticleIndex;
 
         float constexpr LegAngleConvergenceRate = 1.0f; // TODOTEST
+        // FUTUREWORK: in NPC database
+        float constexpr HeadLength = 0.14f * LabParameters::HumanNpcLength;
         float constexpr LegLength = 0.5f * LabParameters::HumanNpcLength;
 
         float targetLegRightAngle = 0.0f;
@@ -1926,7 +1928,7 @@ void Npcs::UpdateNpcAnimation(
             case StateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
             {
                 // FUTUREWORK: in NPC database
-                float constexpr StepLength = 0.61f;
+                float constexpr StepLength = 0.71f;
                 float const MaxAngle = std::atan(StepLength / (2.0f * LegLength));
 
                 float const distanceInTwoSteps = std::fmod(npc.HumanNpcState->TotalEdgeTraveledSinceWalkStart + 3.0f * StepLength / 2.0f, StepLength * 2.0f);
@@ -1955,6 +1957,7 @@ void Npcs::UpdateNpcAnimation(
         vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
 
         npc.HumanNpcState->TopPoint = headPosition;
+        npc.HumanNpcState->NeckPoint = headPosition + (feetPosition - headPosition) * HeadLength;
         npc.HumanNpcState->CrotchPoint = headPosition + (feetPosition - headPosition) * 0.5f;
         npc.HumanNpcState->LegRightPoint = feetPosition + vec2f(1.0f, 0.0f) * std::tan(npc.HumanNpcState->LegRightAngle) * LegLength;
         npc.HumanNpcState->LegLeftPoint = feetPosition + vec2f(1.0f, 0.0f) * std::tan(npc.HumanNpcState->LegLeftAngle) * LegLength;
