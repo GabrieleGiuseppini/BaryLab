@@ -194,6 +194,7 @@ void Npcs::UpdateHuman(
 			}
 
 			if (!isStateMaintained
+				|| !primaryParticleState.ConstrainedState.has_value()
 				|| primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() >= MaxRelativeVelocityForEquilibrium
 				|| !CheckAndMaintainHumanEquilibrium(
 					primaryParticleState.ParticleIndex,

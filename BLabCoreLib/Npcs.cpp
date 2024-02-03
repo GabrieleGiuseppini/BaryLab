@@ -249,12 +249,12 @@ void Npcs::Render(RenderContext & renderContext)
 	{
 		auto const & state = mStateBuffer[i];
 
-		RenderParticle(state.PrimaryParticleState, renderContext);
+		////RenderParticle(state.PrimaryParticleState, renderContext);
 
-		if (state.DipoleState.has_value())
-		{
-			RenderParticle(state.DipoleState->SecondaryParticleState, renderContext);
-		}
+		////if (state.DipoleState.has_value())
+		////{
+		////	RenderParticle(state.DipoleState->SecondaryParticleState, renderContext);
+		////}
 
 		if (state.HumanNpcState.has_value())
 		{
@@ -287,22 +287,22 @@ void Npcs::Render(RenderContext & renderContext)
 	// Springs
 	//
 
-	renderContext.UploadSpringsStart();
+	////renderContext.UploadSpringsStart();
 
-	for (auto const i : *this)
-	{
-		auto const & state = mStateBuffer[i];
+	////for (auto const i : *this)
+	////{
+	////	auto const & state = mStateBuffer[i];
 
-		if (state.DipoleState.has_value())
-		{
-			renderContext.UploadSpring(
-				mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
-				mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
-				rgbaColor(0x4a, 0x4a, 0x4a, 0xff));
-		}
-	}
+	////	if (state.DipoleState.has_value())
+	////	{
+	////		renderContext.UploadSpring(
+	////			mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
+	////			mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
+	////			rgbaColor(0x4a, 0x4a, 0x4a, 0xff));
+	////	}
+	////}
 
-	renderContext.UploadSpringsEnd();
+	////renderContext.UploadSpringsEnd();
 
 	//
 	// Particle trajectories
