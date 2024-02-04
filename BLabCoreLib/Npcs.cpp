@@ -249,6 +249,7 @@ void Npcs::Render(RenderContext & renderContext)
 	{
 		auto const & state = mStateBuffer[i];
 
+		// TODO: NPC Render Mode
 		////RenderParticle(state.PrimaryParticleState, renderContext);
 
 		////if (state.DipoleState.has_value())
@@ -283,6 +284,7 @@ void Npcs::Render(RenderContext & renderContext)
 	renderContext.UploadNpcHumanLimbsEnd();
 	renderContext.UploadParticlesEnd();
 
+	// TODO: NPC Render Mode
 	//
 	// Springs
 	//

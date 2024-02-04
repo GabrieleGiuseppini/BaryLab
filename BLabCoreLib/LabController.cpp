@@ -47,7 +47,7 @@ LabController::LabController(
     , mLabParameters()
     , mModel()
     , mCurrentMeshFilePath()
-    , mIsGravityEnabled(false)
+    , mIsGravityEnabled(true)
     , mCurrentMeshTranslationVelocity(vec2f::zero())
     , mCurrentMeshTranslationAccelerationIndicator(0.0f)
     , mCurrentVideoStep(0)
@@ -123,7 +123,7 @@ void LabController::Render()
 
         mRenderContext->UploadEdgesStart();
 
-        // TODOTEST
+        // TODOHERE: don't draw all edges but only those of a triangle
         ////for (auto t : triangles)
         ////{
         ////    mRenderContext->UploadEdge(

@@ -490,7 +490,8 @@ private:
 		NpcParticles & particles,
 		LabParameters const & labParameters) const;
 
-	std::optional<float> UpdateNpcParticle_ConstrainedNonInertial(
+	// Returns total edge traveled (in step), and isStop
+	std::tuple<float, bool> UpdateNpcParticle_ConstrainedNonInertial(
 		StateType & npc,
 		bool isPrimaryParticle,
 		int edgeOrdinal,
