@@ -205,6 +205,7 @@ public:
 		, mParticles(LabParameters::MaxNpcs * LabParameters::MaxParticlesPerNpc)
 		// Parameters
 		, mGravityGate(isGravityEnabled ? 1.0f : 0.0f)
+		, mNpcRenderMode(NpcRenderMode::Physical)
 	{}
 
 	void Add(
@@ -271,6 +272,16 @@ public:
 	void SetGravityEnabled(bool isEnabled)
 	{
 		mGravityGate = isEnabled ? 1.0f : 0.0f;
+	}
+
+	NpcRenderMode GetNpcRenderMode() const
+	{
+		return mNpcRenderMode;
+	}
+
+	void SetNpcRenderMode(NpcRenderMode value)
+	{
+		mNpcRenderMode = value;
 	}
 
 	//
@@ -620,4 +631,5 @@ private:
 	//
 
 	float mGravityGate;
+	NpcRenderMode mNpcRenderMode;
 };

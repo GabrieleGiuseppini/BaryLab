@@ -161,6 +161,18 @@ public:
         mRenderContext->SetGridEnabled(value);
     }
 
+    NpcRenderMode GetNpcRenderMode() const
+    {
+        assert(mModel);
+        return mModel->GetNpcs().GetNpcRenderMode();
+    }
+
+    void SetNpcRenderMode(NpcRenderMode value)
+    {
+        assert(mModel);
+        mModel->GetNpcs().SetNpcRenderMode(value);
+    }
+
     //
     // Simmulation parameters
     //
@@ -267,7 +279,7 @@ private:
 
     bool mIsGravityEnabled;
     vec2f mCurrentMeshTranslationVelocity;
-    float mCurrentMeshTranslationAccelerationIndicator;
+    float mCurrentMeshTranslationAccelerationIndicator;    
 
     int mCurrentVideoStep;
 

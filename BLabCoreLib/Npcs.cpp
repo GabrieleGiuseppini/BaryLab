@@ -249,62 +249,85 @@ void Npcs::Render(RenderContext & renderContext)
 	{
 		auto const & state = mStateBuffer[i];
 
-		// TODO: NPC Render Mode
-		////RenderParticle(state.PrimaryParticleState, renderContext);
-
-		////if (state.DipoleState.has_value())
-		////{
-		////	RenderParticle(state.DipoleState->SecondaryParticleState, renderContext);
-		////}
-
-		if (state.HumanNpcState.has_value())
+		switch (mNpcRenderMode)
 		{
-			renderContext.UploadNpcHumanLimb(
-				state.HumanNpcState->TopPoint,
-				state.HumanNpcState->NeckPoint,
-				LabParameters::HumanNpcLength * 0.14f);
+			case NpcRenderMode::Limbs:
+			{
 
-			renderContext.UploadNpcHumanLimb(
-				state.HumanNpcState->NeckPoint,
-				state.HumanNpcState->CrotchPoint,
-				LabParameters::HumanNpcLength * 0.25f);
+				if (state.HumanNpcState.has_value())
+				{
+					renderContext.UploadNpcHumanLimb(
+						state.HumanNpcState->TopPoint,
+						state.HumanNpcState->NeckPoint,
+						LabParameters::HumanNpcLength * 0.14f);
 
-			renderContext.UploadNpcHumanLimb(
-				state.HumanNpcState->CrotchPoint,
-				state.HumanNpcState->LegLeftPoint,
-				LabParameters::HumanNpcLength * 0.14f);
+					renderContext.UploadNpcHumanLimb(
+						state.HumanNpcState->NeckPoint,
+						state.HumanNpcState->CrotchPoint,
+						LabParameters::HumanNpcLength * 0.25f);
 
-			renderContext.UploadNpcHumanLimb(
-				state.HumanNpcState->CrotchPoint,
-				state.HumanNpcState->LegRightPoint,
-				LabParameters::HumanNpcLength * 0.14f);
+					renderContext.UploadNpcHumanLimb(
+						state.HumanNpcState->CrotchPoint,
+						state.HumanNpcState->LegLeftPoint,
+						LabParameters::HumanNpcLength * 0.14f);
+
+					renderContext.UploadNpcHumanLimb(
+						state.HumanNpcState->CrotchPoint,
+						state.HumanNpcState->LegRightPoint,
+						LabParameters::HumanNpcLength * 0.14f);
+				}
+				else
+				{
+					RenderParticle(state.PrimaryParticleState, renderContext);
+
+					if (state.DipoleState.has_value())
+					{
+						RenderParticle(state.DipoleState->SecondaryParticleState, renderContext);
+					}
+				}
+
+				break;
+			}
+
+			case NpcRenderMode::Physical:
+			{
+				RenderParticle(state.PrimaryParticleState, renderContext);
+
+				if (state.DipoleState.has_value())
+				{
+					RenderParticle(state.DipoleState->SecondaryParticleState, renderContext);
+				}
+			}
 		}
+
 	}
 
 	renderContext.UploadNpcHumanLimbsEnd();
 	renderContext.UploadParticlesEnd();
 
-	// TODO: NPC Render Mode
-	//
-	// Springs
-	//
+	if (mNpcRenderMode == NpcRenderMode::Physical)
+	{
+		//
+		// Springs
+		//
 
-	////renderContext.UploadSpringsStart();
+		renderContext.UploadSpringsStart();
 
-	////for (auto const i : *this)
-	////{
-	////	auto const & state = mStateBuffer[i];
+		for (auto const i : *this)
+		{
+			auto const & state = mStateBuffer[i];
 
-	////	if (state.DipoleState.has_value())
-	////	{
-	////		renderContext.UploadSpring(
-	////			mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
-	////			mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
-	////			rgbaColor(0x4a, 0x4a, 0x4a, 0xff));
-	////	}
-	////}
+			if (state.DipoleState.has_value())
+			{
+				renderContext.UploadSpring(
+					mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
+					mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
+					rgbaColor(0x4a, 0x4a, 0x4a, 0xff));
+			}
+		}
 
-	////renderContext.UploadSpringsEnd();
+		renderContext.UploadSpringsEnd();
+	}
 
 	//
 	// Particle trajectories

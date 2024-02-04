@@ -687,7 +687,7 @@ void Npcs::UpdateNpcParticle(
 
                             LogMessage("        edgePhysicalTraveledPlanned=", edgePhysicalTraveledPlanned, " edgeWalkedPlanned=", edgeWalkedPlanned);
 
-                            std::optional<float> const edgeTraveledActual = UpdateNpcParticle_ConstrainedNonInertial(
+                            auto const [edgeTraveledActual, doStop] = UpdateNpcParticle_ConstrainedNonInertial(
                                 npc,
                                 isPrimaryParticle,
                                 edgeOrdinal,
@@ -703,21 +703,16 @@ void Npcs::UpdateNpcParticle(
                                 mesh,
                                 labParameters);
 
-                            LogMessage("    Actual edge traveled in non-inertial step: ", edgeTraveledActual.has_value() ? std::to_string(*edgeTraveledActual) : "N/A");
+                            LogMessage("    Actual edge traveled in non-inertial step: ", edgeTraveledActual);
 
-                            float edgeWalkedActual;
-
-                            if (!edgeTraveledActual.has_value())
+                            if (doStop)
                             {
                                 // Completed
                                 remainingDt = 0.0f;
-
-                                // Walked is the planned one
-                                edgeWalkedActual = edgeWalkedPlanned;
                             }
                             else
                             {
-                                if (*edgeTraveledActual == 0.0f)
+                                if (edgeTraveledActual == 0.0f)
                                 {
                                     // No movement
 
@@ -755,53 +750,38 @@ void Npcs::UpdateNpcParticle(
                                         //
                                         // For now, assume no dt consumed and continue
                                     }
-
-                                    // Calculated walked actual
-                                    //
-                                    // If actual resultant is zero, it's either because planned resultant was zero, 
-                                    // or because we've cut short a trajectory.
-                                    // If planned resultant was zero then we've reached target - this step should have completed;
-                                    // however, for safety, we may assume this happens (i.e. that it may return zero when planned was zero).
-                                    // In this case do nothing, as we'll complete later on.
-                                    // If on the other hand we've cut short, since planned was non-zero and actual is zero, then walked now is also zero
-                                    edgeWalkedActual = 0.0f;
                                 }
                                 else
                                 {
                                     // We have moved
 
-                                    assert(edgeTraveledActual.has_value());
-
                                     // Calculate consumed dt
-                                    assert(*edgeTraveledActual * edgeTraveledPlanned >= 0.0f); // Should have same sign
+                                    assert(edgeTraveledActual * edgeTraveledPlanned >= 0.0f); // Should have same sign
                                     float const dtFractionConsumed = edgeTraveledPlanned != 0.0f
-                                        ? std::min(*edgeTraveledActual / edgeTraveledPlanned, 1.0f) // Signs should agree anyway
+                                        ? std::min(edgeTraveledActual / edgeTraveledPlanned, 1.0f) // Signs should agree anyway
                                         : 1.0f; // If we were planning no travel, any movement is a whole consumption
                                     LogMessage("        dtFractionConsumed=", dtFractionConsumed);
                                     remainingDt *= (1.0f - dtFractionConsumed);
-
-                                    // Calculate actual walked via planned walked's proportion with total
-                                    edgeWalkedActual = edgeTraveledPlanned != 0.0f
-                                        ? *edgeTraveledActual * (edgeWalkedPlanned / edgeTraveledPlanned)
-                                        : 0.0f; // Unlikely, but read above for rationale behind 0.0
 
                                     // Reset well detection machinery
                                     pastPastBarycentricPosition.reset();
                                     pastBarycentricPosition.reset();
                                 }
+
+                            }
+
+                            // Update total edge traveled
+                            if (npc.HumanNpcState.has_value() && isPrimaryParticle)
+                            {
+                                npc.HumanNpcState->TotalEdgeTraveledSinceWalkStart += std::abs(edgeTraveledActual);
                             }
 
                             // Update total vector walked along edge
+                            float const edgeWalkedActual = edgeTraveledPlanned != 0.0f
+                                ? edgeTraveledActual * (edgeWalkedPlanned / edgeTraveledPlanned)
+                                : 0.0f; // Unlikely, but read above for rationale behind 0.0
                             totalEdgeWalkedActual += edgeDir * edgeWalkedActual;
-                            LogMessage("        totalEdgeWalkedActual=", totalEdgeWalkedActual);
-
-                            // Update total edge traveled
-                            // TODOHERE: technically we have also walked if we have bounced - also above;
-                            // SO: make UpdateNpcParticle_ConstrainedNonInertial return opt<totalEdgeWalked, doContinue>
-                            if (npc.HumanNpcState.has_value() && isPrimaryParticle)
-                            {
-                                npc.HumanNpcState->TotalEdgeTraveledSinceWalkStart += std::abs(edgeTraveledPlanned);
-                            }
+                            LogMessage("        edgeWalkedActual=", edgeWalkedActual, " totalEdgeWalkedActual=", totalEdgeWalkedActual);
 
                             if (npcParticle.ConstrainedState.has_value())
                             {
@@ -1125,7 +1105,7 @@ void Npcs::UpdateNpcParticle_Free(
         (endPosition - startPosition) / LabParameters::SimulationTimeStepDuration * (1.0f - labParameters.GlobalDamping));
 }
 
-std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
+std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
     StateType & npc,
     bool isPrimaryParticle,
     int edgeOrdinal,
@@ -1201,7 +1181,9 @@ std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
         LogMessage("        edgeTraveledPlanned=", edgeTraveledPlanned, " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
 
         // Complete
-        return std::nullopt;
+        return std::make_tuple(
+            edgeTraveledPlanned, // We moved by how much we planned
+            true); // Stop here
     }
 
     //
@@ -1330,7 +1312,7 @@ std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
 
                 LogMessage("      Impact continuation (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
 
-                return totalEdgeTraveled;
+                return std::make_tuple(totalEdgeTraveled, false);
             }
             else
             {
@@ -1353,7 +1335,7 @@ std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
                     labParameters);
 
                 // Terminate
-                return std::nullopt;
+                return std::make_tuple(totalEdgeTraveled, true);
             }
         }
 
@@ -1391,7 +1373,7 @@ std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
                 particles,
                 labParameters);
 
-            return std::nullopt;
+            return std::make_tuple(totalEdgeTraveled, true);
         }
 
         //
@@ -1465,7 +1447,7 @@ std::optional<float> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
 
             LogMessage("      Trajectory extends inside new triangle - exiting and continuing");
 
-            return totalEdgeTraveled;
+            return std::make_tuple(totalEdgeTraveled, false);
         }
 
         //

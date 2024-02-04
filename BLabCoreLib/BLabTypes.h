@@ -96,3 +96,9 @@ enum class SurfaceType
 };
 
 SurfaceType StrToSurfaceType(std::string const & str);
+
+enum class NpcRenderMode
+{
+    Physical,
+    Limbs
+};
