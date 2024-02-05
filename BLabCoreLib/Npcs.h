@@ -205,7 +205,7 @@ public:
 		, mParticles(LabParameters::MaxNpcs * LabParameters::MaxParticlesPerNpc)
 		// Parameters
 		, mGravityGate(isGravityEnabled ? 1.0f : 0.0f)
-		, mNpcRenderMode(NpcRenderMode::Physical)
+		, mNpcRenderMode(NpcRenderMode::Limbs)
 	{}
 
 	void Add(
@@ -518,7 +518,7 @@ private:
 		Mesh const & mesh,
 		LabParameters const & labParameters) const;
 
-	void UpdateNpcParticle_ConstrainedInertial(
+	float UpdateNpcParticle_ConstrainedInertial(
 		StateType & npc,
 		bool isPrimaryParticle,
 		vec2f const & particleStartAbsolutePosition,

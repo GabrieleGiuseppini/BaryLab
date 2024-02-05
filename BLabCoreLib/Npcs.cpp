@@ -264,7 +264,7 @@ void Npcs::Render(RenderContext & renderContext)
 					renderContext.UploadNpcHumanLimb(
 						state.HumanNpcState->NeckPoint,
 						state.HumanNpcState->CrotchPoint,
-						LabParameters::HumanNpcLength * 0.25f);
+						LabParameters::HumanNpcLength * 0.21f);
 
 					renderContext.UploadNpcHumanLimb(
 						state.HumanNpcState->CrotchPoint,

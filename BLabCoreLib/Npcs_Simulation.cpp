@@ -832,7 +832,7 @@ void Npcs::UpdateNpcParticle(
                 // Move towards target bary coords
                 //
 
-                UpdateNpcParticle_ConstrainedInertial(
+                float totalTraveled = UpdateNpcParticle_ConstrainedInertial(
                     npc,
                     isPrimaryParticle,
                     particleStartAbsolutePosition,
@@ -843,6 +843,12 @@ void Npcs::UpdateNpcParticle(
                     mParticles,
                     mesh,
                     labParameters);
+
+                // Update total edge traveled
+                if (npc.HumanNpcState.has_value() && isPrimaryParticle)
+                {
+                    npc.HumanNpcState->TotalEdgeTraveledSinceWalkStart += std::abs(totalTraveled);
+                }
 
                 if (npcParticle.ConstrainedState.has_value())
                 {
@@ -1462,7 +1468,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
     }
 }
 
-void Npcs::UpdateNpcParticle_ConstrainedInertial(
+float Npcs::UpdateNpcParticle_ConstrainedInertial(
     StateType & npc,
     bool isPrimaryParticle,
     vec2f const & particleStartAbsolutePosition, // Since beginning of whole time quantum, not just this step
@@ -1526,14 +1532,14 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial(
             particles.SetPosition(npcParticle.ParticleIndex, particleEndAbsolutePosition);
 
             // Use whole time quantum for velocity, as particleStartAbsolutePosition is fixed at t0
-            vec2f const absoluteVelocity = (particleEndAbsolutePosition - particleStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration;
+            vec2f const totalTraveledVector = particleEndAbsolutePosition - particleStartAbsolutePosition;
+            vec2f const absoluteVelocity = totalTraveledVector / LabParameters::SimulationTimeStepDuration;
             particles.SetVelocity(npcParticle.ParticleIndex, absoluteVelocity);
             npcParticleConstrainedState.MeshRelativeVelocity = absoluteVelocity + meshVelocity;
 
-            LogMessage("        traveledActual=", (particleEndAbsolutePosition - particleStartAbsolutePosition), " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
+            LogMessage("        totalTraveledVector=", totalTraveledVector, " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
 
-            // We have consumed the whole time quantum
-            return;
+            return totalTraveledVector.length();
         }
 
         //
@@ -1687,8 +1693,8 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial(
                 particles,
                 labParameters);
 
-            // Consume the entire time quantum
-            return;
+            vec2f const totalTraveledVector = trajectoryEndAbsolutePosition - particleStartAbsolutePosition;
+            return totalTraveledVector.length();
         }
         else
         {
@@ -1726,7 +1732,8 @@ void Npcs::UpdateNpcParticle_ConstrainedInertial(
                     particles,
                     labParameters);
 
-                return;
+                vec2f const totalTraveledVector = intersectionAbsolutePosition - particleStartAbsolutePosition; // We consider constrained only
+                return totalTraveledVector.length();
             }
             else
             {
@@ -1889,7 +1896,7 @@ void Npcs::UpdateNpcAnimation(
 
         float constexpr LegAngleConvergenceRate = 1.0f; // TODOTEST
         // FUTUREWORK: in NPC database
-        float constexpr HeadLength = 0.14f * LabParameters::HumanNpcLength;
+        float constexpr HeadFraction = 0.14f;
         float constexpr LegLength = 0.5f * LabParameters::HumanNpcLength;
 
         float targetLegRightAngle = 0.0f;
@@ -1939,7 +1946,7 @@ void Npcs::UpdateNpcAnimation(
         vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
 
         npc.HumanNpcState->TopPoint = headPosition;
-        npc.HumanNpcState->NeckPoint = headPosition + (feetPosition - headPosition) * HeadLength;
+        npc.HumanNpcState->NeckPoint = headPosition + (feetPosition - headPosition) * HeadFraction;
         npc.HumanNpcState->CrotchPoint = headPosition + (feetPosition - headPosition) * 0.5f;
         npc.HumanNpcState->LegRightPoint = feetPosition + vec2f(1.0f, 0.0f) * std::tan(npc.HumanNpcState->LegRightAngle) * LegLength;
         npc.HumanNpcState->LegLeftPoint = feetPosition + vec2f(1.0f, 0.0f) * std::tan(npc.HumanNpcState->LegLeftAngle) * LegLength;
