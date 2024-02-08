@@ -79,6 +79,12 @@ public:
 
 public:
 
+    inline bool IsDeleted(ElementIndex triangleElementIndex) const
+    {
+        (void)triangleElementIndex;
+        return false;
+    }
+
     //
     // Endpoints
     //

@@ -530,6 +530,53 @@ private:
 		Mesh const & mesh,
 		LabParameters const & labParameters) const;
 
+	struct NavigateVertexOutcome
+	{
+		enum class OutcomeType
+		{
+			CompletedNavigation,
+			EncounteredFloor,
+			ConvertedToFree
+		};
+
+		OutcomeType Type;
+
+		// TODO
+
+		static NavigateVertexOutcome MakeCompletedNavigationOutcome()
+		{
+			return NavigateVertexOutcome(OutcomeType::CompletedNavigation);
+		}
+
+		static NavigateVertexOutcome MakeEncounteredFloorOutcome()
+		{
+			return NavigateVertexOutcome(OutcomeType::EncounteredFloor);
+		}
+
+		static NavigateVertexOutcome MakeConvertedToFreeOutcome()
+		{
+			return NavigateVertexOutcome(OutcomeType::ConvertedToFree);
+		}
+
+	private:
+
+		NavigateVertexOutcome(OutcomeType type)
+			: Type(type)
+		{}
+	};
+
+	NavigateVertexOutcome NavigateVertex(
+		StateType & npc,
+		bool isPrimaryParticle,
+		int vertexOrdinal,
+		vec2f const & particleStartAbsolutePosition,
+		vec2f const & trajectoryStartAbsolutePosition,
+		vec3f trajectoryEndBarycentricCoords,
+		bool isInitialStateUnknown,
+		NpcParticles & particles,
+		Mesh const & mesh,
+		LabParameters const & labParameters) const;
+
 	inline void BounceConstrainedNpcParticle(
 		StateType & npc,
 		bool isPrimaryParticle,

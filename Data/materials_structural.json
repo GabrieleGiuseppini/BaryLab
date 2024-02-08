@@ -19,8 +19,8 @@
         "color_key": "#000060", 
 	"name": "Furniture",
 	"unique_material": "Furniture",
-	"static_friction": 0.2,
-	"kinetic_friction": 0.11,
+	"static_friction": 0.07,
+	"kinetic_friction": 0.05,
 	"elasticity": 0.6,
 	"buoyancy_volume_fill": 1.0,
 	"surface": "Open"
