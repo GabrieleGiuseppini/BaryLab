@@ -460,7 +460,7 @@ void Npcs::RenderParticle(
 void Npcs::Publish(Mesh const & mesh)
 {
 	std::optional<ConstrainedRegimeParticleProbe> constrainedRegimeParticleProbe;
-	std::optional<vec3f> subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged;
+	std::optional<bcoords3f> subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged;
 	std::optional<PhysicsParticleProbe> physicsParticleProbe;
 
 	if (mCurrentlySelectedParticle.has_value())

@@ -5,6 +5,7 @@
 ***************************************************************************************/
 #pragma once
 
+#include "BarycentricCoords.h"
 #include "Buffer.h"
 #include "Colors.h"
 #include "ElementContainer.h"
@@ -128,18 +129,18 @@ public:
         vec2f const & position,
         Vertices const & vertices) const;
 
-    vec3f ToBarycentricCoordinates(
+    bcoords3f ToBarycentricCoordinates(
         vec2f const & position,
         ElementIndex triangleElementIndex,
         Vertices const & vertices) const;
 
-    vec3f ToBarycentricCoordinatesFromWithinTriangle(
+    bcoords3f ToBarycentricCoordinatesFromWithinTriangle(
         vec2f const & position,
         ElementIndex triangleElementIndex,
         Vertices const & vertices) const;
 
     vec2f FromBarycentricCoordinates(
-        vec3f const & barycentricCoordinates,
+        bcoords3f const & barycentricCoordinates,
         ElementIndex triangleElementIndex,
         Vertices const & vertices) const;
 

@@ -6,6 +6,7 @@
 #pragma once
 
 #include "BLabTypes.h"
+#include "BarycentricCoords.h"
 #include "ElementIndexRangeIterator.h"
 #include "EventDispatcher.h"
 #include "LabParameters.h"
@@ -45,7 +46,7 @@ public:
 			{
 				ElementIndex CurrentTriangle;
 
-				vec3f CurrentTriangleBarycentricCoords;
+				bcoords3f CurrentTriangleBarycentricCoords;
 
 				ElementIndex CurrentVirtualEdgeElementIndex; // When set, we are "conceptually" along this edge - might not be really the case e.g. when we're at a vertex
 
@@ -53,7 +54,7 @@ public:
 
 				ConstrainedStateType(
 					ElementIndex currentTriangle,
-					vec3f const & currentTriangleBarycentricCoords)
+					bcoords3f const & currentTriangleBarycentricCoords)
 					: CurrentTriangle(currentTriangle)
 					, CurrentTriangleBarycentricCoords(currentTriangleBarycentricCoords)
 					, CurrentVirtualEdgeElementIndex(NoneElementIndex)
@@ -406,7 +407,7 @@ public:
 		auto const & baryCoords = constrainedState.CurrentTriangleBarycentricCoords;
 		auto const & triangleIndex = constrainedState.CurrentTriangle;
 
-		if (baryCoords.x == 0.0f
+		if (baryCoords[0] == 0.0f
 			&& IsEdgeFloorToParticle(
 				mesh.GetTriangles().GetSubEdges(triangleIndex).EdgeIndices[1],
 				triangleIndex,
@@ -415,7 +416,7 @@ public:
 			return true;
 		}
 
-		if (baryCoords.y == 0.0f
+		if (baryCoords[1] == 0.0f
 			&& IsEdgeFloorToParticle(
 				mesh.GetTriangles().GetSubEdges(triangleIndex).EdgeIndices[2],
 				triangleIndex,
@@ -424,7 +425,7 @@ public:
 			return true;
 		}
 
-		if (baryCoords.z == 0.0f
+		if (baryCoords[2] == 0.0f
 			&& IsEdgeFloorToParticle(
 				mesh.GetTriangles().GetSubEdges(triangleIndex).EdgeIndices[0],
 				triangleIndex,
@@ -510,7 +511,7 @@ private:
 		vec2f const & particleStartAbsolutePosition,				
 		vec2f const & trajectoryStartAbsolutePosition,
 		vec2f const & flattenedTrajectoryEndAbsolutePosition,
-		vec3f flattenedTrajectoryEndBarycentricCoords,
+		bcoords3f flattenedTrajectoryEndBarycentricCoords,
 		vec2f const & flattenedTrajectory,
 		float edgeTraveledPlanned,
 		vec2f const meshVelocity,
@@ -523,8 +524,8 @@ private:
 		StateType & npc,
 		bool isPrimaryParticle,
 		vec2f const & particleStartAbsolutePosition,
-		vec3f const trajectoryStartBarycentricCoords,
-		vec3f trajectoryEndBarycentricCoords,
+		bcoords3f const trajectoryStartBarycentricCoords,
+		bcoords3f trajectoryEndBarycentricCoords,
 		vec2f const meshVelocity,
 		float dt,
 		NpcParticles & particles,
@@ -576,7 +577,7 @@ private:
 		vec2f const & particleStartAbsolutePosition,
 		vec2f const & trajectoryStartAbsolutePosition,
 		vec2f const & trajectoryEndAbsolutePosition,
-		vec3f trajectoryEndBarycentricCoords,
+		bcoords3f trajectoryEndBarycentricCoords,
 		bool isInitialStateUnknown,
 		NpcParticles & particles,
 		Mesh const & mesh,

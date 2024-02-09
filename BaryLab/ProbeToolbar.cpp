@@ -378,7 +378,7 @@ void ProbeToolbar::OnReset()
     }
 }
 
-void ProbeToolbar::OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(std::optional<vec3f> const & coordinates)
+void ProbeToolbar::OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(std::optional<bcoords3f> const & coordinates)
 {
     std::string l1;
     std::string l2;
@@ -389,7 +389,7 @@ void ProbeToolbar::OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChang
         {
             std::ostringstream ss;
             ss.fill('0');
-            ss << std::fixed << std::setprecision(2) << coordinates->x;
+            ss << std::fixed << std::setprecision(2) << (*coordinates)[0];
 
             l1 = ss.str();
         }
@@ -397,7 +397,7 @@ void ProbeToolbar::OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChang
         {
             std::ostringstream ss;
             ss.fill('0');
-            ss << std::fixed << std::setprecision(2) << coordinates->y;
+            ss << std::fixed << std::setprecision(2) << (*coordinates)[1];
 
             l2 = ss.str();
         }
@@ -405,7 +405,7 @@ void ProbeToolbar::OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChang
         {
             std::ostringstream ss;
             ss.fill('0');
-            ss << std::fixed << std::setprecision(2) << coordinates->z;
+            ss << std::fixed << std::setprecision(2) << (*coordinates)[2];
 
             l3 = ss.str();
         }
@@ -435,7 +435,7 @@ void ProbeToolbar::OnSubjectParticleConstrainedRegimeUpdated(std::optional<Const
         {
             std::ostringstream ss;
             ss.fill('0');
-            ss << std::fixed << std::setprecision(2) << constrainedRegimeParticleProbe->CurrentTriangleBarycentricCoords.x;
+            ss << std::fixed << std::setprecision(2) << constrainedRegimeParticleProbe->CurrentTriangleBarycentricCoords[0];
 
             l1 = ss.str();
         }
@@ -443,7 +443,7 @@ void ProbeToolbar::OnSubjectParticleConstrainedRegimeUpdated(std::optional<Const
         {
             std::ostringstream ss;
             ss.fill('0');
-            ss << std::fixed << std::setprecision(2) << constrainedRegimeParticleProbe->CurrentTriangleBarycentricCoords.y;
+            ss << std::fixed << std::setprecision(2) << constrainedRegimeParticleProbe->CurrentTriangleBarycentricCoords[1];
 
             l2 = ss.str();
         }
@@ -451,7 +451,7 @@ void ProbeToolbar::OnSubjectParticleConstrainedRegimeUpdated(std::optional<Const
         {
             std::ostringstream ss;
             ss.fill('0');
-            ss << std::fixed << std::setprecision(2) << constrainedRegimeParticleProbe->CurrentTriangleBarycentricCoords.z;
+            ss << std::fixed << std::setprecision(2) << constrainedRegimeParticleProbe->CurrentTriangleBarycentricCoords[2];
 
             l3 = ss.str();
         }

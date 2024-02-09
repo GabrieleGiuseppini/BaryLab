@@ -5,6 +5,8 @@
 
 set  (SOURCES
 	AABB.h
+	BarycentricCoords.cpp
+	BarycentricCoords.h
 	BLabDebug.h
 	BLabException.h
 	BLabMath.h

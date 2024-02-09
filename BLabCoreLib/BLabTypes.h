@@ -5,6 +5,7 @@
 ***************************************************************************************/
 #pragma once
 
+#include "BarycentricCoords.h"
 #include "Vectors.h"
 
 #include <picojson.h>
@@ -56,11 +57,11 @@ enum class SimulationControlStateType
 struct ConstrainedRegimeParticleProbe
 {
     ElementIndex CurrentTriangle;
-    vec3f CurrentTriangleBarycentricCoords;
+    bcoords3f CurrentTriangleBarycentricCoords;
 
     ConstrainedRegimeParticleProbe(
         ElementIndex currentTriangle,
-        vec3f const & currentTriangleBarycentricCoords)
+        bcoords3f const & currentTriangleBarycentricCoords)
         : CurrentTriangle(currentTriangle)
         , CurrentTriangleBarycentricCoords(currentTriangleBarycentricCoords)
     {}

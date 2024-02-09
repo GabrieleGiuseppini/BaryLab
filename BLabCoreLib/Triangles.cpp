@@ -50,7 +50,7 @@ ElementIndex Triangles::FindContaining(
     return NoneElementIndex;
 }
 
-vec3f Triangles::ToBarycentricCoordinates(
+bcoords3f Triangles::ToBarycentricCoordinates(
     vec2f const & position,
     ElementIndex triangleElementIndex,
     Vertices const & vertices) const
@@ -60,13 +60,13 @@ vec3f Triangles::ToBarycentricCoordinates(
         triangleElementIndex,
         vertices);
 
-    return vec3f(
+    return bcoords3f(
         abBaryCoords.x,
         abBaryCoords.y,
         1.0f - abBaryCoords.x - abBaryCoords.y);
 }
 
-vec3f Triangles::ToBarycentricCoordinatesFromWithinTriangle(
+bcoords3f Triangles::ToBarycentricCoordinatesFromWithinTriangle(
     vec2f const & position,
     ElementIndex triangleElementIndex,
     Vertices const & vertices) const
@@ -78,14 +78,14 @@ vec3f Triangles::ToBarycentricCoordinatesFromWithinTriangle(
         triangleElementIndex,
         vertices).clamp(0.0f, 1.0f, 0.0f, 1.0f);
 
-    return vec3f(
+    return bcoords3f(
         abBaryCoords.x,
         abBaryCoords.y,
         1.0f - abBaryCoords.x - abBaryCoords.y);
 }
 
 vec2f Triangles::FromBarycentricCoordinates(
-    vec3f const & barycentricCoordinates,
+    bcoords3f const & barycentricCoordinates,
     ElementIndex triangleElementIndex,
     Vertices const & vertices) const
 {
@@ -94,9 +94,9 @@ vec2f Triangles::FromBarycentricCoordinates(
     vec2f const & positionC = vertices.GetPosition(mEndpointsBuffer[triangleElementIndex].VertexIndices[2]);
 
     return
-        positionA * barycentricCoordinates.x
-        + positionB * barycentricCoordinates.y
-        + positionC * barycentricCoordinates.z;
+        positionA * barycentricCoordinates[0]
+        + positionB * barycentricCoordinates[1]
+        + positionC * barycentricCoordinates[2];
 }
 
 //////////////////////////////////////////////////////////

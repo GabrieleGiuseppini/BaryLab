@@ -6,6 +6,7 @@
 #pragma once
 
 #include "BLabTypes.h"
+#include "BarycentricCoords.h"
 #include "Vectors.h"
 
 #include <chrono>
@@ -26,7 +27,7 @@ struct IEventHandler
         // Default-implemented
     }
 
-    virtual void OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(std::optional<vec3f> const & /*coordinates*/)
+    virtual void OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(std::optional<bcoords3f> const & /*coordinates*/)
     {
         // Default implemented
     }
