@@ -300,6 +300,8 @@ void Npcs::UpdateNpcParticle(
             //  - Particle becomes free
             //
 
+            // TODO: use bar3f.try_get_vertex()
+
             int nonZeroVertex = -1;
             int zeroCoordsCount = 0;
 
@@ -330,7 +332,6 @@ void Npcs::UpdateNpcParticle(
                 nonZeroVertex = 2;
             }
 
-            // TODOTEST
             if (zeroCoordsCount == 2)
             {
                 vec3f const trajectoryEndBarycentricCoords = mesh.GetTriangles().ToBarycentricCoordinates(
@@ -372,144 +373,7 @@ void Npcs::UpdateNpcParticle(
                         break;
                     }
                 }
-            }            
-
-            ////// TODOOLD
-            ////while (zeroCoordsCount == 2)
-            ////{
-            ////    //
-            ////    // We are at a corner
-            ////    //
-
-            ////    assert(nonZeroVertex >= 0);
-            ////    int const nextNonZeroVertexOrdinal = (nonZeroVertex + 1) % 3;
-            ////    int const prevNonZeroVertexOrdinal = (nonZeroVertex + 2) % 3;
-
-            ////    vec3f const trajectoryEndBarycentricCoords = mesh.GetTriangles().ToBarycentricCoordinates(
-            ////        trajectoryEndAbsolutePosition,
-            ////        npcParticle.ConstrainedState->CurrentTriangle,
-            ////        mesh.GetVertices());
-
-            ////    LogMessage("    At a corner: vertex=", nonZeroVertex, " TrajectoryEndBarycentricCoords=", trajectoryEndBarycentricCoords);
-
-            ////    if (trajectoryEndBarycentricCoords[prevNonZeroVertexOrdinal] >= 0.0f
-            ////        && trajectoryEndBarycentricCoords[nextNonZeroVertexOrdinal] >= 0.0f)
-            ////    {
-            ////        //
-            ////        // We go inside this triangle - stop where we are, we'll then check trajectory in new situation
-            ////        //
-
-            ////        LogMessage("        Trajectory extends inside new triangle - exiting and continuing");
-
-            ////        break;
-            ////    }
-
-            ////    //
-            ////    // Find next edge that we intersect at this vertex
-            ////    //
-
-            ////    int crossedEdgeOrdinal;
-            ////    if (trajectoryEndBarycentricCoords[prevNonZeroVertexOrdinal] <= trajectoryEndBarycentricCoords[nextNonZeroVertexOrdinal])
-            ////    {
-            ////        // Clockwise - next edge
-            ////        crossedEdgeOrdinal = nonZeroVertex;
-            ////    }
-            ////    else
-            ////    {
-            ////        // Anti-clockwise - prev edge
-            ////        crossedEdgeOrdinal = (nonZeroVertex + 2) % 3;
-            ////    }
-
-            ////    LogMessage("        Trajectory crosses triangle: crossedEdgeOrdinal=", crossedEdgeOrdinal);
-
-            ////    //
-            ////    // Check whether edge is floor
-            ////    //
-
-            ////    ElementIndex const crossedEdgeElementIndex = mesh.GetTriangles().GetSubEdges(npcParticle.ConstrainedState->CurrentTriangle).EdgeIndices[crossedEdgeOrdinal];
-
-            ////    if (IsEdgeFloorToParticle(crossedEdgeElementIndex, npcParticle.ConstrainedState->CurrentTriangle, mesh)
-            ////        && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
-            ////            mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex),
-            ////            trajectoryStartAbsolutePosition, // Current (virtual, not yet real) position of this (secondary) particle
-            ////            crossedEdgeElementIndex,
-            ////            mesh)))
-            ////    {
-            ////        LogMessage("        Crossed edge is floor - exiting and continuing");
-            ////        break;
-            ////    }
-
-            ////    //
-            ////    // Not floor, climb over edge
-            ////    //
-
-            ////    // Find opposite triangle
-            ////    ElementIndex const oppositeTriangle = mesh.GetEdges().GetOppositeTriangle(crossedEdgeElementIndex, npcParticle.ConstrainedState->CurrentTriangle);
-            ////    if (oppositeTriangle == NoneElementIndex)
-            ////    {
-            ////        //
-            ////        // Become free
-            ////        //
-
-            ////        LogMessage("        No opposite triangle found, becoming free");
-
-            ////        //
-            ////        // Move to endpoint and exit, consuming whole quantum
-            ////        //
-
-            ////        npcParticle.ConstrainedState.reset();
-
-            ////        UpdateNpcParticle_Free(
-            ////            npcParticle,
-            ////            particleStartAbsolutePosition,
-            ////            trajectoryEndAbsolutePosition,
-            ////            mParticles,
-            ////            labParameters);
-
-            ////        remainingDt = 0.0f;
-            ////        break;
-            ////    }
-
-            ////    //
-            ////    // Move to triangle
-            ////    //
-
-            ////    int const oppositeTriangleCrossedEdgeOrdinal = mesh.GetTriangles().GetSubEdgeOrdinal(oppositeTriangle, crossedEdgeElementIndex);
-
-            ////    LogMessage("        Moving to edge ", oppositeTriangleCrossedEdgeOrdinal, " of opposite triangle ", oppositeTriangle);
-
-            ////    npcParticle.ConstrainedState->CurrentTriangle = oppositeTriangle;
-
-            ////    // New barycentric coords (we haven't moved but just changed triangle)
-            ////    // Calculate new current barycentric coords (wrt opposite triangle)
-            ////    vec3f newBarycentricCoords; // In new triangle
-            ////    newBarycentricCoords[(oppositeTriangleCrossedEdgeOrdinal + 2) % 3] = 0.0f;
-            ////    newBarycentricCoords[oppositeTriangleCrossedEdgeOrdinal] = npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords[(crossedEdgeOrdinal + 1) % 3];
-            ////    newBarycentricCoords[(oppositeTriangleCrossedEdgeOrdinal + 1) % 3] = npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords[crossedEdgeOrdinal];
-
-            ////    LogMessage("          B-Coords: ", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
-
-            ////    {
-            ////        assert(newBarycentricCoords[0] >= 0.0f && newBarycentricCoords[0] <= 1.0f);
-            ////        assert(newBarycentricCoords[1] >= 0.0f && newBarycentricCoords[1] <= 1.0f);
-            ////        assert(newBarycentricCoords[2] >= 0.0f && newBarycentricCoords[2] <= 1.0f);
-            ////    }
-
-            ////    npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords = newBarycentricCoords;
-
-            ////    // New vertex: we know that coord of vertex opposite of crossed edge (i.e. vertex with ordinal crossed_edge+2) is 0.0
-            ////    if (newBarycentricCoords[oppositeTriangleCrossedEdgeOrdinal] == 0.0f)
-            ////    {
-            ////        // Between edge and edge+1
-            ////        nonZeroVertex = (oppositeTriangleCrossedEdgeOrdinal + 1) % 3;
-            ////    }
-            ////    else
-            ////    {
-            ////        // Between edge and edge-1
-            ////        assert(newBarycentricCoords[(oppositeTriangleCrossedEdgeOrdinal + 1) % 3] == 0.0f);
-            ////        nonZeroVertex = oppositeTriangleCrossedEdgeOrdinal;
-            ////    }
-            ////}
+            }
 
             if (remainingDt == 0.0f)
             {
@@ -1252,31 +1116,19 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
 
     assert(npcParticleConstrainedState.CurrentTriangleBarycentricCoords[(edgeOrdinal + 2) % 3] == 0.0f);
 
-    // Figure out if we're moving clockwise or counter-clockwise (fron the point of view of inside
-    // the triangle); this will hold for all the triangles traveled while going through a cuspid
-    // TODO: rewrite if we don't need isClockwise
-    bool isClockwise;
+    int intersectionVertexOrdinal;
     if (flattenedTrajectoryEndBarycentricCoords[edgeOrdinal] < 0.0f)
     {
         // It's the vertex at the end of our edge
         assert(flattenedTrajectoryEndBarycentricCoords[(edgeOrdinal + 1) % 3] > 0.0f); // Because target is outside of triangle
-        isClockwise = true;
+        intersectionVertexOrdinal = (edgeOrdinal + 1) % 3;
     }
     else
     {
         // It's the vertex before our edge
         assert(flattenedTrajectoryEndBarycentricCoords[(edgeOrdinal + 1) % 3] < 0.0f);
-        isClockwise = false;
+        intersectionVertexOrdinal = edgeOrdinal;
     }
-
-    int intersectionEdgeOrdinal = (isClockwise)
-        ? (edgeOrdinal + 1) % 3 // Next edge
-        : (edgeOrdinal + 2) % 3; // Previous edge
-
-    // Vertex we end at
-    int intersectionVertexOrdinal = (isClockwise)
-        ? intersectionEdgeOrdinal // Initial vertex
-        : (intersectionEdgeOrdinal + 1) % 3; // Final vertex
 
     //
     // Move to intersection (which is a vertex by now)
@@ -1288,7 +1140,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
     vec3f intersectionBarycentricCoords = vec3f::zero();
     intersectionBarycentricCoords[intersectionVertexOrdinal] = 1.0f;
 
-    LogMessage("      Moving to intersection with edge ordinal ", intersectionEdgeOrdinal, ": ", intersectionBarycentricCoords);
+    LogMessage("      Moving to intersection vertex ", intersectionVertexOrdinal, ": ", intersectionBarycentricCoords);
 
     npcParticleConstrainedState.CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
 
@@ -1391,240 +1243,6 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
 
     assert(false);
     return std::make_tuple(edgeTraveled, false);
-
-    ////// TODOOLD
-
-    ////// In a loop:
-    //////  - Move to edge intersection
-    //////  - Check floor & bumps
-    //////  - Climb triangle
-    //////  - Find edge intersection
-
-    ////float totalEdgeTraveled = 0.0f; // Signed
-
-    ////for (vec2f lastTrajectoryStartAbsolutePosition = trajectoryStartAbsolutePosition; ;)
-    ////{
-    ////    //
-    ////    // Move to intersection (which is a vertex by now)
-    ////    //
-    ////    // Note that except for the very first iteration, any other iteration will travel
-    ////    // zero distance at this moment
-    ////    //
-
-    ////    vec3f intersectionBarycentricCoords = vec3f::zero();
-    ////    intersectionBarycentricCoords[intersectionVertexOrdinal] = 1.0f;
-
-    ////    LogMessage("      Moving to intersection with edge ordinal ", intersectionEdgeOrdinal, ": ", intersectionBarycentricCoords);
-
-    ////    npcParticleConstrainedState.CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
-
-    ////    // Update (signed) edge traveled, assuming we're always moving along initial edge
-    ////    // (other edges we're only passing through cuspids)
-    ////    vec2f const intersectionAbsolutePosition = mesh.GetVertices().GetPosition(mesh.GetTriangles().GetVertexIndices(npcParticleConstrainedState.CurrentTriangle)[intersectionVertexOrdinal]);
-    ////    assert(intersectionAbsolutePosition == mesh.GetTriangles().FromBarycentricCoordinates(
-    ////        intersectionBarycentricCoords,
-    ////        npcParticleConstrainedState.CurrentTriangle,
-    ////        mesh.GetVertices()));
-
-    ////    float const edgeTraveled = (intersectionAbsolutePosition - lastTrajectoryStartAbsolutePosition).dot(edgeDir);
-    ////    totalEdgeTraveled += edgeTraveled;
-
-    ////    LogMessage("        totalEdgeTraveled=", totalEdgeTraveled);
-
-    ////    lastTrajectoryStartAbsolutePosition = intersectionAbsolutePosition;
-
-    ////    //
-    ////    // Check if impacted with floor
-    ////    //
-
-    ////    ElementIndex const intersectionEdgeElementIndex = mesh.GetTriangles().GetSubEdges(npcParticleConstrainedState.CurrentTriangle).EdgeIndices[intersectionEdgeOrdinal];
-
-    ////    assert(isPrimaryParticle || npc.DipoleState.has_value());
-
-    ////    if (IsEdgeFloorToParticle(intersectionEdgeElementIndex, npcParticleConstrainedState.CurrentTriangle, mesh)
-    ////        && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
-    ////            mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex),
-    ////            intersectionAbsolutePosition,
-    ////            intersectionEdgeElementIndex,
-    ////            mesh)))
-    ////    {
-    ////        //
-    ////        // Impact
-    ////        //
-
-    ////        LogMessage("      Impact");
-
-    ////        //
-    ////        // We might have hit a tiny bump (e.g. because of triangles slightly bent); in this case we don't want to bounce
-    ////        //
-
-    ////        float const flattenedTrajectoryLength = flattenedTrajectory.length();
-
-    ////        vec2f const intersectionEdgeDir =
-    ////            mesh.GetTriangles().GetSubEdgeVector(npcParticleConstrainedState.CurrentTriangle, intersectionEdgeOrdinal, mesh.GetVertices())
-    ////            .normalise();
-    ////        vec2f const intersectionEdgeNormal = intersectionEdgeDir.to_perpendicular();
-
-    ////        // Check angle between desired (original) trajectory and edge
-    ////        float const trajProjOntoEdgeNormal = flattenedTrajectory.normalise_approx(flattenedTrajectoryLength).dot(intersectionEdgeNormal);
-    ////        if (trajProjOntoEdgeNormal <= 0.71f) // PI/4+
-    ////        {
-    ////            //
-    ////            // Impact continuation (no bounce)
-    ////            //
-    ////            // Stop here and then check trajectory in new situation
-    ////            //
-
-    ////            LogMessage("      Impact continuation (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
-
-    ////            return std::make_tuple(totalEdgeTraveled, false);
-    ////        }
-    ////        else
-    ////        {
-    ////            //
-    ////            // Bounce - calculate bounce response, using the *apparent* (trajectory) 
-    ////            // velocity - since this one includes the mesh velocity
-    ////            //
-
-    ////            LogMessage("      Bounce (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
-
-    ////            BounceConstrainedNpcParticle(
-    ////                npc,
-    ////                isPrimaryParticle,
-    ////                flattenedTrajectory,
-    ////                intersectionAbsolutePosition,
-    ////                intersectionEdgeNormal,
-    ////                meshVelocity,
-    ////                dt,
-    ////                particles,
-    ////                labParameters);
-
-    ////            // Terminate
-    ////            return std::make_tuple(totalEdgeTraveled, true);
-    ////        }
-    ////    }
-
-    ////    //
-    ////    // Not floor, climb over edge
-    ////    //
-
-    ////    LogMessage("      Climbing over non-floor edge");
-
-    ////    // Find opposite triangle
-    ////    ElementIndex const oppositeTriangle = mesh.GetEdges().GetOppositeTriangle(intersectionEdgeElementIndex, npcParticleConstrainedState.CurrentTriangle);
-    ////    if (oppositeTriangle == NoneElementIndex)
-    ////    {
-    ////        //
-    ////        // Become free
-    ////        //
-
-    ////        LogMessage("      No opposite triangle found, becoming free");
-
-    ////        //
-    ////        // Move to endpoint and exit, consuming whole quantum
-    ////        //
-
-    ////        vec2f const endPosition = mesh.GetTriangles().FromBarycentricCoordinates(
-    ////            trajectoryEndBarycentricCoords,
-    ////            npcParticleConstrainedState.CurrentTriangle,
-    ////            mesh.GetVertices());
-
-    ////        npcParticle.ConstrainedState.reset();
-
-    ////        UpdateNpcParticle_Free(
-    ////            npcParticle,
-    ////            particleStartAbsolutePosition,
-    ////            endPosition,
-    ////            particles,
-    ////            labParameters);
-
-    ////        return std::make_tuple(totalEdgeTraveled, true);
-    ////    }
-
-    ////    //
-    ////    // Move to edge of opposite triangle 
-    ////    //
-
-    ////    int const oppositeTriangleIntersectionEdgeOrdinal = mesh.GetTriangles().GetSubEdgeOrdinal(oppositeTriangle, intersectionEdgeElementIndex);
-
-    ////    LogMessage("      Moving to edge ", oppositeTriangleIntersectionEdgeOrdinal, " of opposite triangle ", oppositeTriangle);
-
-    ////    // Save current absolute trajectory end
-    ////    vec2f const oldTrajectoryEndAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
-    ////        trajectoryEndBarycentricCoords,
-    ////        npcParticleConstrainedState.CurrentTriangle,
-    ////        mesh.GetVertices());
-
-    ////    npcParticleConstrainedState.CurrentTriangle = oppositeTriangle;
-
-    ////    // Calculate new current barycentric coords (wrt opposite triangle)
-    ////    vec3f newBarycentricCoords; // In new triangle
-    ////    newBarycentricCoords[(oppositeTriangleIntersectionEdgeOrdinal + 2) % 3] = 0.0f;
-    ////    newBarycentricCoords[oppositeTriangleIntersectionEdgeOrdinal] = npcParticleConstrainedState.CurrentTriangleBarycentricCoords[(intersectionEdgeOrdinal + 1) % 3];
-    ////    newBarycentricCoords[(oppositeTriangleIntersectionEdgeOrdinal + 1) % 3] = npcParticleConstrainedState.CurrentTriangleBarycentricCoords[intersectionEdgeOrdinal];
-
-    ////    LogMessage("        B-Coords: ", npcParticleConstrainedState.CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
-
-    ////    {
-    ////        assert(newBarycentricCoords[0] >= 0.0f && newBarycentricCoords[0] <= 1.0f);
-    ////        assert(newBarycentricCoords[1] >= 0.0f && newBarycentricCoords[1] <= 1.0f);
-    ////        assert(newBarycentricCoords[2] >= 0.0f && newBarycentricCoords[2] <= 1.0f);
-    ////    }
-
-    ////    npcParticleConstrainedState.CurrentTriangleBarycentricCoords = newBarycentricCoords;
-
-    ////    //
-    ////    // Translate trajectory end coords to this triangle
-    ////    //
-
-    ////    auto const oldTrajectoryEndBarycentricCoords = trajectoryEndBarycentricCoords;
-
-    ////    // Note: here we introduce a lot of error - the target bary coords are not anymore
-    ////    // guaranteed to lie exactly on the (continuation of the) edge
-    ////    trajectoryEndBarycentricCoords = mesh.GetTriangles().ToBarycentricCoordinates(
-    ////        oldTrajectoryEndAbsolutePosition,
-    ////        oppositeTriangle,
-    ////        mesh.GetVertices());
-
-    ////    LogMessage("        TrajEndB-Coords: ", oldTrajectoryEndBarycentricCoords, " -> ", trajectoryEndBarycentricCoords);
-
-    ////    //
-    ////    // Now move on to this triangle
-    ////    //
-
-    ////    //
-    ////    // See if trajectory requires another edge intersection & crossing
-    ////    //
-
-    ////    // Vertex we end at
-    ////    intersectionVertexOrdinal = (isClockwise)
-    ////        ? (oppositeTriangleIntersectionEdgeOrdinal + 1) % 3 // Final vertex of intersection edge
-    ////        : oppositeTriangleIntersectionEdgeOrdinal; // First vertex of intersection edge
-
-    ////    LogMessage("        Vertex=", intersectionVertexOrdinal);
-
-    ////    if (trajectoryEndBarycentricCoords[(intersectionVertexOrdinal + 1) % 3] >= 0.0f
-    ////        && trajectoryEndBarycentricCoords[(intersectionVertexOrdinal + 2) % 3] >= 0.0f)
-    ////    {
-    ////        //
-    ////        // It's inside this triangle - stop where we are, we'll then check trajectory in new situation
-    ////        //
-
-    ////        LogMessage("      Trajectory extends inside new triangle - exiting and continuing");
-
-    ////        return std::make_tuple(totalEdgeTraveled, false);
-    ////    }
-
-    ////    //
-    ////    // Find next edge that we intersect at this cuspid
-    ////    //
-
-    ////    LogMessage("      Trajectory crosses new triangle - finding next edge intersected at cuspid");
-
-    ////    intersectionEdgeOrdinal = (isClockwise)
-    ////        ? intersectionVertexOrdinal // Edge following vertex
-    ////        : (intersectionVertexOrdinal + 2) % 3; // Edge preceding vertex
-    ////}
 }
 
 float Npcs::UpdateNpcParticle_ConstrainedInertial(
