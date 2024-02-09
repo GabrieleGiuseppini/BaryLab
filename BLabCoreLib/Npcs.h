@@ -509,7 +509,8 @@ private:
 		vec2f const & edgeDir,
 		vec2f const & particleStartAbsolutePosition,				
 		vec2f const & trajectoryStartAbsolutePosition,
-		vec3f trajectoryEndBarycentricCoords,
+		vec2f const & flattenedTrajectoryEndAbsolutePosition,
+		vec3f flattenedTrajectoryEndBarycentricCoords,
 		vec2f const & flattenedTrajectory,
 		float edgeTraveledPlanned,
 		vec2f const meshVelocity,
@@ -541,27 +542,30 @@ private:
 
 		OutcomeType Type;
 
-		// TODO
+		int EncounteredFloorEdgeOrdinal; // In particle's current triangle
 
 		static NavigateVertexOutcome MakeCompletedNavigationOutcome()
 		{
-			return NavigateVertexOutcome(OutcomeType::CompletedNavigation);
+			return NavigateVertexOutcome(OutcomeType::CompletedNavigation, -1);
 		}
 
-		static NavigateVertexOutcome MakeEncounteredFloorOutcome()
+		static NavigateVertexOutcome MakeEncounteredFloorOutcome(int encounteredFloorEdgeOrdinal)
 		{
-			return NavigateVertexOutcome(OutcomeType::EncounteredFloor);
+			return NavigateVertexOutcome(OutcomeType::EncounteredFloor, encounteredFloorEdgeOrdinal);
 		}
 
 		static NavigateVertexOutcome MakeConvertedToFreeOutcome()
 		{
-			return NavigateVertexOutcome(OutcomeType::ConvertedToFree);
+			return NavigateVertexOutcome(OutcomeType::ConvertedToFree, -1);
 		}
 
 	private:
 
-		NavigateVertexOutcome(OutcomeType type)
+		NavigateVertexOutcome(
+			OutcomeType type,
+			int encounteredFloorEdgeOrdinal)
 			: Type(type)
+			, EncounteredFloorEdgeOrdinal(encounteredFloorEdgeOrdinal)
 		{}
 	};
 
@@ -571,6 +575,7 @@ private:
 		int vertexOrdinal,
 		vec2f const & particleStartAbsolutePosition,
 		vec2f const & trajectoryStartAbsolutePosition,
+		vec2f const & trajectoryEndAbsolutePosition,
 		vec3f trajectoryEndBarycentricCoords,
 		bool isInitialStateUnknown,
 		NpcParticles & particles,
