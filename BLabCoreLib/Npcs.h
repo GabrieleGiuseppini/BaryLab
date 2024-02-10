@@ -16,6 +16,7 @@
 #include "StrongTypeDef.h"
 #include "StructuralMaterialDatabase.h"
 #include "Vectors.h"
+#include "World.h"
 
 #include <optional>
 #include <vector>
@@ -199,9 +200,11 @@ public:
 public:
 
 	Npcs(
+		World & parentWorld,
 		EventDispatcher & eventDispatcher,
 		bool isGravityEnabled)
-		: mEventDispatcher(eventDispatcher)
+		: mParentWorld(parentWorld)
+		, mEventDispatcher(eventDispatcher)
 		// Container
 		, mStateBuffer()
 		, mParticles(LabParameters::MaxNpcs * LabParameters::MaxParticlesPerNpc)
@@ -665,6 +668,7 @@ private:
 
 private:
 
+	World & mParentWorld;
 	EventDispatcher & mEventDispatcher;
 
 	//

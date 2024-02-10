@@ -57,6 +57,7 @@ set  (SOURCES
 	Npcs.h
 	Npcs_HumanSimulation.cpp
 	Npcs_Simulation.cpp
+	OceanSurface.h
 	RenderContext.cpp
 	RenderContext.h
 	ResourceLocator.h
@@ -79,6 +80,7 @@ set  (SOURCES
 	Vertices.cpp
 	Vertices.h
 	ViewModel.h
+	World.h
 )
 
 set  (GLAD_SOURCES

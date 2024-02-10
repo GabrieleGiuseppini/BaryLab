@@ -46,6 +46,7 @@ LabController::LabController(
     // Simulation state
     , mLabParameters()
     , mModel()
+    , mWorld()
     , mCurrentMeshFilePath()
     , mCurrentSimulationTime(0.0f)
     , mIsGravityEnabled(true)
@@ -103,7 +104,7 @@ void LabController::Render()
 
     mRenderContext->RenderStart();
 
-    mRenderContext->UploadSeaLevel(mLabParameters.SeaLevel);
+    mRenderContext->UploadSeaLevel(mWorld.GetOceanSurface().GetDepth());
 
     if (mModel)
     {
@@ -854,7 +855,7 @@ void LabController::LoadMesh(
 
     // Create NPCs
 
-    std::unique_ptr<Npcs> npcs = std::make_unique<Npcs>(mEventDispatcher, mIsGravityEnabled);
+    std::unique_ptr<Npcs> npcs = std::make_unique<Npcs>(mWorld, mEventDispatcher, mIsGravityEnabled);
 
     if (addExperimentalNpc)
     {

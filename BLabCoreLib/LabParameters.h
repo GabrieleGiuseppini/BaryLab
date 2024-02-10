@@ -50,10 +50,6 @@ struct LabParameters
     static float constexpr MinGlobalDamping = 0.0f;
     static float constexpr MaxGlobalDamping = 1.0f;
 
-    float SeaLevel;
-    static float constexpr MinSeaLevel = -100.0f;
-    static float constexpr MaxSeaLevel = 100.0f;
-
     float SpringReductionFraction;
     static float constexpr MinSpringReductionFraction = 0.0f;
     static float constexpr MaxSpringReductionFraction = 2.0f;

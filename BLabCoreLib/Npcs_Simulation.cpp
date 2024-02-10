@@ -804,7 +804,8 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
             testParticlePosition += (mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex) - testParticlePosition) * BuoyancyInterfaceWidth * 2.0f / 3.0f;
         }
 
-        float const uwCoefficient = Clamp(labParameters.SeaLevel - testParticlePosition.y, 0.0f, BuoyancyInterfaceWidth) / BuoyancyInterfaceWidth;
+        float const particleDepth = mParentWorld.GetOceanSurface().GetDepth(testParticlePosition);
+        float const uwCoefficient = Clamp(particleDepth, 0.0f, BuoyancyInterfaceWidth) / BuoyancyInterfaceWidth;
         if (uwCoefficient > 0.0f)
         {
             // Underwater

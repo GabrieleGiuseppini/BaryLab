@@ -13,6 +13,7 @@
 #include "RenderContext.h"
 #include "StructuralMaterialDatabase.h"
 #include "Vectors.h"
+#include "World.h"
 
 #include <cassert>
 #include <filesystem>
@@ -207,10 +208,10 @@ public:
     float GetMinGlobalDamping() const { return LabParameters::MinGlobalDamping; }
     float GetMaxGlobalDamping() const { return LabParameters::MaxGlobalDamping; }
 
-    float GetSeaLevel() const { return mLabParameters.SeaLevel; }
-    void SetSeaLevel(float value) { mLabParameters.SeaLevel = value; }
-    float GetMinSeaLevel() const { return LabParameters::MinSeaLevel; }
-    float GetMaxSeaLevel() const { return LabParameters::MaxSeaLevel; }
+    float GetSeaLevel() const { return mWorld.GetOceanSurface().GetDepth(); }
+    void SetSeaLevel(float value) { mWorld.GetOceanSurface().SetDepth(value); }
+    float GetMinSeaLevel() const { return OceanSurface::MinDepth; }
+    float GetMaxSeaLevel() const { return OceanSurface::MaxDepth; }
 
     float GetSpringReductionFraction() const { return mLabParameters.SpringReductionFraction; }
     void SetSpringReductionFraction(float value) { mLabParameters.SpringReductionFraction = value; }
@@ -275,6 +276,7 @@ private:
 
     LabParameters mLabParameters;
     std::unique_ptr<Model> mModel;
+    World mWorld; // Dummy placeholder
     std::optional<std::filesystem::path> mCurrentMeshFilePath;
 
     float mCurrentSimulationTime;
