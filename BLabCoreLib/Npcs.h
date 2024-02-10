@@ -525,10 +525,10 @@ private:
 		StateType & npc,
 		bool isPrimaryParticle,
 		vec2f const & particleStartAbsolutePosition,
-		bcoords3f const trajectoryStartBarycentricCoords,
-		bcoords3f trajectoryEndBarycentricCoords,
+		bcoords3f const segmentTrajectoryStartBarycentricCoords,
+		bcoords3f segmentTrajectoryEndBarycentricCoords,
 		vec2f const meshVelocity,
-		float dt,
+		float segmentDt,
 		NpcParticles & particles,
 		Mesh const & mesh,
 		LabParameters const & labParameters) const;
