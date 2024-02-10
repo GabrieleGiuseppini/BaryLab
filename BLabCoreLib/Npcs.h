@@ -526,6 +526,7 @@ private:
 		bool isPrimaryParticle,
 		vec2f const & particleStartAbsolutePosition,
 		bcoords3f const segmentTrajectoryStartBarycentricCoords,
+		vec2f const & segmentTrajectoryEndAbsolutePosition,
 		bcoords3f segmentTrajectoryEndBarycentricCoords,
 		vec2f const meshVelocity,
 		float segmentDt,
