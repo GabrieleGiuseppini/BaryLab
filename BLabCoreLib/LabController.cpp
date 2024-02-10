@@ -123,38 +123,52 @@ void LabController::Render()
 
         mRenderContext->UploadEdgesStart();
 
-        // TODOHERE: don't draw all edges but only those of a triangle
-        ////for (auto t : triangles)
-        ////{
-        ////    mRenderContext->UploadEdge(
-        ////        vertices.GetPosition(triangles.GetVertexAIndex(t)),
-        ////        vertices.GetPosition(triangles.GetVertexBIndex(t)),
-        ////        edges.GetRenderColor(triangles.GetSubEdgeAIndex(t)));
-
-        ////    mRenderContext->UploadEdge(
-        ////        vertices.GetPosition(triangles.GetVertexBIndex(t)),
-        ////        vertices.GetPosition(triangles.GetVertexCIndex(t)),
-        ////        edges.GetRenderColor(triangles.GetSubEdgeBIndex(t)));
-
-        ////    mRenderContext->UploadEdge(
-        ////        vertices.GetPosition(triangles.GetVertexCIndex(t)),
-        ////        vertices.GetPosition(triangles.GetVertexAIndex(t)),
-        ////        edges.GetRenderColor(triangles.GetSubEdgeCIndex(t)));
-        ////}
-
-        for (auto e : edges)
+        for (auto t : triangles)
         {
-            rgbaColor color = edges.GetRenderColor(e);
-            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(e))
+            rgbaColor color = edges.GetRenderColor(triangles.GetSubEdgeAIndex(t));
+            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(triangles.GetSubEdgeAIndex(t)))
             {
                 color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
             }
-
             mRenderContext->UploadEdge(
-                vertices.GetPosition(edges.GetEndpointAIndex(e)),
-                vertices.GetPosition(edges.GetEndpointBIndex(e)),
+                vertices.GetPosition(triangles.GetVertexAIndex(t)),
+                vertices.GetPosition(triangles.GetVertexBIndex(t)),
+                color);
+
+            color = edges.GetRenderColor(triangles.GetSubEdgeBIndex(t));
+            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(triangles.GetSubEdgeBIndex(t)))
+            {
+                color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
+            }
+            mRenderContext->UploadEdge(
+                vertices.GetPosition(triangles.GetVertexBIndex(t)),
+                vertices.GetPosition(triangles.GetVertexCIndex(t)),
+                color);
+
+            color = edges.GetRenderColor(triangles.GetSubEdgeCIndex(t));
+            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(triangles.GetSubEdgeCIndex(t)))
+            {
+                color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
+            }
+            mRenderContext->UploadEdge(
+                vertices.GetPosition(triangles.GetVertexCIndex(t)),
+                vertices.GetPosition(triangles.GetVertexAIndex(t)),
                 color);
         }
+
+        ////for (auto e : edges)
+        ////{
+        ////    rgbaColor color = edges.GetRenderColor(e);
+        ////    if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(e))
+        ////    {
+        ////        color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
+        ////    }
+
+        ////    mRenderContext->UploadEdge(
+        ////        vertices.GetPosition(edges.GetEndpointAIndex(e)),
+        ////        vertices.GetPosition(edges.GetEndpointBIndex(e)),
+        ////        color);
+        ////}
 
         mRenderContext->UploadEdgesEnd();
 
@@ -677,13 +691,14 @@ void LabController::DoStepForVideo()
         //
 
         vec2f primaryPosition = vec2f(1.5f, -2.0f);
-        vec2f secondaryPosition = primaryPosition + vec2f(1.0f, 0.0f) * LabParameters::HumanNpcLength;
+        vec2f secondaryPosition = primaryPosition + vec2f(1.0f, 0.0f) * LabParameters::HumanNpcGeometry::BodyLength * mLabParameters.HumanNpcBodyLengthAdjustment;
         mModel->GetNpcs().Add(
             Npcs::NpcType::Human,
             primaryPosition,
             secondaryPosition,
             mStructuralMaterialDatabase,
-            mModel->GetMesh());
+            mModel->GetMesh(),
+            mLabParameters);
 
         return;
     }
@@ -861,12 +876,13 @@ void LabController::LoadMesh(
 
         npcs->Add(
             // TODOTEST
-            Npcs::NpcType::Furniture,
-            //Npcs::NpcType::Human,
+            //Npcs::NpcType::Furniture,
+            Npcs::NpcType::Human,
             position,
             std::nullopt,
             mStructuralMaterialDatabase,
-            *mesh);
+            *mesh,
+            mLabParameters);
 
         // Select particle
         assert(npcs->GetParticles().GetParticleCount() > 0);

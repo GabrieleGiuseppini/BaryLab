@@ -14,7 +14,8 @@ void Npcs::Add(
 	vec2f primaryPosition,
 	std::optional<vec2f> secondaryPosition,
 	StructuralMaterialDatabase const & materialDatabase,
-	Mesh const & mesh)
+	Mesh const & mesh,
+	LabParameters const & labParameters)
 {
 	assert(mParticles.GetParticleCount() < LabParameters::MaxNpcs);
 
@@ -53,6 +54,8 @@ void Npcs::Add(
 
 		case NpcType::Human:
 		{
+			float const bodyLength = LabParameters::HumanNpcGeometry::BodyLength * labParameters.HumanNpcBodyLengthAdjustment;
+
 			// Feet (primary)
 
 			auto const & feetMaterial = materialDatabase.GetStructuralMaterial(StructuralMaterialDatabase::UniqueMaterialKeyType::HumanFeet);
@@ -74,7 +77,7 @@ void Npcs::Add(
 
 			if (!secondaryPosition)
 			{
-				secondaryPosition = primaryPosition + vec2f(0.0f, 1.0f) * LabParameters::HumanNpcLength;
+				secondaryPosition = primaryPosition + vec2f(0.0f, 1.0f) * bodyLength;
 			}
 
 			mParticles.Add(
@@ -103,7 +106,7 @@ void Npcs::Add(
 			dipoleState.emplace(
 				std::move(secondaryParticleState),
 				StateType::DipolePropertiesType(
-					LabParameters::HumanNpcLength,
+					bodyLength,
 					massFactor,
 					1.0f));
 
@@ -242,6 +245,8 @@ void Npcs::Render(RenderContext & renderContext)
 	// Particles & limbs
 	//
 
+	float const humanHeight = LabParameters::HumanNpcGeometry::BodyLength; // TODO: use dirty parameters trick to store body length adjusted by labParameters.HumanNpcBodyLengthAdjustment
+
 	renderContext.UploadParticlesStart();
 	renderContext.UploadNpcHumanLimbsStart();
 
@@ -253,28 +258,33 @@ void Npcs::Render(RenderContext & renderContext)
 		{
 			case NpcRenderMode::Limbs:
 			{
-
 				if (state.HumanNpcState.has_value())
 				{
+					// TODO: depends on Front vs Back
+
+					// Head
 					renderContext.UploadNpcHumanLimb(
 						state.HumanNpcState->TopPoint,
 						state.HumanNpcState->NeckPoint,
-						LabParameters::HumanNpcLength * 0.14f);
+						LabParameters::HumanNpcGeometry::HeadWidthFraction * humanHeight);
 
+					// Torso
 					renderContext.UploadNpcHumanLimb(
 						state.HumanNpcState->NeckPoint,
 						state.HumanNpcState->CrotchPoint,
-						LabParameters::HumanNpcLength * 0.21f);
+						LabParameters::HumanNpcGeometry::TorsoWidthFraction * humanHeight);
 
+					// Left leg
 					renderContext.UploadNpcHumanLimb(
 						state.HumanNpcState->CrotchPoint,
 						state.HumanNpcState->LegLeftPoint,
-						LabParameters::HumanNpcLength * 0.14f);
+						LabParameters::HumanNpcGeometry::LegWidthFraction * humanHeight);
 
+					// Right leg
 					renderContext.UploadNpcHumanLimb(
 						state.HumanNpcState->CrotchPoint,
 						state.HumanNpcState->LegRightPoint,
-						LabParameters::HumanNpcLength * 0.14f);
+						LabParameters::HumanNpcGeometry::LegWidthFraction * humanHeight);
 				}
 				else
 				{

@@ -1763,7 +1763,7 @@ void Npcs::UpdateNpcAnimation(
     StateType & npc,
     bool isPrimaryParticle,
     Mesh const & /*mesh*/,
-    LabParameters const & /*labParameters*/)
+    LabParameters const & labParameters)
 {
     if (npc.Type == NpcType::Human && isPrimaryParticle) // TODO: should we invoke it directly on UpdateHumanNpcAnimation?
     {
@@ -1773,14 +1773,12 @@ void Npcs::UpdateNpcAnimation(
         ElementIndex const primaryParticleIndex = npc.PrimaryParticleState.ParticleIndex;
         ElementIndex const secondaryParticleIndex = npc.DipoleState->SecondaryParticleState.ParticleIndex;
 
-        float constexpr LegAngleConvergenceRate = 1.0f; // TODOTEST
-        // FUTUREWORK: in NPC database
-        float constexpr HeadFraction = 0.14f;
-        float constexpr LegLength = 0.5f * LabParameters::HumanNpcLength;
-
+        float const humanHeight = LabParameters::HumanNpcGeometry::BodyLength * labParameters.HumanNpcBodyLengthAdjustment;
+        
         float targetLegRightAngle = 0.0f;
         float targetLegLeftAngle = 0.0f;
-
+        float angleConvergenceRate = 0.0f;
+        
         switch (npc.HumanNpcState->CurrentBehavior)
         {
             case StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
@@ -1789,22 +1787,22 @@ void Npcs::UpdateNpcAnimation(
             {
                 targetLegRightAngle = 0.0f;
                 targetLegLeftAngle = 0.0f;
+                angleConvergenceRate = 0.3f;
 
                 break;
             }
 
             case StateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
             {
-                // FUTUREWORK: in NPC database
-                float constexpr StepLength = 0.71f;
-                float const MaxAngle = std::atan(StepLength / (2.0f * LegLength));
+                float const MaxLegAngle = std::atan((LabParameters::HumanNpcGeometry::StepLengthFraction / 2.0f) / LabParameters::HumanNpcGeometry::LegLengthFraction);
 
-                float const distanceInTwoSteps = std::fmod(npc.HumanNpcState->TotalEdgeTraveledSinceWalkStart + 3.0f * StepLength / 2.0f, StepLength * 2.0f);
+                float const stepLength = LabParameters::HumanNpcGeometry::StepLengthFraction * humanHeight;
+                float const distanceInTwoSteps = std::fmod(npc.HumanNpcState->TotalEdgeTraveledSinceWalkStart + 3.0f * stepLength / 2.0f, stepLength * 2.0f);
                 LogMessage("distanceInTwoSteps=", distanceInTwoSteps);
-                targetLegRightAngle = std::abs(StepLength - distanceInTwoSteps) / StepLength * 2.0f * MaxAngle - MaxAngle;
-                targetLegLeftAngle = -targetLegRightAngle;
 
-                mEventDispatcher.OnCustomProbe("RLegAngle", targetLegRightAngle);
+                targetLegRightAngle = std::abs(stepLength - distanceInTwoSteps) / stepLength * 2.0f * MaxLegAngle - MaxLegAngle;
+                targetLegLeftAngle = -targetLegRightAngle;
+                angleConvergenceRate = 1.0f;
 
                 break;
             }
@@ -1813,22 +1811,24 @@ void Npcs::UpdateNpcAnimation(
             {
                 targetLegRightAngle = 0.0f;
                 targetLegLeftAngle = 0.0f;
+                angleConvergenceRate = 0.3f;
 
                 break;
             }
         }
 
-        npc.HumanNpcState->LegRightAngle += (targetLegRightAngle - npc.HumanNpcState->LegRightAngle) * LegAngleConvergenceRate;
-        npc.HumanNpcState->LegLeftAngle += (targetLegLeftAngle - npc.HumanNpcState->LegLeftAngle) * LegAngleConvergenceRate;
+        npc.HumanNpcState->LegRightAngle += (targetLegRightAngle - npc.HumanNpcState->LegRightAngle) * angleConvergenceRate;
+        npc.HumanNpcState->LegLeftAngle += (targetLegLeftAngle - npc.HumanNpcState->LegLeftAngle) * angleConvergenceRate;
 
         vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
         vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
+        float const legLength = LabParameters::HumanNpcGeometry::LegLengthFraction * humanHeight;
 
         npc.HumanNpcState->TopPoint = headPosition;
-        npc.HumanNpcState->NeckPoint = headPosition + (feetPosition - headPosition) * HeadFraction;
-        npc.HumanNpcState->CrotchPoint = headPosition + (feetPosition - headPosition) * 0.5f;
-        npc.HumanNpcState->LegRightPoint = feetPosition + vec2f(1.0f, 0.0f) * std::tan(npc.HumanNpcState->LegRightAngle) * LegLength;
-        npc.HumanNpcState->LegLeftPoint = feetPosition + vec2f(1.0f, 0.0f) * std::tan(npc.HumanNpcState->LegLeftAngle) * LegLength;
+        npc.HumanNpcState->NeckPoint = headPosition + (feetPosition - headPosition) * LabParameters::HumanNpcGeometry::HeadLengthFraction;
+        npc.HumanNpcState->CrotchPoint = headPosition + (feetPosition - headPosition) * (LabParameters::HumanNpcGeometry::HeadLengthFraction + LabParameters::HumanNpcGeometry::TorsoLengthFraction);
+        npc.HumanNpcState->LegRightPoint = feetPosition + vec2f(1.0f, 0.0f) * std::tan(npc.HumanNpcState->LegRightAngle) * legLength;
+        npc.HumanNpcState->LegLeftPoint = feetPosition + vec2f(1.0f, 0.0f) * std::tan(npc.HumanNpcState->LegLeftAngle) * legLength;
     }
 }
 

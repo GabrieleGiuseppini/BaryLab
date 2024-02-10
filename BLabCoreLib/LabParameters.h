@@ -96,8 +96,6 @@ struct LabParameters
     // NPCs
     //
 
-    static float constexpr HumanNpcLength = 1.65f;
-
     float HumanNpcEquilibriumTorqueStiffnessCoefficient;
     static float constexpr MinHumanNpcEquilibriumTorqueStiffnessCoefficient = 0.0f;
     static float constexpr MaxHumanNpcEquilibriumTorqueStiffnessCoefficient = 0.01f;
@@ -111,4 +109,31 @@ struct LabParameters
     float HumanNpcWalkingSpeed;
     static float constexpr MinHumanNpcWalkingSpeed = 0.0f;
     static float constexpr MaxHumanNpcWalkingSpeed = 2.5f;
+
+    struct HumanNpcGeometry
+    {
+        static float constexpr BodyLength = 1.65f;
+
+        // All fractions below ar relative to BodyLength
+
+        static float constexpr HeadLengthFraction = 1.0f / 8.0f;
+        static float constexpr HeadWidthFraction = 1.0f / 10.0f;
+        static float constexpr HeadDepthFraction = HeadWidthFraction;
+
+        static float constexpr TorsoLengthFraction = 1.0f / 2.0f - HeadLengthFraction;
+        static float constexpr TorsoWidthFraction = 1.0f / 6.0f;
+        static float constexpr TorsoDepthFraction = TorsoWidthFraction / 2.0f;
+
+        static float constexpr LegLengthFraction = 1.0f / 2.0f;
+        static float constexpr LegWidthFraction = 1.0f / 10.0f;
+        static float constexpr LegDepthFraction = LegWidthFraction;
+
+        static_assert(LegLengthFraction + TorsoLengthFraction + HeadLengthFraction == 1.0f);
+
+        static float constexpr StepLengthFraction = 0.43f; // From foot to foot at longest separation
+    };
+
+    float HumanNpcBodyLengthAdjustment;
+    static float constexpr MinHumanNpcBodyLengthAdjustment = 0.2f;
+    static float constexpr MaxHumanNpcBodyLengthAdjustment = 10.0f;
 };

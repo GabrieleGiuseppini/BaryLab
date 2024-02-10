@@ -215,7 +215,8 @@ public:
 		vec2f primaryPosition,
 		std::optional<vec2f> secondaryPosition,
 		StructuralMaterialDatabase const & materialDatabase,
-		Mesh const & mesh);
+		Mesh const & mesh,
+		LabParameters const & labParameters);
 
 	void MoveParticleBy(
 		ElementIndex particleIndex,
