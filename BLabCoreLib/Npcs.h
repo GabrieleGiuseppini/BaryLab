@@ -111,27 +111,80 @@ public:
 				Constrained_Equilibrium, // Stands up; continues to adjust alignment with torque
 				Constrained_Walking, // Walks; continues to adjust alignment with torque
 
-				Free_KnockedOut // Does nothing
+				Free_Aerial // Does nothing
 			};
 
 			BehaviorType CurrentBehavior;
 
+			union BehaviorStateType
+			{
+				struct Constrained_KnockedOutStateType
+				{
+					float ProgressToRising;
+
+					void Reset()
+					{
+						ProgressToRising = 0.0f;
+					}
+				} Constrained_KnockedOut;
+
+				struct Constrained_RisingStateType
+				{
+					float CurrentSoftTerminationDecision; // [0.0f, 1.0f]
+
+					void Reset()
+					{
+						CurrentSoftTerminationDecision = 0.0f;
+					}
+				} Constrained_Rising;
+
+				struct Constrained_EquilibriumStateType
+				{
+					float ProgressToWalking;
+
+					void Reset()
+					{
+						ProgressToWalking = 0.0f;
+					}
+				} Constrained_Equilibrium;
+
+				struct Constrained_WalkingStateType
+				{
+					float CurrentWalkMagnitude; // [0.0f, 1.0f]
+					float TargetWalkMagnitude; // [0.0f, 1.0f]
+
+					float CurrentFlipDecision; // [0.0f, 1.0f]
+					float TargetFlipDecision; // [0.0f, 1.0f]
+
+					void Reset()
+					{
+						CurrentWalkMagnitude = 0.0f;
+						TargetWalkMagnitude = 1.0f;
+						CurrentFlipDecision = 0.0f;
+						TargetFlipDecision = 0.0f;
+					}
+				} Constrained_Walking;
+
+				struct Free_AerialStateType
+				{
+					void Reset()
+					{
+					}
+				} Free_Aerial;
+			} CurrentBehaviorState;
+
+			float CurrentStateTransitionTimestamp;
+			float TotalDistanceTraveledSinceStateTransition; // [0.0f, +INF] - it's "edge traveled" when we're constrained on an edge (e.g. walking)
+
+			float CurrentEquilibriumSoftTerminationDecision; // Cross-state
+
+			enum class FaceOrientationType
+			{
+				Front,
+				Back
+			};
+			FaceOrientationType FaceOrientation;
 			float CurrentFaceDirectionX; // [-1.0f, 1.0f]
-
-			float CurrentStateValue;
-			float TargetStateValue;
-
-			float CurrentEquilibriumSoftTerminationDecision; // [0.0f, 1.0f]
-
-			float CurrentWalkMagnitude; // [0.0f, 1.0f]
-			float TargetWalkMagnitude; // [0.0f, 1.0f]
-
-			float CurrentWalkFlipDecision; // [0.0f, 1.0f]
-			float TargetWalkFlipDecision; // [0.0f, 1.0f]
-
-			// Updated in any state, but reset when starting to walk
-			// This is *mesh-relative* when we're in constrained state
-			float TotalEdgeTraveledSinceWalkStart; // [0.0f, +INF]
 
 			// Animation
 
@@ -146,31 +199,58 @@ public:
 
 			HumanNpcStateType(
 				BehaviorType initialBehavior,
-				float currentStateValue,
-				float targetStateValue)
-				: CurrentBehavior(initialBehavior)
+				float currentSimulationTime)
+				: CurrentEquilibriumSoftTerminationDecision(0.0f)
+				, FaceOrientation(FaceOrientationType::Front)
 				, CurrentFaceDirectionX(1.0f) // Futurework: randomize
-				, CurrentStateValue(currentStateValue)
-				, TargetStateValue(targetStateValue)
-				, CurrentEquilibriumSoftTerminationDecision(0.0f)
-				, CurrentWalkMagnitude(0.0f)
-				, TargetWalkMagnitude(0.0f)
-				, CurrentWalkFlipDecision(0.0f)
-				, TargetWalkFlipDecision(0.0f)
-				, TotalEdgeTraveledSinceWalkStart(0.0f)
 				// Animation
 				, LegRightAngle(0.0f)
 				, LegLeftAngle(0.0f)
-			{}
+			{
+				TransitionToState(initialBehavior, currentSimulationTime);
+			}
 
 			void TransitionToState(
 				BehaviorType behavior,
-				float currentStateValue,
-				float targetStateValue)
+				float currentSimulationTime)
 			{
 				CurrentBehavior = behavior;
-				CurrentStateValue = currentStateValue;
-				TargetStateValue = targetStateValue;
+
+				switch (behavior)
+				{
+					case BehaviorType::Constrained_Equilibrium:
+					{
+						CurrentBehaviorState.Constrained_Equilibrium.Reset();
+						break;
+					}
+
+					case BehaviorType::Constrained_KnockedOut:
+					{
+						CurrentBehaviorState.Constrained_KnockedOut.Reset();
+						break;
+					}
+
+					case BehaviorType::Constrained_Rising:
+					{
+						CurrentBehaviorState.Constrained_Rising.Reset();
+						break;
+					}
+
+					case BehaviorType::Constrained_Walking:
+					{
+						CurrentBehaviorState.Constrained_Walking.Reset();
+						break;
+					}
+
+					case BehaviorType::Free_Aerial:
+					{
+						CurrentBehaviorState.Free_Aerial.Reset();
+						break;
+					}
+				}
+
+				CurrentStateTransitionTimestamp = currentSimulationTime;
+				TotalDistanceTraveledSinceStateTransition = 0.0f;
 			}
 		};
 
@@ -216,7 +296,8 @@ public:
 	void Add(
 		NpcType npcType,
 		vec2f primaryPosition,
-		std::optional<vec2f> secondaryPosition,
+		std::optional<vec2f> secondaryPosition,		
+		float currentSimulationTime,
 		StructuralMaterialDatabase const & materialDatabase,
 		Mesh const & mesh,
 		LabParameters const & labParameters);
@@ -224,6 +305,7 @@ public:
 	void MoveParticleBy(
 		ElementIndex particleIndex,
 		vec2f const & offset,
+		float currentSimulationTime,
 		Mesh const & mesh);
 
 	void RotateParticlesWithMesh(
@@ -232,7 +314,9 @@ public:
 		float sinAngle,
 		Mesh const & mesh);
 
-	void OnVertexMoved(Mesh const & mesh);
+	void OnVertexMoved(
+		float currentSimulationTime,
+		Mesh const & mesh);
 
 	void Update(
 		float currentSimulationTime,
@@ -622,6 +706,7 @@ private:
 
 	StateType MaterializeNpcState(
 		ElementIndex npcIndex,
+		float currentSimulationTime,
 		Mesh const & mesh) const;
 
 	std::optional<StateType::NpcParticleStateType::ConstrainedStateType> CalculateParticleConstrainedState(
@@ -636,7 +721,8 @@ private:
 
 	StateType::HumanNpcStateType InitializeHuman(
 		StateType::NpcParticleStateType const & primaryParticleState,
-		StateType::NpcParticleStateType const & secondaryParticleState) const;
+		StateType::NpcParticleStateType const & secondaryParticleState,
+		float currentSimulationTime) const;
 
 	void UpdateHuman(
 		float currentSimulationTime,

@@ -12,7 +12,8 @@
 
 Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 	StateType::NpcParticleStateType const & primaryParticleState,
-	StateType::NpcParticleStateType const & secondaryParticleState) const
+	StateType::NpcParticleStateType const & secondaryParticleState,
+	float currentSimulationTime) const
 {
 	// Return state
 
@@ -20,14 +21,14 @@ Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 		&& !secondaryParticleState.ConstrainedState.has_value())
 	{
 		// Whole NPC is free
-		mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
-		return StateType::HumanNpcStateType(StateType::HumanNpcStateType::BehaviorType::Free_KnockedOut, 0.0f, 0.0f);
+		mEventDispatcher.OnHumanNpcBehaviorChanged("Free_Aerial");
+		return StateType::HumanNpcStateType(StateType::HumanNpcStateType::BehaviorType::Free_Aerial, currentSimulationTime);
 	}
 	else
 	{
 		// NPC is constrained
 		mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
-		return StateType::HumanNpcStateType(StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, 0.0f, 0.0f);
+		return StateType::HumanNpcStateType(StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
 	}
 }
 
@@ -57,53 +58,46 @@ void Npcs::UpdateHuman(
 			if (isFree)
 			{
 				// Transition
+				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Free_Aerial, currentSimulationTime);
 
-				humanState.TransitionToState(
-					StateType::HumanNpcStateType::BehaviorType::Free_KnockedOut,
-					0.0f,
-					0.0f);
-
-				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
+				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_Aerial");
 
 				break;
 			}
 
-			// Advance
+			// Check conditions for rising
 
-			humanState.CurrentStateValue += (humanState.TargetStateValue - humanState.CurrentStateValue) * ToRisingConvergenceRate;
-
-			publishStateQuantity = std::make_tuple("CurrentStateValue", std::to_string(humanState.CurrentStateValue));
-
-			if (IsAtTarget(humanState.CurrentStateValue, 1.0f))
-			{
-				// Transition
-
-				humanState.TransitionToState(
-					StateType::HumanNpcStateType::BehaviorType::Constrained_Rising,
-					0.0f,
-					0.0f);
-
-				humanState.CurrentEquilibriumSoftTerminationDecision = 0.0f;
-
-				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Rising");
-
-				break;
-			}
-
-			// Check conditions for this state
-
-			float stateCondition = 0.0f;
-
+			float risingTarget = 0.0f;
 			if (primaryParticleState.ConstrainedState.has_value()
 				&& IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh)
 				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium
 				&& (!secondaryParticleState.ConstrainedState.has_value()
 					|| secondaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium))
 			{
-				stateCondition = 1.0f;
+				risingTarget = 1.0f;
 			}
 
-			humanState.TargetStateValue = stateCondition;
+
+			// Advance towards rising
+
+			humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising += 
+				(risingTarget - humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising) 
+				* ToRisingConvergenceRate;
+
+			publishStateQuantity = std::make_tuple("ProgressToRising", std::to_string(humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising));
+
+			if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising, 1.0f))
+			{
+				// Transition
+
+				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Rising, currentSimulationTime);
+				humanState.CurrentEquilibriumSoftTerminationDecision = 0.0f; // Start clean
+
+				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Rising");
+
+				break;
+			}
+
 			
 			break;
 		}
@@ -116,14 +110,9 @@ void Npcs::UpdateHuman(
 			{
 				// Transition
 
-				humanState.TransitionToState(
-					StateType::HumanNpcStateType::BehaviorType::Free_KnockedOut,
-					0.0f,
-					0.0f);
+				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Free_Aerial, currentSimulationTime);
 
-				humanState.CurrentWalkMagnitude = 0.0f;
-
-				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_KnockedOut");
+				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_Aerial");
 
 				break;
 			}
@@ -138,24 +127,15 @@ void Npcs::UpdateHuman(
 				{
 					// Advance towards walking
 
-					humanState.CurrentStateValue += (humanState.TargetStateValue - humanState.CurrentStateValue) * ToWalkingConvergenceRate;
+					humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking += (1.0f - humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking) * ToWalkingConvergenceRate;
 
-					publishStateQuantity = std::make_tuple("CurrentStateValue", std::to_string(humanState.CurrentStateValue));
+					publishStateQuantity = std::make_tuple("ProgressToWalking", std::to_string(humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking));
 
-					if (IsAtTarget(humanState.CurrentStateValue, 1.0f))
+					if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking, 1.0f))
 					{
 						// Transition
 
-						humanState.TransitionToState(
-							StateType::HumanNpcStateType::BehaviorType::Constrained_Walking,
-							0.0f,
-							0.0f);
-
-						humanState.CurrentWalkMagnitude = 0.0f;
-						humanState.TargetWalkMagnitude = 1.0f;
-						humanState.CurrentWalkFlipDecision = 0.0f;
-						humanState.TargetWalkFlipDecision = 0.0f;
-						humanState.TotalEdgeTraveledSinceWalkStart = 0.0f;
+						humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Walking, currentSimulationTime);
 
 						// Keep torque
 
@@ -215,12 +195,7 @@ void Npcs::UpdateHuman(
 					" primary's relative velocity: ", primaryParticleState.ConstrainedState.has_value() ? std::to_string(primaryParticleState.ConstrainedState->MeshRelativeVelocity.length()) : "N/A", 
 					" (max=", MaxRelativeVelocityForEquilibrium, ")");
 
-				humanState.TransitionToState(
-					StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut,
-					0.0f,
-					0.0f);
-
-				humanState.CurrentWalkMagnitude = 0.0f;
+				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 
@@ -239,19 +214,14 @@ void Npcs::UpdateHuman(
 				{
 					// Transition
 
-					humanState.TransitionToState(
-						StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium,
-						0.0f,
-						0.0f);
+					humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium, currentSimulationTime);
 
 					mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Equilibrium");
 				}
 			}
 			else if (humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium)
 			{
-				// We are well in a state to advance to walking
-
-				humanState.TargetStateValue = 1.0f;
+				// Nop
 			}
 			else
 			{
@@ -267,8 +237,8 @@ void Npcs::UpdateHuman(
 						labParameters);
 				}
 
-				if (humanState.CurrentWalkFlipDecision != 0.0f)
-					publishStateQuantity = std::make_tuple("WalkFlip", std::to_string(humanState.CurrentWalkFlipDecision));
+				if (humanState.CurrentBehaviorState.Constrained_Walking.CurrentFlipDecision != 0.0f)
+					publishStateQuantity = std::make_tuple("WalkFlip", std::to_string(humanState.CurrentBehaviorState.Constrained_Walking.CurrentFlipDecision));
 				else
 					publishStateQuantity = std::make_tuple("EquilibriumTermination", std::to_string(humanState.CurrentEquilibriumSoftTerminationDecision));
 			}
@@ -276,7 +246,7 @@ void Npcs::UpdateHuman(
 			break;
 		}
 
-		case StateType::HumanNpcStateType::BehaviorType::Free_KnockedOut:
+		case StateType::HumanNpcStateType::BehaviorType::Free_Aerial:
 		{
 			// TODOHERE
 			break;
@@ -366,12 +336,15 @@ void Npcs::RunWalkingHumanStateMachine(
 	LabParameters const & labParameters)
 {
 	assert(primaryParticleState.ConstrainedState.has_value());
+	assert(humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking);
+
+	auto & walkingState = humanState.CurrentBehaviorState.Constrained_Walking;
 
 	// 1. Check condition for potentially flipping: actual (relative) velocity opposite of walking direction,
 	// or too small
 
 	float constexpr MinRelativeVelocityAgreementToAcceptWalk = 0.025f;
-	float const relativeVelocityAgreement = primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(vec2f(humanState.CurrentFaceDirectionX * humanState.CurrentWalkMagnitude, 0.0f));
+	float const relativeVelocityAgreement = primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(vec2f(humanState.CurrentFaceDirectionX * walkingState.CurrentWalkMagnitude, 0.0f));
 	if (relativeVelocityAgreement < MinRelativeVelocityAgreementToAcceptWalk
 		&& labParameters.HumanNpcWalkingAcceleration > 0.0f) // Video
 	{ 
@@ -381,18 +354,18 @@ void Npcs::RunWalkingHumanStateMachine(
 	else
 	{
 		// We're doing good, no flipping at the horizon
-		humanState.CurrentWalkFlipDecision = 0.0f;
-		humanState.TargetWalkFlipDecision = 0.0f;
+		walkingState.CurrentFlipDecision = 0.0f;
+		walkingState.TargetFlipDecision = 0.0f;
 	}
 
 	// 2. Advance CurrentFlipDecision towards TargetFlipDecision
 
 	float constexpr ToTargetConvergenceRate = 0.1f;
 
-	humanState.CurrentWalkFlipDecision += (humanState.TargetWalkFlipDecision - humanState.CurrentWalkFlipDecision) * ToTargetConvergenceRate;
+	walkingState.CurrentFlipDecision += (walkingState.TargetFlipDecision - walkingState.CurrentFlipDecision) * ToTargetConvergenceRate;
 
 	// 3. Check if time to flip
-	if (humanState.CurrentWalkFlipDecision >= 0.95f)
+	if (walkingState.CurrentFlipDecision >= 0.95f)
 	{
 		// Flip now
 		FlipHumanWalk(humanState, StrongTypedTrue<_DoImmediate>);		
@@ -402,27 +375,30 @@ void Npcs::RunWalkingHumanStateMachine(
 	// 4. Advance walking magnitude towards target
 	//
 
-	humanState.CurrentWalkMagnitude += (humanState.TargetWalkMagnitude - humanState.CurrentWalkMagnitude) * labParameters.HumanNpcWalkingAcceleration;
+	walkingState.CurrentWalkMagnitude += (walkingState.TargetWalkMagnitude - walkingState.CurrentWalkMagnitude) * labParameters.HumanNpcWalkingAcceleration;
 	
-	LogMessage("        currentWalkMagnitude: ", humanState.CurrentWalkMagnitude);
+	LogMessage("        currentWalkMagnitude: ", walkingState.CurrentWalkMagnitude);
 }
 
 void Npcs::FlipHumanWalk(
 	StateType::HumanNpcStateType & humanState,
 	DoImmediate doImmediate) const
 {
+	assert(humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking);
+	auto & walkingState = humanState.CurrentBehaviorState.Constrained_Walking;
+
 	if (doImmediate.Value)
 	{
 		humanState.CurrentFaceDirectionX *= -1.0f;
-		humanState.CurrentWalkMagnitude = 0.0f;
+		walkingState.CurrentWalkMagnitude = 0.0f;
 
 		LogMessage("Flipping walk: ", humanState.CurrentFaceDirectionX);
 
-		humanState.TargetWalkFlipDecision = 0.0f;
-		humanState.CurrentWalkFlipDecision = 0.0f;
+		walkingState.TargetFlipDecision = 0.0f;
+		walkingState.CurrentFlipDecision = 0.0f;
 	}
 	else
 	{
-		humanState.TargetWalkFlipDecision = 1.0f;
+		walkingState.TargetFlipDecision = 1.0f;
 	}
 }

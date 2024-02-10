@@ -13,6 +13,7 @@ void Npcs::Add(
 	NpcType npcType,
 	vec2f primaryPosition,
 	std::optional<vec2f> secondaryPosition,
+	float currentSimulationTime,
 	StructuralMaterialDatabase const & materialDatabase,
 	Mesh const & mesh,
 	LabParameters const & labParameters)
@@ -97,7 +98,8 @@ void Npcs::Add(
 
 			humanNpcState = InitializeHuman(
 				primaryParticleState,
-				secondaryParticleState);
+				secondaryParticleState,
+				currentSimulationTime);
 
 			float const massFactor =
 				(feetMaterial.Mass * headMaterial.Mass)
@@ -133,6 +135,7 @@ void Npcs::Add(
 void Npcs::MoveParticleBy(
 	ElementIndex particleIndex,
 	vec2f const & offset,
+	float currentSimulationTime,
 	Mesh const & mesh)
 {
 	//
@@ -158,7 +161,7 @@ void Npcs::MoveParticleBy(
 		if (state.PrimaryParticleState.ParticleIndex == particleIndex
 			|| (state.DipoleState.has_value() && state.DipoleState->SecondaryParticleState.ParticleIndex == particleIndex))
 		{
-			state = MaterializeNpcState(n, mesh);
+			state = MaterializeNpcState(n, currentSimulationTime, mesh);
 			break;
 		}
 	}
@@ -210,7 +213,9 @@ void Npcs::RotateParticlesWithMesh(
 	}
 }
 
-void Npcs::OnVertexMoved(Mesh const & mesh)
+void Npcs::OnVertexMoved(
+	float currentSimulationTime,
+	Mesh const & mesh)
 {
 	//
 	// Recalculate state of all NPCs
@@ -218,7 +223,7 @@ void Npcs::OnVertexMoved(Mesh const & mesh)
 
 	for (auto const n : *this)
 	{
-		mStateBuffer[n] = MaterializeNpcState(n, mesh);
+		mStateBuffer[n] = MaterializeNpcState(n, currentSimulationTime, mesh);
 	}
 }
 

@@ -299,7 +299,7 @@ void LabController::MoveVertexBy(
         vertexIndex,
         mModel->GetMesh().GetVertices().GetPosition(vertexIndex) + worldOffset);
 
-    mModel->GetNpcs().OnVertexMoved(mModel->GetMesh());
+    mModel->GetNpcs().OnVertexMoved(mCurrentSimulationTime, mModel->GetMesh());
 }
 
 void LabController::RotateMeshBy(
@@ -484,6 +484,7 @@ void LabController::MoveNpcParticleBy(
     mModel->GetNpcs().MoveParticleBy(
         npcParticleIndex,
         worldOffset,
+        mCurrentSimulationTime,
         mModel->GetMesh());
 }
 
@@ -701,6 +702,7 @@ void LabController::DoStepForVideo()
             Npcs::NpcType::Human,
             primaryPosition,
             secondaryPosition,
+            mCurrentSimulationTime,
             mStructuralMaterialDatabase,
             mModel->GetMesh(),
             mLabParameters);
@@ -885,6 +887,7 @@ void LabController::LoadMesh(
             Npcs::NpcType::Human,
             position,
             std::nullopt,
+            mCurrentSimulationTime,
             mStructuralMaterialDatabase,
             *mesh,
             mLabParameters);

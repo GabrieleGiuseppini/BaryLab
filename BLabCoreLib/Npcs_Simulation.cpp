@@ -471,7 +471,9 @@ void Npcs::UpdateNpcParticle(
                             // The (signed) edge length that we plan to travel exclusively via walking
                             float edgeWalkedPlanned = 0.0f;
 
-                            if (npc.HumanNpcState.has_value() && isPrimaryParticle)
+                            if (npc.HumanNpcState.has_value() 
+                                && npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking
+                                && isPrimaryParticle)
                             {
                                 //
                                 // Walking displacement projected along edge - what's needed to reach total desired walking
@@ -486,7 +488,7 @@ void Npcs::UpdateNpcParticle(
                                 float const idealWalkMagnitude =
                                     labParameters.HumanNpcWalkingSpeed
                                     * remainingDt
-                                    * npc.HumanNpcState->CurrentWalkMagnitude;
+                                    * npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude;
 
                                 vec2f walkDir; // Actual absolute direction of walk - along the edge
                                 if (idealWalkDir.dot(edgeDir) >= 0.0f)
@@ -513,9 +515,9 @@ void Npcs::UpdateNpcParticle(
 
                                 edgeWalkedPlanned *= (1.0f - gravityResistance);
 
-                                if (npc.HumanNpcState->CurrentWalkMagnitude != 0.0f)
+                                if (npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
                                 {
-                                    LogMessage("        idealWalkMagnitude=", idealWalkMagnitude, " gravityResistance=", gravityResistance, " => edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.HumanNpcState->CurrentWalkMagnitude, ")");
+                                    LogMessage("        idealWalkMagnitude=", idealWalkMagnitude, " gravityResistance=", gravityResistance, " => edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude, ")");
                                 }
                             }
 
@@ -648,10 +650,10 @@ void Npcs::UpdateNpcParticle(
 
                             }
 
-                            // Update total edge traveled
+                            // Update total (edge) traveled
                             if (npc.HumanNpcState.has_value() && isPrimaryParticle)
                             {
-                                npc.HumanNpcState->TotalEdgeTraveledSinceWalkStart += std::abs(edgeTraveledActual);
+                                npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition += std::abs(edgeTraveledActual);
                             }
 
                             // Update total vector walked along edge
@@ -723,10 +725,10 @@ void Npcs::UpdateNpcParticle(
                     mesh,
                     labParameters);
 
-                // Update total edge traveled
+                // Update total traveled
                 if (npc.HumanNpcState.has_value() && isPrimaryParticle)
                 {
-                    npc.HumanNpcState->TotalEdgeTraveledSinceWalkStart += std::abs(totalTraveled);
+                    npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition += std::abs(totalTraveled);
                 }
 
                 if (npcParticle.ConstrainedState.has_value())
@@ -1745,7 +1747,7 @@ void Npcs::OnImpact(
             {
                 // Check alignment of impact with walking direction; if hit => flip
                 if (bounceEdgeNormal.dot(vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f)) > 0.0f
-                    && npc.HumanNpcState->CurrentWalkMagnitude != 0.0f)
+                    && npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
                 {
                     // Flip now
                     FlipHumanWalk(*npc.HumanNpcState, StrongTypedTrue<_DoImmediate>);
@@ -1800,7 +1802,7 @@ void Npcs::UpdateNpcAnimation(
                 float const MaxLegAngle = std::atan((LabParameters::HumanNpcGeometry::StepLengthFraction / 2.0f) / LabParameters::HumanNpcGeometry::LegLengthFraction);
 
                 float const stepLength = LabParameters::HumanNpcGeometry::StepLengthFraction * humanHeight;
-                float const distanceInTwoSteps = std::fmod(npc.HumanNpcState->TotalEdgeTraveledSinceWalkStart + 3.0f * stepLength / 2.0f, stepLength * 2.0f);
+                float const distanceInTwoSteps = std::fmod(npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition + 3.0f * stepLength / 2.0f, stepLength * 2.0f);
                 LogMessage("distanceInTwoSteps=", distanceInTwoSteps);
 
                 targetLegRightAngle = std::abs(stepLength - distanceInTwoSteps) / stepLength * 2.0f * MaxLegAngle - MaxLegAngle;
@@ -1810,7 +1812,7 @@ void Npcs::UpdateNpcAnimation(
                 break;
             }
 
-            case StateType::HumanNpcStateType::BehaviorType::Free_KnockedOut:
+            case StateType::HumanNpcStateType::BehaviorType::Free_Aerial:
             {
                 targetLegRightAngle = 0.0f;
                 targetLegLeftAngle = 0.0f;
@@ -1837,6 +1839,7 @@ void Npcs::UpdateNpcAnimation(
 
 Npcs::StateType Npcs::MaterializeNpcState(
     ElementIndex npcIndex,
+    float currentSimulationTime,
     Mesh const & mesh) const
 {
     auto const & state = mStateBuffer[npcIndex];
@@ -1876,7 +1879,8 @@ Npcs::StateType Npcs::MaterializeNpcState(
 
         humanNpcState = InitializeHuman(
             primaryParticleState,
-            dipoleState->SecondaryParticleState);
+            dipoleState->SecondaryParticleState,
+            currentSimulationTime);
     }
 
     // Regime
