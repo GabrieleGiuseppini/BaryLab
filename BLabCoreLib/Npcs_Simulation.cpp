@@ -1230,7 +1230,6 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
     assert(npcParticle.ConstrainedState.has_value());
     auto & npcParticleConstrainedState = *npcParticle.ConstrainedState;
 
-    // TODO: see if caller can provide this
     vec2f const segmentTrajectoryStartAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
         segmentTrajectoryStartBarycentricCoords,
         npcParticle.ConstrainedState->CurrentTriangle,
@@ -1263,20 +1262,20 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
             // Update particle and exit - consuming whole time quantum
             //            
 
+            // Move particle to end of trajectory
             npcParticleConstrainedState.CurrentTriangleBarycentricCoords = segmentTrajectoryEndBarycentricCoords;
-
             particles.SetPosition(npcParticle.ParticleIndex, segmentTrajectoryEndAbsolutePosition);
 
             // Use whole time quantum for velocity, as particleStartAbsolutePosition is fixed at t0
-            vec2f const totalTraveledVector = segmentTrajectoryEndAbsolutePosition - particleStartAbsolutePosition;
-            vec2f const absoluteVelocity = totalTraveledVector / LabParameters::SimulationTimeStepDuration;
+            vec2f const totalAbsoluteTraveledVector = segmentTrajectoryEndAbsolutePosition - particleStartAbsolutePosition;
+            vec2f const absoluteVelocity = totalAbsoluteTraveledVector / LabParameters::SimulationTimeStepDuration;
             particles.SetVelocity(npcParticle.ParticleIndex, absoluteVelocity);
             npcParticleConstrainedState.MeshRelativeVelocity = absoluteVelocity + meshVelocity;
 
-            LogMessage("        totalTraveledVector=", totalTraveledVector, " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
+            LogMessage("        totalAbsoluteTraveledVector=", totalAbsoluteTraveledVector, " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
 
-            // TODOHERE: this needs to be mesh-relative, and only distance traveled in this function call
-            return totalTraveledVector.length();
+            // Return (mesh-relative) distance traveled with this move
+            return (segmentTrajectoryEndAbsolutePosition - segmentTrajectoryStartAbsolutePosition).length();
         }
 
         //
@@ -1421,9 +1420,8 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                 particles,
                 labParameters);
 
-            // TODOHERE: this needs to be mesh-relative, and only distance traveled in this function call
-            vec2f const totalTraveledVector = segmentTrajectoryEndAbsolutePosition - particleStartAbsolutePosition;
-            return totalTraveledVector.length();
+            // Return (mesh-relative) distance traveled with this move
+            return (segmentTrajectoryEndAbsolutePosition - segmentTrajectoryStartAbsolutePosition).length();
         }
         else
         {

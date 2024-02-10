@@ -861,8 +861,8 @@ void LabController::LoadMesh(
 
         npcs->Add(
             // TODOTEST
-            //Npcs::NpcType::Furniture,
-            Npcs::NpcType::Human,
+            Npcs::NpcType::Furniture,
+            //Npcs::NpcType::Human,
             position,
             std::nullopt,
             mStructuralMaterialDatabase,
