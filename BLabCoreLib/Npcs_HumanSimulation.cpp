@@ -32,12 +32,16 @@ Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 }
 
 void Npcs::UpdateHuman(
+	float currentSimulationTime,
 	StateType::HumanNpcStateType & humanState,
 	StateType::NpcParticleStateType const & primaryParticleState,
 	StateType::NpcParticleStateType const & secondaryParticleState,
 	Mesh const & mesh,
 	LabParameters const & labParameters)
 {
+	// TODOTEST
+	(void)currentSimulationTime;
+
 	float const ToRisingConvergenceRate = 0.067f;
 	float const ToWalkingConvergenceRate = 0.09f;
 	float constexpr MaxRelativeVelocityForEquilibrium = 3.0f; // So high because we slip a lot while we try to stand up, and thus need to be immune to ourselves

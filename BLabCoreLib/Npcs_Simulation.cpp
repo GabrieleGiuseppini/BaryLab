@@ -11,6 +11,7 @@
 #include <limits>
 
 void Npcs::UpdateNpcs(
+    float currentSimulationTime,
     Mesh const & mesh,
     LabParameters const & labParameters)
 {
@@ -102,6 +103,7 @@ void Npcs::UpdateNpcs(
             assert(npcState.HumanNpcState.has_value());
 
             UpdateHuman(
+                currentSimulationTime,
                 *npcState.HumanNpcState,
                 npcState.PrimaryParticleState,
                 npcState.DipoleState->SecondaryParticleState,

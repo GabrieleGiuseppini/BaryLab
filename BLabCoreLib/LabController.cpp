@@ -47,6 +47,7 @@ LabController::LabController(
     , mLabParameters()
     , mModel()
     , mCurrentMeshFilePath()
+    , mCurrentSimulationTime(0.0f)
     , mIsGravityEnabled(true)
     , mCurrentMeshTranslationVelocity(vec2f::zero())
     , mCurrentMeshTranslationAccelerationIndicator(0.0f)
@@ -82,6 +83,7 @@ void LabController::Update()
         UpdateMeshTransformations();            
 
         mModel->GetNpcs().Update(
+            mCurrentSimulationTime,
             mModel->GetMesh(),
             mLabParameters);        
 
@@ -91,6 +93,8 @@ void LabController::Update()
         // Update rendering
         mCurrentMeshTranslationAccelerationIndicator *= 0.98f;
     }
+
+    mCurrentSimulationTime += LabParameters::SimulationTimeStepDuration;
 }
 
 void LabController::Render()
@@ -914,7 +918,13 @@ void LabController::Reset(
 
     mModel.reset();
     mModel = std::move(newModel);
-    mCurrentMeshFilePath = meshDefinitionFilepath;    
+    mCurrentMeshFilePath = meshDefinitionFilepath;
+
+    //
+    // Reset our state
+    //
+
+    mCurrentSimulationTime = 0.0f;
 
     //
     // Auto-zoom & center

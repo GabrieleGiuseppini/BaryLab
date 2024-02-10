@@ -277,6 +277,8 @@ private:
     std::unique_ptr<Model> mModel;
     std::optional<std::filesystem::path> mCurrentMeshFilePath;
 
+    float mCurrentSimulationTime;
+
     bool mIsGravityEnabled;
     vec2f mCurrentMeshTranslationVelocity;
     float mCurrentMeshTranslationAccelerationIndicator;    

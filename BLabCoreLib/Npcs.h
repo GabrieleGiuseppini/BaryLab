@@ -232,6 +232,7 @@ public:
 	void OnVertexMoved(Mesh const & mesh);
 
 	void Update(
+		float currentSimulationTime,
 		Mesh const & mesh,
 		LabParameters const & labParameters);
 
@@ -477,6 +478,7 @@ private:
 	//
 
 	void UpdateNpcs(
+		float currentSimulationTime,
 		Mesh const & mesh,
 		LabParameters const & labParameters);
 
@@ -634,6 +636,7 @@ private:
 		StateType::NpcParticleStateType const & secondaryParticleState) const;
 
 	void UpdateHuman(
+		float currentSimulationTime,
 		StateType::HumanNpcStateType & humanState,
 		StateType::NpcParticleStateType const & primaryParticleState,
 		StateType::NpcParticleStateType const & secondaryParticleState,

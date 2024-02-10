@@ -223,6 +223,7 @@ void Npcs::OnVertexMoved(Mesh const & mesh)
 }
 
 void Npcs::Update(
+	float currentSimulationTime,
 	Mesh const & mesh,
 	LabParameters const & labParameters)
 {
@@ -230,7 +231,7 @@ void Npcs::Update(
 	// Update NPCs' state
 	//
 
-	UpdateNpcs(mesh, labParameters);
+	UpdateNpcs(currentSimulationTime, mesh, labParameters);
 
 	//
 	// Publish
