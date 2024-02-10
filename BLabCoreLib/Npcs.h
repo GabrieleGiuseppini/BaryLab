@@ -129,6 +129,7 @@ public:
 			float TargetWalkFlipDecision; // [0.0f, 1.0f]
 
 			// Updated in any state, but reset when starting to walk
+			// This is *mesh-relative* when we're in constrained state
 			float TotalEdgeTraveledSinceWalkStart; // [0.0f, +INF]
 
 			// Animation
