@@ -1781,6 +1781,7 @@ void Npcs::UpdateNpcAnimation(
         float const humanHeight = LabParameters::HumanNpcGeometry::BodyLength * labParameters.HumanNpcBodyLengthAdjustment;
         vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
         vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
+        vec2f const humanVector = feetPosition - headPosition; // From head to feet
         float const legLength = LabParameters::HumanNpcGeometry::LegLengthFraction * humanHeight;
         vec2f const crotchPosition = headPosition + (feetPosition - headPosition) * (LabParameters::HumanNpcGeometry::HeadLengthFraction + LabParameters::HumanNpcGeometry::TorsoLengthFraction);
 
@@ -1814,44 +1815,52 @@ void Npcs::UpdateNpcAnimation(
 
                 targetLegRightAngle = std::abs(stepLength - distanceInTwoSteps) / stepLength * 2.0f * MaxLegAngle - MaxLegAngle;
                 targetLegLeftAngle = -targetLegRightAngle;
-                angleConvergenceRate = 1.0f;
+                angleConvergenceRate = 0.75f;
                 
                 if (npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex != NoneElementIndex)
                 {
                     vec2f const e1 = mesh.GetEdges().GetEndpointAPosition(npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
                     vec2f const e2 = mesh.GetEdges().GetEndpointBPosition(npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
+                    vec2f const edgeDir = (e2 - e1).normalise();
 
+                    //
                     // Limit leg angles if on slope
-                    float angleLimitFactor = std::abs((e2 - e1).normalise().dot((feetPosition - headPosition).normalise().to_perpendicular()));
-                    angleLimitFactor *= angleLimitFactor * angleLimitFactor;
+                    //
+
+                    float const humanToVirtualEdgeAlignment = std::abs(edgeDir.dot(humanVector.normalise().to_perpendicular()));
+                    float const angleLimitFactor = humanToVirtualEdgeAlignment * humanToVirtualEdgeAlignment * humanToVirtualEdgeAlignment;
                     targetLegRightAngle *= angleLimitFactor;
                     targetLegLeftAngle *= angleLimitFactor;
 
-                    // Constrain feet onto current virtual edge
+                    if (humanToVirtualEdgeAlignment > 0.0001f)
+                    {
+                        //
+                        // Constrain feet onto current virtual edge
+                        //
 
-                    vec2f const r1 = crotchPosition;
-                    vec2f const r2 = feetPosition + vec2f(1.0f, 0.0f) * std::tan(targetLegRightAngle) * legLength;
+                        vec2f const r1 = crotchPosition;
+                        vec2f const r2 = feetPosition + vec2f(1.0f, 0.0f) * std::tan(targetLegRightAngle) * legLength;
 
-                    vec2f const l1 = crotchPosition;
-                    vec2f const l2 = feetPosition + vec2f(1.0f, 0.0f) * std::tan(targetLegLeftAngle) * legLength;
+                        vec2f const l1 = crotchPosition;
+                        vec2f const l2 = feetPosition + vec2f(1.0f, 0.0f) * std::tan(targetLegLeftAngle) * legLength;
 
-                    // ((x1 - x0) * v1 - u1 * (y1 - y0)) / (u0 * v1 - u1 * v0)
-                    // x0, y0 == e1
-                    // x1, y1 == r1
-                    // u0, v0 == (e2 - e1)
-                    // u1, v1 == (r2 - r1)
+                        // ((x1 - x0) * v1 - u1 * (y1 - y0)) / (u0 * v1 - u1 * v0)
+                        // x0, y0 == e1
+                        // x1, y1 == r1
+                        // u0, v0 == (e2 - e1)
+                        // u1, v1 == (r2 - r1)
 
-                    vec2f const uv0 = (e2 - e1).normalise();
-                    vec2f const uvr1 = (r2 - r1).normalise();
-                    vec2f const uvl1 = (l2 - l1).normalise();
+                        vec2f const uv0 = edgeDir;
+                        vec2f const uvr1 = (r2 - r1).normalise();
+                        vec2f const uvl1 = (l2 - l1).normalise();
 
-                    // TODO: don't do if perpendicular (and we know from above: angleLimitFactor=0.0, call it "alignment")
-                    // PERF: factorize
-                    float const tr = ((r1.x - e1.x) * uvr1.y - (r1.y - e1.y) * uvr1.x) / (uv0.x * uvr1.y - uvr1.x * uv0.y);
-                    float const tl = ((r1.x - e1.x) * uvl1.y - (r1.y - e1.y) * uvl1.x) / (uv0.x * uvl1.y - uvl1.x * uv0.y);
+                        // PERF: factorize
+                        float const tr = ((r1.x - e1.x) * uvr1.y - (r1.y - e1.y) * uvr1.x) / (uv0.x * uvr1.y - uvr1.x * uv0.y);
+                        float const tl = ((r1.x - e1.x) * uvl1.y - (r1.y - e1.y) * uvl1.x) / (uv0.x * uvl1.y - uvl1.x * uv0.y);
 
-                    rightFootPosition = e1 + uv0 * tr;
-                    leftFootPosition = e1 + uv0 * tl;
+                        rightFootPosition = e1 + uv0 * tr;
+                        leftFootPosition = e1 + uv0 * tl;
+                    }
                 }
 
                 break;
@@ -1871,8 +1880,8 @@ void Npcs::UpdateNpcAnimation(
         npc.HumanNpcState->LegLeftAngle += (targetLegLeftAngle - npc.HumanNpcState->LegLeftAngle) * angleConvergenceRate;
 
         npc.HumanNpcState->TopPoint = headPosition;
-        npc.HumanNpcState->NeckPoint = headPosition + (feetPosition - headPosition) * LabParameters::HumanNpcGeometry::HeadLengthFraction;
-        npc.HumanNpcState->CrotchPoint = headPosition + (feetPosition - headPosition) * (LabParameters::HumanNpcGeometry::HeadLengthFraction + LabParameters::HumanNpcGeometry::TorsoLengthFraction);
+        npc.HumanNpcState->NeckPoint = headPosition + humanVector * LabParameters::HumanNpcGeometry::HeadLengthFraction;
+        npc.HumanNpcState->CrotchPoint = headPosition + humanVector * (LabParameters::HumanNpcGeometry::HeadLengthFraction + LabParameters::HumanNpcGeometry::TorsoLengthFraction);
 
         if (rightFootPosition.has_value())
             npc.HumanNpcState->LegRightPoint = *rightFootPosition;
