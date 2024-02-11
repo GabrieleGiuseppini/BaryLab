@@ -1767,10 +1767,10 @@ void Npcs::OnImpact(
 void Npcs::UpdateNpcAnimation(
     StateType & npc,
     bool isPrimaryParticle,
-    Mesh const & /*mesh*/,
+    Mesh const & mesh,
     LabParameters const & labParameters)
 {
-    if (npc.Type == NpcType::Human && isPrimaryParticle) // TODO: should we invoke it directly on UpdateHumanNpcAnimation?
+    if (npc.Type == NpcType::Human && isPrimaryParticle)
     {
         assert(npc.DipoleState.has_value());
         assert(npc.HumanNpcState.has_value());
@@ -1779,10 +1779,17 @@ void Npcs::UpdateNpcAnimation(
         ElementIndex const secondaryParticleIndex = npc.DipoleState->SecondaryParticleState.ParticleIndex;
 
         float const humanHeight = LabParameters::HumanNpcGeometry::BodyLength * labParameters.HumanNpcBodyLengthAdjustment;
-        
+        vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
+        vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
+        float const legLength = LabParameters::HumanNpcGeometry::LegLengthFraction * humanHeight;
+        vec2f const crotchPosition = headPosition + (feetPosition - headPosition) * (LabParameters::HumanNpcGeometry::HeadLengthFraction + LabParameters::HumanNpcGeometry::TorsoLengthFraction);
+
         float targetLegRightAngle = 0.0f;
         float targetLegLeftAngle = 0.0f;
         float angleConvergenceRate = 0.0f;
+
+        std::optional<vec2f> rightFootPosition;
+        std::optional<vec2f> leftFootPosition;
         
         switch (npc.HumanNpcState->CurrentBehavior)
         {
@@ -1808,6 +1815,37 @@ void Npcs::UpdateNpcAnimation(
                 targetLegRightAngle = std::abs(stepLength - distanceInTwoSteps) / stepLength * 2.0f * MaxLegAngle - MaxLegAngle;
                 targetLegLeftAngle = -targetLegRightAngle;
                 angleConvergenceRate = 1.0f;
+                
+                if (npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex != NoneElementIndex)
+                {
+                    // Constrain feet onto current virtual edge
+
+                    vec2f const e1 = mesh.GetEdges().GetEndpointAPosition(npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
+                    vec2f const e2 = mesh.GetEdges().GetEndpointBPosition(npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
+
+                    vec2f const r1 = crotchPosition;
+                    vec2f const r2 = feetPosition + vec2f(1.0f, 0.0f) * std::tan(targetLegRightAngle) * legLength;
+
+                    vec2f const l1 = crotchPosition;
+                    vec2f const l2 = feetPosition + vec2f(1.0f, 0.0f) * std::tan(targetLegLeftAngle) * legLength;
+
+                    // ((x1 - x0) * v1 - u1 * (y1 - y0)) / (u0 * v1 - u1 * v0)
+                    // x0, y0 == e1
+                    // x1, y1 == r1
+                    // u0, v0 == (e2 - e1) // TODO: norm?
+                    // u1, v1 == (r2 - r1) // TODO: norm?
+
+                    vec2f const uv0 = (e2 - e1).normalise();
+                    vec2f const uvr1 = (r2 - r1).normalise();
+                    vec2f const uvl1 = (l2 - l1).normalise();
+
+                    float const tr = ((r1.x - e1.x) * uvr1.y - (r1.y - e1.y) * uvr1.x) / (uv0.x * uvr1.y - uvr1.x * uv0.y);
+                    float const tl = ((r1.x - e1.x) * uvl1.y - (r1.y - e1.y) * uvl1.x) / (uv0.x * uvl1.y - uvl1.x * uv0.y);
+
+                    rightFootPosition = e1 + uv0 * tr;
+                    leftFootPosition = e1 + uv0 * tl;
+                }
+
 
                 break;
             }
@@ -1825,15 +1863,19 @@ void Npcs::UpdateNpcAnimation(
         npc.HumanNpcState->LegRightAngle += (targetLegRightAngle - npc.HumanNpcState->LegRightAngle) * angleConvergenceRate;
         npc.HumanNpcState->LegLeftAngle += (targetLegLeftAngle - npc.HumanNpcState->LegLeftAngle) * angleConvergenceRate;
 
-        vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
-        vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
-        float const legLength = LabParameters::HumanNpcGeometry::LegLengthFraction * humanHeight;
-
         npc.HumanNpcState->TopPoint = headPosition;
         npc.HumanNpcState->NeckPoint = headPosition + (feetPosition - headPosition) * LabParameters::HumanNpcGeometry::HeadLengthFraction;
         npc.HumanNpcState->CrotchPoint = headPosition + (feetPosition - headPosition) * (LabParameters::HumanNpcGeometry::HeadLengthFraction + LabParameters::HumanNpcGeometry::TorsoLengthFraction);
-        npc.HumanNpcState->LegRightPoint = feetPosition + vec2f(1.0f, 0.0f) * std::tan(npc.HumanNpcState->LegRightAngle) * legLength;
-        npc.HumanNpcState->LegLeftPoint = feetPosition + vec2f(1.0f, 0.0f) * std::tan(npc.HumanNpcState->LegLeftAngle) * legLength;
+
+        if (rightFootPosition.has_value())
+            npc.HumanNpcState->LegRightPoint = *rightFootPosition;
+        else
+            npc.HumanNpcState->LegRightPoint = feetPosition + vec2f(1.0f, 0.0f) * std::tan(npc.HumanNpcState->LegRightAngle) * legLength;
+
+        if (leftFootPosition.has_value())
+            npc.HumanNpcState->LegLeftPoint = *leftFootPosition;
+        else
+            npc.HumanNpcState->LegLeftPoint = feetPosition + vec2f(1.0f, 0.0f) * std::tan(npc.HumanNpcState->LegLeftAngle) * legLength;
     }
 }
 
