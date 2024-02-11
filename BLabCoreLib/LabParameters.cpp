@@ -17,7 +17,9 @@ LabParameters::LabParameters()
 	, WaterFrictionDragCoefficientAdjustment(1.0f)
 	, BuoyancyAdjustment(1.0f)
 	// NPC
-	, HumanNpcEquilibriumTorqueStiffnessCoefficient(0.0032f)
+	// TODOTEST
+	//, HumanNpcEquilibriumTorqueStiffnessCoefficient(0.0032f)
+	, HumanNpcEquilibriumTorqueStiffnessCoefficient(0.0055f)
 	, HumanNpcEquilibriumTorqueDampingCoefficient(0.055f)
 	, HumanNpcWalkingAcceleration(0.03f)
 	, HumanNpcWalkingSpeed(1.0f)

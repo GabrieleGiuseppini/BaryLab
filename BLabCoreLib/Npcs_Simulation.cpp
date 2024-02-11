@@ -1818,10 +1818,16 @@ void Npcs::UpdateNpcAnimation(
                 
                 if (npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex != NoneElementIndex)
                 {
-                    // Constrain feet onto current virtual edge
-
                     vec2f const e1 = mesh.GetEdges().GetEndpointAPosition(npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
                     vec2f const e2 = mesh.GetEdges().GetEndpointBPosition(npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
+
+                    // Limit leg angles if on slope
+                    float angleLimitFactor = std::abs((e2 - e1).normalise().dot((feetPosition - headPosition).normalise().to_perpendicular()));
+                    angleLimitFactor *= angleLimitFactor * angleLimitFactor;
+                    targetLegRightAngle *= angleLimitFactor;
+                    targetLegLeftAngle *= angleLimitFactor;
+
+                    // Constrain feet onto current virtual edge
 
                     vec2f const r1 = crotchPosition;
                     vec2f const r2 = feetPosition + vec2f(1.0f, 0.0f) * std::tan(targetLegRightAngle) * legLength;
@@ -1832,20 +1838,21 @@ void Npcs::UpdateNpcAnimation(
                     // ((x1 - x0) * v1 - u1 * (y1 - y0)) / (u0 * v1 - u1 * v0)
                     // x0, y0 == e1
                     // x1, y1 == r1
-                    // u0, v0 == (e2 - e1) // TODO: norm?
-                    // u1, v1 == (r2 - r1) // TODO: norm?
+                    // u0, v0 == (e2 - e1)
+                    // u1, v1 == (r2 - r1)
 
                     vec2f const uv0 = (e2 - e1).normalise();
                     vec2f const uvr1 = (r2 - r1).normalise();
                     vec2f const uvl1 = (l2 - l1).normalise();
 
+                    // TODO: don't do if perpendicular (and we know from above: angleLimitFactor=0.0, call it "alignment")
+                    // PERF: factorize
                     float const tr = ((r1.x - e1.x) * uvr1.y - (r1.y - e1.y) * uvr1.x) / (uv0.x * uvr1.y - uvr1.x * uv0.y);
                     float const tl = ((r1.x - e1.x) * uvl1.y - (r1.y - e1.y) * uvl1.x) / (uv0.x * uvl1.y - uvl1.x * uv0.y);
 
                     rightFootPosition = e1 + uv0 * tr;
                     leftFootPosition = e1 + uv0 * tl;
                 }
-
 
                 break;
             }

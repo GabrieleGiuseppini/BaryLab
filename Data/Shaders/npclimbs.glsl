@@ -35,7 +35,7 @@ void main()
     vec2 uv = vec2(pow(vertexSpacePosition.x, 3.0), vertexSpacePosition.y);
     
     float d = distance(uv, vec2(.0, .0));    
-    float alpha = 1.0 - smoothstep(0.9, 1.0, d);
+    float alpha = 1.0 - smoothstep(0.9, 1.05, d);
     float border = alpha - (1.0 - smoothstep(0.55, 0.9, d));
     
     vec4 c = mix(
