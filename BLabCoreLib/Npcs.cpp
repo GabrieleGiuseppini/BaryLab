@@ -245,13 +245,15 @@ void Npcs::Update(
 	Publish(mesh);
 }
 
-void Npcs::Render(RenderContext & renderContext)
+void Npcs::Render(
+	RenderContext & renderContext,
+	LabParameters const & labParameters)
 {
 	//
 	// Particles & limbs
 	//
 
-	float const humanHeight = LabParameters::HumanNpcGeometry::BodyLength; // TODO: use dirty parameters trick to store body length adjusted by labParameters.HumanNpcBodyLengthAdjustment
+	float const humanHeight = LabParameters::HumanNpcGeometry::BodyLength * labParameters.HumanNpcBodyLengthAdjustment;
 
 	renderContext.UploadParticlesStart();
 	renderContext.UploadNpcHumanLimbsStart();
@@ -266,43 +268,84 @@ void Npcs::Render(RenderContext & renderContext)
 			{
 				if (state.HumanNpcState.has_value())
 				{
-					// TODO: depends on Front vs Back
+					assert(state.DipoleState.has_value());
 
-					// Head
-					renderContext.UploadNpcHumanLimb(
-						state.HumanNpcState->TopPoint,
-						state.HumanNpcState->NeckPoint,
-						LabParameters::HumanNpcGeometry::HeadWidthFraction * humanHeight);
+					vec2f const headPosition = mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex);					
+					vec2f const feetPosition = mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex);
+					vec2f const humanVector = feetPosition - headPosition; // From head to feet
+					vec2f const humanDir = humanVector.normalise();
 
-					// Torso
-					renderContext.UploadNpcHumanLimb(
-						state.HumanNpcState->NeckPoint,
-						state.HumanNpcState->CrotchPoint,
-						LabParameters::HumanNpcGeometry::TorsoWidthFraction * humanHeight);
+					vec2f const neckPosition = headPosition + humanVector * LabParameters::HumanNpcGeometry::HeadLengthFraction;
 
-					// Left arm
-					renderContext.UploadNpcHumanLimb(
-						state.HumanNpcState->ShoulderPoint,
-						state.HumanNpcState->ArmLeftPoint,
-						LabParameters::HumanNpcGeometry::ArmWidthFraction * humanHeight);
+					float const cosLeftArmAngle = std::cos(state.HumanNpcState->LeftArmAngle);
+					float const sinLeftArmAngle = std::sin(state.HumanNpcState->LeftArmAngle);
+					float const cosRightArmAngle = std::cos(state.HumanNpcState->RightArmAngle);
+					float const sinRightArmAngle = std::sin(state.HumanNpcState->RightArmAngle);
+					float const cosLeftLegAngle = std::cos(state.HumanNpcState->LeftLegAngle);
+					float const sinLeftLegAngle = std::sin(state.HumanNpcState->LeftLegAngle);
+					float const cosRightLegAngle = std::cos(state.HumanNpcState->RightLegAngle);
+					float const sinRightLegAngle = std::sin(state.HumanNpcState->RightLegAngle);
 
-					// Right arm
-					renderContext.UploadNpcHumanLimb(
-						state.HumanNpcState->ShoulderPoint,
-						state.HumanNpcState->ArmRightPoint,
-						LabParameters::HumanNpcGeometry::ArmWidthFraction * humanHeight);
+					float const leftArmLength = humanHeight * LabParameters::HumanNpcGeometry::ArmLengthFraction * state.HumanNpcState->LeftArmLengthMultiplier;
+					float const rightArmLength = humanHeight * LabParameters::HumanNpcGeometry::ArmLengthFraction * state.HumanNpcState->RightArmLengthMultiplier;
+					float const leftLegLength = humanHeight * LabParameters::HumanNpcGeometry::LegLengthFraction * state.HumanNpcState->LeftLegLengthMultiplier;
+					float const rightLegLength = humanHeight * LabParameters::HumanNpcGeometry::LegLengthFraction * state.HumanNpcState->RightLegLengthMultiplier;
 
-					// Left leg
-					renderContext.UploadNpcHumanLimb(
-						state.HumanNpcState->CrotchPoint,
-						state.HumanNpcState->LegLeftPoint,
-						LabParameters::HumanNpcGeometry::LegWidthFraction * humanHeight);
+					if (state.HumanNpcState->CurrentFaceOrientation != 0.0f)
+					{
+						//
+						// Front-back
+						//
 
-					// Right leg
-					renderContext.UploadNpcHumanLimb(
-						state.HumanNpcState->CrotchPoint,
-						state.HumanNpcState->LegRightPoint,
-						LabParameters::HumanNpcGeometry::LegWidthFraction * humanHeight);
+						// TODO
+					}
+					else
+					{
+						//
+						// Left-Right
+						//
+
+						vec2f const shoulderPosition = headPosition + humanVector * LabParameters::HumanNpcGeometry::ShoulderDistanceFromTopFraction;
+						vec2f const crotchPosition = headPosition + humanVector * (LabParameters::HumanNpcGeometry::HeadLengthFraction + LabParameters::HumanNpcGeometry::TorsoLengthFraction);
+
+						// Head
+						renderContext.UploadNpcHumanLimb(
+							headPosition,
+							neckPosition,
+							LabParameters::HumanNpcGeometry::HeadDepthFraction * humanHeight);
+
+						// TODO: which one between left and right is first depends on current face direction X
+
+						// Left arm
+						renderContext.UploadNpcHumanLimb(
+							shoulderPosition,
+							shoulderPosition + humanDir.rotate(cosLeftArmAngle, sinLeftArmAngle) * leftArmLength,
+							LabParameters::HumanNpcGeometry::ArmDepthFraction * humanHeight);
+
+						// Left leg
+						renderContext.UploadNpcHumanLimb(
+							crotchPosition,
+							crotchPosition + humanDir.rotate(cosLeftLegAngle, sinLeftLegAngle) * leftLegLength,
+							LabParameters::HumanNpcGeometry::LegDepthFraction * humanHeight);
+
+						// Torso
+						renderContext.UploadNpcHumanLimb(
+							neckPosition,
+							crotchPosition,
+							LabParameters::HumanNpcGeometry::TorsoDepthFraction * humanHeight);
+
+						// Right arm
+						renderContext.UploadNpcHumanLimb(
+							shoulderPosition,
+							shoulderPosition + humanDir.rotate(cosRightArmAngle, sinRightArmAngle) * rightArmLength,
+							LabParameters::HumanNpcGeometry::ArmDepthFraction * humanHeight);
+
+						// Right leg
+						renderContext.UploadNpcHumanLimb(
+							crotchPosition,
+							crotchPosition + humanDir.rotate(cosRightLegAngle, sinRightLegAngle) * rightLegLength,
+							LabParameters::HumanNpcGeometry::LegDepthFraction * humanHeight);
+					}
 				}
 				else
 				{

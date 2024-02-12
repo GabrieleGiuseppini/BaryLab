@@ -219,7 +219,9 @@ void LabController::Render()
         // Npcs
         //
 
-        mModel->GetNpcs().Render(*mRenderContext);
+        mModel->GetNpcs().Render(
+            *mRenderContext,
+            mLabParameters);
 
         //
         // Mesh velocity

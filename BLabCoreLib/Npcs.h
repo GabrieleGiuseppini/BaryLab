@@ -178,37 +178,35 @@ public:
 
 			float CurrentEquilibriumSoftTerminationDecision; // Cross-state
 
-			enum class FaceOrientationType
-			{
-				Front,
-				Back
-			};
-			FaceOrientationType FaceOrientation;
-			float CurrentFaceDirectionX; // [-1.0f, 1.0f]
+			float CurrentFaceOrientation; // [-1.0f, 0.0f, 1.0f]
+			float CurrentFaceDirectionX; // [-1.0f, 0.0f, 1.0f]
 
 			// Animation
 
-			float LegRightAngle;
-			float LegLeftAngle;
-
-			vec2f TopPoint;
-			vec2f NeckPoint;
-			vec2f ShoulderPoint;
-			vec2f ArmRightPoint;
-			vec2f ArmLeftPoint;
-			vec2f CrotchPoint;
-			vec2f LegRightPoint;			
-			vec2f LegLeftPoint;
+			float RightLegAngle;
+			float RightLegLengthMultiplier;
+			float LeftLegAngle;
+			float LeftLegLengthMultiplier;
+			float RightArmAngle;
+			float RightArmLengthMultiplier;
+			float LeftArmAngle;
+			float LeftArmLengthMultiplier;
 
 			HumanNpcStateType(
 				BehaviorType initialBehavior,
 				float currentSimulationTime)
 				: CurrentEquilibriumSoftTerminationDecision(0.0f)
-				, FaceOrientation(FaceOrientationType::Front)
+				, CurrentFaceOrientation(0.0f)
 				, CurrentFaceDirectionX(1.0f) // Futurework: randomize
 				// Animation
-				, LegRightAngle(0.0f)
-				, LegLeftAngle(0.0f)
+				, RightLegAngle(0.0f)
+				, RightLegLengthMultiplier(1.0f)
+				, LeftLegAngle(0.0f)
+				, LeftLegLengthMultiplier(1.0f)
+				, RightArmAngle(0.0f)
+				, RightArmLengthMultiplier(1.0f)
+				, LeftArmAngle(0.0f)
+				, LeftArmLengthMultiplier(1.0f)
 			{
 				TransitionToState(initialBehavior, currentSimulationTime);
 			}
@@ -326,7 +324,9 @@ public:
 		Mesh const & mesh,
 		LabParameters const & labParameters);
 
-	void Render(RenderContext & renderContext);
+	void Render(
+		RenderContext & renderContext,
+		LabParameters const & labParameters);
 
 	inline element_index_range_iterator begin() const noexcept
 	{

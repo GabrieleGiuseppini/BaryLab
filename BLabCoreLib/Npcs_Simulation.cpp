@@ -1785,25 +1785,31 @@ void Npcs::UpdateNpcAnimation(
         float const legLength = LabParameters::HumanNpcGeometry::LegLengthFraction * humanHeight;
         vec2f const crotchPosition = headPosition + (feetPosition - headPosition) * (LabParameters::HumanNpcGeometry::HeadLengthFraction + LabParameters::HumanNpcGeometry::TorsoLengthFraction);
 
-        float targetArmRightAngle = 0.0f;
-        float targetArmLeftAngle = 0.0f;
-        float targetLegRightAngle = 0.0f;
-        float targetLegLeftAngle = 0.0f;
+        // TODO: think of using vectors
+        float targetRightArmAngle = 0.0f;
+        float targetRightArmLengthMultiplier = 1.0f;
+        float targetLeftArmAngle = 0.0f;
+        float targetLeftArmLengthMultiplier = 1.0f;
+        float targetRightLegAngle = 0.0f;
+        float targetRightLegLengthMultiplier = 1.0f;
+        float targetLeftLegAngle = 0.0f;
+        float targetLeftLegLengthMultiplier = 1.0f;
         float angleConvergenceRate = 0.0f;
 
-        std::optional<vec2f> rightFootPosition;
-        std::optional<vec2f> leftFootPosition;
-        
         switch (npc.HumanNpcState->CurrentBehavior)
         {
             case StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
             case StateType::HumanNpcStateType::BehaviorType::Constrained_Rising:
             case StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
             {
-                targetArmRightAngle = 0.0f;
-                targetArmLeftAngle = 0.0f;
-                targetLegRightAngle = 0.0f;
-                targetLegLeftAngle = 0.0f;
+                targetRightArmAngle = 0.0f;
+                targetRightArmLengthMultiplier = 1.0f;
+                targetLeftArmAngle = 0.0f;
+                targetLeftArmLengthMultiplier = 1.0f;
+                targetRightLegAngle = 0.0f;
+                targetRightLegLengthMultiplier = 1.0f;
+                targetLeftLegAngle = 0.0f;
+                targetLeftLegLengthMultiplier = 1.0f;
                 angleConvergenceRate = 0.3f;
 
                 break;
@@ -1817,12 +1823,15 @@ void Npcs::UpdateNpcAnimation(
                 float const distanceInTwoSteps = std::fmod(npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition + 3.0f * stepLength / 2.0f, stepLength * 2.0f);
                 LogMessage("distanceInTwoSteps=", distanceInTwoSteps);
 
-                // TODOHERE
-                targetArmRightAngle = 0.0f;
-                targetArmLeftAngle = 0.0f;
-                targetLegRightAngle = std::abs(stepLength - distanceInTwoSteps) / stepLength * 2.0f * MaxLegAngle - MaxLegAngle;
-                targetLegLeftAngle = -targetLegRightAngle;
-                angleConvergenceRate = 0.75f;
+                targetRightLegAngle = std::abs(stepLength - distanceInTwoSteps) / stepLength * 2.0f * MaxLegAngle - MaxLegAngle;
+                targetLeftLegAngle = -targetRightLegAngle;
+
+                targetRightArmAngle = targetLeftLegAngle * 1.4f;
+                targetLeftArmAngle = -targetRightArmAngle;
+
+                // TODOTEST: with lower rate it seems a better stride
+                //angleConvergenceRate = 0.75f;
+                angleConvergenceRate = 0.25f;
                 
                 if (npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex != NoneElementIndex)
                 {
@@ -1836,8 +1845,8 @@ void Npcs::UpdateNpcAnimation(
 
                     float const humanToVirtualEdgeAlignment = std::abs(edgeDir.dot(humanVector.normalise().to_perpendicular()));
                     float const angleLimitFactor = humanToVirtualEdgeAlignment * humanToVirtualEdgeAlignment * humanToVirtualEdgeAlignment;
-                    targetLegRightAngle *= angleLimitFactor;
-                    targetLegLeftAngle *= angleLimitFactor;
+                    targetRightLegAngle *= angleLimitFactor;
+                    targetLeftLegAngle *= angleLimitFactor;
 
                     if (humanToVirtualEdgeAlignment > 0.0001f)
                     {
@@ -1846,10 +1855,10 @@ void Npcs::UpdateNpcAnimation(
                         //
 
                         vec2f const r1 = crotchPosition;
-                        vec2f const r2 = feetPosition + vec2f(1.0f, 0.0f) * std::tan(targetLegRightAngle) * legLength;
+                        vec2f const r2 = feetPosition + vec2f(1.0f, 0.0f) * std::tan(targetRightLegAngle) * legLength;
 
                         vec2f const l1 = crotchPosition;
-                        vec2f const l2 = feetPosition + vec2f(1.0f, 0.0f) * std::tan(targetLegLeftAngle) * legLength;
+                        vec2f const l2 = feetPosition + vec2f(1.0f, 0.0f) * std::tan(targetLeftLegAngle) * legLength;
 
                         // ((x1 - x0) * v1 - u1 * (y1 - y0)) / (u0 * v1 - u1 * v0)
                         // x0, y0 == e1
@@ -1865,8 +1874,9 @@ void Npcs::UpdateNpcAnimation(
                         float const tr = ((r1.x - e1.x) * uvr1.y - (r1.y - e1.y) * uvr1.x) / (uv0.x * uvr1.y - uvr1.x * uv0.y);
                         float const tl = ((r1.x - e1.x) * uvl1.y - (r1.y - e1.y) * uvl1.x) / (uv0.x * uvl1.y - uvl1.x * uv0.y);
 
-                        rightFootPosition = e1 + uv0 * tr;
-                        leftFootPosition = e1 + uv0 * tl;
+                        // TODOHERE: recover length from following old formula
+                        //rightFootPosition = e1 + uv0 * tr;
+                        //leftFootPosition = e1 + uv0 * tl;
                     }
                 }
 
@@ -1875,35 +1885,28 @@ void Npcs::UpdateNpcAnimation(
 
             case StateType::HumanNpcStateType::BehaviorType::Free_Aerial:
             {
-                targetArmRightAngle = 0.0f;
-                targetArmLeftAngle = 0.0f;
-                targetLegRightAngle = 0.0f;
-                targetLegLeftAngle = 0.0f;
+                targetRightArmAngle = 0.0f;
+                targetRightArmLengthMultiplier = 1.0f;
+                targetLeftArmAngle = 0.0f;
+                targetLeftArmLengthMultiplier = 1.0f;
+                targetRightLegAngle = 0.0f;
+                targetRightLegLengthMultiplier = 1.0f;
+                targetLeftLegAngle = 0.0f;
+                targetLeftLegLengthMultiplier = 1.0f;
                 angleConvergenceRate = 0.3f;
 
                 break;
             }
         }
 
-        npc.HumanNpcState->LegRightAngle += (targetLegRightAngle - npc.HumanNpcState->LegRightAngle) * angleConvergenceRate;
-        npc.HumanNpcState->LegLeftAngle += (targetLegLeftAngle - npc.HumanNpcState->LegLeftAngle) * angleConvergenceRate;
-
-        npc.HumanNpcState->TopPoint = headPosition;
-        npc.HumanNpcState->NeckPoint = headPosition + humanVector * LabParameters::HumanNpcGeometry::HeadLengthFraction;
-        npc.HumanNpcState->ShoulderPoint = headPosition + humanVector * LabParameters::HumanNpcGeometry::ShoulderDistanceFromTopFraction;
-        npc.HumanNpcState->CrotchPoint = headPosition + humanVector * (LabParameters::HumanNpcGeometry::HeadLengthFraction + LabParameters::HumanNpcGeometry::TorsoLengthFraction);
-
-        // TODOHERE: arms
-
-        if (rightFootPosition.has_value())
-            npc.HumanNpcState->LegRightPoint = *rightFootPosition;
-        else
-            npc.HumanNpcState->LegRightPoint = feetPosition + vec2f(1.0f, 0.0f) * std::tan(npc.HumanNpcState->LegRightAngle) * legLength;
-
-        if (leftFootPosition.has_value())
-            npc.HumanNpcState->LegLeftPoint = *leftFootPosition;
-        else
-            npc.HumanNpcState->LegLeftPoint = feetPosition + vec2f(1.0f, 0.0f) * std::tan(npc.HumanNpcState->LegLeftAngle) * legLength;
+        npc.HumanNpcState->RightLegAngle += (targetRightLegAngle - npc.HumanNpcState->RightLegAngle) * angleConvergenceRate;
+        npc.HumanNpcState->RightLegLengthMultiplier += (targetRightLegLengthMultiplier - npc.HumanNpcState->RightLegLengthMultiplier) * angleConvergenceRate;
+        npc.HumanNpcState->LeftLegAngle += (targetLeftLegAngle - npc.HumanNpcState->LeftLegAngle) * angleConvergenceRate;
+        npc.HumanNpcState->LeftLegLengthMultiplier += (targetLeftLegLengthMultiplier - npc.HumanNpcState->LeftLegLengthMultiplier) * angleConvergenceRate;
+        npc.HumanNpcState->RightArmAngle += (targetRightArmAngle - npc.HumanNpcState->RightArmAngle) * angleConvergenceRate;
+        npc.HumanNpcState->RightArmLengthMultiplier += (targetRightArmLengthMultiplier - npc.HumanNpcState->RightArmLengthMultiplier) * angleConvergenceRate;
+        npc.HumanNpcState->LeftArmAngle += (targetLeftArmAngle - npc.HumanNpcState->LeftArmAngle) * angleConvergenceRate;
+        npc.HumanNpcState->LeftArmLengthMultiplier += (targetLeftArmLengthMultiplier - npc.HumanNpcState->LeftArmLengthMultiplier) * angleConvergenceRate;
     }
 }
 
