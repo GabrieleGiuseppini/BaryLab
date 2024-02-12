@@ -193,6 +193,9 @@ public:
 
 			vec2f TopPoint;
 			vec2f NeckPoint;
+			vec2f ShoulderPoint;
+			vec2f ArmRightPoint;
+			vec2f ArmLeftPoint;
 			vec2f CrotchPoint;
 			vec2f LegRightPoint;			
 			vec2f LegLeftPoint;

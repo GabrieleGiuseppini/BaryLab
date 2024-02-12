@@ -280,6 +280,18 @@ void Npcs::Render(RenderContext & renderContext)
 						state.HumanNpcState->CrotchPoint,
 						LabParameters::HumanNpcGeometry::TorsoWidthFraction * humanHeight);
 
+					// Left arm
+					renderContext.UploadNpcHumanLimb(
+						state.HumanNpcState->ShoulderPoint,
+						state.HumanNpcState->ArmLeftPoint,
+						LabParameters::HumanNpcGeometry::ArmWidthFraction * humanHeight);
+
+					// Right arm
+					renderContext.UploadNpcHumanLimb(
+						state.HumanNpcState->ShoulderPoint,
+						state.HumanNpcState->ArmRightPoint,
+						LabParameters::HumanNpcGeometry::ArmWidthFraction * humanHeight);
+
 					// Left leg
 					renderContext.UploadNpcHumanLimb(
 						state.HumanNpcState->CrotchPoint,

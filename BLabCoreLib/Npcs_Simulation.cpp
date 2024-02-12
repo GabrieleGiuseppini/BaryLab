@@ -1785,6 +1785,8 @@ void Npcs::UpdateNpcAnimation(
         float const legLength = LabParameters::HumanNpcGeometry::LegLengthFraction * humanHeight;
         vec2f const crotchPosition = headPosition + (feetPosition - headPosition) * (LabParameters::HumanNpcGeometry::HeadLengthFraction + LabParameters::HumanNpcGeometry::TorsoLengthFraction);
 
+        float targetArmRightAngle = 0.0f;
+        float targetArmLeftAngle = 0.0f;
         float targetLegRightAngle = 0.0f;
         float targetLegLeftAngle = 0.0f;
         float angleConvergenceRate = 0.0f;
@@ -1798,6 +1800,8 @@ void Npcs::UpdateNpcAnimation(
             case StateType::HumanNpcStateType::BehaviorType::Constrained_Rising:
             case StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
             {
+                targetArmRightAngle = 0.0f;
+                targetArmLeftAngle = 0.0f;
                 targetLegRightAngle = 0.0f;
                 targetLegLeftAngle = 0.0f;
                 angleConvergenceRate = 0.3f;
@@ -1813,6 +1817,9 @@ void Npcs::UpdateNpcAnimation(
                 float const distanceInTwoSteps = std::fmod(npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition + 3.0f * stepLength / 2.0f, stepLength * 2.0f);
                 LogMessage("distanceInTwoSteps=", distanceInTwoSteps);
 
+                // TODOHERE
+                targetArmRightAngle = 0.0f;
+                targetArmLeftAngle = 0.0f;
                 targetLegRightAngle = std::abs(stepLength - distanceInTwoSteps) / stepLength * 2.0f * MaxLegAngle - MaxLegAngle;
                 targetLegLeftAngle = -targetLegRightAngle;
                 angleConvergenceRate = 0.75f;
@@ -1868,6 +1875,8 @@ void Npcs::UpdateNpcAnimation(
 
             case StateType::HumanNpcStateType::BehaviorType::Free_Aerial:
             {
+                targetArmRightAngle = 0.0f;
+                targetArmLeftAngle = 0.0f;
                 targetLegRightAngle = 0.0f;
                 targetLegLeftAngle = 0.0f;
                 angleConvergenceRate = 0.3f;
@@ -1881,7 +1890,10 @@ void Npcs::UpdateNpcAnimation(
 
         npc.HumanNpcState->TopPoint = headPosition;
         npc.HumanNpcState->NeckPoint = headPosition + humanVector * LabParameters::HumanNpcGeometry::HeadLengthFraction;
+        npc.HumanNpcState->ShoulderPoint = headPosition + humanVector * LabParameters::HumanNpcGeometry::ShoulderDistanceFromTopFraction;
         npc.HumanNpcState->CrotchPoint = headPosition + humanVector * (LabParameters::HumanNpcGeometry::HeadLengthFraction + LabParameters::HumanNpcGeometry::TorsoLengthFraction);
+
+        // TODOHERE: arms
 
         if (rightFootPosition.has_value())
             npc.HumanNpcState->LegRightPoint = *rightFootPosition;
