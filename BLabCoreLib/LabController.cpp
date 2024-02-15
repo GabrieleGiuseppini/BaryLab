@@ -219,9 +219,7 @@ void LabController::Render()
         // Npcs
         //
 
-        mModel->GetNpcs().Render(
-            *mRenderContext,
-            mLabParameters);
+        mModel->GetNpcs().Render(*mRenderContext);
 
         //
         // Mesh velocity
@@ -859,7 +857,11 @@ void LabController::LoadMesh(
 
     // Create NPCs
 
-    std::unique_ptr<Npcs> npcs = std::make_unique<Npcs>(mWorld, mEventDispatcher, mIsGravityEnabled);
+    std::unique_ptr<Npcs> npcs = std::make_unique<Npcs>(
+        mWorld, 
+        mEventDispatcher, 
+        mLabParameters,
+        mIsGravityEnabled);
 
     if (addExperimentalNpc)
     {

@@ -283,6 +283,7 @@ public:
 	Npcs(
 		World & parentWorld,
 		EventDispatcher & eventDispatcher,
+		LabParameters const & labParameters,
 		bool isGravityEnabled)
 		: mParentWorld(parentWorld)
 		, mEventDispatcher(eventDispatcher)
@@ -292,6 +293,7 @@ public:
 		// Parameters
 		, mGravityGate(isGravityEnabled ? 1.0f : 0.0f)
 		, mNpcRenderMode(NpcRenderMode::Limbs)
+		, mCurrentHumanNpcBodyLengthAdjustment(labParameters.HumanNpcBodyLengthAdjustment)
 	{}
 
 	void Add(
@@ -324,9 +326,7 @@ public:
 		Mesh const & mesh,
 		LabParameters const & labParameters);
 
-	void Render(
-		RenderContext & renderContext,
-		LabParameters const & labParameters);
+	void Render(RenderContext & renderContext);
 
 	inline element_index_range_iterator begin() const noexcept
 	{
@@ -784,4 +784,7 @@ private:
 
 	float mGravityGate;
 	NpcRenderMode mNpcRenderMode;
+
+	// Cached from game parameters
+	float mCurrentHumanNpcBodyLengthAdjustment;
 };

@@ -122,6 +122,8 @@ vec2f Triangles::InternalToBarycentricCoordinates(
     }
     else
     {
+        // See also: https://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates
+
         float const l1 =
             (
                 (positionB.y - positionC.y) * (position.x - positionC.x)
@@ -133,8 +135,6 @@ vec2f Triangles::InternalToBarycentricCoordinates(
                 (positionC.y - positionA.y) * (position.x - positionC.x)
                 + (positionA.x - positionC.x) * (position.y - positionC.y)
                 ) / denominator;
-
-        float const l3 = 1.0f - l1 - l2;
 
         return vec2f(
             l1,
