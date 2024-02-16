@@ -197,7 +197,8 @@ public:
 				float currentSimulationTime)
 				: CurrentEquilibriumSoftTerminationDecision(0.0f)
 				, CurrentFaceOrientation(0.0f)
-				, CurrentFaceDirectionX(1.0f) // Futurework: randomize
+				//, CurrentFaceDirectionX(1.0f) // Futurework: randomize
+				, CurrentFaceDirectionX(-1.0f) // Futurework: randomize
 				// Animation
 				, RightLegAngle(0.0f)
 				, RightLegLengthMultiplier(1.0f)

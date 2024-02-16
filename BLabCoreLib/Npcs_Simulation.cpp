@@ -284,7 +284,7 @@ void Npcs::UpdateNpcParticle(
             // amounts to pure physical displacement.
             //
 
-            // Absolute position of particle if it only moved due to physical forces and walking;
+            // Absolute position of particle if it only moved due to physical forces and walking
             vec2f const trajectoryEndAbsolutePosition = particleStartAbsolutePosition + physicsDeltaPos + totalEdgeWalkedActual;
 
             // Trajectory
