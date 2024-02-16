@@ -63,9 +63,9 @@ public:
 
     void MoveVertexBy(ElementIndex vertexIndex, vec2f const & screenOffset);
 
-    void RotateMeshBy(vec2f const & centerScreenCoordinates, float screenAngle);
+    void RotateMeshBy(vec2f const & centerScreenCoordinates, float screenStride);
 
-    void RotateMeshBy(ElementIndex particleIndex, float screenAngle);
+    void RotateMeshBy(ElementIndex particleIndex, float screenStride);
 
     bool TrySelectOriginTriangle(vec2f const & screenCoordinates);
 

@@ -304,12 +304,12 @@ void LabController::MoveVertexBy(
 
 void LabController::RotateMeshBy(
     vec2f const & centerScreenCoordinates, 
-    float screenAngle)
+    float screenStride)
 {
     assert(!!mModel);
 
     vec2f const worldCenter = ScreenToWorld(centerScreenCoordinates);
-    float const worldAngle = ScreenOffsetToWorldOffset(screenAngle) * 0.05f;
+    float const worldAngle = ScreenOffsetToWorldOffset(screenStride) * 0.05f;
 
     float const cosAngle = std::cos(worldAngle);
     float const sinAngle = std::sin(worldAngle);
@@ -342,7 +342,7 @@ void LabController::RotateMeshBy(
 
 void LabController::RotateMeshBy(
     ElementIndex particleIndex, 
-    float screenAngle)
+    float screenStride)
 {
     assert(!!mModel);
 
@@ -353,7 +353,7 @@ void LabController::RotateMeshBy(
     //
 
     vec2f const worldCenter = mModel->GetNpcs().GetParticles().GetPosition(particleIndex);
-    float const worldAngle = ScreenOffsetToWorldOffset(screenAngle) * 0.05f;
+    float const worldAngle = ScreenOffsetToWorldOffset(screenStride) * 0.05f;
 
     float const cosAngle = std::cos(worldAngle);
     float const sinAngle = std::sin(worldAngle);
