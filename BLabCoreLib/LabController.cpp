@@ -304,12 +304,12 @@ void LabController::MoveVertexBy(
 
 void LabController::RotateMeshBy(
     vec2f const & centerScreenCoordinates, 
-    float screenAngle)
+    float screenStride)
 {
     assert(!!mModel);
 
     vec2f const worldCenter = ScreenToWorld(centerScreenCoordinates);
-    float const worldAngle = ScreenOffsetToWorldOffset(screenAngle);
+    float const worldAngle = ScreenOffsetToWorldOffset(screenStride) * 0.05f;
 
     float const cosAngle = std::cos(worldAngle);
     float const sinAngle = std::sin(worldAngle);
@@ -342,7 +342,7 @@ void LabController::RotateMeshBy(
 
 void LabController::RotateMeshBy(
     ElementIndex particleIndex, 
-    float screenAngle)
+    float screenStride)
 {
     assert(!!mModel);
 
@@ -353,7 +353,7 @@ void LabController::RotateMeshBy(
     //
 
     vec2f const worldCenter = mModel->GetNpcs().GetParticles().GetPosition(particleIndex);
-    float const worldAngle = ScreenOffsetToWorldOffset(screenAngle);
+    float const worldAngle = ScreenOffsetToWorldOffset(screenStride) * 0.05f;
 
     float const cosAngle = std::cos(worldAngle);
     float const sinAngle = std::sin(worldAngle);
@@ -549,9 +549,127 @@ void LabController::DoStepForVideo()
 {
     assert(mModel);
 
-    ++mCurrentVideoStep;
+    // TODOTEST
+    RotateMeshBy(0, -0.5f);
+    return;
 
-    int matchIndex = 0;
+    ////++mCurrentVideoStep;
+
+    ////int matchIndex = 0;
+
+    ////////++matchIndex;
+    ////////if (mCurrentVideoStep == matchIndex)
+    ////////{
+    ////////    //
+    ////////    // Load mesh and stay clean
+    ////////    //
+
+    ////////    LoadMesh(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
+
+    ////////    // Enable gravity
+    ////////    SetGravityEnabled(true);
+
+    ////////    // Enable auto-play            
+    ////////    SetSimulationControlState(SimulationControlStateType::Play);
+
+    ////////    // Other settings
+    ////////    SetSeaLevel(-7.0f);        
+
+    ////////    return;
+    ////////}
+
+    ////////++matchIndex;
+    ////////if (mCurrentVideoStep == matchIndex)
+    ////////{
+    ////////    //
+    ////////    // Create one ball
+    ////////    //
+
+    ////////    mModel->GetNpcs().Add(
+    ////////        Npcs::NpcType::Furniture,
+    ////////        vec2f(0.0f, 0.0f),
+    ////////        std::nullopt,
+    ////////        mStructuralMaterialDatabase,
+    ////////        mModel->GetMesh());
+
+    ////////    return;
+    ////////}
+
+    ////////++matchIndex;
+    ////////if (mCurrentVideoStep == matchIndex)
+    ////////{
+    ////////    //
+    ////////    // Reset
+    ////////    //
+
+    ////////    LoadMesh(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
+
+    ////////    return;
+    ////////}
+
+    ////////++matchIndex;
+    ////////if (mCurrentVideoStep == matchIndex)
+    ////////{
+    ////////    //
+    ////////    // Create a few balls
+    ////////    //
+
+    ////////    for (int i = 0; i < 9; ++i)
+    ////////    {
+    ////////        vec2f const position = vec2f(
+    ////////            GameRandomEngine::GetInstance().GenerateUniformReal(-9.0f, 8.0f),
+    ////////            GameRandomEngine::GetInstance().GenerateUniformReal(-5.0f, 5.0f));
+
+    ////////        mModel->GetNpcs().Add(
+    ////////            Npcs::NpcType::Furniture,
+    ////////            position,
+    ////////            std::nullopt,
+    ////////            mStructuralMaterialDatabase,
+    ////////            mModel->GetMesh());
+    ////////    }
+
+    ////////    return;
+    ////////}
+
+    ////////++matchIndex;
+    ////////if (mCurrentVideoStep == matchIndex)
+    ////////{
+    ////////    //
+    ////////    // Reset
+    ////////    //
+
+    ////////    LoadMesh(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
+
+    ////////    return;
+    ////////}
+
+    ////////++matchIndex;
+    ////////if (mCurrentVideoStep == matchIndex)
+    ////////{
+    ////////    //
+    ////////    // Create many balls
+    ////////    //
+
+    ////////    for (int i = 0; i < 25; ++i)
+    ////////    {
+    ////////        vec2f const position = vec2f(
+    ////////            GameRandomEngine::GetInstance().GenerateUniformReal(-9.0f, 8.0f),
+    ////////            GameRandomEngine::GetInstance().GenerateUniformReal(-5.0f, 5.0f));
+
+    ////////        mModel->GetNpcs().Add(
+    ////////            Npcs::NpcType::Furniture,
+    ////////            position,
+    ////////            std::nullopt,
+    ////////            mStructuralMaterialDatabase,
+    ////////            mModel->GetMesh());
+    ////////    }
+
+    ////////    return;
+    ////////}
+
+    /////////////////////////////////////////////////////////////
+    ////// Humans
+    /////////////////////////////////////////////////////////////
 
     ////++matchIndex;
     ////if (mCurrentVideoStep == matchIndex)
@@ -562,13 +680,14 @@ void LabController::DoStepForVideo()
 
     ////    LoadMesh(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
 
-    ////    // Enable gravity
-    ////    SetGravityEnabled(true);
-
     ////    // Enable auto-play            
     ////    SetSimulationControlState(SimulationControlStateType::Play);
 
+    ////    // Disable gravity
+    ////    SetGravityEnabled(false);
+
     ////    // Other settings
+    ////    SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
     ////    SetSeaLevel(-7.0f);        
 
     ////    return;
@@ -578,15 +697,19 @@ void LabController::DoStepForVideo()
     ////if (mCurrentVideoStep == matchIndex)
     ////{
     ////    //
-    ////    // Create one ball
+    ////    // Add one horizontal human
     ////    //
 
+    ////    vec2f primaryPosition = vec2f(1.5f, -2.0f);
+    ////    vec2f secondaryPosition = primaryPosition + vec2f(1.0f, 0.0f) * LabParameters::HumanNpcGeometry::BodyLength * mLabParameters.HumanNpcBodyLengthAdjustment;
     ////    mModel->GetNpcs().Add(
-    ////        Npcs::NpcType::Furniture,
-    ////        vec2f(0.0f, 0.0f),
-    ////        std::nullopt,
+    ////        Npcs::NpcType::Human,
+    ////        primaryPosition,
+    ////        secondaryPosition,
+    ////        mCurrentSimulationTime,
     ////        mStructuralMaterialDatabase,
-    ////        mModel->GetMesh());
+    ////        mModel->GetMesh(),
+    ////        mLabParameters);
 
     ////    return;
     ////}
@@ -595,10 +718,11 @@ void LabController::DoStepForVideo()
     ////if (mCurrentVideoStep == matchIndex)
     ////{
     ////    //
-    ////    // Reset
+    ////    // Enable gravity
     ////    //
 
-    ////    LoadMesh(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
+
+    ////    SetGravityEnabled(true);
 
     ////    return;
     ////}
@@ -607,22 +731,10 @@ void LabController::DoStepForVideo()
     ////if (mCurrentVideoStep == matchIndex)
     ////{
     ////    //
-    ////    // Create a few balls
+    ////    // Low-rising 1
     ////    //
 
-    ////    for (int i = 0; i < 9; ++i)
-    ////    {
-    ////        vec2f const position = vec2f(
-    ////            GameRandomEngine::GetInstance().GenerateUniformReal(-9.0f, 8.0f),
-    ////            GameRandomEngine::GetInstance().GenerateUniformReal(-5.0f, 5.0f));
-
-    ////        mModel->GetNpcs().Add(
-    ////            Npcs::NpcType::Furniture,
-    ////            position,
-    ////            std::nullopt,
-    ////            mStructuralMaterialDatabase,
-    ////            mModel->GetMesh());
-    ////    }
+    ////    SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0010f);
 
     ////    return;
     ////}
@@ -631,10 +743,10 @@ void LabController::DoStepForVideo()
     ////if (mCurrentVideoStep == matchIndex)
     ////{
     ////    //
-    ////    // Reset
+    ////    // Stop rising
     ////    //
 
-    ////    LoadMesh(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
+    ////    SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
 
     ////    return;
     ////}
@@ -643,196 +755,88 @@ void LabController::DoStepForVideo()
     ////if (mCurrentVideoStep == matchIndex)
     ////{
     ////    //
-    ////    // Create many balls
+    ////    // Low-rising 2
     ////    //
 
-    ////    for (int i = 0; i < 25; ++i)
-    ////    {
-    ////        vec2f const position = vec2f(
-    ////            GameRandomEngine::GetInstance().GenerateUniformReal(-9.0f, 8.0f),
-    ////            GameRandomEngine::GetInstance().GenerateUniformReal(-5.0f, 5.0f));
-
-    ////        mModel->GetNpcs().Add(
-    ////            Npcs::NpcType::Furniture,
-    ////            position,
-    ////            std::nullopt,
-    ////            mStructuralMaterialDatabase,
-    ////            mModel->GetMesh());
-    ////    }
+    ////    SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0013f);
 
     ////    return;
     ////}
 
-    /////////////////////////////////////////////////////////
-    // Humans
-    /////////////////////////////////////////////////////////
+    ////++matchIndex;
+    ////if (mCurrentVideoStep == matchIndex)
+    ////{
+    ////    //
+    ////    // Stop rising
+    ////    //
 
-    ++matchIndex;
-    if (mCurrentVideoStep == matchIndex)
-    {
-        //
-        // Load mesh and stay clean
-        //
+    ////    SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
 
-        LoadMesh(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
+    ////    return;
+    ////}
 
-        // Enable auto-play            
-        SetSimulationControlState(SimulationControlStateType::Play);
+    ////++matchIndex;
+    ////if (mCurrentVideoStep == matchIndex)
+    ////{
+    ////    //
+    ////    // Low-rising 3
+    ////    //
 
-        // Disable gravity
-        SetGravityEnabled(false);
+    ////    SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0018f);
 
-        // Other settings
-        SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
-        SetSeaLevel(-7.0f);        
+    ////    return;
+    ////}
 
-        return;
-    }
+    ////++matchIndex;
+    ////if (mCurrentVideoStep == matchIndex)
+    ////{
+    ////    //
+    ////    // Stop rising
+    ////    //
 
-    ++matchIndex;
-    if (mCurrentVideoStep == matchIndex)
-    {
-        //
-        // Add one horizontal human
-        //
+    ////    SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
 
-        vec2f primaryPosition = vec2f(1.5f, -2.0f);
-        vec2f secondaryPosition = primaryPosition + vec2f(1.0f, 0.0f) * LabParameters::HumanNpcGeometry::BodyLength * mLabParameters.HumanNpcBodyLengthAdjustment;
-        mModel->GetNpcs().Add(
-            Npcs::NpcType::Human,
-            primaryPosition,
-            secondaryPosition,
-            mCurrentSimulationTime,
-            mStructuralMaterialDatabase,
-            mModel->GetMesh(),
-            mLabParameters);
+    ////    return;
+    ////}
 
-        return;
-    }
+    ////++matchIndex;
+    ////if (mCurrentVideoStep == matchIndex)
+    ////{
+    ////    //
+    ////    // Definitive rising  - but no walking
+    ////    //
 
-    ++matchIndex;
-    if (mCurrentVideoStep == matchIndex)
-    {
-        //
-        // Enable gravity
-        //
+    ////    SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0032f);
 
+    ////    // But no walking
+    ////    mLabParameters.HumanNpcWalkingAcceleration = 0.0f;
 
-        SetGravityEnabled(true);
+    ////    return;
+    ////}
 
-        return;
-    }
+    ////++matchIndex;
+    ////if (mCurrentVideoStep == matchIndex)
+    ////{
+    ////    //
+    ////    // Walking
+    ////    //
 
-    ++matchIndex;
-    if (mCurrentVideoStep == matchIndex)
-    {
-        //
-        // Low-rising 1
-        //
+    ////    mLabParameters.HumanNpcWalkingAcceleration = 0.027f;
 
-        SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0010f);
+    ////    return;
+    ////}
 
-        return;
-    }
+    ////++matchIndex;
+    ////if (mCurrentVideoStep == matchIndex)
+    ////{
+    ////    return;
+    ////}
 
-    ++matchIndex;
-    if (mCurrentVideoStep == matchIndex)
-    {
-        //
-        // Stop rising
-        //
+    //////
+    ////// Wrap around
+    //////
 
-        SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
-
-        return;
-    }
-
-    ++matchIndex;
-    if (mCurrentVideoStep == matchIndex)
-    {
-        //
-        // Low-rising 2
-        //
-
-        SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0013f);
-
-        return;
-    }
-
-    ++matchIndex;
-    if (mCurrentVideoStep == matchIndex)
-    {
-        //
-        // Stop rising
-        //
-
-        SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
-
-        return;
-    }
-
-    ++matchIndex;
-    if (mCurrentVideoStep == matchIndex)
-    {
-        //
-        // Low-rising 3
-        //
-
-        SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0018f);
-
-        return;
-    }
-
-    ++matchIndex;
-    if (mCurrentVideoStep == matchIndex)
-    {
-        //
-        // Stop rising
-        //
-
-        SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
-
-        return;
-    }
-
-    ++matchIndex;
-    if (mCurrentVideoStep == matchIndex)
-    {
-        //
-        // Definitive rising  - but no walking
-        //
-
-        SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0032f);
-
-        // But no walking
-        mLabParameters.HumanNpcWalkingAcceleration = 0.0f;
-
-        return;
-    }
-
-    ++matchIndex;
-    if (mCurrentVideoStep == matchIndex)
-    {
-        //
-        // Walking
-        //
-
-        mLabParameters.HumanNpcWalkingAcceleration = 0.027f;
-
-        return;
-    }
-
-    ++matchIndex;
-    if (mCurrentVideoStep == matchIndex)
-    {
-        return;
-    }
-
-    //
-    // Wrap around
-    //
-
-    mCurrentVideoStep = 0;
+    ////mCurrentVideoStep = 0;
 }
 
 ////////////////////////////////////////////////
@@ -865,17 +869,6 @@ void LabController::LoadMesh(
 
     if (addExperimentalNpc)
     {
-        // TODOTEST
-        ////vec2f const position = (
-        ////    mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexAIndex(0))
-        ////    + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexBIndex(0))
-        ////    + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexCIndex(0))) / 3.0f;
-        //vec2f const position =
-        //    mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexBIndex(0))
-        //    - vec2f(0.5f, 0.5f);
-
-        // TODOTEST
-        //vec2f const position = vec2f(0.5f, -2.0f);
         // TODO: for small mesh, in the middle
         //vec2f const position = vec2f(0.5f, 0.0f);
         // TODO: for small mesh, on the floor, left triangle
@@ -885,16 +878,50 @@ void LabController::LoadMesh(
         // TODO: for large mesh, on floor
         //vec2f const position = vec2f(5.5f, -6.0f);
 
+        // TODO: for repro of traj acceleration w/human
+        //vec2f const position = vec2f(-0.634f, -2.0f);
+
+        ////// TODO: for repro of traj acceleration w/ball
+        ////ElementIndex const triangleIndex = 46;
+        ////float const TODO = 0.99435f;
+        ////bcoords3f const baryCoords = bcoords3f(TODO, 0.0f, 1.0f - TODO);
+        ////vec2f const position = mesh->GetTriangles().FromBarycentricCoordinates(baryCoords, triangleIndex, mesh->GetVertices());
+
         npcs->Add(
             // TODOTEST
             //Npcs::NpcType::Furniture,
             Npcs::NpcType::Human,
             position,
-            std::nullopt,
+            std::nullopt, // Secondary position
             mCurrentSimulationTime,
             mStructuralMaterialDatabase,
             *mesh,
             mLabParameters);
+
+        ////// TODOTEST: multiple balls
+        ////for (int i = 0; i < 40; ++i)
+        ////{
+        ////    vec2f const p = vec2f(
+        ////        GameRandomEngine::GetInstance().GenerateUniformReal(-9.0f, 8.0f),
+        ////        GameRandomEngine::GetInstance().GenerateUniformReal(-5.0f, 5.0f));
+
+        ////    npcs->Add(
+        ////        Npcs::NpcType::Furniture,
+        ////        p,
+        ////        std::nullopt, // Secondary position
+        ////        mCurrentSimulationTime,
+        ////        mStructuralMaterialDatabase,
+        ////        *mesh,
+        ////        mLabParameters);
+        ////}
+
+        ////// TODO: for repro w/ball, part II
+        ////assert(npcs->GetState(0).PrimaryParticleState.ConstrainedState.has_value());
+        ////assert(npcs->GetState(0).PrimaryParticleState.ConstrainedState->CurrentTriangle == triangleIndex);
+        ////npcs->GetState(0).PrimaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords = baryCoords;        
+        ////npcs->GetParticles().SetVelocity(npcs->GetState(0).PrimaryParticleState.ParticleIndex, vec2f(-1.0f, 0.0f));
+        ////// TODOTEST: trying now for inertial (no G and no friction)
+        //////npcs->GetParticles().SetVelocity(npcs->GetState(0).PrimaryParticleState.ParticleIndex, vec2f(-1.0f, (LabParameters::GravityMagnitude + 16.25f) * LabParameters::SimulationTimeStepDuration));
 
         // Select particle
         assert(npcs->GetParticles().GetParticleCount() > 0);
