@@ -134,6 +134,12 @@ public:
         ElementIndex triangleElementIndex,
         Vertices const & vertices) const;
 
+    bcoords3f ToBarycentricCoordinates(
+        vec2f const & position,
+        ElementIndex triangleElementIndex,
+        Vertices const & vertices,
+        float epsilon) const;
+
     bcoords3f ToBarycentricCoordinatesFromWithinTriangle(
         vec2f const & position,
         ElementIndex triangleElementIndex,

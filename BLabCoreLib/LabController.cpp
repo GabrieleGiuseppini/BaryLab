@@ -550,7 +550,7 @@ void LabController::DoStepForVideo()
     assert(mModel);
 
     // TODOTEST
-    RotateMeshBy(0, -0.5f);
+    RotateMeshBy(0, -3.1234567f * 9.0f);
     return;
 
     ////++mCurrentVideoStep;

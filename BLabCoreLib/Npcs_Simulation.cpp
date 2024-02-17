@@ -1756,7 +1756,8 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         trajectoryEndBarycentricCoords = mesh.GetTriangles().ToBarycentricCoordinates(
             trajectoryEndAbsolutePosition,
             npcParticle.ConstrainedState->CurrentTriangle,
-            mesh.GetVertices());
+            mesh.GetVertices(),
+            1.0e-07f); // Be strict with roundings - there is a tiny region where the trajectory would oscillate between two triangles (e.g. {0.998306274, 0.00169372594, -3.49245965e-10} -> {-1.61526414e-09, 0.00169372361, 0.998306274})
 
         LogMessage("      TrajEndB-Coords: ", trajectoryEndBarycentricCoords);
 
@@ -1829,29 +1830,33 @@ void Npcs::OnImpact(
     StateType & npc,
     bool /*isPrimaryParticle*/) const
 {
-    LogMessage("    OnImpact(", impactVector, ", ", bounceEdgeNormal, ")");
+    LogMessage("    OnImpact(", impactVector.length(), ", ", bounceEdgeNormal, ")");
 
-    // Human state machine
-    if (npc.HumanNpcState.has_value())
+    // TODOTEST: now we need it to tolerate bounce after flying up because of walk velocity
+    if (impactVector.length() > 0.05f) // Magic number - tolerance to small bounces
     {
-        switch (npc.HumanNpcState->CurrentBehavior)
+        // Human state machine
+        if (npc.HumanNpcState.has_value())
         {
-            case StateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
+            switch (npc.HumanNpcState->CurrentBehavior)
             {
-                // Check alignment of impact with walking direction; if hit => flip
-                if (bounceEdgeNormal.dot(vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f)) > 0.0f
-                    && npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
+                case StateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
                 {
-                    // Flip now
-                    FlipHumanWalk(*npc.HumanNpcState, StrongTypedTrue<_DoImmediate>);
+                    // Check alignment of impact with walking direction; if hit => flip
+                    if (bounceEdgeNormal.dot(vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f)) > 0.0f
+                        && npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
+                    {
+                        // Flip now
+                        FlipHumanWalk(*npc.HumanNpcState, StrongTypedTrue<_DoImmediate>);
+                    }
+
+                    break;
                 }
 
-                break;
-            }
-
-            default:
-            {
-                break;
+                default:
+                {
+                    break;
+                }
             }
         }
     }

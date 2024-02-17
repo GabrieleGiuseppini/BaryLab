@@ -66,6 +66,39 @@ bcoords3f Triangles::ToBarycentricCoordinates(
         1.0f - abBaryCoords.x - abBaryCoords.y);
 }
 
+bcoords3f Triangles::ToBarycentricCoordinates(
+    vec2f const & position,
+    ElementIndex triangleElementIndex,
+    Vertices const & vertices,
+    float epsilon) const
+{
+    vec2f abBaryCoords = InternalToBarycentricCoordinates(
+        position,
+        triangleElementIndex,
+        vertices);
+
+    if (std::abs(abBaryCoords.x) < epsilon)
+    {
+        abBaryCoords.x = 0.0f;
+    }
+
+    if (std::abs(abBaryCoords.y) < epsilon)
+    {
+        abBaryCoords.y = 0.0f;
+    }
+
+    float z = 1.0f - abBaryCoords.x - abBaryCoords.y;
+    if (std::abs(z) < epsilon)
+    {
+        z = 0.0f;
+    }
+
+    return bcoords3f(
+        abBaryCoords.x,
+        abBaryCoords.y,
+        z);
+}
+
 bcoords3f Triangles::ToBarycentricCoordinatesFromWithinTriangle(
     vec2f const & position,
     ElementIndex triangleElementIndex,
