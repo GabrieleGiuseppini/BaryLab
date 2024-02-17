@@ -541,16 +541,27 @@ void Npcs::UpdateNpcParticle(
 
                                 // Apply gravity resistance: too steep slopes (wrt vertical) are gently clamped to zero, 
                                 // to prevent walking on floors that are too steep
-                                float const gravityResistance = LinearStep(
-                                    0.55f, // Start slightly before expected 45-degree ramp
-                                    0.80f,
-                                    walkDir.dot(-LabParameters::GravityDir)); // TODO: perf: this is just y
+                                float constexpr ResistanceSlopeStart = 0.50f; // Start slightly before expected 45-degree ramp
+                                float constexpr ResistanceSlopeEnd = 0.80f; // Max slope we're willing to climb
+                                float const x = walkDir.dot(-LabParameters::GravityDir); // TODO: perf: this is just y
+                                if (x >= ResistanceSlopeStart)
+                                {
+                                    if (x < ResistanceSlopeEnd)
+                                    {
+                                        float const x2 = (x - ResistanceSlopeStart) / (ResistanceSlopeEnd - ResistanceSlopeStart);
+                                        float const gravityResistance = std::sqrt(1.0f - (x2 * x2));
 
-                                edgeWalkedPlanned *= (1.0f - gravityResistance);
+                                        edgeWalkedPlanned *= gravityResistance;
+                                    }
+                                    else
+                                    {
+                                        edgeWalkedPlanned = 0.0f;
+                                    }
+                                }
 
                                 if (npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
                                 {
-                                    LogMessage("        idealWalkMagnitude=", idealWalkMagnitude, " gravityResistance=", gravityResistance, " => edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude, ")");
+                                    LogMessage("        idealWalkMagnitude=", idealWalkMagnitude, " => edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude, ")");
                                 }
                             }
 
