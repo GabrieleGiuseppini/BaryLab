@@ -546,17 +546,10 @@ void Npcs::UpdateNpcParticle(
                                 float const x = walkDir.dot(-LabParameters::GravityDir); // TODO: perf: this is just y
                                 if (x >= ResistanceSlopeStart)
                                 {
-                                    if (x < ResistanceSlopeEnd)
-                                    {
-                                        float const x2 = (x - ResistanceSlopeStart) / (ResistanceSlopeEnd - ResistanceSlopeStart);
-                                        float const gravityResistance = std::sqrt(1.0f - (x2 * x2));
+                                    float const x2 = (x - ResistanceSlopeStart) / (ResistanceSlopeEnd - ResistanceSlopeStart);
+                                    float const gravityResistance = std::max(1.0f - (x2 * x2), 0.0f);
 
-                                        edgeWalkedPlanned *= gravityResistance;
-                                    }
-                                    else
-                                    {
-                                        edgeWalkedPlanned = 0.0f;
-                                    }
+                                    edgeWalkedPlanned *= gravityResistance;
                                 }
 
                                 if (npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
@@ -1913,14 +1906,14 @@ void Npcs::UpdateNpcAnimation(
                 // Calculate leg angle based on distance traveled
                 //
 
-                float const MaxLegAngle = std::atan((LabParameters::HumanNpcGeometry::StepLengthFraction / 2.0f) / LabParameters::HumanNpcGeometry::LegLengthFraction);
+                float const maxLegAngle = std::atan((LabParameters::HumanNpcGeometry::StepLengthFraction * std::sqrt(labParameters.HumanNpcWalkingSpeed) / 2.0f) / LabParameters::HumanNpcGeometry::LegLengthFraction);
 
                 float const adjustedStandardHumanHeight = LabParameters::HumanNpcGeometry::BodyLength * labParameters.HumanNpcBodyLengthAdjustment;
                 float const stepLength = LabParameters::HumanNpcGeometry::StepLengthFraction * adjustedStandardHumanHeight;
                 float const distanceInTwoSteps = std::fmod(npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition + 3.0f * stepLength / 2.0f, stepLength * 2.0f);
                 LogMessage("distanceInTwoSteps=", distanceInTwoSteps);
 
-                float const legAngle = std::abs(stepLength - distanceInTwoSteps) / stepLength * 2.0f * MaxLegAngle - MaxLegAngle;
+                float const legAngle = std::abs(stepLength - distanceInTwoSteps) / stepLength * 2.0f * maxLegAngle - maxLegAngle;
 
                 targetRightLegAngle = legAngle;
                 targetLeftLegAngle = -legAngle;
