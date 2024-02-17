@@ -1621,6 +1621,8 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
     {
         LogDebug("    NavigateVertex: iter=", iIter);
 
+        assert(iIter < 5); // Detect and break on infinite loops
+
         // The two vertices around the vertex we are on - seen in clockwise order
         int const nextVertexOrdinal = (vertexOrdinal + 1) % 3;
         int const prevVertexOrdinal = (vertexOrdinal + 2) % 3;
