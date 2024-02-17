@@ -184,7 +184,7 @@ void Npcs::UpdateHuman(
 					primaryParticleState.ParticleIndex,
 					secondaryParticleState.ParticleIndex,
 					humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Rising,
-					isOnEdge,
+					isOnEdge, // doMaintainEquilibrium
 					mParticles,
 					labParameters))
 			{
@@ -260,7 +260,7 @@ bool Npcs::CheckAndMaintainHumanEquilibrium(
 	ElementIndex primaryParticleIndex,
 	ElementIndex secondaryParticleIndex,
 	bool isRisingState,
-	bool isOnEdge,
+	bool doMaintainEquilibrium,
 	NpcParticles & particles,
 	LabParameters const & /*labParameters*/)
 {
@@ -321,7 +321,7 @@ bool Npcs::CheckAndMaintainHumanEquilibrium(
 	// Maintain equilibrium
 	//
 
-	if (isOnEdge)
+	if (doMaintainEquilibrium)
 	{
 		particles.SetEquilibriumTorque(secondaryParticleIndex, 1.0f);
 	}

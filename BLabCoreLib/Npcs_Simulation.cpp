@@ -1845,7 +1845,7 @@ void Npcs::OnImpact(
                 case StateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
                 {
                     // Check alignment of impact with walking direction; if hit => flip
-                    if (bounceEdgeNormal.dot(vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f)) > 0.0f
+                    if (bounceEdgeNormal.dot(vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f)) > 0.5f // ~60 degrees
                         && npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
                     {
                         // Flip now

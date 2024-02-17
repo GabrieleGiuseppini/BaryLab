@@ -741,7 +741,7 @@ private:
 		ElementIndex primaryParticleIndex,
 		ElementIndex secondaryParticleIndex,
 		bool isRisingState,
-		bool isOnEdge,
+		bool doMaintainEquilibrium,
 		NpcParticles & particles,
 		LabParameters const & labParameters);
 
