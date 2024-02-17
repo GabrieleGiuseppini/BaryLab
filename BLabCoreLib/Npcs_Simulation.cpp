@@ -642,6 +642,10 @@ void Npcs::UpdateNpcParticle(
                             // Fact: so, the actual movement includes the consumed_dt's portion (fraction) of both phys traj and imposed walk
                             //
 
+                            // Update well detection machinery
+                            pastPastBarycentricPosition = pastBarycentricPosition;
+                            pastBarycentricPosition.emplace(npcParticle.ConstrainedState->CurrentTriangle, npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords);
+
                             LogMessage("        edgePhysicalTraveledPlanned=", edgePhysicalTraveledPlanned, " edgeWalkedPlanned=", edgeWalkedPlanned);
 
                             auto const [edgeTraveledActual, doStop] = UpdateNpcParticle_ConstrainedNonInertial(
@@ -752,13 +756,6 @@ void Npcs::UpdateNpcParticle(
                                 : 0.0f; // Unlikely, but read above for rationale behind 0.0
                             totalEdgeWalkedActual += edgeDir * edgeWalkedActual;
                             LogMessage("        edgeWalkedActual=", edgeWalkedActual, " totalEdgeWalkedActual=", totalEdgeWalkedActual);
-
-                            // Update well detection machinery
-                            if (npcParticle.ConstrainedState.has_value())
-                            {
-                                pastPastBarycentricPosition = pastBarycentricPosition;
-                                pastBarycentricPosition.emplace(npcParticle.ConstrainedState->CurrentTriangle, npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords);
-                            }
 
                             if (npcParticle.ConstrainedState.has_value())
                             {
