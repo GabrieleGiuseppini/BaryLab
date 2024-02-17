@@ -872,14 +872,14 @@ void LabController::LoadMesh(
         // TODO: for small mesh, in the middle
         //vec2f const position = vec2f(0.5f, 0.0f);
         // TODO: for small mesh, on the floor, left triangle
-        //vec2f const position = vec2f(-0.5f, -2.0f);
+        vec2f const position = vec2f(-0.5f, -2.0f);
         // TODO: for small mesh, on the floor, right triangle
         //vec2f const position = vec2f(0.5f, -2.0f);
         // TODO: for large mesh, on floor
         //vec2f const position = vec2f(5.5f, -6.0f);
 
         // TODO: for repro of traj acceleration w/human
-        vec2f const position = vec2f(-0.634f, -2.0f);
+        //vec2f const position = vec2f(-0.634f, -2.0f);
 
         ////// TODO: for repro of traj acceleration w/ball
         ////ElementIndex const triangleIndex = 46;
