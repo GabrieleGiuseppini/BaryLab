@@ -329,15 +329,16 @@ void LabController::RotateMeshBy(
         vertices.SetPosition(v, rotatedPos + worldCenter);
     }
 
-    //
-    // Rotate particles
-    //
+    // TODOTEST
+    //////
+    ////// Rotate particles
+    //////
 
-    mModel->GetNpcs().RotateParticlesWithMesh(
-        worldCenter,
-        cosAngle,
-        sinAngle,
-        mModel->GetMesh());
+    ////mModel->GetNpcs().RotateParticlesWithMesh(
+    ////    worldCenter,
+    ////    cosAngle,
+    ////    sinAngle,
+    ////    mModel->GetMesh());
 }
 
 void LabController::RotateMeshBy(
@@ -369,15 +370,16 @@ void LabController::RotateMeshBy(
         vertices.SetPosition(v, rotatedPos + worldCenter);
     }    
 
-    //
-    // Rotate particles
-    //
+    // TODOTEST
+    //////
+    ////// Rotate particles
+    //////
 
-    mModel->GetNpcs().RotateParticlesWithMesh(
-        worldCenter,
-        cosAngle,
-        sinAngle,
-        mModel->GetMesh());
+    ////mModel->GetNpcs().RotateParticlesWithMesh(
+    ////    worldCenter,
+    ////    cosAngle,
+    ////    sinAngle,
+    ////    mModel->GetMesh());
 }
 
 bool LabController::TrySelectOriginTriangle(vec2f const & screenCoordinates)
