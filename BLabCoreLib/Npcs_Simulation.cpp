@@ -220,6 +220,12 @@ void Npcs::UpdateNpcParticle(
         //    - In this case, at next iteration:
         //          - TrajectoryStart (== current bary coords) is new
         //          - TrajectoryEnd (== start absolute pos + physicsDeltaPos) is same as before
+        //
+        // Each iteration of the loop performs either an "inertial ray-tracing step" - i.e. with the particle free to move
+        // inside of a triangle - or a "non-inertial step" - i.e. with the particle pushed against an edge, and thus
+        // moving in a non-inertial frame as the mesh acceleration spawns the appearance of apparent forces.
+        // - After an inertial iteration we won't enter a non-inertial iteration
+        // - A non-inertial iteration might be followed by an inertial one
 
         // Initialize trajectory start (wrt current triangle) as the absolute pos of the particle as if it just
         // moved with the mesh, staying in its position wrt its triangle; in other words, it's the new theoretical 
@@ -257,10 +263,28 @@ void Npcs::UpdateNpcParticle(
         // in order to keep trajectory directory invariant with walk
         vec2f totalEdgeWalkedActual = vec2f::zero();
 
-        // TODOTEST
-        // constrainedEdgeDistanceTODOHERE
-        std::optional<float> constrainedEdgeTravelBudget;
-        float constrainedEdgeTravelTotal = 0.0f;
+        // Here's for something seemingly obscure.
+        //
+        // At our first trajectory flattening for a non-inertial step we take the calculated
+        // absolute flattened trajectory length (including walk) as the maximum (absolute) 
+        // distance that we're willing to travel in the (remaining) time quantum.
+        // After all this is really the projection of the real and apparent forces acting on
+        // the particle onto the (first) edge, and the one we should keep as the particle's 
+        // movement vector is now tied to the edge.
+        //
+        // At times an iteration might want to travel more than what we had decided is the
+        // max we're willing to, for example because we've traveled a lot almost orthogonally
+        // to the theoretical trajectory, and while there's little left along the flattened
+        // trajectory, the trajectory end point might still be quite far from where we are.
+        // If we stop being constrained by the edge that causes the travel to be almost
+        // orthogonal to the trajectory, we might become subject to an abnormal quantity of 
+        // displacement - yielding also an abnormal velocity calculation.
+        //
+        // We thus clamp the magnitude of flattened trajectory vectors so to never exceed
+        // this max distance we're willing to travel - hence the nickname "budget".
+
+        std::optional<float> edgeDistanceToTravelMax;
+        float edgeDistanceTraveledTotal = 0.0f; // To keep track of total distance
 
         for (float remainingDt = dt; ; )
         {
@@ -530,43 +554,43 @@ void Npcs::UpdateNpcParticle(
                                 }
                             }
 
+                            //
+                            // Calculate total (signed) displacement we plan on undergoing
+                            //
+
                             float const edgeTraveledPlanned = edgePhysicalTraveledPlanned + edgeWalkedPlanned; // Resultant
 
-                            // TODOTEST
-                            //
-                            // Budgeting
-                            //
-                            
-                            if (!constrainedEdgeTravelBudget)
+                            if (!edgeDistanceToTravelMax)
                             {
-                                constrainedEdgeTravelBudget = std::abs(edgeTraveledPlanned);
+                                edgeDistanceToTravelMax = std::abs(edgeTraveledPlanned);
 
-                                LogMessage("=====================");
-                                LogMessage("BUDGET: ", *constrainedEdgeTravelBudget);
-                                LogMessage("=====================");
+                                LogMessage("        initialized distance budget: edgeDistanceToTravelMax=", *edgeDistanceToTravelMax);
                             }
 
-                            // TODOTEST
-                            // Make sure we don't go over budget
-                            float const remainingBudget = *constrainedEdgeTravelBudget - constrainedEdgeTravelTotal;
-                            assert(remainingBudget >= 0.0f);
-                            float adjustedEdgeTraveledPlanned;
-                            if (std::abs(edgeTraveledPlanned) > remainingBudget)
-                            {
-                                LogMessage("=====================");
-                                LogMessage("PLAN OVER BUDGET: PLANNED=", edgeTraveledPlanned, " REMAINING BUDGET=", remainingBudget);
+                            // Make sure we don't travel more than what we're willing to
 
+                            float adjustedEdgeTraveledPlanned;
+
+                            float const remainingDistanceBudget = *edgeDistanceToTravelMax - edgeDistanceTraveledTotal;
+                            assert(remainingDistanceBudget >= 0.0f);                            
+                            if (std::abs(edgeTraveledPlanned) > remainingDistanceBudget)
+                            {
                                 if (edgeTraveledPlanned >= 0.0f)
                                 {
-                                    adjustedEdgeTraveledPlanned = std::min(edgeTraveledPlanned, remainingBudget);
+                                    adjustedEdgeTraveledPlanned = std::min(edgeTraveledPlanned, remainingDistanceBudget);
                                 }
                                 else
                                 {
-                                    adjustedEdgeTraveledPlanned = std::max(edgeTraveledPlanned, -remainingBudget);
+                                    adjustedEdgeTraveledPlanned = std::max(edgeTraveledPlanned, -remainingDistanceBudget);
                                 }
 
-                                LogMessage("ADJUSTED PLANNED=", adjustedEdgeTraveledPlanned);
-                                LogMessage("=====================");
+                                LogMessage("        travel exceeds budget (edgeTraveledPlanned=", edgeTraveledPlanned, " budget=", remainingDistanceBudget,
+                                    " => adjustedEdgeTraveledPlanned=", adjustedEdgeTraveledPlanned);
+
+                                // TODOTEST
+                                static float totalBudgetRestrictions = 0.0f;
+                                totalBudgetRestrictions += 1.0f;
+                                mEventDispatcher.OnCustomProbe("Budget restrictions", totalBudgetRestrictions);
                             }
                             else
                             {
@@ -633,18 +657,7 @@ void Npcs::UpdateNpcParticle(
                                 mesh,
                                 labParameters);
 
-                            LogMessage("    Actual edge traveled in non-inertial step: ", edgeTraveledActual);
-
-                            // TODOTEST
-                            constrainedEdgeTravelTotal += std::abs(edgeTraveledActual);
-                            LogMessage("=====================");
-                            LogMessage("ACTUAL TOTAL=", constrainedEdgeTravelTotal, " BUDGET=", *constrainedEdgeTravelBudget);
-                            LogMessage("=====================");
-                            if (constrainedEdgeTravelTotal > *constrainedEdgeTravelBudget + 0.0001f)
-                            {
-                                LogMessage("!!!!! OVER BUDGET!!!");
-                                assert(false);
-                            }
+                            LogMessage("    Actual edge traveled in non-inertial step: ", edgeTraveledActual);                            
 
                             if (doStop)
                             {
@@ -710,19 +723,15 @@ void Npcs::UpdateNpcParticle(
                                 }
                             }
 
+                            // Update total (absolute) distance traveled along (an) edge
+                            edgeDistanceTraveledTotal += std::abs(edgeTraveledActual);
+
                             // If we haven't completed, there is still some distance remaining in the budget
                             //
                             // Note: if this doesn't hold, at the next iteration we'll move by zero and we'll reset
                             // velocity to zero, even though we have moved in this step, thus yielding an erroneous
                             // zero velocity
-                            assert(remainingDt == 0.0f || constrainedEdgeTravelTotal < *constrainedEdgeTravelBudget);
-
-                            // Update well detection machinery
-                            if (npcParticle.ConstrainedState.has_value())
-                            {
-                                pastPastBarycentricPosition = pastBarycentricPosition;
-                                pastBarycentricPosition.emplace(npcParticle.ConstrainedState->CurrentTriangle, npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords);
-                            }
+                            assert(remainingDt == 0.0f || edgeDistanceTraveledTotal < *edgeDistanceToTravelMax);
 
                             // Update total human distance traveled
                             if (npc.HumanNpcState.has_value()
@@ -732,13 +741,20 @@ void Npcs::UpdateNpcParticle(
                             }
 
                             // Update total vector walked along edge
-                            // Note: using unadjusted edge traveled planned, as edge walked planned is also unadjusted,
+                            // Note: we use unadjusted edge traveled planned, as edge walked planned is also unadjusted,
                             // and we are only interested in the ratio anyway
                             float const edgeWalkedActual = edgeTraveledPlanned != 0.0f
                                 ? edgeTraveledActual * (edgeWalkedPlanned / edgeTraveledPlanned)
                                 : 0.0f; // Unlikely, but read above for rationale behind 0.0
                             totalEdgeWalkedActual += edgeDir * edgeWalkedActual;
                             LogMessage("        edgeWalkedActual=", edgeWalkedActual, " totalEdgeWalkedActual=", totalEdgeWalkedActual);
+
+                            // Update well detection machinery
+                            if (npcParticle.ConstrainedState.has_value())
+                            {
+                                pastPastBarycentricPosition = pastBarycentricPosition;
+                                pastBarycentricPosition.emplace(npcParticle.ConstrainedState->CurrentTriangle, npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords);
+                            }
 
                             if (npcParticle.ConstrainedState.has_value())
                             {

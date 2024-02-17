@@ -869,17 +869,6 @@ void LabController::LoadMesh(
 
     if (addExperimentalNpc)
     {
-        // TODOTEST
-        ////vec2f const position = (
-        ////    mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexAIndex(0))
-        ////    + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexBIndex(0))
-        ////    + mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexCIndex(0))) / 3.0f;
-        //vec2f const position =
-        //    mesh->GetVertices().GetPosition(mesh->GetTriangles().GetVertexBIndex(0))
-        //    - vec2f(0.5f, 0.5f);
-
-        // TODOTEST
-        //vec2f const position = vec2f(0.5f, -2.0f);
         // TODO: for small mesh, in the middle
         //vec2f const position = vec2f(0.5f, 0.0f);
         // TODO: for small mesh, on the floor, left triangle
@@ -889,10 +878,10 @@ void LabController::LoadMesh(
         // TODO: for large mesh, on floor
         //vec2f const position = vec2f(5.5f, -6.0f);
 
-        // TODO: for repro w/human
+        // TODO: for repro of traj acceleration w/human
         vec2f const position = vec2f(-0.634f, -2.0f);
 
-        ////// TODO: for repro w/ball
+        ////// TODO: for repro of traj acceleration w/ball
         ////ElementIndex const triangleIndex = 46;
         ////float const TODO = 0.99435f;
         ////bcoords3f const baryCoords = bcoords3f(TODO, 0.0f, 1.0f - TODO);
@@ -900,8 +889,8 @@ void LabController::LoadMesh(
 
         npcs->Add(
             // TODOTEST
-            Npcs::NpcType::Furniture,
-            //Npcs::NpcType::Human,
+            //Npcs::NpcType::Furniture,
+            Npcs::NpcType::Human,
             position,
             std::nullopt, // Secondary position
             mCurrentSimulationTime,
@@ -909,22 +898,22 @@ void LabController::LoadMesh(
             *mesh,
             mLabParameters);
 
-        // TODOTEST
-        for (int i = 0; i < 40; ++i)
-        {
-            vec2f const p = vec2f(
-                GameRandomEngine::GetInstance().GenerateUniformReal(-9.0f, 8.0f),
-                GameRandomEngine::GetInstance().GenerateUniformReal(-5.0f, 5.0f));
+        ////// TODOTEST: multiple balls
+        ////for (int i = 0; i < 40; ++i)
+        ////{
+        ////    vec2f const p = vec2f(
+        ////        GameRandomEngine::GetInstance().GenerateUniformReal(-9.0f, 8.0f),
+        ////        GameRandomEngine::GetInstance().GenerateUniformReal(-5.0f, 5.0f));
 
-            npcs->Add(
-                Npcs::NpcType::Furniture,
-                p,
-                std::nullopt, // Secondary position
-                mCurrentSimulationTime,
-                mStructuralMaterialDatabase,
-                *mesh,
-                mLabParameters);
-        }
+        ////    npcs->Add(
+        ////        Npcs::NpcType::Furniture,
+        ////        p,
+        ////        std::nullopt, // Secondary position
+        ////        mCurrentSimulationTime,
+        ////        mStructuralMaterialDatabase,
+        ////        *mesh,
+        ////        mLabParameters);
+        ////}
 
         ////// TODO: for repro w/ball, part II
         ////assert(npcs->GetState(0).PrimaryParticleState.ConstrainedState.has_value());
