@@ -135,12 +135,6 @@ void Npcs::UpdateNpcs(
                 labParameters);
         }
     }
-
-    // TODOTEST
-    if (mStateBuffer[0].PrimaryParticleState.ConstrainedState.has_value())
-        mEventDispatcher.OnCustomProbe("CurrentVirtEdge", float(mStateBuffer[0].PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex));
-    else
-        mEventDispatcher.OnCustomProbe("CurrentVirtEdge", -1.0f);
 }
 
 void Npcs::UpdateNpcParticle(
@@ -149,6 +143,10 @@ void Npcs::UpdateNpcParticle(
     Mesh const & mesh,
     LabParameters const & labParameters)
 {
+    //
+    // Here be dragons!
+    //
+
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
 
     LogMessage("----------------------------------");
@@ -217,23 +215,25 @@ void Npcs::UpdateNpcParticle(
         // each step moves the next TrajectoryStart a bit ahead.
         // Each iteration of the loop either exits (completes), or moves current bary coords (and calcs remaining dt) when it wants 
         // to "continue" an impact while on edge-moving-against-it, i.e. when it wants to recalculate a new flattened traj.
-        //    - In this case, the iteration doesn't change current absolute position, nor velocity; it only updates current bary coords 
+        //    - In this case, the iteration doesn't change current absolute position nor velocity; it only updates current bary coords 
         //      to what will become the next TrajectoryStart
         //    - In this case, at next iteration:
         //          - TrajectoryStart (== current bary coords) is new
         //          - TrajectoryEnd (== start absolute pos + physicsDeltaPos) is same as before
 
-        // Initialize absolute position of particle (wrt current triangle) as if it moved with the mesh, staying in its position wrt its triangle;
-        // it's the new theoretical position after mesh displacement
+        // Initialize trajectory start (wrt current triangle) as the absolute pos of the particle as if it just
+        // moved with the mesh, staying in its position wrt its triangle; in other words, it's the new theoretical 
+        // position after just mesh displacement
         vec2f trajectoryStartAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
             npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords,
             npcParticle.ConstrainedState->CurrentTriangle,
             mesh.GetVertices());
 
-        // Calculate mesh displacement for the whole loop via pure displacement of triangle containing particle
+        // Calculate mesh velocity for the whole loop as the pure displacement of the triangle containing this particle
         vec2f const meshVelocity = (particleStartAbsolutePosition - trajectoryStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration;
 
-        // Machinery to detect 3-iteration paths that doesn't move particle (positional well)
+        // Machinery to detect 3-iteration paths that doesn't move particle (positional well,
+        // aka gravity well)
 
         struct PastBarycentricPosition
         {
@@ -252,9 +252,13 @@ void Npcs::UpdateNpcParticle(
         std::optional<PastBarycentricPosition> pastBarycentricPosition;
 
         // Total displacement walked along the edge - as a sum of the vectors from the individual steps
+        //
+        // We will consider the particle's starting position to incrementally move by this,
+        // in order to keep trajectory directory invariant with walk
         vec2f totalEdgeWalkedActual = vec2f::zero();
 
         // TODOTEST
+        // constrainedEdgeDistanceTODOHERE
         std::optional<float> constrainedEdgeTravelBudget;
         float constrainedEdgeTravelTotal = 0.0f;
 
@@ -345,7 +349,7 @@ void Npcs::UpdateNpcParticle(
 
                     case NavigateVertexOutcome::OutcomeType::EncounteredFloor:
                     {
-                        // Handle impact with "flattening" algorithm
+                        // Continue with ray-tracing, handling impact using "flattening" algorithm
                         break;
                     }
                 }
@@ -526,13 +530,13 @@ void Npcs::UpdateNpcParticle(
                                 }
                             }
 
-                            //
-                            // Recover flattened trajectory as a vector
-                            //
-
                             float const edgeTraveledPlanned = edgePhysicalTraveledPlanned + edgeWalkedPlanned; // Resultant
 
                             // TODOTEST
+                            //
+                            // Budgeting
+                            //
+                            
                             if (!constrainedEdgeTravelBudget)
                             {
                                 constrainedEdgeTravelBudget = std::abs(edgeTraveledPlanned);
@@ -568,6 +572,10 @@ void Npcs::UpdateNpcParticle(
                             {
                                 adjustedEdgeTraveledPlanned = edgeTraveledPlanned;
                             }
+
+                            //
+                            // Recover flattened trajectory as a vector
+                            //
 
                             vec2f const flattenedTrajectory = edgeDir * adjustedEdgeTraveledPlanned;
 
@@ -635,6 +643,7 @@ void Npcs::UpdateNpcParticle(
                             if (constrainedEdgeTravelTotal > *constrainedEdgeTravelBudget + 0.0001f)
                             {
                                 LogMessage("!!!!! OVER BUDGET!!!");
+                                assert(false);
                             }
 
                             if (doStop)
@@ -701,8 +710,23 @@ void Npcs::UpdateNpcParticle(
                                 }
                             }
 
-                            // Update total (edge) traveled
-                            if (npc.HumanNpcState.has_value() && isPrimaryParticle)
+                            // If we haven't completed, there is still some distance remaining in the budget
+                            //
+                            // Note: if this doesn't hold, at the next iteration we'll move by zero and we'll reset
+                            // velocity to zero, even though we have moved in this step, thus yielding an erroneous
+                            // zero velocity
+                            assert(remainingDt == 0.0f || constrainedEdgeTravelTotal < *constrainedEdgeTravelBudget);
+
+                            // Update well detection machinery
+                            if (npcParticle.ConstrainedState.has_value())
+                            {
+                                pastPastBarycentricPosition = pastBarycentricPosition;
+                                pastBarycentricPosition.emplace(npcParticle.ConstrainedState->CurrentTriangle, npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords);
+                            }
+
+                            // Update total human distance traveled
+                            if (npc.HumanNpcState.has_value()
+                                && isPrimaryParticle) // Human is represented by primary particle
                             {
                                 npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition += std::abs(edgeTraveledActual);
                             }
@@ -719,10 +743,6 @@ void Npcs::UpdateNpcParticle(
                             if (npcParticle.ConstrainedState.has_value())
                             {
                                 LogMessage("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " EndMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
-
-                                // Update well detection machinery
-                                pastPastBarycentricPosition = pastBarycentricPosition;
-                                pastBarycentricPosition.emplace(npcParticle.ConstrainedState->CurrentTriangle, npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords);
                             }
                             else
                             {
@@ -793,13 +813,13 @@ void Npcs::UpdateNpcParticle(
                     LogMessage("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
                 }
 
-                // Consume whole time quantum
+                // Consume whole time quantum and stop
                 remainingDt = 0.0f;
             }
 
             if (remainingDt <= 0.0f)
             {
-                assert(remainingDt > -0.0001f); // If negative, only because of numerical slack
+                assert(remainingDt > -0.0001f); // If negative, it's only because of numerical slack
 
                 // Consumed whole time quantum, loop completed
                 break;
@@ -1097,7 +1117,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
 
         //
         // Velocity: given that we've completed *along the edge*, then we can calculate
-        // our (relative) velocity based on the distance traveled along this time quantum
+        // our (relative) velocity based on the distance traveled along this (remaining) time quantum
         //
         // We take into account only the edge traveled at this moment, divided by the length of this time quantum:
         // V = signed_edge_traveled_actual * edgeDir / this_dt
@@ -1116,7 +1136,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
         particles.SetVelocity(npcParticle.ParticleIndex, relativeVelocity - meshVelocity);
         npcParticleConstrainedState.MeshRelativeVelocity = relativeVelocity;
 
-        LogMessage("        edgeTraveledPlanned=", edgeTraveledPlanned, " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
+        LogMessage("        edgeTraveleded (==planned)=", edgeTraveledPlanned, " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
 
         // Complete
         return std::make_tuple(

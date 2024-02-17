@@ -900,14 +900,31 @@ void LabController::LoadMesh(
 
         npcs->Add(
             // TODOTEST
-            //Npcs::NpcType::Furniture,
-            Npcs::NpcType::Human,
+            Npcs::NpcType::Furniture,
+            //Npcs::NpcType::Human,
             position,
             std::nullopt, // Secondary position
             mCurrentSimulationTime,
             mStructuralMaterialDatabase,
             *mesh,
             mLabParameters);
+
+        // TODOTEST
+        for (int i = 0; i < 40; ++i)
+        {
+            vec2f const p = vec2f(
+                GameRandomEngine::GetInstance().GenerateUniformReal(-9.0f, 8.0f),
+                GameRandomEngine::GetInstance().GenerateUniformReal(-5.0f, 5.0f));
+
+            npcs->Add(
+                Npcs::NpcType::Furniture,
+                p,
+                std::nullopt, // Secondary position
+                mCurrentSimulationTime,
+                mStructuralMaterialDatabase,
+                *mesh,
+                mLabParameters);
+        }
 
         ////// TODO: for repro w/ball, part II
         ////assert(npcs->GetState(0).PrimaryParticleState.ConstrainedState.has_value());
