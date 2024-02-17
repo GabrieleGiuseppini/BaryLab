@@ -751,6 +751,12 @@ private:
 		Mesh const & mesh,
 		LabParameters const & labParameters);
 
+	void OnHumanImpact(
+		vec2f const & impactVector,
+		vec2f const & bounceEdgeNormal,
+		StateType & npc,
+		bool isPrimaryParticle) const;
+
 	using DoImmediate = StrongTypedBool<struct _DoImmediate>;
 
 	void FlipHumanWalk(

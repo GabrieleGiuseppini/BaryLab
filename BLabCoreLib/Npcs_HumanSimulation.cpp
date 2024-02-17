@@ -380,6 +380,34 @@ void Npcs::RunWalkingHumanStateMachine(
 	LogMessage("        currentWalkMagnitude: ", walkingState.CurrentWalkMagnitude);
 }
 
+void Npcs::OnHumanImpact(
+	vec2f const & /*impactVector*/,
+	vec2f const & bounceEdgeNormal,
+	StateType & npc,
+	bool /*isPrimaryParticle*/) const
+{
+	switch (npc.HumanNpcState->CurrentBehavior)
+	{
+		case StateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
+		{
+			// Check alignment of impact with walking direction; if hit => flip
+			if (bounceEdgeNormal.dot(vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f)) > 0.0f
+				&& npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
+			{
+				// Flip now
+				FlipHumanWalk(*npc.HumanNpcState, StrongTypedTrue<_DoImmediate>);
+			}
+
+			break;
+		}
+
+		default:
+		{
+			break;
+		}
+	}
+}
+
 void Npcs::FlipHumanWalk(
 	StateType::HumanNpcStateType & humanState,
 	DoImmediate doImmediate) const

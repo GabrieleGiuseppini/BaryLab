@@ -1830,37 +1830,18 @@ void Npcs::OnImpact(
     vec2f const & impactVector,
     vec2f const & bounceEdgeNormal, // Pointing outside of triangle
     StateType & npc,
-    bool /*isPrimaryParticle*/) const
+    bool isPrimaryParticle) const
 {
     LogMessage("    OnImpact(", impactVector.length(), ", ", bounceEdgeNormal, ")");
 
-    // TODOTEST: now we need it to tolerate bounce after flying up because of walk velocity
-    if (impactVector.length() > 0.05f) // Magic number - tolerance to small bounces
+    // Human state machine
+    if (npc.HumanNpcState.has_value())
     {
-        // Human state machine
-        if (npc.HumanNpcState.has_value())
-        {
-            switch (npc.HumanNpcState->CurrentBehavior)
-            {
-                case StateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
-                {
-                    // Check alignment of impact with walking direction; if hit => flip
-                    if (bounceEdgeNormal.dot(vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f)) > 0.5f // ~60 degrees
-                        && npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
-                    {
-                        // Flip now
-                        FlipHumanWalk(*npc.HumanNpcState, StrongTypedTrue<_DoImmediate>);
-                    }
-
-                    break;
-                }
-
-                default:
-                {
-                    break;
-                }
-            }
-        }
+        OnHumanImpact(
+            impactVector,
+            bounceEdgeNormal,
+            npc,
+            isPrimaryParticle);
     }
 }
 
