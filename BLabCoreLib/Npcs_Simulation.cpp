@@ -254,6 +254,10 @@ void Npcs::UpdateNpcParticle(
         // Total displacement walked along the edge - as a sum of the vectors from the individual steps
         vec2f totalEdgeWalkedActual = vec2f::zero();
 
+        // TODOTEST
+        std::optional<float> constrainedEdgeTravelBudget;
+        float constrainedEdgeTravelTotal = 0.0f;
+
         for (float remainingDt = dt; ; )
         {
             assert(remainingDt > 0.0f);
@@ -528,7 +532,44 @@ void Npcs::UpdateNpcParticle(
 
                             float const edgeTraveledPlanned = edgePhysicalTraveledPlanned + edgeWalkedPlanned; // Resultant
 
-                            vec2f const flattenedTrajectory = edgeDir * edgeTraveledPlanned;
+                            // TODOTEST
+                            if (!constrainedEdgeTravelBudget)
+                            {
+                                constrainedEdgeTravelBudget = std::abs(edgeTraveledPlanned);
+
+                                LogMessage("=====================");
+                                LogMessage("BUDGET: ", *constrainedEdgeTravelBudget);
+                                LogMessage("=====================");
+                            }
+
+                            // TODOTEST
+                            // Make sure we don't go over budget
+                            float const remainingBudget = *constrainedEdgeTravelBudget - constrainedEdgeTravelTotal;
+                            assert(remainingBudget >= 0.0f);
+                            float adjustedEdgeTraveledPlanned;
+                            if (std::abs(edgeTraveledPlanned) > remainingBudget)
+                            {
+                                LogMessage("=====================");
+                                LogMessage("PLAN OVER BUDGET: PLANNED=", edgeTraveledPlanned, " REMAINING BUDGET=", remainingBudget);
+
+                                if (edgeTraveledPlanned >= 0.0f)
+                                {
+                                    adjustedEdgeTraveledPlanned = std::min(edgeTraveledPlanned, remainingBudget);
+                                }
+                                else
+                                {
+                                    adjustedEdgeTraveledPlanned = std::max(edgeTraveledPlanned, -remainingBudget);
+                                }
+
+                                LogMessage("ADJUSTED PLANNED=", adjustedEdgeTraveledPlanned);
+                                LogMessage("=====================");
+                            }
+                            else
+                            {
+                                adjustedEdgeTraveledPlanned = edgeTraveledPlanned;
+                            }
+
+                            vec2f const flattenedTrajectory = edgeDir * adjustedEdgeTraveledPlanned;
 
                             //
                             // Calculate trajectory target
@@ -577,7 +618,7 @@ void Npcs::UpdateNpcParticle(
                                 flattenedTrajectoryEndAbsolutePosition,
                                 flattenedTrajectoryEndBarycentricCoords,
                                 flattenedTrajectory,
-                                edgeTraveledPlanned,
+                                adjustedEdgeTraveledPlanned,
                                 meshVelocity,
                                 remainingDt,
                                 mParticles,
@@ -585,6 +626,16 @@ void Npcs::UpdateNpcParticle(
                                 labParameters);
 
                             LogMessage("    Actual edge traveled in non-inertial step: ", edgeTraveledActual);
+
+                            // TODOTEST
+                            constrainedEdgeTravelTotal += std::abs(edgeTraveledActual);
+                            LogMessage("=====================");
+                            LogMessage("ACTUAL TOTAL=", constrainedEdgeTravelTotal, " BUDGET=", *constrainedEdgeTravelBudget);
+                            LogMessage("=====================");
+                            if (constrainedEdgeTravelTotal > *constrainedEdgeTravelBudget + 0.0001f)
+                            {
+                                LogMessage("!!!!! OVER BUDGET!!!");
+                            }
 
                             if (doStop)
                             {
@@ -637,9 +688,9 @@ void Npcs::UpdateNpcParticle(
                                     // We have moved
 
                                     // Calculate consumed dt
-                                    assert(edgeTraveledActual * edgeTraveledPlanned >= 0.0f); // Should have same sign
-                                    float const dtFractionConsumed = edgeTraveledPlanned != 0.0f
-                                        ? std::min(edgeTraveledActual / edgeTraveledPlanned, 1.0f) // Signs should agree anyway
+                                    assert(edgeTraveledActual * adjustedEdgeTraveledPlanned >= 0.0f); // Should have same sign
+                                    float const dtFractionConsumed = adjustedEdgeTraveledPlanned != 0.0f
+                                        ? std::min(edgeTraveledActual / adjustedEdgeTraveledPlanned, 1.0f) // Signs should agree anyway
                                         : 1.0f; // If we were planning no travel, any movement is a whole consumption
                                     LogMessage("        dtFractionConsumed=", dtFractionConsumed);
                                     remainingDt *= (1.0f - dtFractionConsumed);
@@ -648,7 +699,6 @@ void Npcs::UpdateNpcParticle(
                                     pastPastBarycentricPosition.reset();
                                     pastBarycentricPosition.reset();
                                 }
-
                             }
 
                             // Update total (edge) traveled
@@ -658,6 +708,8 @@ void Npcs::UpdateNpcParticle(
                             }
 
                             // Update total vector walked along edge
+                            // Note: using unadjusted edge traveled planned, as edge walked planned is also unadjusted,
+                            // and we are only interested in the ratio anyway
                             float const edgeWalkedActual = edgeTraveledPlanned != 0.0f
                                 ? edgeTraveledActual * (edgeWalkedPlanned / edgeTraveledPlanned)
                                 : 0.0f; // Unlikely, but read above for rationale behind 0.0

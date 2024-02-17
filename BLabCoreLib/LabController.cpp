@@ -912,8 +912,10 @@ void LabController::LoadMesh(
 
         assert(npcs->GetState(0).PrimaryParticleState.ConstrainedState.has_value());
         assert(npcs->GetState(0).PrimaryParticleState.ConstrainedState->CurrentTriangle == triangleIndex);
-        npcs->GetState(0).PrimaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords = baryCoords;
+        npcs->GetState(0).PrimaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords = baryCoords;        
         npcs->GetParticles().SetVelocity(npcs->GetState(0).PrimaryParticleState.ParticleIndex, vec2f(-1.0f, 0.0f));
+        // TODOTEST: trying now for inertial (no G and no friction)
+        //npcs->GetParticles().SetVelocity(npcs->GetState(0).PrimaryParticleState.ParticleIndex, vec2f(-1.0f, (LabParameters::GravityMagnitude + 16.25f) * LabParameters::SimulationTimeStepDuration));
 
         // Select particle
         assert(npcs->GetParticles().GetParticleCount() > 0);
