@@ -289,6 +289,7 @@ void Npcs::UpdateNpcParticle(
 
             // Trajectory
             // Note: on first iteration this is the same as physicsDeltaPos + meshDisplacement
+            // TrajectoryStartAbsolutePosition changes at each iteration to be the absolute translation of the current particle bary coords
             vec2f const trajectory = trajectoryEndAbsolutePosition - trajectoryStartAbsolutePosition;
 
             LogMessage("    TrajectoryStartAbsolutePosition=", trajectoryStartAbsolutePosition, " PhysicsDeltaPos=", physicsDeltaPos, " TotalEdgeWalkedActual=", totalEdgeWalkedActual,
