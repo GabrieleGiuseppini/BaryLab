@@ -890,19 +890,18 @@ void LabController::LoadMesh(
         //vec2f const position = vec2f(5.5f, -6.0f);
 
         // TODO: for repro w/human
-        //vec2f const position = vec2f(-0.634f, -2.0f);
+        vec2f const position = vec2f(-0.634f, -2.0f);
 
-        // TODO: for repro w/ball
-        ElementIndex const triangleIndex = 46;
-        //float const TODO = 0.9949f; go less
-        float const TODO = 0.99435f;
-        bcoords3f const baryCoords = bcoords3f(TODO, 0.0f, 1.0f - TODO);
-        vec2f const position = mesh->GetTriangles().FromBarycentricCoordinates(baryCoords, triangleIndex, mesh->GetVertices());
+        ////// TODO: for repro w/ball
+        ////ElementIndex const triangleIndex = 46;
+        ////float const TODO = 0.99435f;
+        ////bcoords3f const baryCoords = bcoords3f(TODO, 0.0f, 1.0f - TODO);
+        ////vec2f const position = mesh->GetTriangles().FromBarycentricCoordinates(baryCoords, triangleIndex, mesh->GetVertices());
 
         npcs->Add(
             // TODOTEST
-            Npcs::NpcType::Furniture,
-            //Npcs::NpcType::Human,
+            //Npcs::NpcType::Furniture,
+            Npcs::NpcType::Human,
             position,
             std::nullopt, // Secondary position
             mCurrentSimulationTime,
@@ -910,12 +909,13 @@ void LabController::LoadMesh(
             *mesh,
             mLabParameters);
 
-        assert(npcs->GetState(0).PrimaryParticleState.ConstrainedState.has_value());
-        assert(npcs->GetState(0).PrimaryParticleState.ConstrainedState->CurrentTriangle == triangleIndex);
-        npcs->GetState(0).PrimaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords = baryCoords;        
-        npcs->GetParticles().SetVelocity(npcs->GetState(0).PrimaryParticleState.ParticleIndex, vec2f(-1.0f, 0.0f));
-        // TODOTEST: trying now for inertial (no G and no friction)
-        //npcs->GetParticles().SetVelocity(npcs->GetState(0).PrimaryParticleState.ParticleIndex, vec2f(-1.0f, (LabParameters::GravityMagnitude + 16.25f) * LabParameters::SimulationTimeStepDuration));
+        ////// TODO: for repro w/ball, part II
+        ////assert(npcs->GetState(0).PrimaryParticleState.ConstrainedState.has_value());
+        ////assert(npcs->GetState(0).PrimaryParticleState.ConstrainedState->CurrentTriangle == triangleIndex);
+        ////npcs->GetState(0).PrimaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords = baryCoords;        
+        ////npcs->GetParticles().SetVelocity(npcs->GetState(0).PrimaryParticleState.ParticleIndex, vec2f(-1.0f, 0.0f));
+        ////// TODOTEST: trying now for inertial (no G and no friction)
+        //////npcs->GetParticles().SetVelocity(npcs->GetState(0).PrimaryParticleState.ParticleIndex, vec2f(-1.0f, (LabParameters::GravityMagnitude + 16.25f) * LabParameters::SimulationTimeStepDuration));
 
         // Select particle
         assert(npcs->GetParticles().GetParticleCount() > 0);
