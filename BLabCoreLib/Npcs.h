@@ -767,6 +767,10 @@ private:
 		StateType::HumanNpcStateType & humanState,
 		DoImmediate doImmediate) const;
 
+	float CalculateActualHumanWalkingAbsoluteSpeed(
+		StateType::HumanNpcStateType & humanState,
+		LabParameters const & labParameters) const;
+
 private:
 
 	World & mParentWorld;

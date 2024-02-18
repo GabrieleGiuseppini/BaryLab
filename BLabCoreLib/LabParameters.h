@@ -101,7 +101,7 @@ struct LabParameters
     static float constexpr MaxHumanNpcEquilibriumTorqueDampingCoefficient = 0.1f;
 
     float HumanNpcWalkingSpeed;
-    static float constexpr MinHumanNpcWalkingSpeed = 0.0f;
+    static float constexpr MinHumanNpcWalkingSpeed = 0.5f;
     static float constexpr MaxHumanNpcWalkingSpeed = 2.5f;
 
     struct HumanNpcGeometry

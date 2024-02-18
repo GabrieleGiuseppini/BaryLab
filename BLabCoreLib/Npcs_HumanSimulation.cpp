@@ -200,7 +200,7 @@ void Npcs::UpdateHuman(
 				vec2f const idealWalkVelocityDir = vec2f(
 					humanState.CurrentFaceDirectionX,
 					0.0f);
-				float const idealWalkVelocityMagnitude = humanState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude * labParameters.HumanNpcWalkingSpeed;
+				float const idealWalkVelocityMagnitude = CalculateActualHumanWalkingAbsoluteSpeed(humanState, labParameters);
 				vec2f const idealWalkVelocity = idealWalkVelocityDir * idealWalkVelocityMagnitude;
 
 				float const primaryMeshRelativeVelocityAlongWalkDir = primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(idealWalkVelocityDir);
@@ -410,7 +410,7 @@ void Npcs::RunWalkingHumanStateMachine(
 		float constexpr MinRelativeVelocityAgreementToAcceptWalk = 0.025f;
 		float const relativeVelocityAgreement = primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(
 			vec2f(
-				humanState.CurrentFaceDirectionX * walkingState.CurrentWalkMagnitude * labParameters.HumanNpcWalkingSpeed,
+				humanState.CurrentFaceDirectionX * CalculateActualHumanWalkingAbsoluteSpeed(humanState, labParameters),
 				0.0f));
 		if (relativeVelocityAgreement < MinRelativeVelocityAgreementToAcceptWalk)
 		{
@@ -502,4 +502,17 @@ void Npcs::FlipHumanWalk(
 	{
 		walkingState.TargetFlipDecision = 1.0f;
 	}
+}
+
+float Npcs::CalculateActualHumanWalkingAbsoluteSpeed(
+	StateType::HumanNpcStateType & humanState,
+	LabParameters const & labParameters) const
+{
+	assert(humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking);
+
+	return std::min(
+		labParameters.HumanNpcWalkingSpeed
+		* humanState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude // Note that this is the only one that might be zero
+		* (1.0f + humanState.PanicLevel),
+		4.0f); // Absolute cap
 }

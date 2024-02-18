@@ -534,10 +534,7 @@ void Npcs::UpdateNpcParticle(
                                 vec2f const idealWalkDir = vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f);
                                 assert(idealWalkDir.length() == 1.0f);
 
-                                float const idealWalkMagnitude =
-                                    labParameters.HumanNpcWalkingSpeed
-                                    * remainingDt
-                                    * npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude;
+                                float const idealWalkMagnitude = CalculateActualHumanWalkingAbsoluteSpeed(*npc.HumanNpcState, labParameters) * remainingDt;
 
                                 vec2f walkDir; // Actual absolute direction of walk - along the edge
                                 if (idealWalkDir.dot(edgeDir) >= 0.0f)
