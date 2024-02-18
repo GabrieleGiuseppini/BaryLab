@@ -552,7 +552,8 @@ void LabController::DoStepForVideo()
     assert(mModel);
 
     // TODOTEST
-    RotateMeshBy(0, -3.1234567f * 9.0f);
+    //RotateMeshBy(0, 3.1f * 3.0f); // Stuck against wall
+    RotateMeshBy(0, -3.1f * 12.0f); // Sfarfallio
     return;
 
     ////++mCurrentVideoStep;

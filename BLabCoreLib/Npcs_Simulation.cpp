@@ -8,6 +8,7 @@
 #include "BLabMath.h"
 #include "Log.h"
 
+#include <algorithm>
 #include <limits>
 
 void Npcs::UpdateNpcs(
@@ -238,7 +239,7 @@ void Npcs::UpdateNpcParticle(
         // Calculate mesh velocity for the whole loop as the pure displacement of the triangle containing this particle
         vec2f const meshVelocity = (particleStartAbsolutePosition - trajectoryStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration;
 
-        // Machinery to detect 3-iteration paths that doesn't move particle (positional well,
+        // Machinery to detect 2- or 3-iteration paths that don't move particle (positional well,
         // aka gravity well)
 
         struct PastBarycentricPosition
@@ -252,10 +253,18 @@ void Npcs::UpdateNpcParticle(
                 : TriangleElementIndex(triangleElementIndex)
                 , BarycentricCoords(barycentricCoords)
             {}
+
+            bool operator==(PastBarycentricPosition const & other) const
+            {
+                return this->TriangleElementIndex == other.TriangleElementIndex
+                    && this->BarycentricCoords == other.BarycentricCoords;
+            }
         };
 
-        std::optional<PastBarycentricPosition> pastPastBarycentricPosition;
-        std::optional<PastBarycentricPosition> pastBarycentricPosition;
+        std::array<std::optional<PastBarycentricPosition>, 2> pastBarycentricPositions = { // A queue, insert at zero - initialized with now
+            PastBarycentricPosition(npcParticle.ConstrainedState->CurrentTriangle, npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords),
+            std::nullopt
+        };
 
         // Total displacement walked along the edge - as a sum of the vectors from the individual steps
         //
@@ -263,7 +272,7 @@ void Npcs::UpdateNpcParticle(
         // in order to keep trajectory directory invariant with walk
         vec2f totalEdgeWalkedActual = vec2f::zero();
 
-        // Here's for something seemingly obscure.
+        // And here's for something seemingly obscure.
         //
         // At our first trajectory flattening for a non-inertial step we take the calculated
         // absolute flattened trajectory length (including walk) as the maximum (absolute) 
@@ -642,10 +651,6 @@ void Npcs::UpdateNpcParticle(
                             // Fact: so, the actual movement includes the consumed_dt's portion (fraction) of both phys traj and imposed walk
                             //
 
-                            // Update well detection machinery
-                            pastPastBarycentricPosition = pastBarycentricPosition;
-                            pastBarycentricPosition.emplace(npcParticle.ConstrainedState->CurrentTriangle, npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords);
-
                             LogMessage("        edgePhysicalTraveledPlanned=", edgePhysicalTraveledPlanned, " edgeWalkedPlanned=", edgeWalkedPlanned);
 
                             auto const [edgeTraveledActual, doStop] = UpdateNpcParticle_ConstrainedNonInertial(
@@ -679,9 +684,8 @@ void Npcs::UpdateNpcParticle(
                                     // No movement
 
                                     // Check if we're in a well
-                                    if (pastPastBarycentricPosition.has_value()
-                                        && pastPastBarycentricPosition->TriangleElementIndex == npcParticle.ConstrainedState->CurrentTriangle
-                                        && pastPastBarycentricPosition->BarycentricCoords == npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords)
+                                    if (PastBarycentricPosition tmp(npcParticle.ConstrainedState->CurrentTriangle, npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords);
+                                        pastBarycentricPositions[0] == tmp || pastBarycentricPositions[1] == tmp)
                                     {
                                         //
                                         // Well - stop here
@@ -726,8 +730,10 @@ void Npcs::UpdateNpcParticle(
                                     remainingDt *= (1.0f - dtFractionConsumed);
 
                                     // Reset well detection machinery
-                                    pastPastBarycentricPosition.reset();
-                                    pastBarycentricPosition.reset();
+                                    std::for_each(
+                                        pastBarycentricPositions.begin(),
+                                        pastBarycentricPositions.end(),
+                                        [](auto & bp) { bp.reset(); });
                                 }
                             }
 
@@ -756,6 +762,13 @@ void Npcs::UpdateNpcParticle(
                                 : 0.0f; // Unlikely, but read above for rationale behind 0.0
                             totalEdgeWalkedActual += edgeDir * edgeWalkedActual;
                             LogMessage("        edgeWalkedActual=", edgeWalkedActual, " totalEdgeWalkedActual=", totalEdgeWalkedActual);
+
+                            // Update well detection machinery
+                            if (npcParticle.ConstrainedState.has_value()) // We might have left constrained state (not to return to it anymore)
+                            {
+                                pastBarycentricPositions[1] = pastBarycentricPositions[0];
+                                pastBarycentricPositions[0].emplace(npcParticle.ConstrainedState->CurrentTriangle, npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords);
+                            }
 
                             if (npcParticle.ConstrainedState.has_value())
                             {
