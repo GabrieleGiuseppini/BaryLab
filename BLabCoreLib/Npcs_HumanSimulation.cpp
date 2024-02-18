@@ -40,8 +40,6 @@ void Npcs::UpdateHuman(
 	Mesh const & mesh,
 	LabParameters const & labParameters)
 {
-	float const ToRisingConvergenceRate = 0.067f;
-	float const ToWalkingConvergenceRate = 0.09f;
 	float constexpr MaxRelativeVelocityMagnitudeForEquilibrium = 3.0f; // So high because we slip a lot while we try to stand up, and thus need to be immune to ourselves
 
 	std::optional<std::tuple<std::string, std::string>> publishStateQuantity;
@@ -77,9 +75,10 @@ void Npcs::UpdateHuman(
 
 			// Advance towards rising
 
+			float const toRisingConvergenceRate = 0.067f + std::min(humanState.PanicLevel, 1.0f) * 0.07f;
 			humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising +=
 				(risingTarget - humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising)
-				* ToRisingConvergenceRate;
+				* toRisingConvergenceRate;
 
 			publishStateQuantity = std::make_tuple("ProgressToRising", std::to_string(humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising));
 
@@ -123,7 +122,8 @@ void Npcs::UpdateHuman(
 				{
 					// Advance towards walking
 
-					humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking += (1.0f - humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking) * ToWalkingConvergenceRate;
+					float const toWalkingConvergenceRate = 0.09f + std::min(humanState.PanicLevel, 1.0f) * 0.15f;
+					humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking += (1.0f - humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking) * toWalkingConvergenceRate;
 
 					publishStateQuantity = std::make_tuple("ProgressToWalking", std::to_string(humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking));
 
@@ -263,6 +263,10 @@ void Npcs::UpdateHuman(
 
 				break;
 			}
+
+			//
+			// Update state now
+			//
 
 			if (humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Rising)
 			{
@@ -442,8 +446,8 @@ void Npcs::RunWalkingHumanStateMachine(
 	// 4. Advance walking magnitude towards full walk
 	//
 
-	float constexpr WalkMagnitudeConvergenceRate = 0.03f;
-	walkingState.CurrentWalkMagnitude += (1.0f - walkingState.CurrentWalkMagnitude) * WalkMagnitudeConvergenceRate;
+	float const walkMagnitudeConvergenceRate = 0.03f + std::min(humanState.PanicLevel, 1.0f) * 0.15f;
+	walkingState.CurrentWalkMagnitude += (1.0f - walkingState.CurrentWalkMagnitude) * walkMagnitudeConvergenceRate;
 
 	LogMessage("        currentWalkMagnitude: ", walkingState.CurrentWalkMagnitude);
 }

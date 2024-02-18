@@ -1911,7 +1911,10 @@ void Npcs::UpdateNpcAnimation(
                 // Calculate leg angle based on distance traveled
                 //
 
-                float const maxLegAngle = std::atan((LabParameters::HumanNpcGeometry::StepLengthFraction * std::sqrt(labParameters.HumanNpcWalkingSpeed) / 2.0f) / LabParameters::HumanNpcGeometry::LegLengthFraction);
+                // TODOHERE: incorporate panic
+                //float const maxLegAngle = std::atan((LabParameters::HumanNpcGeometry::StepLengthFraction * std::sqrt(labParameters.HumanNpcWalkingSpeed) / 2.0f) / LabParameters::HumanNpcGeometry::LegLengthFraction);
+                float const actualHalfStepLengthFraction = (LabParameters::HumanNpcGeometry::StepLengthFraction * std::sqrt(CalculateActualHumanWalkingAbsoluteSpeed(*npc.HumanNpcState, labParameters)) / 2.0f);
+                float const maxLegAngle = std::atan(actualHalfStepLengthFraction / LabParameters::HumanNpcGeometry::LegLengthFraction);
 
                 float const adjustedStandardHumanHeight = LabParameters::HumanNpcGeometry::BodyLength * labParameters.HumanNpcBodyLengthAdjustment;
                 float const stepLength = LabParameters::HumanNpcGeometry::StepLengthFraction * adjustedStandardHumanHeight;
@@ -1930,7 +1933,7 @@ void Npcs::UpdateNpcAnimation(
                 }
                 else
                 {
-                    targetRightArmAngle = Pi<float> / 2.0f + targetLeftLegAngle * 1.9f;
+                    targetRightArmAngle = Pi<float> / 2.0f + targetLeftLegAngle * (1.5f + std::min(npc.HumanNpcState->PanicLevel, 1.0f));
                 }
                 targetLeftArmAngle = -targetRightArmAngle;
 

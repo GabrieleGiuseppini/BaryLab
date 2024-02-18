@@ -582,7 +582,7 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
                 },
                 std::make_unique<LinearSliderCore>(
                     0.0f,
-                    10.0f));
+                    4.0f));
 
             mNpcHumanPanicLevelSlider->SetValue(0.0f);
 
