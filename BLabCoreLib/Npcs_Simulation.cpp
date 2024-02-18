@@ -1063,8 +1063,9 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
         //
 
         // Calculate angle that we want to enforce with this torque
+        float const stiffness = labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient + std::min(npc.HumanNpcState->PanicLevel, 1.0f) * 0.0005f;
         float const totalTorqueAngleCW =
-            staticDisplacementAngleCW * labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient
+            staticDisplacementAngleCW * stiffness
             + relativeVelocityAngleCW * labParameters.HumanNpcEquilibriumTorqueDampingCoefficient;
 
         // Calculate (linear) force that generates this rotation
