@@ -558,7 +558,7 @@ void Npcs::UpdateNpcParticle(
                                 // Apply gravity resistance: too steep slopes (wrt vertical) are gently clamped to zero,
                                 // to prevent walking on floors that are too steep
                                 float constexpr ResistanceSlopeStart = 0.50f; // Start slightly before expected 45-degree ramp
-                                float constexpr ResistanceSlopeEnd = 0.80f; // Max slope we're willing to climb
+                                float constexpr ResistanceSlopeEnd = 0.85f; // Max slope we're willing to climb
                                 float const x = walkDir.dot(-LabParameters::GravityDir); // TODO: perf: this is just y
                                 if (x >= ResistanceSlopeStart)
                                 {

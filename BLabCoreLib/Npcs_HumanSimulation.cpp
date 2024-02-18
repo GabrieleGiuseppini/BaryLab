@@ -46,7 +46,7 @@ void Npcs::UpdateHuman(
 
 	std::optional<std::tuple<std::string, std::string>> publishStateQuantity;
 
-	bool const isFree = !primaryParticleState.ConstrainedState.has_value() && !secondaryParticleState.ConstrainedState.has_value();
+	bool const isFree = !primaryParticleState.ConstrainedState.has_value();
 
 	switch (humanState.CurrentBehavior)
 	{
@@ -88,7 +88,6 @@ void Npcs::UpdateHuman(
 				// Transition
 
 				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Rising, currentSimulationTime);
-				humanState.CurrentEquilibriumSoftTerminationDecision = 0.0f; // Start clean
 
 				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Rising");
 

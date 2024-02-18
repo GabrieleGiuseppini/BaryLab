@@ -234,6 +234,7 @@ public:
 					case BehaviorType::Constrained_Rising:
 					{
 						CurrentBehaviorState.Constrained_Rising.Reset();
+						CurrentEquilibriumSoftTerminationDecision = 0.0f; // Start clean
 						break;
 					}
 
