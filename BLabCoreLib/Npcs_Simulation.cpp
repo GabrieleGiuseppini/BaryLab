@@ -1911,8 +1911,6 @@ void Npcs::UpdateNpcAnimation(
                 // Calculate leg angle based on distance traveled
                 //
 
-                // TODOHERE: incorporate panic
-                //float const maxLegAngle = std::atan((LabParameters::HumanNpcGeometry::StepLengthFraction * std::sqrt(labParameters.HumanNpcWalkingSpeed) / 2.0f) / LabParameters::HumanNpcGeometry::LegLengthFraction);
                 float const actualHalfStepLengthFraction = (LabParameters::HumanNpcGeometry::StepLengthFraction * std::sqrt(CalculateActualHumanWalkingAbsoluteSpeed(*npc.HumanNpcState, labParameters)) / 2.0f);
                 float const maxLegAngle = std::atan(actualHalfStepLengthFraction / LabParameters::HumanNpcGeometry::LegLengthFraction);
 
