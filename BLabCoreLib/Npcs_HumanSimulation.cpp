@@ -395,7 +395,7 @@ void Npcs::RunWalkingHumanStateMachine(
 	StateType::HumanNpcStateType & humanState,
 	StateType::NpcParticleStateType const & primaryParticleState,
 	Mesh const & /*mesh*/, // Will come useful when we'll *plan* the walk
-	LabParameters const & /*labParameters*/)
+	LabParameters const & labParameters)
 {
 	assert(primaryParticleState.ConstrainedState.has_value());
 	assert(humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking);
@@ -405,18 +405,24 @@ void Npcs::RunWalkingHumanStateMachine(
 	// 1. Check condition for potentially flipping: actual (relative) velocity opposite of walking direction,
 	// or too small
 
-	float constexpr MinRelativeVelocityAgreementToAcceptWalk = 0.025f;
-	float const relativeVelocityAgreement = primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(vec2f(humanState.CurrentFaceDirectionX * walkingState.CurrentWalkMagnitude, 0.0f));
-	if (relativeVelocityAgreement < MinRelativeVelocityAgreementToAcceptWalk)
+	if (walkingState.CurrentWalkMagnitude != 0.0f)
 	{
-		// Flip later
-		FlipHumanWalk(humanState, StrongTypedFalse<_DoImmediate>);
-	}
-	else
-	{
-		// We're doing good, no flipping at the horizon
-		walkingState.CurrentFlipDecision = 0.0f;
-		walkingState.TargetFlipDecision = 0.0f;
+		float constexpr MinRelativeVelocityAgreementToAcceptWalk = 0.025f;
+		float const relativeVelocityAgreement = primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(
+			vec2f(
+				humanState.CurrentFaceDirectionX * walkingState.CurrentWalkMagnitude * labParameters.HumanNpcWalkingSpeed,
+				0.0f));
+		if (relativeVelocityAgreement < MinRelativeVelocityAgreementToAcceptWalk)
+		{
+			// Flip later
+			FlipHumanWalk(humanState, StrongTypedFalse<_DoImmediate>);
+		}
+		else
+		{
+			// We're doing good, no flipping at the horizon
+			walkingState.CurrentFlipDecision = 0.0f;
+			walkingState.TargetFlipDecision = 0.0f;
+		}
 	}
 
 	// 2. Advance CurrentFlipDecision towards TargetFlipDecision
