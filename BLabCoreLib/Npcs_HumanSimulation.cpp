@@ -40,12 +40,9 @@ void Npcs::UpdateHuman(
 	Mesh const & mesh,
 	LabParameters const & labParameters)
 {
-	// TODOTEST
-	(void)currentSimulationTime;
-
 	float const ToRisingConvergenceRate = 0.067f;
 	float const ToWalkingConvergenceRate = 0.09f;
-	float constexpr MaxRelativeVelocityForEquilibrium = 3.0f; // So high because we slip a lot while we try to stand up, and thus need to be immune to ourselves
+	float constexpr MaxRelativeVelocityMagnitudeForEquilibrium = 3.0f; // So high because we slip a lot while we try to stand up, and thus need to be immune to ourselves
 
 	std::optional<std::tuple<std::string, std::string>> publishStateQuantity;
 
@@ -70,9 +67,9 @@ void Npcs::UpdateHuman(
 			float risingTarget = 0.0f;
 			if (primaryParticleState.ConstrainedState.has_value()
 				&& IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh)
-				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium
+				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityMagnitudeForEquilibrium
 				&& (!secondaryParticleState.ConstrainedState.has_value()
-					|| secondaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForEquilibrium))
+					|| secondaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityMagnitudeForEquilibrium))
 			{
 				risingTarget = 1.0f;
 			}
@@ -80,8 +77,8 @@ void Npcs::UpdateHuman(
 
 			// Advance towards rising
 
-			humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising += 
-				(risingTarget - humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising) 
+			humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising +=
+				(risingTarget - humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising)
 				* ToRisingConvergenceRate;
 
 			publishStateQuantity = std::make_tuple("ProgressToRising", std::to_string(humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising));
@@ -98,7 +95,7 @@ void Npcs::UpdateHuman(
 				break;
 			}
 
-			
+
 			break;
 		}
 
@@ -146,7 +143,11 @@ void Npcs::UpdateHuman(
 				}
 			}
 
+			//
 			// Check conditions to stay & maintain equilibrium
+			//
+
+			// a. On-edge
 
 			bool isStateMaintained;
 			if (!isOnEdge)
@@ -155,14 +156,18 @@ void Npcs::UpdateHuman(
 
 				// This is a quite important parameter: it's the duration through which we tolerate temporarily losing contact
 				// with the ground
-				float constexpr ToTerminateEquilibriumConvergenceRate = 0.25f;
+				float const toTerminateEquilibriumConvergenceRate = (humanState.CurrentBehavior != StateType::HumanNpcStateType::BehaviorType::Constrained_Walking)
+					? 0.25f
+					: 0.1f;
 
 				// Advance
-				humanState.CurrentEquilibriumSoftTerminationDecision += (1.0f - humanState.CurrentEquilibriumSoftTerminationDecision) * ToTerminateEquilibriumConvergenceRate;
+				humanState.CurrentEquilibriumSoftTerminationDecision += (1.0f - humanState.CurrentEquilibriumSoftTerminationDecision) * toTerminateEquilibriumConvergenceRate;
 
 				// Check if enough
 				if (IsAtTarget(humanState.CurrentEquilibriumSoftTerminationDecision, 1.0f))
 				{
+					LogMessage("Been off-edge for too long");
+
 					isStateMaintained = false;
 				}
 				else
@@ -177,9 +182,67 @@ void Npcs::UpdateHuman(
 				isStateMaintained = true;
 			}
 
+			// b. Mesh-relative velocity
+
+			if (humanState.CurrentBehavior != StateType::HumanNpcStateType::BehaviorType::Constrained_Walking)
+			{
+				// Not walking: we want to be draconian and can't stand a (small) relative velocity
+				if (primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() >= MaxRelativeVelocityMagnitudeForEquilibrium)
+				{
+					isStateMaintained = false;
+				}
+			}
+			else
+			{
+				// We need to take into account that we _are_ moving because we want it
+
+				assert(humanState.CurrentFaceDirectionX != 0.0f);
+
+				vec2f const idealWalkVelocityDir = vec2f(
+					humanState.CurrentFaceDirectionX,
+					0.0f);
+				float const idealWalkVelocityMagnitude = humanState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude * labParameters.HumanNpcWalkingSpeed;
+				vec2f const idealWalkVelocity = idealWalkVelocityDir * idealWalkVelocityMagnitude;
+
+				float const primaryMeshRelativeVelocityAlongWalkDir = primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(idealWalkVelocityDir);
+
+				LogMessage("idealWalkVelocity=", idealWalkVelocity, " (mag=", idealWalkVelocityMagnitude, ") ",
+					"meshRelativeVelocity=", primaryParticleState.ConstrainedState->MeshRelativeVelocity, " (along dir =", primaryMeshRelativeVelocityAlongWalkDir, ")");
+
+				if (primaryMeshRelativeVelocityAlongWalkDir >= 0.0f)
+				{
+					// Same direction as walking
+
+					// Stop if it's too much over
+					float constexpr MaxAlignedRelativeVelocityMagnitudeForWalking = 5.0f;
+					if (primaryMeshRelativeVelocityAlongWalkDir >= MaxAlignedRelativeVelocityMagnitudeForWalking)
+					{
+						LogMessage("MRV too much in same direction");
+						isStateMaintained = false;
+					}
+				}
+				else
+				{
+					// Opposite direction to walking
+
+					// Note: this check is also at flipping decision in maintaining walking state machine
+
+					// TODOTEST
+					////// Stop if we're at least a little bit opposite
+					////float constexpr MaxOppositeRelativeVelocityMagnitudeForWalking = 1.0f;
+					////if (primaryMeshRelativeVelocityAlongWalkDir <= -MaxOppositeRelativeVelocityMagnitudeForWalking)
+					////{
+					////	LogMessage("MRV too much opposite");
+					////	isStateMaintained = false;
+					////}
+				}
+			}
+
+			// . Check
+
+			assert(primaryParticleState.ConstrainedState.has_value() || !isStateMaintained);
+
 			if (!isStateMaintained
-				|| !primaryParticleState.ConstrainedState.has_value()
-				|| primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() >= MaxRelativeVelocityForEquilibrium
 				|| !CheckAndMaintainHumanEquilibrium(
 					primaryParticleState.ParticleIndex,
 					secondaryParticleState.ParticleIndex,
@@ -190,10 +253,10 @@ void Npcs::UpdateHuman(
 			{
 				// Transition to knocked out
 
-				LogMessage("Going to Constrained_KnockedOut; primary's barycentric coords: ", 
+				LogMessage("Going to Constrained_KnockedOut; primary's barycentric coords: ",
 					primaryParticleState.ConstrainedState.has_value() ? primaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords.toString() : "N/A",
-					" primary's relative velocity: ", primaryParticleState.ConstrainedState.has_value() ? std::to_string(primaryParticleState.ConstrainedState->MeshRelativeVelocity.length()) : "N/A", 
-					" (max=", MaxRelativeVelocityForEquilibrium, ")");
+					" primary's relative velocity mag: ", primaryParticleState.ConstrainedState.has_value() ? std::to_string(primaryParticleState.ConstrainedState->MeshRelativeVelocity.length()) : "N/A",
+					" (max=", MaxRelativeVelocityMagnitudeForEquilibrium, ")");
 
 				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
 
@@ -333,7 +396,7 @@ void Npcs::RunWalkingHumanStateMachine(
 	StateType::HumanNpcStateType & humanState,
 	StateType::NpcParticleStateType const & primaryParticleState,
 	Mesh const & /*mesh*/, // Will come useful when we'll *plan* the walk
-	LabParameters const & labParameters)
+	LabParameters const & /*labParameters*/)
 {
 	assert(primaryParticleState.ConstrainedState.has_value());
 	assert(humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking);
@@ -345,9 +408,8 @@ void Npcs::RunWalkingHumanStateMachine(
 
 	float constexpr MinRelativeVelocityAgreementToAcceptWalk = 0.025f;
 	float const relativeVelocityAgreement = primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(vec2f(humanState.CurrentFaceDirectionX * walkingState.CurrentWalkMagnitude, 0.0f));
-	if (relativeVelocityAgreement < MinRelativeVelocityAgreementToAcceptWalk
-		&& labParameters.HumanNpcWalkingAcceleration > 0.0f) // Video
-	{ 
+	if (relativeVelocityAgreement < MinRelativeVelocityAgreementToAcceptWalk)
+	{
 		// Flip later
 		FlipHumanWalk(humanState, StrongTypedFalse<_DoImmediate>);
 	}
@@ -368,15 +430,16 @@ void Npcs::RunWalkingHumanStateMachine(
 	if (walkingState.CurrentFlipDecision >= 0.95f)
 	{
 		// Flip now
-		FlipHumanWalk(humanState, StrongTypedTrue<_DoImmediate>);		
+		FlipHumanWalk(humanState, StrongTypedTrue<_DoImmediate>);
 	}
 
 	//
-	// 4. Advance walking magnitude towards target
+	// 4. Advance walking magnitude towards full walk
 	//
 
-	walkingState.CurrentWalkMagnitude += (walkingState.TargetWalkMagnitude - walkingState.CurrentWalkMagnitude) * labParameters.HumanNpcWalkingAcceleration;
-	
+	float constexpr WalkMagnitudeConvergenceRate = 0.03f;
+	walkingState.CurrentWalkMagnitude += (1.0f - walkingState.CurrentWalkMagnitude) * WalkMagnitudeConvergenceRate;
+
 	LogMessage("        currentWalkMagnitude: ", walkingState.CurrentWalkMagnitude);
 }
 
@@ -390,10 +453,15 @@ void Npcs::OnHumanImpact(
 	{
 		case StateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
 		{
+			LogMessage("OnHumanImpact: alignment=", bounceEdgeNormal.dot(vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f)));
+
 			// Check alignment of impact with walking direction; if hit => flip
-			if (bounceEdgeNormal.dot(vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f)) > 0.0f
+			float constexpr MaxOppositionSlope = 0.5f;
+			if (bounceEdgeNormal.dot(vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f)) > MaxOppositionSlope
 				&& npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
 			{
+				LogMessage("OnHumanImpact: FLIP!");
+
 				// Flip now
 				FlipHumanWalk(*npc.HumanNpcState, StrongTypedTrue<_DoImmediate>);
 			}

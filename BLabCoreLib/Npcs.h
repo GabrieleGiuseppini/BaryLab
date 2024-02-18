@@ -151,7 +151,6 @@ public:
 				struct Constrained_WalkingStateType
 				{
 					float CurrentWalkMagnitude; // [0.0f, 1.0f]
-					float TargetWalkMagnitude; // [0.0f, 1.0f]
 
 					float CurrentFlipDecision; // [0.0f, 1.0f]
 					float TargetFlipDecision; // [0.0f, 1.0f]
@@ -159,7 +158,6 @@ public:
 					void Reset()
 					{
 						CurrentWalkMagnitude = 0.0f;
-						TargetWalkMagnitude = 1.0f;
 						CurrentFlipDecision = 0.0f;
 						TargetFlipDecision = 0.0f;
 					}
