@@ -299,7 +299,7 @@ public:
 	void Add(
 		NpcType npcType,
 		vec2f primaryPosition,
-		std::optional<vec2f> secondaryPosition,		
+		std::optional<vec2f> secondaryPosition,
 		float currentSimulationTime,
 		StructuralMaterialDatabase const & materialDatabase,
 		Mesh const & mesh,
@@ -388,7 +388,7 @@ public:
 	{
 		mCurrentlySelectedParticle = particleIndex;
 		Publish(mesh);
-	}	
+	}
 
 	std::optional<ElementIndex> GetCurrentOriginTriangle() const
 	{
@@ -417,7 +417,7 @@ public:
 	}
 
 	void SetParticleTrajectory(
-		ElementIndex particleIndex, 
+		ElementIndex particleIndex,
 		vec2f const & targetPosition)
 	{
 		mCurrentParticleTrajectory.emplace(
@@ -564,7 +564,7 @@ private:
 private:
 
 	//
-	// Simulation 
+	// Simulation
 	//
 
 	void UpdateNpcs(
@@ -602,7 +602,7 @@ private:
 		bool isPrimaryParticle,
 		int edgeOrdinal,
 		vec2f const & edgeDir,
-		vec2f const & particleStartAbsolutePosition,				
+		vec2f const & particleStartAbsolutePosition,
 		vec2f const & trajectoryStartAbsolutePosition,
 		vec2f const & flattenedTrajectoryEndAbsolutePosition,
 		bcoords3f flattenedTrajectoryEndBarycentricCoords,
@@ -758,7 +758,7 @@ private:
 	using DoImmediate = StrongTypedBool<struct _DoImmediate>;
 
 	void FlipHumanWalk(
-		StateType::HumanNpcStateType & humanState, 
+		StateType::HumanNpcStateType & humanState,
 		DoImmediate doImmediate) const;
 
 private:

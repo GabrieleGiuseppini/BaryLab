@@ -28,7 +28,7 @@ void Npcs::UpdateNpcs(
 
     //
     // 2. Check if a free secondary particle should become constrained
-    // 3. Calculate preliminary forces 
+    // 3. Calculate preliminary forces
     //
 
     for (auto const n : *this)
@@ -184,7 +184,7 @@ void Npcs::UpdateNpcParticle(
 
     if (!npcParticle.ConstrainedState.has_value())
     {
-        // 
+        //
         // Particle is free
         //
 
@@ -200,6 +200,13 @@ void Npcs::UpdateNpcParticle(
 
         LogMessage("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
 
+        // Update total distance traveled
+        if (npc.HumanNpcState.has_value()
+            && isPrimaryParticle) // Human is represented by primary particle
+        {
+            npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition += physicsDeltaPos.length();
+        }
+
         // We're done
     }
     else
@@ -212,11 +219,11 @@ void Npcs::UpdateNpcParticle(
 
         LogMessage("    Constrained: velocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " prelimF=", mParticles.GetPreliminaryForces(npcParticle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos);
 
-        // Loop tracing trajectory from TrajectoryStart (== current bary coords) to TrajectoryEnd (== start absolute pos + deltaPos); 
+        // Loop tracing trajectory from TrajectoryStart (== current bary coords) to TrajectoryEnd (== start absolute pos + deltaPos);
         // each step moves the next TrajectoryStart a bit ahead.
-        // Each iteration of the loop either exits (completes), or moves current bary coords (and calcs remaining dt) when it wants 
+        // Each iteration of the loop either exits (completes), or moves current bary coords (and calcs remaining dt) when it wants
         // to "continue" an impact while on edge-moving-against-it, i.e. when it wants to recalculate a new flattened traj.
-        //    - In this case, the iteration doesn't change current absolute position nor velocity; it only updates current bary coords 
+        //    - In this case, the iteration doesn't change current absolute position nor velocity; it only updates current bary coords
         //      to what will become the next TrajectoryStart
         //    - In this case, at next iteration:
         //          - TrajectoryStart (== current bary coords) is new
@@ -229,7 +236,7 @@ void Npcs::UpdateNpcParticle(
         // - A non-inertial iteration might be followed by an inertial one
 
         // Initialize trajectory start (wrt current triangle) as the absolute pos of the particle as if it just
-        // moved with the mesh, staying in its position wrt its triangle; in other words, it's the new theoretical 
+        // moved with the mesh, staying in its position wrt its triangle; in other words, it's the new theoretical
         // position after just mesh displacement
         vec2f trajectoryStartAbsolutePosition = mesh.GetTriangles().FromBarycentricCoordinates(
             npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords,
@@ -275,10 +282,10 @@ void Npcs::UpdateNpcParticle(
         // And here's for something seemingly obscure.
         //
         // At our first trajectory flattening for a non-inertial step we take the calculated
-        // absolute flattened trajectory length (including walk) as the maximum (absolute) 
+        // absolute flattened trajectory length (including walk) as the maximum (absolute)
         // distance that we're willing to travel in the (remaining) time quantum.
         // After all this is really the projection of the real and apparent forces acting on
-        // the particle onto the (first) edge, and the one we should keep as the particle's 
+        // the particle onto the (first) edge, and the one we should keep as the particle's
         // movement vector is now tied to the edge.
         //
         // At times an iteration might want to travel more than what we had decided is the
@@ -286,7 +293,7 @@ void Npcs::UpdateNpcParticle(
         // to the theoretical trajectory, and while there's little left along the flattened
         // trajectory, the trajectory end point might still be quite far from where we are.
         // If we stop being constrained by the edge that causes the travel to be almost
-        // orthogonal to the trajectory, we might become subject to an abnormal quantity of 
+        // orthogonal to the trajectory, we might become subject to an abnormal quantity of
         // displacement - yielding also an abnormal velocity calculation.
         //
         // We thus clamp the magnitude of flattened trajectory vectors so to never exceed
@@ -513,7 +520,7 @@ void Npcs::UpdateNpcParticle(
                             // The (signed) edge length that we plan to travel exclusively via walking
                             float edgeWalkedPlanned = 0.0f;
 
-                            if (npc.HumanNpcState.has_value() 
+                            if (npc.HumanNpcState.has_value()
                                 && npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking
                                 && isPrimaryParticle)
                             {
@@ -548,7 +555,7 @@ void Npcs::UpdateNpcParticle(
                                     edgeWalkedPlanned = Clamp(-idealWalkMagnitude - edgePhysicalTraveledPlanned, -idealWalkMagnitude, 0.0f);
                                 }
 
-                                // Apply gravity resistance: too steep slopes (wrt vertical) are gently clamped to zero, 
+                                // Apply gravity resistance: too steep slopes (wrt vertical) are gently clamped to zero,
                                 // to prevent walking on floors that are too steep
                                 float constexpr ResistanceSlopeStart = 0.50f; // Start slightly before expected 45-degree ramp
                                 float constexpr ResistanceSlopeEnd = 0.80f; // Max slope we're willing to climb
@@ -585,7 +592,7 @@ void Npcs::UpdateNpcParticle(
                             float adjustedEdgeTraveledPlanned;
 
                             float const remainingDistanceBudget = *edgeDistanceToTravelMax - edgeDistanceTraveledTotal;
-                            assert(remainingDistanceBudget >= 0.0f);                            
+                            assert(remainingDistanceBudget >= 0.0f);
                             if (std::abs(edgeTraveledPlanned) > remainingDistanceBudget)
                             {
                                 if (edgeTraveledPlanned >= 0.0f)
@@ -641,7 +648,7 @@ void Npcs::UpdateNpcParticle(
                             // Ray-trace using non-inertial physics;
                             // will return when completed or when current edge is over
                             //
-                            // If needs to continue, returns the (signed) actual edge traveled, which is implicitly the 
+                            // If needs to continue, returns the (signed) actual edge traveled, which is implicitly the
                             // (signed) actual edge physically traveled plus the (signed) actual edge walked during the
                             // consumed dt portion of the remaning dt
                             //
@@ -670,7 +677,7 @@ void Npcs::UpdateNpcParticle(
                                 mesh,
                                 labParameters);
 
-                            LogMessage("    Actual edge traveled in non-inertial step: ", edgeTraveledActual);                            
+                            LogMessage("    Actual edge traveled in non-inertial step: ", edgeTraveledActual);
 
                             if (doStop)
                             {
@@ -751,6 +758,7 @@ void Npcs::UpdateNpcParticle(
                             if (npc.HumanNpcState.has_value()
                                 && isPrimaryParticle) // Human is represented by primary particle
                             {
+                                // Note: does not include eventual disance traveled after becoming free; fine because we will transition and wipe out total traveled
                                 npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition += std::abs(edgeTraveledActual);
                             }
 
@@ -829,8 +837,10 @@ void Npcs::UpdateNpcParticle(
                     labParameters);
 
                 // Update total traveled
-                if (npc.HumanNpcState.has_value() && isPrimaryParticle)
+                if (npc.HumanNpcState.has_value()
+                    && isPrimaryParticle) // Human is represented by primary particle
                 {
+                    // Note: does not include eventual disance traveled after becoming free; fine because we will transition and wipe out total traveled
                     npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition += std::abs(totalTraveled);
                 }
 
@@ -998,15 +1008,15 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
     LabParameters const & labParameters) const
 {
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
-    
+
     vec2f definitiveForces = mParticles.GetPreliminaryForces(npcParticle.ParticleIndex);
 
     //
     // Human Equlibrium Torque
     //
 
-    if (npc.HumanNpcState.has_value() 
-        && (npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking 
+    if (npc.HumanNpcState.has_value()
+        && (npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking
             || npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium
             || npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Rising)
         && !isPrimaryParticle)
@@ -1017,8 +1027,8 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
         ElementIndex const secondaryParticleIndex = npc.DipoleState->SecondaryParticleState.ParticleIndex;
 
         // Given that we apply torque onto the secondary particle *after* the primary has been simulated
-        // (so that we take into account the primary's new position), and thus we see the primary where it 
-        // is at the end of the step - possibly far away if mesh velocity is high, we want to _predict_ 
+        // (so that we take into account the primary's new position), and thus we see the primary where it
+        // is at the end of the step - possibly far away if mesh velocity is high, we want to _predict_
         // where the secondary will be by its own velocity
 
         vec2f const secondaryPredictedPosition =
@@ -1045,7 +1055,7 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
         // | /\
         // |/__L___H'
         //
-        vec2f const relativeVelocityDisplacement = 
+        vec2f const relativeVelocityDisplacement =
             (mParticles.GetVelocity(secondaryParticleIndex) - mParticles.GetVelocity(primaryParticleIndex))
             * LabParameters::SimulationTimeStepDuration;
         float const relativeVelocityAngleCW = humanVector.angleCw(humanVector + relativeVelocityDisplacement);
@@ -1134,7 +1144,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
 
         //
         // Update particle and exit - consuming whole time quantum
-        //            
+        //
 
         npcParticleConstrainedState.CurrentTriangleBarycentricCoords = flattenedTrajectoryEndBarycentricCoords;
 
@@ -1294,7 +1304,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
             else
             {
                 //
-                // Bounce - calculate bounce response, using the *apparent* (trajectory) 
+                // Bounce - calculate bounce response, using the *apparent* (trajectory)
                 // velocity - since this one includes the mesh velocity
                 //
 
@@ -1326,7 +1336,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
     bool isPrimaryParticle,
     vec2f const & particleStartAbsolutePosition, // Since beginning of whole time quantum, not just this step
     bcoords3f const segmentTrajectoryStartBarycentricCoords, // In current triangle
-    vec2f const & segmentTrajectoryEndAbsolutePosition, 
+    vec2f const & segmentTrajectoryEndAbsolutePosition,
     bcoords3f segmentTrajectoryEndBarycentricCoords, // In current triangle; mutable
     vec2f const meshVelocity,
     float segmentDt,
@@ -1368,7 +1378,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
 
             //
             // Update particle and exit - consuming whole time quantum
-            //            
+            //
 
             // Move particle to end of trajectory
             npcParticleConstrainedState.CurrentTriangleBarycentricCoords = segmentTrajectoryEndBarycentricCoords;
@@ -1506,7 +1516,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
             LogMessage("      Impact and bounce");
 
             //
-            // Calculate bounce response, using the *apparent* (trajectory) 
+            // Calculate bounce response, using the *apparent* (trajectory)
             // velocity - since this one includes the mesh velocity
             //
 
@@ -1568,7 +1578,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
             else
             {
                 //
-                // Move to edge of opposite triangle 
+                // Move to edge of opposite triangle
                 //
 
                 int const oppositeTriangleEdgeOrdinal = mesh.GetTriangles().GetSubEdgeOrdinal(oppositeTriangle, intersectionEdgeElementIndex);
@@ -1920,7 +1930,7 @@ void Npcs::UpdateNpcAnimation(
                 targetLeftArmAngle = -targetRightArmAngle;
 
                 convergenceRate = 0.25f;
-                
+
                 if (npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex != NoneElementIndex)
                 {
                     //
