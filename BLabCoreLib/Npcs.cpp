@@ -115,7 +115,7 @@ void Npcs::Add(
 			break;
 		}
 	}
-	
+
 	//
 	// Calculate regime
 	//
@@ -130,6 +130,18 @@ void Npcs::Add(
 		std::move(primaryParticleState),
 		std::move(dipoleState),
 		std::move(humanNpcState));
+}
+
+void Npcs::SetPanicLevelForAllHumans(float panicLevel)
+{
+	for (auto & npc : mStateBuffer)
+	{
+		if (npc.Type == NpcType::Human)
+		{
+			assert(npc.HumanNpcState.has_value());
+			npc.HumanNpcState->PanicLevel = panicLevel;
+		}
+	}
 }
 
 void Npcs::MoveParticleBy(
@@ -282,7 +294,7 @@ void Npcs::Render(RenderContext & renderContext)
 					// - arms, legs : based on ideal * adjustment
 					//
 
-					vec2f const headPosition = mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex);					
+					vec2f const headPosition = mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex);
 					vec2f const feetPosition = mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex);
 					vec2f const actualBodyVector = feetPosition - headPosition; // From head to feet
 					vec2f const actualBodyDir = actualBodyVector.normalise();
@@ -534,7 +546,7 @@ void Npcs::RenderParticle(
 	StateType::NpcParticleStateType const & particleState,
 	RenderContext & renderContext)
 {
-	renderContext.UploadParticle(		
+	renderContext.UploadParticle(
 		mParticles.GetPosition(particleState.ParticleIndex),
 		mParticles.GetRenderColor(particleState.ParticleIndex),
 		1.0f);

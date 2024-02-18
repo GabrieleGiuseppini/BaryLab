@@ -137,6 +137,7 @@ private:
     void OnSimulationControlStep(wxCommandEvent & event);
     void OnViewControlGridToggled(wxCommandEvent & event);
     void OnMeshTransformationChanged(ControlToolbar::meshTransformationChangedEvent & event);
+    void OnHumanNpcPanicLevelChanged(ControlToolbar::humanNpcPanicLevelChangedEvent & event);
 
     // Timers
     void OnSimulationTimer(wxTimerEvent & event);

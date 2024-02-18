@@ -42,6 +42,7 @@ long const ControlToolbar::ID_ACTION_SETTINGS = wxNewId();
 long const ControlToolbar::ID_VIEW_CONTROL_GRID = wxNewId();
 
 wxDEFINE_EVENT(EVT_MESH_TRANSFORMATION_CHANGED, ControlToolbar::meshTransformationChangedEvent);
+wxDEFINE_EVENT(EVT_HUMAN_NPC_PANIC_LEVEL_CHANGED, ControlToolbar::humanNpcPanicLevelChangedEvent);
 
 ControlToolbar::ControlToolbar(wxWindow * parent)
     : wxPanel(
@@ -51,6 +52,9 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
         wxDefaultSize,
         wxBORDER_SIMPLE)
 {
+    int constexpr SliderWidth = 50;
+    int constexpr SliderHeight = 140;
+
     SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE));
 
     wxBoxSizer * vSizer = new wxBoxSizer(wxVERTICAL);
@@ -69,9 +73,9 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
                     wxBITMAP_TYPE_PNG),
                 wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 
-            mMoveParticleButton->Bind(wxEVT_TOGGLEBUTTON, 
-                [this](wxCommandEvent & /*event*/) 
-                { 
+            mMoveParticleButton->Bind(wxEVT_TOGGLEBUTTON,
+                [this](wxCommandEvent & /*event*/)
+                {
                     wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_MOVE_PARTICLE);
                     ProcessEvent(evt);
 
@@ -445,10 +449,7 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
 
     // Mesh transformation
     {
-        wxGridSizer * gridSizer = new wxGridSizer(2, 2, 2);
-
-        static int constexpr SliderWidth = 50;
-        static int constexpr SliderHeight = 140;
+        auto * gridSizer = new wxFlexGridSizer(2, 2, 2);
 
         // Horizontal velocity
         {
@@ -460,7 +461,7 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
                 "The horizontal velocity of the mesh",
                 [this](float value)
                 {
-                    meshTransformationChangedEvent evt(EVT_MESH_TRANSFORMATION_CHANGED, this->GetId(), 
+                    meshTransformationChangedEvent evt(EVT_MESH_TRANSFORMATION_CHANGED, this->GetId(),
                         vec2f(value, mVerticalMeshVelocitySlider->GetValue()));
                     ProcessWindowEvent(evt);
                 },
@@ -472,8 +473,8 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
 
             gridSizer->Add(
                 mHorizontalMeshVelocitySlider,
-                1, 
-                wxALL, 
+                0,
+                wxALL,
                 1);
         }
 
@@ -499,7 +500,7 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
 
             gridSizer->Add(
                 mVerticalMeshVelocitySlider,
-                1,
+                0,
                 wxALL,
                 1);
         }
@@ -552,6 +553,42 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
             gridSizer->Add(
                 button,
                 0,
+                wxALL,
+                1);
+        }
+
+        vSizer->Add(gridSizer, 0, wxALIGN_CENTER | wxALL, 5);
+    }
+
+    vSizer->AddSpacer(10);
+
+    // NPC control
+    {
+        auto * gridSizer = new wxFlexGridSizer(2, 2, 2);
+
+        // Human panic level
+        {
+            mNpcHumanPanicLevelSlider = new SliderControl<float>(
+                this,
+                SliderWidth,
+                SliderHeight,
+                "Panic",
+                "The panic level for all humans",
+                [this](float value)
+                {
+                    humanNpcPanicLevelChangedEvent evt(EVT_HUMAN_NPC_PANIC_LEVEL_CHANGED, this->GetId(),
+                        value);
+                    ProcessWindowEvent(evt);
+                },
+                std::make_unique<LinearSliderCore>(
+                    0.0f,
+                    10.0f));
+
+            mNpcHumanPanicLevelSlider->SetValue(0.0f);
+
+            gridSizer->Add(
+                mNpcHumanPanicLevelSlider,
+                1,
                 wxALL,
                 1);
         }

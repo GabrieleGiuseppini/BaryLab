@@ -151,12 +151,13 @@ MainFrame::MainFrame(wxApp * mainApp)
         mControlToolbar->Connect(ControlToolbar::ID_SET_PARTICLE_GRAVITY, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSetParticleGravity, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_SIMULATION_CONTROL_PLAY, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSimulationControlPlay, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_SIMULATION_CONTROL_PAUSE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSimulationControlPause, 0, this);
-        mControlToolbar->Connect(ControlToolbar::ID_SIMULATION_CONTROL_STEP, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSimulationControlStep, 0, this);        
+        mControlToolbar->Connect(ControlToolbar::ID_SIMULATION_CONTROL_STEP, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSimulationControlStep, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_ACTION_RESET, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnResetMenuItemSelected, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_ACTION_LOAD_MESH, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnLoadMeshMenuItemSelected, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_ACTION_SETTINGS, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnOpenSettingsWindowMenuItemSelected, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_VIEW_CONTROL_GRID, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnViewControlGridToggled, 0, this);
         mControlToolbar->Bind(EVT_MESH_TRANSFORMATION_CHANGED, &MainFrame::OnMeshTransformationChanged, this);
+        mControlToolbar->Bind(EVT_HUMAN_NPC_PANIC_LEVEL_CHANGED, &MainFrame::OnHumanNpcPanicLevelChanged, this);
 
         mMainPanelTopHSizer->Add(
             mControlToolbar,
@@ -740,6 +741,12 @@ void MainFrame::OnMeshTransformationChanged(ControlToolbar::meshTransformationCh
     mLabController->SetMeshVelocity(event.GetVelocity());
 }
 
+void MainFrame::OnHumanNpcPanicLevelChanged(ControlToolbar::humanNpcPanicLevelChangedEvent & event)
+{
+    assert(!!mLabController);
+    mLabController->SetNpcPanicLevelForAllHumans(event.GetPanicLevel());
+}
+
 void MainFrame::OnSimulationTimer(wxTimerEvent & /*event*/)
 {
     //
@@ -758,7 +765,7 @@ void MainFrame::OnSimulationTimer(wxTimerEvent & /*event*/)
         {
             mSimulationTimer->Stop(); // Stop looping and allow Die() to finish
 
-            OnError(std::string(e.what()), true);            
+            OnError(std::string(e.what()), true);
             return;
         }
     }

@@ -1871,7 +1871,7 @@ void Npcs::UpdateNpcAnimation(
     Mesh const & mesh,
     LabParameters const & labParameters)
 {
-    if (npc.Type == NpcType::Human && isPrimaryParticle)
+    if (npc.Type == NpcType::Human && isPrimaryParticle) // Tke the primary as the only representative of a human
     {
         assert(npc.DipoleState.has_value());
         assert(npc.HumanNpcState.has_value());
@@ -1926,7 +1926,15 @@ void Npcs::UpdateNpcAnimation(
                 targetRightLegAngle = legAngle;
                 targetLeftLegAngle = -legAngle;
 
-                targetRightArmAngle = targetLeftLegAngle * 1.4f;
+                // Arms depend on panic
+                if (npc.HumanNpcState->PanicLevel == 0.0f)
+                {
+                    targetRightArmAngle = targetLeftLegAngle * 1.4f;
+                }
+                else
+                {
+                    targetRightArmAngle = Pi<float> / 2.0f + targetLeftLegAngle * 1.9f;
+                }
                 targetLeftArmAngle = -targetRightArmAngle;
 
                 convergenceRate = 0.25f;

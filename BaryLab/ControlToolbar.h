@@ -22,7 +22,7 @@ public:
 
     static wxEventType const wxEVT_TOOLBAR_ACTION;
 
-    static long const ID_MOVE_PARTICLE;    
+    static long const ID_MOVE_PARTICLE;
     static long const ID_SET_PARTICLE_TRAJECTORY;
     static long const ID_SET_ORIGIN_TRIANGLE;
     static long const ID_SELECT_PARTICLE;
@@ -78,6 +78,42 @@ public:
         vec2f const mVelocity;
     };
 
+    class humanNpcPanicLevelChangedEvent : public wxEvent
+    {
+    public:
+
+        humanNpcPanicLevelChangedEvent(
+            wxEventType eventType,
+            int winid,
+            float panicLevel)
+            : wxEvent(winid, eventType)
+            , mPanicLevel(panicLevel)
+        {
+            m_propagationLevel = wxEVENT_PROPAGATE_MAX;
+        }
+
+        humanNpcPanicLevelChangedEvent(humanNpcPanicLevelChangedEvent const & other)
+            : wxEvent(other)
+            , mPanicLevel(other.mPanicLevel)
+        {
+            m_propagationLevel = wxEVENT_PROPAGATE_MAX;
+        }
+
+        virtual wxEvent * Clone() const override
+        {
+            return new humanNpcPanicLevelChangedEvent(*this);
+        }
+
+        float const & GetPanicLevel() const
+        {
+            return mPanicLevel;
+        }
+
+    private:
+
+        float const mPanicLevel;
+    };
+
 public:
 
     ControlToolbar(wxWindow * parent);
@@ -123,6 +159,8 @@ private:
 
     SliderControl<float> * mHorizontalMeshVelocitySlider;
     SliderControl<float> * mVerticalMeshVelocitySlider;
+    SliderControl<float> * mNpcHumanPanicLevelSlider;
 };
 
 wxDECLARE_EVENT(EVT_MESH_TRANSFORMATION_CHANGED, ControlToolbar::meshTransformationChangedEvent);
+wxDECLARE_EVENT(EVT_HUMAN_NPC_PANIC_LEVEL_CHANGED, ControlToolbar::humanNpcPanicLevelChangedEvent);

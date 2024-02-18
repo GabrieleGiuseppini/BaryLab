@@ -179,6 +179,8 @@ public:
 			float CurrentFaceOrientation; // [-1.0f, 0.0f, 1.0f]
 			float CurrentFaceDirectionX; // [-1.0f, 0.0f, 1.0f]
 
+			float PanicLevel; // [0.0f ... +INF)
+
 			// Animation
 
 			float RightLegAngle;
@@ -198,6 +200,7 @@ public:
 				// TODOTEST
 				//, CurrentFaceDirectionX(1.0f) // Futurework: randomize
 				, CurrentFaceDirectionX(-1.0f) // Futurework: randomize
+				, PanicLevel(0.0f)
 				// Animation
 				, RightLegAngle(0.0f)
 				, RightLegLengthMultiplier(1.0f)
@@ -305,6 +308,8 @@ public:
 		StructuralMaterialDatabase const & materialDatabase,
 		Mesh const & mesh,
 		LabParameters const & labParameters);
+
+	void SetPanicLevelForAllHumans(float panicLevel);
 
 	void MoveParticleBy(
 		ElementIndex particleIndex,

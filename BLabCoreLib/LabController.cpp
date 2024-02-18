@@ -56,7 +56,7 @@ LabController::LabController(
     // Simulation control
     , mSimulationControlState(SimulationControlStateType::Paused)
     , mSimulationControlImpulse(false)
-{    
+{
 }
 
 void LabController::SetSimulationControlState(SimulationControlStateType state)
@@ -81,12 +81,12 @@ void LabController::Update()
     if (mSimulationControlState == SimulationControlStateType::Play
         || mSimulationControlImpulse)
     {
-        UpdateMeshTransformations();            
+        UpdateMeshTransformations();
 
         mModel->GetNpcs().Update(
             mCurrentSimulationTime,
             mModel->GetMesh(),
-            mLabParameters);        
+            mLabParameters);
 
         // Update state
         mSimulationControlImpulse = false;
@@ -230,7 +230,7 @@ void LabController::Render()
             mCurrentMeshTranslationAccelerationIndicator);
     }
 
-    mRenderContext->RenderEnd();    
+    mRenderContext->RenderEnd();
 }
 
 void LabController::Reset()
@@ -288,7 +288,7 @@ std::optional<ElementIndex> LabController::TryPickVertex(vec2f const & screenCoo
 }
 
 void LabController::MoveVertexBy(
-    ElementIndex vertexIndex, 
+    ElementIndex vertexIndex,
     vec2f const & screenOffset)
 {
     assert(!!mModel);
@@ -303,7 +303,7 @@ void LabController::MoveVertexBy(
 }
 
 void LabController::RotateMeshBy(
-    vec2f const & centerScreenCoordinates, 
+    vec2f const & centerScreenCoordinates,
     float screenStride)
 {
     assert(!!mModel);
@@ -342,7 +342,7 @@ void LabController::RotateMeshBy(
 }
 
 void LabController::RotateMeshBy(
-    ElementIndex particleIndex, 
+    ElementIndex particleIndex,
     float screenStride)
 {
     assert(!!mModel);
@@ -368,7 +368,7 @@ void LabController::RotateMeshBy(
             centeredPos.x * sinAngle + centeredPos.y * cosAngle);
 
         vertices.SetPosition(v, rotatedPos + worldCenter);
-    }    
+    }
 
     // TODOTEST
     //////
@@ -473,7 +473,7 @@ std::optional<ElementIndex> LabController::TryPickNpcParticle(vec2f const & scre
 }
 
 void LabController::MoveNpcParticleBy(
-    ElementIndex npcParticleIndex, 
+    ElementIndex npcParticleIndex,
     vec2f const & screenOffset,
     vec2f const & inertialStride)
 {
@@ -547,6 +547,11 @@ void LabController::SetMeshVelocity(vec2f const & velocity)
     mCurrentMeshTranslationAccelerationIndicator = 1.0f;
 }
 
+void LabController::SetNpcPanicLevelForAllHumans(float panicLevel)
+{
+    mModel->GetNpcs().SetPanicLevelForAllHumans(panicLevel);
+}
+
 void LabController::DoStepForVideo()
 {
     assert(mModel);
@@ -572,11 +577,11 @@ void LabController::DoStepForVideo()
     ////////    // Enable gravity
     ////////    SetGravityEnabled(true);
 
-    ////////    // Enable auto-play            
+    ////////    // Enable auto-play
     ////////    SetSimulationControlState(SimulationControlStateType::Play);
 
     ////////    // Other settings
-    ////////    SetSeaLevel(-7.0f);        
+    ////////    SetSeaLevel(-7.0f);
 
     ////////    return;
     ////////}
@@ -683,7 +688,7 @@ void LabController::DoStepForVideo()
 
     ////    LoadMesh(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
 
-    ////    // Enable auto-play            
+    ////    // Enable auto-play
     ////    SetSimulationControlState(SimulationControlStateType::Play);
 
     ////    // Disable gravity
@@ -691,7 +696,7 @@ void LabController::DoStepForVideo()
 
     ////    // Other settings
     ////    SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
-    ////    SetSeaLevel(-7.0f);        
+    ////    SetSeaLevel(-7.0f);
 
     ////    return;
     ////}
@@ -865,8 +870,8 @@ void LabController::LoadMesh(
     // Create NPCs
 
     std::unique_ptr<Npcs> npcs = std::make_unique<Npcs>(
-        mWorld, 
-        mEventDispatcher, 
+        mWorld,
+        mEventDispatcher,
         mLabParameters,
         mIsGravityEnabled);
 
@@ -921,7 +926,7 @@ void LabController::LoadMesh(
         ////// TODO: for repro w/ball, part II
         ////assert(npcs->GetState(0).PrimaryParticleState.ConstrainedState.has_value());
         ////assert(npcs->GetState(0).PrimaryParticleState.ConstrainedState->CurrentTriangle == triangleIndex);
-        ////npcs->GetState(0).PrimaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords = baryCoords;        
+        ////npcs->GetState(0).PrimaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords = baryCoords;
         ////npcs->GetParticles().SetVelocity(npcs->GetState(0).PrimaryParticleState.ParticleIndex, vec2f(-1.0f, 0.0f));
         ////// TODOTEST: trying now for inertial (no G and no friction)
         //////npcs->GetParticles().SetVelocity(npcs->GetState(0).PrimaryParticleState.ParticleIndex, vec2f(-1.0f, (LabParameters::GravityMagnitude + 16.25f) * LabParameters::SimulationTimeStepDuration));

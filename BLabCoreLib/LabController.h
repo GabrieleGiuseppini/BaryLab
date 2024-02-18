@@ -89,6 +89,8 @@ public:
 
     void SetMeshVelocity(vec2f const & velocity);
 
+    void SetNpcPanicLevelForAllHumans(float panicLevel);
+
     void DoStepForVideo();
 
     //
@@ -265,7 +267,7 @@ private:
     void UpdateMeshTransformations();
 
 private:
-    
+
     StructuralMaterialDatabase mStructuralMaterialDatabase;
     std::unique_ptr<RenderContext> mRenderContext;
     EventDispatcher mEventDispatcher;
@@ -283,7 +285,7 @@ private:
 
     bool mIsGravityEnabled;
     vec2f mCurrentMeshTranslationVelocity;
-    float mCurrentMeshTranslationAccelerationIndicator;    
+    float mCurrentMeshTranslationAccelerationIndicator;
 
     int mCurrentVideoStep;
 
