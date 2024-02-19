@@ -165,7 +165,7 @@ void Npcs::UpdateHuman(
 				// Check if enough
 				if (IsAtTarget(humanState.CurrentEquilibriumSoftTerminationDecision, 1.0f))
 				{
-					LogMessage("Been off-edge for too long");
+					LogNpcDebug("Been off-edge for too long");
 
 					isStateMaintained = false;
 				}
@@ -205,7 +205,7 @@ void Npcs::UpdateHuman(
 
 				float const primaryMeshRelativeVelocityAlongWalkDir = primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(idealWalkVelocityDir);
 
-				LogMessage("idealWalkVelocity=", idealWalkVelocity, " (mag=", idealWalkVelocityMagnitude, ") ",
+				LogNpcDebug("idealWalkVelocity=", idealWalkVelocity, " (mag=", idealWalkVelocityMagnitude, ") ",
 					"meshRelativeVelocity=", primaryParticleState.ConstrainedState->MeshRelativeVelocity, " (along dir =", primaryMeshRelativeVelocityAlongWalkDir, ")");
 
 				if (primaryMeshRelativeVelocityAlongWalkDir >= 0.0f)
@@ -216,7 +216,7 @@ void Npcs::UpdateHuman(
 					float constexpr MaxAlignedRelativeVelocityMagnitudeForWalking = 5.0f;
 					if (primaryMeshRelativeVelocityAlongWalkDir >= MaxAlignedRelativeVelocityMagnitudeForWalking)
 					{
-						LogMessage("MRV too much in same direction");
+						LogNpcDebug("MRV too much in same direction");
 						isStateMaintained = false;
 					}
 				}
@@ -231,7 +231,7 @@ void Npcs::UpdateHuman(
 					////float constexpr MaxOppositeRelativeVelocityMagnitudeForWalking = 1.0f;
 					////if (primaryMeshRelativeVelocityAlongWalkDir <= -MaxOppositeRelativeVelocityMagnitudeForWalking)
 					////{
-					////	LogMessage("MRV too much opposite");
+					////	LogNpcDebug("MRV too much opposite");
 					////	isStateMaintained = false;
 					////}
 				}
@@ -252,7 +252,7 @@ void Npcs::UpdateHuman(
 			{
 				// Transition to knocked out
 
-				LogMessage("Going to Constrained_KnockedOut; primary's barycentric coords: ",
+				LogNpcDebug("Going to Constrained_KnockedOut; primary's barycentric coords: ",
 					primaryParticleState.ConstrainedState.has_value() ? primaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords.toString() : "N/A",
 					" primary's relative velocity mag: ", primaryParticleState.ConstrainedState.has_value() ? std::to_string(primaryParticleState.ConstrainedState->MeshRelativeVelocity.length()) : "N/A",
 					" (max=", MaxRelativeVelocityMagnitudeForEquilibrium, ")");
@@ -373,7 +373,7 @@ bool Npcs::CheckAndMaintainHumanEquilibrium(
 		&& std::abs(relativeVelocityAngleCW) >= maxRelativeVelocityAngleForEqulibrium // Large abs angle == velocity towards divergence
 		&& staticDisplacementAngleCW * relativeVelocityAngleCW > 0.0f) // Equal signs
 	{
-		LogMessage("Losing equilibrium because: StaticDisplacementAngleCW=", staticDisplacementAngleCW, " (Max=+/-", MaxStaticAngleForEquilibrium, ") RelativeVelocityAngleCW=", relativeVelocityAngleCW,
+		LogNpcDebug("Losing equilibrium because: StaticDisplacementAngleCW=", staticDisplacementAngleCW, " (Max=+/-", MaxStaticAngleForEquilibrium, ") RelativeVelocityAngleCW=", relativeVelocityAngleCW,
 			" (Max=+/-", maxRelativeVelocityAngleForEqulibrium, ")");
 
 		return false;
@@ -449,7 +449,7 @@ void Npcs::RunWalkingHumanStateMachine(
 	float const walkMagnitudeConvergenceRate = 0.03f + std::min(humanState.PanicLevel, 1.0f) * 0.15f;
 	walkingState.CurrentWalkMagnitude += (1.0f - walkingState.CurrentWalkMagnitude) * walkMagnitudeConvergenceRate;
 
-	LogMessage("        currentWalkMagnitude: ", walkingState.CurrentWalkMagnitude);
+	LogNpcDebug("        currentWalkMagnitude: ", walkingState.CurrentWalkMagnitude);
 }
 
 void Npcs::OnHumanImpact(
@@ -462,14 +462,14 @@ void Npcs::OnHumanImpact(
 	{
 		case StateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
 		{
-			LogMessage("OnHumanImpact: alignment=", bounceEdgeNormal.dot(vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f)));
+			LogNpcDebug("OnHumanImpact: alignment=", bounceEdgeNormal.dot(vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f)));
 
 			// Check alignment of impact with walking direction; if hit => flip
 			float constexpr MaxOppositionSlope = 0.5f;
 			if (bounceEdgeNormal.dot(vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f)) > MaxOppositionSlope
 				&& npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
 			{
-				LogMessage("OnHumanImpact: FLIP!");
+				LogNpcDebug("OnHumanImpact: FLIP!");
 
 				// Flip now
 				FlipHumanWalk(*npc.HumanNpcState, StrongTypedTrue<_DoImmediate>);
@@ -497,7 +497,7 @@ void Npcs::FlipHumanWalk(
 		humanState.CurrentFaceDirectionX *= -1.0f;
 		walkingState.CurrentWalkMagnitude = 0.0f;
 
-		LogMessage("Flipping walk: ", humanState.CurrentFaceDirectionX);
+		LogNpcDebug("Flipping walk: ", humanState.CurrentFaceDirectionX);
 
 		walkingState.TargetFlipDecision = 0.0f;
 		walkingState.CurrentFlipDecision = 0.0f;

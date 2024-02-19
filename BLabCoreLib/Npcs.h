@@ -10,6 +10,7 @@
 #include "ElementIndexRangeIterator.h"
 #include "EventDispatcher.h"
 #include "LabParameters.h"
+#include "Log.h"
 #include "Mesh.h"
 #include "NpcParticles.h"
 #include "RenderContext.h"
@@ -20,6 +21,18 @@
 
 #include <optional>
 #include <vector>
+
+
+template<typename... TArgs>
+void LogNpcDebug(TArgs&&... args)
+{
+#ifdef IN_BARYLAB
+	LogDebug(std::forward<TArgs>(args)...);
+#else
+	Logger::Instance.LogToNothing(std::forward<TArgs>(args)...);
+#endif
+}
+
 
 class Npcs final
 {

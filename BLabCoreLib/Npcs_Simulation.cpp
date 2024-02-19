@@ -16,9 +16,9 @@ void Npcs::UpdateNpcs(
     Mesh const & mesh,
     LabParameters const & labParameters)
 {
-    LogMessage("----------------------------------");
-    LogMessage("----------------------------------");
-    LogMessage("----------------------------------");
+    LogNpcDebug("----------------------------------");
+    LogNpcDebug("----------------------------------");
+    LogNpcDebug("----------------------------------");
 
     //
     // 1. Reset buffers
@@ -68,7 +68,7 @@ void Npcs::UpdateNpcs(
 
     for (auto const n : *this)
     {
-        LogMessage("NPC ", n);
+        LogNpcDebug("NPC ", n);
 
         auto & npcState = mStateBuffer[n];
 
@@ -150,8 +150,8 @@ void Npcs::UpdateNpcParticle(
 
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
 
-    LogMessage("----------------------------------");
-    LogMessage("  ", isPrimaryParticle ? "Primary" : "Secondary");
+    LogNpcDebug("----------------------------------");
+    LogNpcDebug("  ", isPrimaryParticle ? "Primary" : "Secondary");
 
     float const particleMass = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).Mass * labParameters.MassAdjustment;
     float const dt = LabParameters::SimulationTimeStepDuration;
@@ -188,8 +188,8 @@ void Npcs::UpdateNpcParticle(
         // Particle is free
         //
 
-        LogMessage("    Free: velocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " prelimF=", mParticles.GetPreliminaryForces(npcParticle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos);
-        LogMessage("    StartPosition=", particleStartAbsolutePosition, " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
+        LogNpcDebug("    Free: velocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " prelimF=", mParticles.GetPreliminaryForces(npcParticle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos);
+        LogNpcDebug("    StartPosition=", particleStartAbsolutePosition, " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
 
         UpdateNpcParticle_Free(
             npcParticle,
@@ -198,7 +198,7 @@ void Npcs::UpdateNpcParticle(
             mParticles,
             labParameters);
 
-        LogMessage("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
+        LogNpcDebug("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
 
         // Update total distance traveled
         if (npc.HumanNpcState.has_value()
@@ -217,7 +217,7 @@ void Npcs::UpdateNpcParticle(
 
         assert(npcParticle.ConstrainedState.has_value());
 
-        LogMessage("    Constrained: velocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " prelimF=", mParticles.GetPreliminaryForces(npcParticle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos);
+        LogNpcDebug("    Constrained: velocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " prelimF=", mParticles.GetPreliminaryForces(npcParticle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos);
 
         // Loop tracing trajectory from TrajectoryStart (== current bary coords) to TrajectoryEnd (== start absolute pos + deltaPos);
         // each step moves the next TrajectoryStart a bit ahead.
@@ -306,8 +306,8 @@ void Npcs::UpdateNpcParticle(
         {
             assert(remainingDt > 0.0f);
 
-            LogMessage("    ------------------------");
-            LogMessage("    Triangle=", npcParticle.ConstrainedState->CurrentTriangle, " B-Coords=", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " RemainingDt=", remainingDt);
+            LogNpcDebug("    ------------------------");
+            LogNpcDebug("    Triangle=", npcParticle.ConstrainedState->CurrentTriangle, " B-Coords=", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " RemainingDt=", remainingDt);
 
             //
             // We ray-trace the particle along a trajectory that starts at the position at which the particle
@@ -340,7 +340,7 @@ void Npcs::UpdateNpcParticle(
             // TrajectoryStartAbsolutePosition changes at each iteration to be the absolute translation of the current particle bary coords
             vec2f const trajectory = trajectoryEndAbsolutePosition - trajectoryStartAbsolutePosition;
 
-            LogMessage("    TrajectoryStartAbsolutePosition=", trajectoryStartAbsolutePosition, " PhysicsDeltaPos=", physicsDeltaPos, " TotalEdgeWalkedActual=", totalEdgeWalkedActual,
+            LogNpcDebug("    TrajectoryStartAbsolutePosition=", trajectoryStartAbsolutePosition, " PhysicsDeltaPos=", physicsDeltaPos, " TotalEdgeWalkedActual=", totalEdgeWalkedActual,
                 " => TrajectoryEndAbsolutePosition=", trajectoryEndAbsolutePosition, " Trajectory=", trajectory);
 
             //
@@ -406,7 +406,7 @@ void Npcs::UpdateNpcParticle(
             // 2. Not on edge, or on edge but not moving against (nor along) it
             //
 
-            LogMessage("    Checking edges");
+            LogNpcDebug("    Checking edges");
 
             // Check all edges, stop at first one that is floor and against which we're moving
             bool hasFoundNonInertial = false;
@@ -421,7 +421,7 @@ void Npcs::UpdateNpcParticle(
 
                     assert(isPrimaryParticle || npc.DipoleState.has_value());
 
-                    LogMessage("      edge ", edgeOrdinal, ": isFloor=", IsEdgeFloorToParticle(currentEdgeElementIndex, npcParticle.ConstrainedState->CurrentTriangle, mesh));
+                    LogNpcDebug("      edge ", edgeOrdinal, ": isFloor=", IsEdgeFloorToParticle(currentEdgeElementIndex, npcParticle.ConstrainedState->CurrentTriangle, mesh));
 
                     // Check if this is really a floor to this particle
                     if (IsEdgeFloorToParticle(currentEdgeElementIndex, npcParticle.ConstrainedState->CurrentTriangle, mesh)
@@ -449,8 +449,8 @@ void Npcs::UpdateNpcParticle(
                             // Case 1: Non-inertial: on edge and moving against (or along) it, pushed by it
                             //
 
-                            LogMessage("    ConstrainedNonInertial: triangle=", npcParticle.ConstrainedState->CurrentTriangle, " edgeOrdinal=", edgeOrdinal, " bCoords=", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " trajectory=", trajectory);
-                            LogMessage("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
+                            LogNpcDebug("    ConstrainedNonInertial: triangle=", npcParticle.ConstrainedState->CurrentTriangle, " edgeOrdinal=", edgeOrdinal, " bCoords=", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " trajectory=", trajectory);
+                            LogNpcDebug("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
 
                             npcParticle.ConstrainedState->CurrentVirtualEdgeElementIndex = currentEdgeElementIndex;
 
@@ -503,7 +503,7 @@ void Npcs::UpdateNpcParticle(
                                     tFriction *= -1.0f;
                                 }
 
-                                LogMessage("        friction: trajectoryN=", trajectoryN, " relVel=", npcParticle.ConstrainedState->MeshRelativeVelocity,
+                                LogNpcDebug("        friction: trajectoryN=", trajectoryN, " relVel=", npcParticle.ConstrainedState->MeshRelativeVelocity,
                                     " trajectoryT=", trajectoryT, " tFriction=", tFriction);
 
                                 // Update trajectory with friction
@@ -567,7 +567,7 @@ void Npcs::UpdateNpcParticle(
 
                                 if (npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
                                 {
-                                    LogMessage("        idealWalkMagnitude=", idealWalkMagnitude, " => edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude, ")");
+                                    LogNpcDebug("        idealWalkMagnitude=", idealWalkMagnitude, " => edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude, ")");
                                 }
                             }
 
@@ -581,7 +581,7 @@ void Npcs::UpdateNpcParticle(
                             {
                                 edgeDistanceToTravelMax = std::abs(edgeTraveledPlanned);
 
-                                LogMessage("        initialized distance budget: edgeDistanceToTravelMax=", *edgeDistanceToTravelMax);
+                                LogNpcDebug("        initialized distance budget: edgeDistanceToTravelMax=", *edgeDistanceToTravelMax);
                             }
 
                             // Make sure we don't travel more than what we're willing to
@@ -601,7 +601,7 @@ void Npcs::UpdateNpcParticle(
                                     adjustedEdgeTraveledPlanned = std::max(edgeTraveledPlanned, -remainingDistanceBudget);
                                 }
 
-                                LogMessage("        travel exceeds budget (edgeTraveledPlanned=", edgeTraveledPlanned, " budget=", remainingDistanceBudget,
+                                LogNpcDebug("        travel exceeds budget (edgeTraveledPlanned=", edgeTraveledPlanned, " budget=", remainingDistanceBudget,
                                     " => adjustedEdgeTraveledPlanned=", adjustedEdgeTraveledPlanned);
 
                                 // TODOTEST
@@ -639,7 +639,7 @@ void Npcs::UpdateNpcParticle(
                             flattenedTrajectoryEndBarycentricCoords[edgeVertexOrdinal] = 0.0f;
                             flattenedTrajectoryEndBarycentricCoords[(edgeVertexOrdinal + 1) % 3] = 1.0f - flattenedTrajectoryEndBarycentricCoords[(edgeVertexOrdinal + 2) % 3];
 
-                            LogMessage("        flattenedTrajectory=", flattenedTrajectory, " flattenedTrajectoryEndAbsolutePosition=", flattenedTrajectoryEndAbsolutePosition, " flattenedTrajectoryEndBarycentricCoords=", flattenedTrajectoryEndBarycentricCoords);
+                            LogNpcDebug("        flattenedTrajectory=", flattenedTrajectory, " flattenedTrajectoryEndAbsolutePosition=", flattenedTrajectoryEndAbsolutePosition, " flattenedTrajectoryEndBarycentricCoords=", flattenedTrajectoryEndBarycentricCoords);
 
                             //
                             // Ray-trace using non-inertial physics;
@@ -655,7 +655,7 @@ void Npcs::UpdateNpcParticle(
                             // Fact: so, the actual movement includes the consumed_dt's portion (fraction) of both phys traj and imposed walk
                             //
 
-                            LogMessage("        edgePhysicalTraveledPlanned=", edgePhysicalTraveledPlanned, " edgeWalkedPlanned=", edgeWalkedPlanned);
+                            LogNpcDebug("        edgePhysicalTraveledPlanned=", edgePhysicalTraveledPlanned, " edgeWalkedPlanned=", edgeWalkedPlanned);
 
                             auto const [edgeTraveledActual, doStop] = UpdateNpcParticle_ConstrainedNonInertial(
                                 npc,
@@ -674,7 +674,7 @@ void Npcs::UpdateNpcParticle(
                                 mesh,
                                 labParameters);
 
-                            LogMessage("    Actual edge traveled in non-inertial step: ", edgeTraveledActual);
+                            LogNpcDebug("    Actual edge traveled in non-inertial step: ", edgeTraveledActual);
 
                             if (doStop)
                             {
@@ -695,7 +695,7 @@ void Npcs::UpdateNpcParticle(
                                         // Well - stop here
                                         //
 
-                                        LogMessage("    Detected well - stopping here");
+                                        LogNpcDebug("    Detected well - stopping here");
 
                                         // Update particle's physics, considering that we are in a well and thus still (wrt mesh)
 
@@ -730,7 +730,7 @@ void Npcs::UpdateNpcParticle(
                                     float const dtFractionConsumed = adjustedEdgeTraveledPlanned != 0.0f
                                         ? std::min(edgeTraveledActual / adjustedEdgeTraveledPlanned, 1.0f) // Signs should agree anyway
                                         : 1.0f; // If we were planning no travel, any movement is a whole consumption
-                                    LogMessage("        dtFractionConsumed=", dtFractionConsumed);
+                                    LogNpcDebug("        dtFractionConsumed=", dtFractionConsumed);
                                     remainingDt *= (1.0f - dtFractionConsumed);
 
                                     // Reset well detection machinery
@@ -766,7 +766,7 @@ void Npcs::UpdateNpcParticle(
                                 ? edgeTraveledActual * (edgeWalkedPlanned / edgeTraveledPlanned)
                                 : 0.0f; // Unlikely, but read above for rationale behind 0.0
                             totalEdgeWalkedActual += edgeDir * edgeWalkedActual;
-                            LogMessage("        edgeWalkedActual=", edgeWalkedActual, " totalEdgeWalkedActual=", totalEdgeWalkedActual);
+                            LogNpcDebug("        edgeWalkedActual=", edgeWalkedActual, " totalEdgeWalkedActual=", totalEdgeWalkedActual);
 
                             // Update well detection machinery
                             if (npcParticle.ConstrainedState.has_value()) // We might have left constrained state (not to return to it anymore)
@@ -777,11 +777,11 @@ void Npcs::UpdateNpcParticle(
 
                             if (npcParticle.ConstrainedState.has_value())
                             {
-                                LogMessage("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " EndMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
+                                LogNpcDebug("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " EndMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
                             }
                             else
                             {
-                                LogMessage("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
+                                LogNpcDebug("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
                             }
 
                             hasFoundNonInertial = true;
@@ -790,7 +790,7 @@ void Npcs::UpdateNpcParticle(
                         }
                         else
                         {
-                            LogMessage("      traj.edgeN=", trajectory.dot(edgeNormal));
+                            LogNpcDebug("      traj.edgeN=", trajectory.dot(edgeNormal));
                         }
                     }
                 }
@@ -802,8 +802,8 @@ void Npcs::UpdateNpcParticle(
                 // Case 2: Inertial: not on edge or on edge but not moving against (nor along) it
                 //
 
-                LogMessage("    ConstrainedInertial: triangle=", npcParticle.ConstrainedState->CurrentTriangle, " bCoords=", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " physicsDeltaPos=", physicsDeltaPos);
-                LogMessage("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
+                LogNpcDebug("    ConstrainedInertial: triangle=", npcParticle.ConstrainedState->CurrentTriangle, " bCoords=", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " physicsDeltaPos=", physicsDeltaPos);
+                LogNpcDebug("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
 
                 npcParticle.ConstrainedState->CurrentVirtualEdgeElementIndex = NoneElementIndex;
 
@@ -843,11 +843,11 @@ void Npcs::UpdateNpcParticle(
 
                 if (npcParticle.ConstrainedState.has_value())
                 {
-                    LogMessage("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " EndMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
+                    LogNpcDebug("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " EndMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
                 }
                 else
                 {
-                    LogMessage("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
+                    LogNpcDebug("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
                 }
 
                 // Consume whole time quantum and stop
@@ -1138,7 +1138,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
 
     if (flattenedTrajectoryEndBarycentricCoords.is_on_edge_or_internal())
     {
-        LogMessage("      Target is on/in triangle, moving to target");
+        LogNpcDebug("      Target is on/in triangle, moving to target");
 
         //
         // Update particle and exit - consuming whole time quantum
@@ -1174,7 +1174,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
         particles.SetVelocity(npcParticle.ParticleIndex, relativeVelocity - meshVelocity);
         npcParticleConstrainedState.MeshRelativeVelocity = relativeVelocity;
 
-        LogMessage("        edgeTraveleded (==planned)=", edgeTraveledPlanned, " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
+        LogNpcDebug("        edgeTraveleded (==planned)=", edgeTraveledPlanned, " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
 
         // Complete
         return std::make_tuple(
@@ -1186,7 +1186,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
     // Target is outside triangle
     //
 
-    LogMessage("      Target is outside triangle");
+    LogNpcDebug("      Target is outside triangle");
 
     //
     // Find closest intersection in the direction of the trajectory, which is
@@ -1224,7 +1224,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
     bcoords3f intersectionBarycentricCoords = bcoords3f::zero();
     intersectionBarycentricCoords[intersectionVertexOrdinal] = 1.0f;
 
-    LogMessage("      Moving to intersection vertex ", intersectionVertexOrdinal, ": ", intersectionBarycentricCoords);
+    LogNpcDebug("      Moving to intersection vertex ", intersectionVertexOrdinal, ": ", intersectionBarycentricCoords);
 
     npcParticleConstrainedState.CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
 
@@ -1238,7 +1238,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
 
     float const edgeTraveled = (intersectionAbsolutePosition - trajectoryStartAbsolutePosition).dot(edgeDir);
 
-    LogMessage("        edgeTraveled=", edgeTraveled);
+    LogNpcDebug("        edgeTraveled=", edgeTraveled);
 
     //
     // Navigate this vertex now, until any of these:
@@ -1295,7 +1295,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
                 // Stop here and then check trajectory in new situation
                 //
 
-                LogMessage("      Impact continuation (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
+                LogNpcDebug("      Impact continuation (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
 
                 return std::make_tuple(edgeTraveled, false);
             }
@@ -1306,7 +1306,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
                 // velocity - since this one includes the mesh velocity
                 //
 
-                LogMessage("      Bounce (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
+                LogNpcDebug("      Bounce (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
 
                 BounceConstrainedNpcParticle(
                     npc,
@@ -1362,8 +1362,8 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
     {
         assert(npcParticleConstrainedState.CurrentTriangleBarycentricCoords.is_on_edge_or_internal());
 
-        LogMessage("    SegmentTrace ", iIter);
-        LogMessage("      triangle=", npcParticleConstrainedState.CurrentTriangle, " bCoords=", npcParticleConstrainedState.CurrentTriangleBarycentricCoords,
+        LogNpcDebug("    SegmentTrace ", iIter);
+        LogNpcDebug("      triangle=", npcParticleConstrainedState.CurrentTriangle, " bCoords=", npcParticleConstrainedState.CurrentTriangleBarycentricCoords,
             " segmentTrajStartBCoords=", segmentTrajectoryStartBarycentricCoords, " segmentTrajEndBCoords=", segmentTrajectoryEndBarycentricCoords);
 
         //
@@ -1372,7 +1372,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
 
         if (segmentTrajectoryEndBarycentricCoords.is_on_edge_or_internal())
         {
-            LogMessage("      Target is on/in triangle, moving to target");
+            LogNpcDebug("      Target is on/in triangle, moving to target");
 
             //
             // Update particle and exit - consuming whole time quantum
@@ -1388,7 +1388,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
             particles.SetVelocity(npcParticle.ParticleIndex, absoluteVelocity);
             npcParticleConstrainedState.MeshRelativeVelocity = absoluteVelocity + meshVelocity;
 
-            LogMessage("        totalAbsoluteTraveledVector=", totalAbsoluteTraveledVector, " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
+            LogNpcDebug("        totalAbsoluteTraveledVector=", totalAbsoluteTraveledVector, " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
 
             // Return (mesh-relative) distance traveled with this move
             return (segmentTrajectoryEndAbsolutePosition - segmentTrajectoryStartAbsolutePosition).length();
@@ -1399,7 +1399,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
         // if we're on edge, trajectory is along this edge
         //
 
-        LogMessage("      Target is outside triangle");
+        LogNpcDebug("      Target is outside triangle");
 
         //
         // Find closest intersection in the direction of the trajectory
@@ -1451,7 +1451,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
 
                 assert(t > -Epsilon<float>); // Some numeric slack, trajectory is here guaranteed to be pointing into this edge
 
-                LogMessage("        t[v", vi, " e", edgeOrdinal, "] = ", t);
+                LogNpcDebug("        t[v", vi, " e", edgeOrdinal, "] = ", t);
 
                 if (t < minIntersectionT)
                 {
@@ -1485,7 +1485,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
         // Move to intersection, by moving barycentric coords
         //
 
-        LogMessage("      Moving bary coords to intersection with edge ", intersectionEdgeOrdinal, " ", intersectionBarycentricCoords);
+        LogNpcDebug("      Moving bary coords to intersection with edge ", intersectionEdgeOrdinal, " ", intersectionBarycentricCoords);
 
         npcParticleConstrainedState.CurrentTriangleBarycentricCoords = intersectionBarycentricCoords;
 
@@ -1511,7 +1511,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
             // Impact and bounce
             //
 
-            LogMessage("      Impact and bounce");
+            LogNpcDebug("      Impact and bounce");
 
             //
             // Calculate bounce response, using the *apparent* (trajectory)
@@ -1545,7 +1545,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
             // Not floor, climb over edge
             //
 
-            LogMessage("      Climbing over non-floor edge");
+            LogNpcDebug("      Climbing over non-floor edge");
 
             // Find opposite triangle
             ElementIndex const oppositeTriangle = mesh.GetEdges().GetOppositeTriangle(intersectionEdgeElementIndex, npcParticleConstrainedState.CurrentTriangle);
@@ -1555,7 +1555,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                 // Become free
                 //
 
-                LogMessage("      No opposite triangle found, becoming free");
+                LogNpcDebug("      No opposite triangle found, becoming free");
 
                 //
                 // Move to endpoint and exit, consuming whole quantum
@@ -1581,7 +1581,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
 
                 int const oppositeTriangleEdgeOrdinal = mesh.GetTriangles().GetSubEdgeOrdinal(oppositeTriangle, intersectionEdgeElementIndex);
 
-                LogMessage("      Moving to edge ", oppositeTriangleEdgeOrdinal, " of opposite triangle ", oppositeTriangle);
+                LogNpcDebug("      Moving to edge ", oppositeTriangleEdgeOrdinal, " of opposite triangle ", oppositeTriangle);
 
                 // Move to triangle
                 npcParticleConstrainedState.CurrentTriangle = oppositeTriangle;
@@ -1592,7 +1592,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                 newBarycentricCoords[oppositeTriangleEdgeOrdinal] = npcParticleConstrainedState.CurrentTriangleBarycentricCoords[(intersectionEdgeOrdinal + 1) % 3];
                 newBarycentricCoords[(oppositeTriangleEdgeOrdinal + 1) % 3] = npcParticleConstrainedState.CurrentTriangleBarycentricCoords[intersectionEdgeOrdinal];
 
-                LogMessage("      B-Coords: ", npcParticleConstrainedState.CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
+                LogNpcDebug("      B-Coords: ", npcParticleConstrainedState.CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
 
                 assert(newBarycentricCoords.is_on_edge_or_internal());
 
@@ -1607,7 +1607,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                     oppositeTriangle,
                     mesh.GetVertices());
 
-                LogMessage("      TrajEndB-Coords: ", oldSegmentTrajectoryEndBarycentricCoords, " -> ", segmentTrajectoryEndBarycentricCoords);
+                LogNpcDebug("      TrajEndB-Coords: ", oldSegmentTrajectoryEndBarycentricCoords, " -> ", segmentTrajectoryEndBarycentricCoords);
 
                 // Continue
             }
@@ -1637,7 +1637,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
 
     for (int iIter = 0; ; ++iIter)
     {
-        LogDebug("    NavigateVertex: iter=", iIter);
+        LogNpcDebug("    NavigateVertex: iter=", iIter);
 
         assert(iIter < 5); // Detect and break on infinite loops
 
@@ -1650,7 +1650,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         assert(npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords[nextVertexOrdinal] == 0.0f);
         assert(npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords[prevVertexOrdinal] == 0.0f);
 
-        LogDebug("      Triangle=", npcParticle.ConstrainedState->CurrentTriangle, " Vertex=", vertexOrdinal, " TrajectoryEndBarycentricCoords=", trajectoryEndBarycentricCoords);
+        LogNpcDebug("      Triangle=", npcParticle.ConstrainedState->CurrentTriangle, " Vertex=", vertexOrdinal, " TrajectoryEndBarycentricCoords=", trajectoryEndBarycentricCoords);
 
         if (isInitialStateUnknown)
         {
@@ -1662,7 +1662,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
                 // We go inside this triangle - stop where we are, we'll then check trajectory in new situation
                 //
 
-                LogDebug("      Trajectory extends inside triangle - CompletedNavigation");
+                LogNpcDebug("      Trajectory extends inside triangle - CompletedNavigation");
 
                 return NavigateVertexOutcome::MakeCompletedNavigationOutcome();
             }
@@ -1684,7 +1684,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
             crossedEdgeOrdinal = (vertexOrdinal + 2) % 3;
         }
 
-        LogDebug("      Trajectory crosses triangle: crossedEdgeOrdinal=", crossedEdgeOrdinal);
+        LogNpcDebug("      Trajectory crosses triangle: crossedEdgeOrdinal=", crossedEdgeOrdinal);
 
         //
         // Check whether this new edge is floor
@@ -1703,7 +1703,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
             // Encountered floor
             //
 
-            LogDebug("      Crossed edge is floor - EncounteredFloor");
+            LogNpcDebug("      Crossed edge is floor - EncounteredFloor");
 
             return NavigateVertexOutcome::MakeEncounteredFloorOutcome(crossedEdgeOrdinal);
         }
@@ -1720,7 +1720,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
             // Become free
             //
 
-            LogDebug("      No opposite triangle found, becoming free - ConvertedToFree");
+            LogNpcDebug("      No opposite triangle found, becoming free - ConvertedToFree");
 
             npcParticle.ConstrainedState.reset();
 
@@ -1740,7 +1740,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
 
         int const oppositeTriangleCrossedEdgeOrdinal = mesh.GetTriangles().GetSubEdgeOrdinal(oppositeTriangle, crossedEdgeElementIndex);
 
-        LogDebug("      Moving to edge ", oppositeTriangleCrossedEdgeOrdinal, " of opposite triangle ", oppositeTriangle);
+        LogNpcDebug("      Moving to edge ", oppositeTriangleCrossedEdgeOrdinal, " of opposite triangle ", oppositeTriangle);
 
         npcParticle.ConstrainedState->CurrentTriangle = oppositeTriangle;
 
@@ -1750,7 +1750,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         newBarycentricCoords[oppositeTriangleCrossedEdgeOrdinal] = npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords[(crossedEdgeOrdinal + 1) % 3];
         newBarycentricCoords[(oppositeTriangleCrossedEdgeOrdinal + 1) % 3] = npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords[crossedEdgeOrdinal];
 
-        LogDebug("      B-Coords: ", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
+        LogNpcDebug("      B-Coords: ", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
 
         assert(newBarycentricCoords.is_on_edge_or_internal());
 
@@ -1779,7 +1779,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
             mesh.GetVertices(),
             1.0e-07f); // Be strict with roundings - there is a tiny region where the trajectory would oscillate between two triangles (e.g. {0.998306274, 0.00169372594, -3.49245965e-10} -> {-1.61526414e-09, 0.00169372361, 0.998306274})
 
-        LogMessage("      TrajEndB-Coords: ", trajectoryEndBarycentricCoords);
+        LogNpcDebug("      TrajEndB-Coords: ", trajectoryEndBarycentricCoords);
 
         // At next iteration initial state will be unknown
         isInitialStateUnknown = true;
@@ -1822,7 +1822,7 @@ void Npcs::BounceConstrainedNpcParticle(
     // we need to transform velocity to absolute particle velocity
     vec2f const resultantAbsoluteVelocity = (normalResponse + tangentialResponse) - meshVelocity;
 
-    LogMessage("        trajectory=", trajectory, " apparentParticleVelocity=", apparentParticleVelocity, " nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantAbsoluteVelocity);
+    LogNpcDebug("        trajectory=", trajectory, " apparentParticleVelocity=", apparentParticleVelocity, " nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantAbsoluteVelocity);
 
     //
     // Set position and velocity
@@ -1850,7 +1850,7 @@ void Npcs::OnImpact(
     StateType & npc,
     bool isPrimaryParticle) const
 {
-    LogMessage("    OnImpact(", impactVector.length(), ", ", bounceEdgeNormal, ")");
+    LogNpcDebug("    OnImpact(", impactVector.length(), ", ", bounceEdgeNormal, ")");
 
     // Human state machine
     if (npc.HumanNpcState.has_value())
@@ -1918,7 +1918,7 @@ void Npcs::UpdateNpcAnimation(
                 float const adjustedStandardHumanHeight = LabParameters::HumanNpcGeometry::BodyLength * labParameters.HumanNpcBodyLengthAdjustment;
                 float const stepLength = LabParameters::HumanNpcGeometry::StepLengthFraction * adjustedStandardHumanHeight;
                 float const distanceInTwoSteps = std::fmod(npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition + 3.0f * stepLength / 2.0f, stepLength * 2.0f);
-                LogMessage("distanceInTwoSteps=", distanceInTwoSteps);
+                LogNpcDebug("distanceInTwoSteps=", distanceInTwoSteps);
 
                 float const legAngle = std::abs(stepLength - distanceInTwoSteps) / stepLength * 2.0f * maxLegAngle - maxLegAngle;
 
