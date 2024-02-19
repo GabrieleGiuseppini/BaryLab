@@ -2048,22 +2048,24 @@ void Npcs::UpdateNpcAnimation(
 
             case StateType::HumanNpcStateType::BehaviorType::Free_Swimming:
             {
+                // Calculate max arm angle around PI/2 - gets to zero with head coming out of water
+                float const maxArmAngle =
+                    Pi<float> * 2.5f / 10.0f
+                    * std::min(
+                        std::max(mParentWorld.GetOceanSurface().GetDepth(mParticles.GetPosition(secondaryParticleIndex)), 0.0f) / 2.0f, // 0->+ INF underwater, +1 at 2
+                        1.0f);
+
+                // Calculate angle as function of time & distance --- [-maxArmAngle ... maxArmAngle]
                 float const arg =
                     (currentSimulationTime - npc.HumanNpcState->CurrentStateTransitionSimulationTimestamp) * 1.7f
                     + npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition * 1.7f;
+                float const armAngle = std::sin(arg) * maxArmAngle;
 
-                // TODO: arm angle max depends on depth, so we are "flat" when floating
-                float constexpr MaxArmAngle = Pi<float> / 5.0f * 4.0f;
-                float constexpr MinArmAngle = Pi<float> / 5.0f;
-                float const armAngle =
-                    (MaxArmAngle + MinArmAngle) / 2.0f +
-                    (MaxArmAngle - MinArmAngle) / 2.0f * std::sin(arg);
+                targetRightArmAngle = Pi<float> / 2.0f + armAngle;
+                targetLeftArmAngle = -targetRightArmAngle;
 
-                targetRightArmAngle = armAngle;
-                targetLeftArmAngle = -armAngle;
-
-                targetRightLegAngle = armAngle * 0.25f;
-                targetLeftLegAngle = -armAngle * 0.25f;
+                targetRightLegAngle = (armAngle + maxArmAngle) / 2.0f * 1.0f;
+                targetLeftLegAngle = -targetRightLegAngle;
 
                 convergenceRate = 0.1f;
 
