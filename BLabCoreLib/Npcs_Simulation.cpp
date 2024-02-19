@@ -2048,23 +2048,47 @@ void Npcs::UpdateNpcAnimation(
 
             case StateType::HumanNpcStateType::BehaviorType::Free_Swimming:
             {
-                // Calculate max arm angle around PI/2 - gets to zero with head coming out of water
-                float const maxArmAngle =
-                    Pi<float> * 2.5f / 10.0f
+                //
+                // 1 period:
+                //
+                //  _----|         1.0
+                // /     \
+                // |      \_____|  0.0
+                //              |
+                //
+
+                float constexpr HalfPeriod = 2.0f;
+
+                float const arg =
+                    (currentSimulationTime - npc.HumanNpcState->CurrentStateTransitionSimulationTimestamp) * 1.7f
+                    + npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition * 1.7f;
+
+                float const inPeriod = fmod(arg, 2.0f * HalfPeriod);
+                float const y = (inPeriod < HalfPeriod)
+                    ? std::sqrt(inPeriod / HalfPeriod)
+                    : 1.0f - (inPeriod - HalfPeriod) * (inPeriod - HalfPeriod) / (HalfPeriod * HalfPeriod);
+
+                mEventDispatcher.OnCustomProbe("y", y);
+
+                // We flap with these mappings:
+                // y = 0.0 => ArmAngle1
+                // y = 1.0 => ArmAngle2 = f(depth)
+
+                float constexpr ArmAngle1 = Pi<float> / 5.0f;
+                float constexpr LegAngle1 = 0.0f;
+                float const armAngle2 = Pi<float> / 2.0f
+                    + Pi<float> / 4.0f
                     * std::min(
                         std::max(mParentWorld.GetOceanSurface().GetDepth(mParticles.GetPosition(secondaryParticleIndex)), 0.0f) / 2.0f, // 0->+ INF underwater, +1 at 2
                         1.0f);
 
-                // Calculate angle as function of time & distance --- [-maxArmAngle ... maxArmAngle]
-                float const arg =
-                    (currentSimulationTime - npc.HumanNpcState->CurrentStateTransitionSimulationTimestamp) * 1.7f
-                    + npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition * 1.7f;
-                float const armAngle = std::sin(arg) * maxArmAngle;
-
-                targetRightArmAngle = Pi<float> / 2.0f + armAngle;
+                float const armAngle = ArmAngle1 + y * (armAngle2 - ArmAngle1);
+                mEventDispatcher.OnCustomProbe("armAngle", armAngle);
+                targetRightArmAngle = armAngle;
                 targetLeftArmAngle = -targetRightArmAngle;
 
-                targetRightLegAngle = (armAngle + maxArmAngle) / 2.0f * 1.0f;
+                float const legAngle = LegAngle1 + y * (armAngle2 * 0.35f - LegAngle1);
+                targetRightLegAngle = legAngle;
                 targetLeftLegAngle = -targetRightLegAngle;
 
                 convergenceRate = 0.1f;
@@ -2073,14 +2097,15 @@ void Npcs::UpdateNpcAnimation(
             }
         }
 
-        npc.HumanNpcState->RightLegAngle += (targetRightLegAngle - npc.HumanNpcState->RightLegAngle) * convergenceRate;
-        npc.HumanNpcState->RightLegLengthMultiplier += (targetRightLegLengthMultiplier - npc.HumanNpcState->RightLegLengthMultiplier) * convergenceRate;
-        npc.HumanNpcState->LeftLegAngle += (targetLeftLegAngle - npc.HumanNpcState->LeftLegAngle) * convergenceRate;
-        npc.HumanNpcState->LeftLegLengthMultiplier += (targetLeftLegLengthMultiplier - npc.HumanNpcState->LeftLegLengthMultiplier) * convergenceRate;
         npc.HumanNpcState->RightArmAngle += (targetRightArmAngle - npc.HumanNpcState->RightArmAngle) * convergenceRate;
         npc.HumanNpcState->RightArmLengthMultiplier += (targetRightArmLengthMultiplier - npc.HumanNpcState->RightArmLengthMultiplier) * convergenceRate;
         npc.HumanNpcState->LeftArmAngle += (targetLeftArmAngle - npc.HumanNpcState->LeftArmAngle) * convergenceRate;
         npc.HumanNpcState->LeftArmLengthMultiplier += (targetLeftArmLengthMultiplier - npc.HumanNpcState->LeftArmLengthMultiplier) * convergenceRate;
+
+        npc.HumanNpcState->RightLegAngle += (targetRightLegAngle - npc.HumanNpcState->RightLegAngle) * convergenceRate;
+        npc.HumanNpcState->RightLegLengthMultiplier += (targetRightLegLengthMultiplier - npc.HumanNpcState->RightLegLengthMultiplier) * convergenceRate;
+        npc.HumanNpcState->LeftLegAngle += (targetLeftLegAngle - npc.HumanNpcState->LeftLegAngle) * convergenceRate;
+        npc.HumanNpcState->LeftLegLengthMultiplier += (targetLeftLegLengthMultiplier - npc.HumanNpcState->LeftLegLengthMultiplier) * convergenceRate;
     }
 }
 
