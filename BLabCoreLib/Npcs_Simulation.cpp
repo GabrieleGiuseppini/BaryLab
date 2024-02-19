@@ -1910,17 +1910,34 @@ void Npcs::UpdateNpcAnimation(
             }
 
             case StateType::HumanNpcStateType::BehaviorType::Constrained_Rising:
+            {
+                // Do nothing
+
+                // TODOTEST
+                ////targetRightArmAngle = 0.0f;
+                ////targetRightArmLengthMultiplier = 1.0f;
+                ////targetLeftArmAngle = 0.0f;
+                ////targetLeftArmLengthMultiplier = 1.0f;
+                ////targetRightLegAngle = 0.0f;
+                ////targetRightLegLengthMultiplier = 1.0f;
+                ////targetLeftLegAngle = 0.0f;
+                ////targetLeftLegLengthMultiplier = 1.0f;
+
+                convergenceRate = 0.3f;
+
+                break;
+            }
+
             case StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
             {
-                targetRightArmAngle = 0.0f;
-                targetRightArmLengthMultiplier = 1.0f;
-                targetLeftArmAngle = 0.0f;
-                targetLeftArmLengthMultiplier = 1.0f;
-                targetRightLegAngle = 0.0f;
-                targetRightLegLengthMultiplier = 1.0f;
-                targetLeftLegAngle = 0.0f;
-                targetLeftLegLengthMultiplier = 1.0f;
-                convergenceRate = 0.3f;
+                // Just small arms angle
+
+                float constexpr ArmsAngle = Pi<float> / 2.0f * 0.2f;
+
+                targetRightArmAngle = ArmsAngle;
+                targetLeftArmAngle = -ArmsAngle;
+
+                convergenceRate = 0.1f;
 
                 break;
             }
