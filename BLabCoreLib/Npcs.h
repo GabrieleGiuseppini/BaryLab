@@ -125,7 +125,8 @@ public:
 				Constrained_Walking, // Walks; continues to adjust alignment with torque
 
 				Free_Aerial, // Does nothing
-				Free_InWater // Does nothing, but waits to swim
+				Free_InWater, // Does nothing, but waits to swim
+				Free_Swimming // Swims
 			};
 
 			BehaviorType CurrentBehavior;
@@ -186,14 +187,24 @@ public:
 
 				struct Free_InWaterType
 				{
+					float ProgressToSwimming;
+
 					void Reset()
 					{
+						ProgressToSwimming = 0.0f;
 					}
 				} Free_InWater;
 
+				struct Free_SwimmingType
+				{
+					void Reset()
+					{
+					}
+				} Free_Swimming;
+
 			} CurrentBehaviorState;
 
-			float CurrentStateTransitionTimestamp;
+			float CurrentStateTransitionSimulationTimestamp;
 			float TotalDistanceTraveledSinceStateTransition; // [0.0f, +INF] - it's "edge traveled" when we're constrained on an edge (e.g. walking)
 
 			float CurrentEquilibriumSoftTerminationDecision; // Cross-state
@@ -278,9 +289,15 @@ public:
 						CurrentBehaviorState.Free_InWater.Reset();
 						break;
 					}
+
+					case BehaviorType::Free_Swimming:
+					{
+						CurrentBehaviorState.Free_Swimming.Reset();
+						break;
+					}
 				}
 
-				CurrentStateTransitionTimestamp = currentSimulationTime;
+				CurrentStateTransitionSimulationTimestamp = currentSimulationTime;
 				TotalDistanceTraveledSinceStateTransition = 0.0f;
 			}
 		};
@@ -728,6 +745,7 @@ private:
 		bool isPrimaryParticle) const;
 
 	void UpdateNpcAnimation(
+		float currentSimulationTime,
 		StateType & npc,
 		bool isPrimaryParticle,
 		Mesh const & mesh,

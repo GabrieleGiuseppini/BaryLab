@@ -327,9 +327,9 @@ void Npcs::UpdateHuman(
 
 			// Check if moved to water
 
-			auto const headPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
 			assert(npc.DipoleState.has_value());
-			auto const feetPosition = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex);
+			auto const & headPosition = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex);
+			auto const & feetPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
 
 			// It's in water if both in water
 			if (mParentWorld.GetOceanSurface().GetDepth(headPosition) > 0.0f
@@ -348,6 +348,7 @@ void Npcs::UpdateHuman(
 		}
 
 		case StateType::HumanNpcStateType::BehaviorType::Free_InWater:
+		case StateType::HumanNpcStateType::BehaviorType::Free_Swimming:
 		{
 			if (!isFree)
 			{
@@ -362,9 +363,9 @@ void Npcs::UpdateHuman(
 
 			// Check if moved to air
 
-			auto const headPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
 			assert(npc.DipoleState.has_value());
-			auto const feetPosition = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex);
+			auto const & headPosition = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex);
+			auto const & feetPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
 
 			// It's in air if both in air
 			if (mParentWorld.GetOceanSurface().GetDepth(headPosition) <= 0.0f
@@ -379,7 +380,35 @@ void Npcs::UpdateHuman(
 				break;
 			}
 
-			// TODOHERE: swimming
+			// Advance state machine
+
+			if (humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Free_InWater)
+			{
+				// Progress to swimming if there's enough alignment of head velocity and (opposite of) human vector
+
+				vec2f const humanDir = (feetPosition - headPosition).normalise();
+				vec2f const headVelocityDir = mParticles.GetVelocity(npc.DipoleState->SecondaryParticleState.ParticleIndex).normalise();
+
+				float const targetSwim = std::max(headVelocityDir.dot(-humanDir), 0.0f);
+
+				float constexpr ToSwimmingConvergenceRate = 0.12f;
+				humanState.CurrentBehaviorState.Free_InWater.ProgressToSwimming += (targetSwim - humanState.CurrentBehaviorState.Free_InWater.ProgressToSwimming) * ToSwimmingConvergenceRate;
+
+				publishStateQuantity = std::make_tuple("ProgressToSwimming", std::to_string(humanState.CurrentBehaviorState.Free_InWater.ProgressToSwimming));
+
+				if (IsAtTarget(humanState.CurrentBehaviorState.Free_InWater.ProgressToSwimming, 0.9f)) // We're content with "almost"
+				{
+					// Transition
+
+					humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Free_Swimming, currentSimulationTime);
+
+					// Keep torque
+
+					mEventDispatcher.OnHumanNpcBehaviorChanged("Free_Swimming");
+
+					break;
+				}
+			}
 
 			break;
 		}
@@ -580,9 +609,9 @@ void Npcs::TransitionHumanToFree(
 {
 	assert(npc.HumanNpcState.has_value());
 
-	auto const headPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
 	assert(npc.DipoleState.has_value());
-	auto const feetPosition = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex);
+	auto const & headPosition = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex);
+	auto const & feetPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
 
 	// It's in water if both in water
 	if (mParentWorld.GetOceanSurface().GetDepth(headPosition) > 0.0f

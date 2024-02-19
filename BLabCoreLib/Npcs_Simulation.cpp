@@ -119,6 +119,7 @@ void Npcs::UpdateNpcs(
         auto & npcState = mStateBuffer[n];
 
         UpdateNpcAnimation(
+            currentSimulationTime,
             npcState,
             true,
             mesh,
@@ -127,6 +128,7 @@ void Npcs::UpdateNpcs(
         if (npcState.DipoleState.has_value())
         {
             UpdateNpcAnimation(
+                currentSimulationTime,
                 npcState,
                 false,
                 mesh,
@@ -1861,6 +1863,7 @@ void Npcs::OnImpact(
 }
 
 void Npcs::UpdateNpcAnimation(
+    float currentSimulationTime,
     StateType & npc,
     bool isPrimaryParticle,
     Mesh const & mesh,
@@ -1923,7 +1926,7 @@ void Npcs::UpdateNpcAnimation(
                 ////targetLeftLegAngle = 0.0f;
                 ////targetLeftLegLengthMultiplier = 1.0f;
 
-                convergenceRate = 0.3f;
+                ////convergenceRate = 0.3f;
 
                 break;
             }
@@ -2039,6 +2042,30 @@ void Npcs::UpdateNpcAnimation(
                         }
                     }
                 }
+
+                break;
+            }
+
+            case StateType::HumanNpcStateType::BehaviorType::Free_Swimming:
+            {
+                float const arg =
+                    (currentSimulationTime - npc.HumanNpcState->CurrentStateTransitionSimulationTimestamp) * 1.7f
+                    + npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition * 1.7f;
+
+                // TODO: arm angle max depends on depth, so we are "flat" when floating
+                float constexpr MaxArmAngle = Pi<float> / 5.0f * 4.0f;
+                float constexpr MinArmAngle = Pi<float> / 5.0f;
+                float const armAngle =
+                    (MaxArmAngle + MinArmAngle) / 2.0f +
+                    (MaxArmAngle - MinArmAngle) / 2.0f * std::sin(arg);
+
+                targetRightArmAngle = armAngle;
+                targetLeftArmAngle = -armAngle;
+
+                targetRightLegAngle = armAngle * 0.25f;
+                targetLeftLegAngle = -armAngle * 0.25f;
+
+                convergenceRate = 0.1f;
 
                 break;
             }
