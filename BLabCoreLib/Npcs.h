@@ -124,7 +124,8 @@ public:
 				Constrained_Equilibrium, // Stands up; continues to adjust alignment with torque
 				Constrained_Walking, // Walks; continues to adjust alignment with torque
 
-				Free_Aerial // Does nothing
+				Free_Aerial, // Does nothing
+				Free_InWater // Does nothing, but waits to swim
 			};
 
 			BehaviorType CurrentBehavior;
@@ -182,6 +183,14 @@ public:
 					{
 					}
 				} Free_Aerial;
+
+				struct Free_InWaterType
+				{
+					void Reset()
+					{
+					}
+				} Free_InWater;
+
 			} CurrentBehaviorState;
 
 			float CurrentStateTransitionTimestamp;
@@ -210,9 +219,7 @@ public:
 				float currentSimulationTime)
 				: CurrentEquilibriumSoftTerminationDecision(0.0f)
 				, CurrentFaceOrientation(0.0f)
-				// TODOTEST
-				//, CurrentFaceDirectionX(1.0f) // Futurework: randomize
-				, CurrentFaceDirectionX(-1.0f) // Futurework: randomize
+				, CurrentFaceDirectionX(1.0f) // Futurework: randomize
 				, PanicLevel(0.0f)
 				// Animation
 				, RightLegAngle(0.0f)
@@ -263,6 +270,12 @@ public:
 					case BehaviorType::Free_Aerial:
 					{
 						CurrentBehaviorState.Free_Aerial.Reset();
+						break;
+					}
+
+					case BehaviorType::Free_InWater:
+					{
+						CurrentBehaviorState.Free_InWater.Reset();
 						break;
 					}
 				}
@@ -748,9 +761,7 @@ private:
 
 	void UpdateHuman(
 		float currentSimulationTime,
-		StateType::HumanNpcStateType & humanState,
-		StateType::NpcParticleStateType const & primaryParticleState,
-		StateType::NpcParticleStateType const & secondaryParticleState,
+		StateType & npc,
 		Mesh const & mesh,
 		LabParameters const & labParameters);
 
@@ -779,6 +790,10 @@ private:
 	void FlipHumanWalk(
 		StateType::HumanNpcStateType & humanState,
 		DoImmediate doImmediate) const;
+
+	void TransitionHumanToFree(
+		float currentSimulationTime,
+		StateType & npc);
 
 	float CalculateActualHumanWalkingAbsoluteSpeed(
 		StateType::HumanNpcStateType & humanState,

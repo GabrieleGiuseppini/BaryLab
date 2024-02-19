@@ -34,12 +34,17 @@ Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 
 void Npcs::UpdateHuman(
 	float currentSimulationTime,
-	StateType::HumanNpcStateType & humanState,
-	StateType::NpcParticleStateType const & primaryParticleState,
-	StateType::NpcParticleStateType const & secondaryParticleState,
+	StateType & npc,
 	Mesh const & mesh,
 	LabParameters const & labParameters)
 {
+	assert(npc.DipoleState.has_value());
+	auto const & primaryParticleState = npc.PrimaryParticleState;
+	auto const & secondaryParticleState = npc.DipoleState->SecondaryParticleState;
+
+	assert(npc.HumanNpcState.has_value());
+	auto & humanState = *npc.HumanNpcState;
+
 	float constexpr MaxRelativeVelocityMagnitudeForEquilibrium = 3.0f; // So high because we slip a lot while we try to stand up, and thus need to be immune to ourselves
 
 	std::optional<std::tuple<std::string, std::string>> publishStateQuantity;
@@ -53,9 +58,7 @@ void Npcs::UpdateHuman(
 			if (isFree)
 			{
 				// Transition
-				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Free_Aerial, currentSimulationTime);
-
-				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_Aerial");
+				TransitionHumanToFree(currentSimulationTime, npc);
 
 				break;
 			}
@@ -104,10 +107,7 @@ void Npcs::UpdateHuman(
 			if (isFree)
 			{
 				// Transition
-
-				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Free_Aerial, currentSimulationTime);
-
-				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_Aerial");
+				TransitionHumanToFree(currentSimulationTime, npc);
 
 				break;
 			}
@@ -314,7 +314,73 @@ void Npcs::UpdateHuman(
 
 		case StateType::HumanNpcStateType::BehaviorType::Free_Aerial:
 		{
-			// TODOHERE
+			if (!isFree)
+			{
+				// Transition
+
+				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
+
+				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+
+				break;
+			}
+
+			// Check if moved to water
+
+			auto const headPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
+			assert(npc.DipoleState.has_value());
+			auto const feetPosition = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex);
+
+			// It's in water if both in water
+			if (mParentWorld.GetOceanSurface().GetDepth(headPosition) > 0.0f
+				&& mParentWorld.GetOceanSurface().GetDepth(feetPosition) > 0.0f)
+			{
+				// Transition
+
+				npc.HumanNpcState->TransitionToState(StateType::HumanNpcStateType::BehaviorType::Free_InWater, currentSimulationTime);
+
+				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_InWater");
+
+				break;
+			}
+
+			break;
+		}
+
+		case StateType::HumanNpcStateType::BehaviorType::Free_InWater:
+		{
+			if (!isFree)
+			{
+				// Transition
+
+				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
+
+				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+
+				break;
+			}
+
+			// Check if moved to air
+
+			auto const headPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
+			assert(npc.DipoleState.has_value());
+			auto const feetPosition = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex);
+
+			// It's in air if both in air
+			if (mParentWorld.GetOceanSurface().GetDepth(headPosition) <= 0.0f
+				&& mParentWorld.GetOceanSurface().GetDepth(feetPosition) <= 0.0f)
+			{
+				// Transition
+
+				npc.HumanNpcState->TransitionToState(StateType::HumanNpcStateType::BehaviorType::Free_Aerial, currentSimulationTime);
+
+				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_Aerial");
+
+				break;
+			}
+
+			// TODOHERE: swimming
+
 			break;
 		}
 	}
@@ -505,6 +571,30 @@ void Npcs::FlipHumanWalk(
 	else
 	{
 		walkingState.TargetFlipDecision = 1.0f;
+	}
+}
+
+void Npcs::TransitionHumanToFree(
+	float currentSimulationTime,
+	StateType & npc)
+{
+	assert(npc.HumanNpcState.has_value());
+
+	auto const headPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
+	assert(npc.DipoleState.has_value());
+	auto const feetPosition = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex);
+
+	// It's in water if both in water
+	if (mParentWorld.GetOceanSurface().GetDepth(headPosition) > 0.0f
+		&& mParentWorld.GetOceanSurface().GetDepth(feetPosition) > 0.0f)
+	{
+		npc.HumanNpcState->TransitionToState(StateType::HumanNpcStateType::BehaviorType::Free_InWater, currentSimulationTime);
+		mEventDispatcher.OnHumanNpcBehaviorChanged("Free_InWater");
+	}
+	else
+	{
+		npc.HumanNpcState->TransitionToState(StateType::HumanNpcStateType::BehaviorType::Free_Aerial, currentSimulationTime);
+		mEventDispatcher.OnHumanNpcBehaviorChanged("Free_Aerial");
 	}
 }
 

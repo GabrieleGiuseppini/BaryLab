@@ -101,13 +101,10 @@ void Npcs::UpdateNpcs(
         if (npcState.Type == NpcType::Human)
         {
             assert(npcState.DipoleState.has_value());
-            assert(npcState.HumanNpcState.has_value());
 
             UpdateHuman(
                 currentSimulationTime,
-                *npcState.HumanNpcState,
-                npcState.PrimaryParticleState,
-                npcState.DipoleState->SecondaryParticleState,
+                npcState,
                 mesh,
                 labParameters);
         }
@@ -2008,6 +2005,7 @@ void Npcs::UpdateNpcAnimation(
             }
 
             case StateType::HumanNpcStateType::BehaviorType::Free_Aerial:
+            case StateType::HumanNpcStateType::BehaviorType::Free_InWater:
             {
                 targetRightArmAngle = 0.0f;
                 targetRightArmLengthMultiplier = 1.0f;
