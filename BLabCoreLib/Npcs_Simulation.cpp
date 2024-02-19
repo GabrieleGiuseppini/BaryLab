@@ -1874,19 +1874,41 @@ void Npcs::UpdateNpcAnimation(
         ElementIndex const primaryParticleIndex = npc.PrimaryParticleState.ParticleIndex;
         ElementIndex const secondaryParticleIndex = npc.DipoleState->SecondaryParticleState.ParticleIndex;
 
-        float targetRightArmAngle = 0.0f;
-        float targetRightArmLengthMultiplier = 1.0f;
-        float targetLeftArmAngle = 0.0f;
-        float targetLeftArmLengthMultiplier = 1.0f;
-        float targetRightLegAngle = 0.0f;
-        float targetRightLegLengthMultiplier = 1.0f;
-        float targetLeftLegAngle = 0.0f;
-        float targetLeftLegLengthMultiplier = 1.0f;
+        float targetRightArmAngle = npc.HumanNpcState->RightArmAngle;
+        float targetRightArmLengthMultiplier = npc.HumanNpcState->RightArmLengthMultiplier;
+        float targetLeftArmAngle = npc.HumanNpcState->LeftArmAngle;
+        float targetLeftArmLengthMultiplier = npc.HumanNpcState->LeftArmLengthMultiplier;
+
+        float targetRightLegAngle = npc.HumanNpcState->RightLegAngle;
+        float targetRightLegLengthMultiplier = npc.HumanNpcState->RightLegLengthMultiplier;
+        float targetLeftLegAngle = npc.HumanNpcState->LeftLegAngle;
+        float targetLeftLegLengthMultiplier = npc.HumanNpcState->LeftLegLengthMultiplier;
+
         float convergenceRate = 0.0f;
 
         switch (npc.HumanNpcState->CurrentBehavior)
         {
             case StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
+            case StateType::HumanNpcStateType::BehaviorType::Free_Aerial:
+            case StateType::HumanNpcStateType::BehaviorType::Free_InWater:
+            {
+                // Only move arms: always pointing downward
+
+                vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
+                vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
+                vec2f const actualBodyDir = (feetPosition - headPosition).normalise();
+
+                float constexpr MaxAngleAroundPerp = Pi<float> / 2.0f * 0.7f;
+                targetRightArmAngle = Pi<float> / 2.0f - (actualBodyDir.dot(LabParameters::GravityDir)) * MaxAngleAroundPerp;
+                targetLeftArmAngle = -targetRightArmAngle;
+
+                // Leave legs as-is
+
+                convergenceRate = 0.3f;
+
+                break;
+            }
+
             case StateType::HumanNpcStateType::BehaviorType::Constrained_Rising:
             case StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
             {
@@ -2000,22 +2022,6 @@ void Npcs::UpdateNpcAnimation(
                         }
                     }
                 }
-
-                break;
-            }
-
-            case StateType::HumanNpcStateType::BehaviorType::Free_Aerial:
-            case StateType::HumanNpcStateType::BehaviorType::Free_InWater:
-            {
-                targetRightArmAngle = 0.0f;
-                targetRightArmLengthMultiplier = 1.0f;
-                targetLeftArmAngle = 0.0f;
-                targetLeftArmLengthMultiplier = 1.0f;
-                targetRightLegAngle = 0.0f;
-                targetRightLegLengthMultiplier = 1.0f;
-                targetLeftLegAngle = 0.0f;
-                targetLeftLegLengthMultiplier = 1.0f;
-                convergenceRate = 0.3f;
 
                 break;
             }
