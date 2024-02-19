@@ -2066,7 +2066,7 @@ void Npcs::UpdateNpcAnimation(
                 float const inPeriod = fmod(arg, 2.0f * HalfPeriod);
                 float const y = (inPeriod < HalfPeriod)
                     ? std::sqrt(inPeriod / HalfPeriod)
-                    : 1.0f - (inPeriod - HalfPeriod) * (inPeriod - HalfPeriod) / (HalfPeriod * HalfPeriod);
+                    : (inPeriod - HalfPeriod - HalfPeriod) * (inPeriod - HalfPeriod - HalfPeriod) / (HalfPeriod * HalfPeriod);
 
                 mEventDispatcher.OnCustomProbe("y", y);
 
@@ -2077,7 +2077,7 @@ void Npcs::UpdateNpcAnimation(
                 float constexpr ArmAngle1 = Pi<float> / 5.0f;
                 float constexpr LegAngle1 = 0.0f;
                 float const armAngle2 = Pi<float> / 2.0f
-                    + Pi<float> / 4.0f
+                    + Pi<float> / 3.0f
                     * std::min(
                         std::max(mParentWorld.GetOceanSurface().GetDepth(mParticles.GetPosition(secondaryParticleIndex)), 0.0f) / 2.0f, // 0->+ INF underwater, +1 at 2
                         1.0f);
@@ -2091,7 +2091,7 @@ void Npcs::UpdateNpcAnimation(
                 targetRightLegAngle = legAngle;
                 targetLeftLegAngle = -targetRightLegAngle;
 
-                convergenceRate = 0.1f;
+                convergenceRate = 0.15f;
 
                 break;
             }
