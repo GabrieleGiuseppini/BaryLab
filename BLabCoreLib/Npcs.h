@@ -217,6 +217,9 @@ public:
 			// Animation
 
 			// Angles are relative to vertical, when the NPC is looking R
+			// (even though when we flip we pretend immediate mirroring of limbs from the point
+			// of view of the human, so angles are independent from direction and animation
+			// is smoother)
 
 			float RightLegAngle;
 			float RightLegLengthMultiplier;
@@ -227,6 +230,9 @@ public:
 			float LeftArmAngle;
 			float LeftArmLengthMultiplier;
 
+			static float constexpr InitialArmAngle = Pi<float> / 2.0f * 0.3f;
+			static float constexpr InitialLegAngle = 0.2f;
+
 			HumanNpcStateType(
 				BehaviorType initialBehavior,
 				float currentSimulationTime)
@@ -235,13 +241,13 @@ public:
 				, CurrentFaceDirectionX(0.0f)
 				, PanicLevel(0.0f)
 				// Animation
-				, RightLegAngle(0.2f)
+				, RightLegAngle(InitialLegAngle)
 				, RightLegLengthMultiplier(1.0f)
-				, LeftLegAngle(-0.2f)
+				, LeftLegAngle(-InitialLegAngle)
 				, LeftLegLengthMultiplier(1.0f)
-				, RightArmAngle(0.2f)
+				, RightArmAngle(InitialArmAngle)
 				, RightArmLengthMultiplier(1.0f)
-				, LeftArmAngle(-0.2f)
+				, LeftArmAngle(-InitialArmAngle)
 				, LeftArmLengthMultiplier(1.0f)
 			{
 				TransitionToState(initialBehavior, currentSimulationTime);

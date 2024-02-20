@@ -1878,14 +1878,14 @@ void Npcs::UpdateNpcAnimation(
         ElementIndex const secondaryParticleIndex = npc.DipoleState->SecondaryParticleState.ParticleIndex;
 
         float targetRightArmAngle = npc.HumanNpcState->RightArmAngle;
-        float targetRightArmLengthMultiplier = npc.HumanNpcState->RightArmLengthMultiplier;
+        float targetRightArmLengthMultiplier = 1.0f;
         float targetLeftArmAngle = npc.HumanNpcState->LeftArmAngle;
-        float targetLeftArmLengthMultiplier = npc.HumanNpcState->LeftArmLengthMultiplier;
+        float targetLeftArmLengthMultiplier = 1.0f;
 
         float targetRightLegAngle = npc.HumanNpcState->RightLegAngle;
-        float targetRightLegLengthMultiplier = npc.HumanNpcState->RightLegLengthMultiplier;
+        float targetRightLegLengthMultiplier = 1.0f;
         float targetLeftLegAngle = npc.HumanNpcState->LeftLegAngle;
-        float targetLeftLegLengthMultiplier = npc.HumanNpcState->LeftLegLengthMultiplier;
+        float targetLeftLegLengthMultiplier = 1.0f;
 
         float convergenceRate = 0.0f;
 
