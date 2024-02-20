@@ -44,6 +44,27 @@ static constexpr ElementIndex NoneElementIndex = std::numeric_limits<ElementInde
  */
 using Octant = std::int32_t;
 
+struct Quadf
+{
+    vec2f TopRight;
+    vec2f TopLeft;
+    vec2f BottomRight;
+    vec2f BottomLeft;
+
+    Quadf() = default;
+
+    Quadf(
+        vec2f topRight,
+        vec2f topLeft,
+        vec2f bottomRight,
+        vec2f bottomLeft)
+        : TopRight(topRight)
+        , TopLeft(topLeft)
+        , BottomRight(bottomRight)
+        , BottomLeft(bottomLeft)
+    {}
+};
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Misc
 ////////////////////////////////////////////////////////////////////////////////////////////////

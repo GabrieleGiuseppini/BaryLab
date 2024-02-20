@@ -564,6 +564,8 @@ ShaderManager::VertexAttributeType ShaderManager::StrToVertexAttributeType(std::
         return VertexAttributeType::MeshVelocityAttributeGroup2;
     else if (Utils::CaseInsensitiveEquals(str, "NpcLimbAttributeGroup1"))
         return VertexAttributeType::NpcLimbAttributeGroup1;
+    else if (Utils::CaseInsensitiveEquals(str, "NpcLimbAttributeGroup2"))
+        return VertexAttributeType::NpcLimbAttributeGroup2;
     else if (Utils::CaseInsensitiveEquals(str, "ParticleAttributeGroup1"))
         return VertexAttributeType::ParticleAttributeGroup1;
     else if (Utils::CaseInsensitiveEquals(str, "ParticleAttributeGroup2"))

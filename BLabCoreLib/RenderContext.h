@@ -7,6 +7,7 @@
 
 #include "BLabOpenGL.h"
 #include "BLabOpenGLMappedBuffer.h"
+#include "BLabTypes.h"
 #include "LabParameters.h"
 #include "ShaderManager.h"
 #include "Vectors.h"
@@ -170,10 +171,9 @@ public:
     void UploadNpcHumanLimbsStart();
 
     void UploadNpcHumanLimb(
-        vec2f const & topLeftPosition,
-        vec2f const & topRightPosition,
-        vec2f const & bottomLeftPosition,
-        vec2f const & bottomRightPosition);
+        Quadf const & quad,
+        float faceOrientation,
+        float faceDirectionX);
 
     void UploadNpcHumanLimbsEnd();
 
@@ -384,12 +384,15 @@ private:
     {
         vec2f Position;
         vec2f VertexSpacePosition;
+        float BackDepth;
 
         NpcLimbVertex(
             vec2f const & position,
-            vec2f vertexSpacePosition)
+            vec2f vertexSpacePosition,
+            float backDepth)
             : Position(position)
             , VertexSpacePosition(vertexSpacePosition)
+            , BackDepth(backDepth)
         {}
     };
 

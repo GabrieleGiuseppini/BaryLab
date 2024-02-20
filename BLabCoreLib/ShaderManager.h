@@ -62,6 +62,7 @@ public:
         ParticleAttributeGroup2 = 1,
 
         NpcLimbAttributeGroup1 = 0,
+        NpcLimbAttributeGroup2 = 1,
 
         ParticleTrajectoryAttributeGroup1 = 0,
         ParticleTrajectoryAttributeGroup2 = 1,
