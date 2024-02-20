@@ -556,10 +556,13 @@ void LabController::DoStepForVideo()
 {
     assert(mModel);
 
-    // TODOTEST
-    //RotateMeshBy(0, 3.1f * 3.0f); // Stuck against wall
-    RotateMeshBy(0, -3.1f * 12.0f); // Sfarfallio
-    return;
+    //mModel->GetNpcs().FlipHumanWalk(0);
+    mModel->GetNpcs().FlipHumanFrontBack(0);
+
+    ////// TODOTEST
+    //////RotateMeshBy(0, 3.1f * 3.0f); // Stuck against wall
+    ////RotateMeshBy(0, -3.1f * 12.0f); // Sfarfallio
+    ////return;
 
     ////++mCurrentVideoStep;
 

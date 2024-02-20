@@ -356,6 +356,10 @@ public:
 
 	void SetPanicLevelForAllHumans(float panicLevel);
 
+	void FlipHumanWalk(int npcIndex);
+
+	void FlipHumanFrontBack(int npcIndex);
+
 	void MoveParticleBy(
 		ElementIndex particleIndex,
 		vec2f const & offset,
