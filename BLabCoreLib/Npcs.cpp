@@ -528,17 +528,6 @@ void Npcs::Render(RenderContext & renderContext)
 							crotchPosition + rightLegVector - rightLegTraverseDir * halfLegD,
 							crotchPosition + rightLegVector + rightLegTraverseDir * halfLegD);
 
-						// Head
-
-						renderContext.UploadNpcHumanLimb(
-							Quadf(
-								headPosition - actualBodyHDir * halfHeadD,
-								headPosition + actualBodyHDir * halfHeadD,
-								neckPosition - actualBodyHDir * halfHeadD,
-								neckPosition + actualBodyHDir * halfHeadD),
-							state.HumanNpcState->CurrentFaceOrientation,
-							state.HumanNpcState->CurrentFaceDirectionX);
-
 						// Arm and legs far
 
 						if (state.HumanNpcState->CurrentFaceDirectionX > 0.0f)
@@ -569,6 +558,17 @@ void Npcs::Render(RenderContext & renderContext)
 								state.HumanNpcState->CurrentFaceOrientation,
 								state.HumanNpcState->CurrentFaceDirectionX);
 						}
+
+						// Head
+
+						renderContext.UploadNpcHumanLimb(
+							Quadf(
+								headPosition - actualBodyHDir * halfHeadD,
+								headPosition + actualBodyHDir * halfHeadD,
+								neckPosition - actualBodyHDir * halfHeadD,
+								neckPosition + actualBodyHDir * halfHeadD),
+							state.HumanNpcState->CurrentFaceOrientation,
+							state.HumanNpcState->CurrentFaceDirectionX);
 
 						// Torso
 
