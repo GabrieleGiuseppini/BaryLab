@@ -1974,8 +1974,16 @@ void Npcs::UpdateNpcAnimation(
                 }
                 else
                 {
-                    float const panicMultiplier = 2.6f - 1.2f * std::min(npc.HumanNpcState->PanicLevel, 2.0f) / 2.0f;
-                    targetRightArmAngle = Pi<float> - (targetLeftLegAngle * panicMultiplier);
+                    float const elapsed = currentSimulationTime - npc.HumanNpcState->CurrentStateTransitionSimulationTimestamp;
+                    float const halfPeriod = 1.0f - 0.6f * std::min(npc.HumanNpcState->PanicLevel, 4.0f) / 4.0f;
+                    float const inPeriod = std::fmod(elapsed, halfPeriod * 2.0f);
+
+                    float constexpr MaxAngle = Pi<float> / 2.0f;
+                    float const angle = std::abs(halfPeriod - inPeriod) / halfPeriod * 2.0f * MaxAngle - MaxAngle;
+
+                    // PanicMultiplier: p=0.0 => 1.0 p=2.0 => 0.4
+                    float const panicMultiplier = 0.4f + 0.6f * (1.0f - std::min(npc.HumanNpcState->PanicLevel, 2.0f) / 2.0f);
+                    targetRightArmAngle = Pi<float> -angle * panicMultiplier;
                 }
                 targetLeftArmAngle = -targetRightArmAngle;
 
