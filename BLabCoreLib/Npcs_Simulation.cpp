@@ -1974,7 +1974,8 @@ void Npcs::UpdateNpcAnimation(
                 }
                 else
                 {
-                    targetRightArmAngle = Pi<float> / 2.0f + targetLeftLegAngle * (1.5f + std::min(npc.HumanNpcState->PanicLevel, 1.0f));
+                    //targetRightArmAngle = Pi<float> / 2.0f + targetLeftLegAngle * (1.5f + std::min(npc.HumanNpcState->PanicLevel, 1.0f));
+                    targetRightArmAngle = Pi<float> - (targetLeftLegAngle * 1.4f);
                 }
                 targetLeftArmAngle = -targetRightArmAngle;
 
