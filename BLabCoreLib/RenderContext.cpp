@@ -596,45 +596,39 @@ void RenderContext::UploadNpcHumanLimbsStart()
 }
 
 void RenderContext::UploadNpcHumanLimb(
-    vec2f const & startPosition,
-    vec2f const & endPosition,
-    float width)
+    vec2f const & topLeftPosition,
+    vec2f const & topRightPosition,
+    vec2f const & bottomLeftPosition,
+    vec2f const & bottomRightPosition)
 {
-    vec2f const dirP = (endPosition - startPosition).normalise().to_perpendicular();
-
-    vec2f const topLeft = startPosition - dirP * width * 0.5f;
-    vec2f const topRight = startPosition + dirP * width * 0.5f;
-    vec2f const bottomLeft = endPosition - dirP * width * 0.5f;
-    vec2f const bottomRight = endPosition + dirP * width * 0.5f;
-
     // Left, bottom
     mNpcLimbVertexBuffer.emplace_back(
-        bottomLeft,
+        bottomLeftPosition,
         vec2f(-1.0f, -1.0f));
 
     // Left, top
     mNpcLimbVertexBuffer.emplace_back(
-        topLeft,
+        topLeftPosition,
         vec2f(-1.0f, 1.0f));
 
     // Right, bottom
     mNpcLimbVertexBuffer.emplace_back(
-        bottomRight,
+        bottomRightPosition,
         vec2f(1.0f, -1.0f));
 
     // Left, top
     mNpcLimbVertexBuffer.emplace_back(
-        topLeft,
+        topLeftPosition,
         vec2f(-1.0f, 1.0f));
 
     // Right, bottom
     mNpcLimbVertexBuffer.emplace_back(
-        bottomRight,
+        bottomRightPosition,
         vec2f(1.0f, -1.0f));
 
     // Right, top
     mNpcLimbVertexBuffer.emplace_back(
-        topRight,
+        topRightPosition,
         vec2f(1.0f, 1.0f));
 }
 
@@ -808,7 +802,7 @@ void RenderContext::UploadMeshVelocity(
         vec2f const c = center - vectorNormal * VectorWidth / 2.0f * halfQuadrantSize;
 
         // Left portion
-        
+
         float constexpr LeftPortionWidth = MinVectorLength * 0.2f;
         vec2f const j = a + vectorDir * LeftPortionWidth * halfQuadrantSize;
         vec2f const k = c + vectorDir * LeftPortionWidth * halfQuadrantSize;
@@ -1039,7 +1033,7 @@ void RenderContext::RenderEnd()
     ////////////////////////////////////////////////////////////////
     // Grid
     ////////////////////////////////////////////////////////////////
-    
+
     if (mIsGridEnabled)
     {
         glBindVertexArray(*mGridVAO);

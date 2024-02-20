@@ -118,7 +118,8 @@ struct LabParameters
         static float constexpr TorsoWidthFraction = 1.0f / 6.0f;
         static float constexpr TorsoDepthFraction = TorsoWidthFraction / 2.0f;
 
-        static float constexpr ShoulderDistanceFromTopFraction = 1.0f / 7.0f;
+        // TODOTEST
+        //static float constexpr ShoulderDistanceFromTopFraction = 1.0f / 7.0f;
 
         static float constexpr ArmLengthFraction = 3.0f / 8.0f;
         static float constexpr ArmWidthFraction = 1.0f / 10.0f;

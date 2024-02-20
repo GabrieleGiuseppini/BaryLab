@@ -1940,6 +1940,9 @@ void Npcs::UpdateNpcAnimation(
                 targetRightArmAngle = ArmsAngle;
                 targetLeftArmAngle = -ArmsAngle;
 
+                targetRightLegAngle = 0.0f;
+                targetLeftLegAngle = 0.0f;
+
                 convergenceRate = 0.1f;
 
                 break;
@@ -2017,9 +2020,11 @@ void Npcs::UpdateNpcAnimation(
                     float const adjustedStandardLegLength = LabParameters::HumanNpcGeometry::LegLengthFraction * adjustedStandardHumanHeight;
                     vec2f const crotchPosition = headPosition + actualBodyVector * (LabParameters::HumanNpcGeometry::HeadLengthFraction + LabParameters::HumanNpcGeometry::TorsoLengthFraction);
 
+                    float const angleSign = npc.HumanNpcState->CurrentFaceDirectionX; // Angles are swapped depending on direction
+
                     // PERF: the below may be optimized: leg*2 is not needed and leg*1 is crotch => no dependency on legs
                     {
-                        vec2f const legrVector = actualBodyDir.rotate(targetRightLegAngle) * adjustedStandardLegLength;
+                        vec2f const legrVector = actualBodyDir.rotate(targetRightLegAngle * angleSign) * adjustedStandardLegLength;
                         float const edgCrossRightLeg = edgVector.cross(legrVector);
                         if (std::abs(edgCrossRightLeg) > 0.0000001f)
                         {
@@ -2031,7 +2036,7 @@ void Npcs::UpdateNpcAnimation(
                     }
 
                     {
-                        vec2f const leglVector = actualBodyDir.rotate(targetLeftLegAngle) * adjustedStandardLegLength;
+                        vec2f const leglVector = actualBodyDir.rotate(targetLeftLegAngle * angleSign) * adjustedStandardLegLength;
                         float const edgCrossLeftLeg = edgVector.cross(leglVector);
                         if (std::abs(edgCrossLeftLeg) > 0.0000001f)
                         {

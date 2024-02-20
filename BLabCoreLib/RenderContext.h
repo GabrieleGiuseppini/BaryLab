@@ -170,9 +170,10 @@ public:
     void UploadNpcHumanLimbsStart();
 
     void UploadNpcHumanLimb(
-        vec2f const & startPosition,
-        vec2f const & endPosition,
-        float width);
+        vec2f const & topLeftPosition,
+        vec2f const & topRightPosition,
+        vec2f const & bottomLeftPosition,
+        vec2f const & bottomRightPosition);
 
     void UploadNpcHumanLimbsEnd();
 
@@ -486,7 +487,7 @@ private:
     ////////////////////////////////////////////////////////////////
     // Grid
     ////////////////////////////////////////////////////////////////
-    
+
 #pragma pack(push)
 
     struct GridVertex

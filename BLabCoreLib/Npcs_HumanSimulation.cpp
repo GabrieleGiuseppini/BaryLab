@@ -6,6 +6,7 @@
 #include "Npcs.h"
 
 #include "BLabMath.h"
+#include "GameRandomEngine.h"
 #include "Log.h"
 
 #include <cmath>
@@ -132,6 +133,10 @@ void Npcs::UpdateHuman(
 						// Transition
 
 						humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Walking, currentSimulationTime);
+
+						// Face: 0/rnd
+						humanState.CurrentFaceOrientation = 0.0f;
+						humanState.CurrentFaceDirectionX = GameRandomEngine::GetInstance().GenerateUniformBoolean(0.5f) ? +1.0f : -1.0f;
 
 						// Keep torque
 
@@ -282,6 +287,12 @@ void Npcs::UpdateHuman(
 
 					humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium, currentSimulationTime);
 
+					// Face: front/0
+					humanState.CurrentFaceOrientation = humanState.CurrentFaceOrientation == 0.0f
+						? (GameRandomEngine::GetInstance().GenerateUniformBoolean(0.5f) ? +1.0f : -1.0f)
+						: humanState.CurrentFaceOrientation; // Keep it
+					humanState.CurrentFaceDirectionX = 0.0f;
+
 					mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Equilibrium");
 				}
 			}
@@ -402,7 +413,9 @@ void Npcs::UpdateHuman(
 
 					humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Free_Swimming, currentSimulationTime);
 
-					// Keep torque
+					// Face: FvB/0
+					humanState.CurrentFaceOrientation = 1.0f; // TODO: random: back
+					humanState.CurrentFaceDirectionX = 0.0f;
 
 					mEventDispatcher.OnHumanNpcBehaviorChanged("Free_Swimming");
 

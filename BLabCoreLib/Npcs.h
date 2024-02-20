@@ -216,6 +216,8 @@ public:
 
 			// Animation
 
+			// Angles are relative to vertical, when the NPC is looking R
+
 			float RightLegAngle;
 			float RightLegLengthMultiplier;
 			float LeftLegAngle;
