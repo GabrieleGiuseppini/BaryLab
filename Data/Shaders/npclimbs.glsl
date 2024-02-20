@@ -7,11 +7,12 @@
 
 // Inputs
 in vec4 inNpcLimbAttributeGroup1; // Position, VertexSpacePosition
-in float inNpcLimbAttributeGroup2; // BackDepth
+in vec2 inNpcLimbAttributeGroup2; // BackDepth, OrientationDepth
 
 // Outputs        
 out vec2 vertexSpacePosition;
 out float vertexBackDepth;
+out float vertexOrientationDepth;
 
 // Params
 uniform mat4 paramOrthoMatrix;
@@ -19,7 +20,8 @@ uniform mat4 paramOrthoMatrix;
 void main()
 {
     vertexSpacePosition = inNpcLimbAttributeGroup1.zw;
-    vertexBackDepth = inNpcLimbAttributeGroup2;
+    vertexBackDepth = inNpcLimbAttributeGroup2.x;
+    vertexOrientationDepth = inNpcLimbAttributeGroup2.y;
 
     gl_Position = paramOrthoMatrix * vec4(inNpcLimbAttributeGroup1.xy, -1.0, 1.0);
 }
@@ -33,6 +35,7 @@ void main()
 // Inputs from previous shader        
 in vec2 vertexSpacePosition; // [(-1.0, -1.0), (1.0, 1.0)]
 in float vertexBackDepth;
+in float vertexOrientationDepth;
 
 void main()
 {
@@ -41,11 +44,15 @@ void main()
     float d = distance(uv, vec2(.0, .0));    
     float alpha = 1.0 - smoothstep(0.9, 1.1, d);
     float borderAlpha = alpha - (1.0 - smoothstep(0.55, 0.8, d));
+
+    // 1.0 when in direction X, 0.0 otherwise
+    #define MIN_SHADE 0.3
+    float oppositeDirShade = MIN_SHADE + (1.0 - MIN_SHADE) * (1.0 - (-vertexSpacePosition.x - 1.0)*(-vertexSpacePosition.x - 1.0) / 4.0 * vertexOrientationDepth);
     
     vec3 cInner = vec3(0.560, 0.788, 0.950) * (1.0 - vertexBackDepth / 2.0);
     vec3 cBorder = vec3(0.10, 0.10, 0.10);
     vec4 c = vec4(
-        mix(cInner, cBorder, borderAlpha),
+        mix(cInner, cBorder, borderAlpha) * oppositeDirShade,
         alpha);
 
     gl_FragColor = c;

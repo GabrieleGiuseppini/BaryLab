@@ -216,11 +216,12 @@ public:
 
 			// Animation
 
-			// Angles are relative to vertical, when the NPC is looking R
-			// (even though when we flip we pretend immediate mirroring of limbs from the point
-			// of view of the human, so angles are independent from direction and animation
-			// is smoother)
+			// Angles are CCW relative to vertical, regardless of where the NPC is looking towards (L/R)
+			// (when we flip we pretend immediate mirroring of limbs from the point of view of the human,
+			// so angles are independent from direction, and animation is smoother)
 
+			// "Left" and "Right" are relative to screen when the NPC is looking at us
+			// (so "right arm" is really its left arm)
 			float RightLegAngle;
 			float RightLegLengthMultiplier;
 			float LeftLegAngle;

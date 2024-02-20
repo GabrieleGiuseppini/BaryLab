@@ -556,8 +556,8 @@ void LabController::DoStepForVideo()
 {
     assert(mModel);
 
-    mModel->GetNpcs().FlipHumanWalk(0);
-    //mModel->GetNpcs().FlipHumanFrontBack(0);
+    //mModel->GetNpcs().FlipHumanWalk(0);
+    mModel->GetNpcs().FlipHumanFrontBack(0);
 
     ////// TODOTEST
     //////RotateMeshBy(0, 3.1f * 3.0f); // Stuck against wall

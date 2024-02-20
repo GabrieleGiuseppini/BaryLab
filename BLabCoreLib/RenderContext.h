@@ -385,14 +385,17 @@ private:
         vec2f Position;
         vec2f VertexSpacePosition;
         float BackDepth;
+        float OrientationDepth;
 
         NpcLimbVertex(
             vec2f const & position,
             vec2f vertexSpacePosition,
-            float backDepth)
+            float backDepth,
+            float orientationDepth)
             : Position(position)
             , VertexSpacePosition(vertexSpacePosition)
             , BackDepth(backDepth)
+            , OrientationDepth(orientationDepth)
         {}
     };
 

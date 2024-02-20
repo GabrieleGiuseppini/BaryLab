@@ -172,8 +172,8 @@ RenderContext::RenderContext(
     glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcLimbAttributeGroup1));
     glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcLimbAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(NpcLimbVertex), (void *)0);
     glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcLimbAttributeGroup2));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcLimbAttributeGroup2), 1, GL_FLOAT, GL_FALSE, sizeof(NpcLimbVertex), (void *)(4 * sizeof(float)));
-    static_assert(sizeof(NpcLimbVertex) == (5) * sizeof(float));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcLimbAttributeGroup2), 2, GL_FLOAT, GL_FALSE, sizeof(NpcLimbVertex), (void *)(4 * sizeof(float)));
+    static_assert(sizeof(NpcLimbVertex) == (6) * sizeof(float));
 
     glBindVertexArray(0);
 
@@ -603,6 +603,7 @@ void RenderContext::UploadNpcHumanLimb(
     float faceDirectionX)
 {
     float const backDepth = std::max(-faceOrientation, 0.0f);
+    float const orientationDepth = std::abs(faceDirectionX);
 
     if (faceDirectionX == 0.0f)
         faceDirectionX = 1.0f; // Front/Back are different textures altogether
@@ -611,37 +612,43 @@ void RenderContext::UploadNpcHumanLimb(
     mNpcLimbVertexBuffer.emplace_back(
         quad.BottomLeft,
         vec2f(-faceDirectionX, -1.0f),
-        backDepth);
+        backDepth,
+        orientationDepth);
 
     // Left, top
     mNpcLimbVertexBuffer.emplace_back(
         quad.TopLeft,
         vec2f(-faceDirectionX, 1.0f),
-        backDepth);
+        backDepth,
+        orientationDepth);
 
     // Right, bottom
     mNpcLimbVertexBuffer.emplace_back(
         quad.BottomRight,
         vec2f(faceDirectionX, -1.0f),
-        backDepth);
+        backDepth,
+        orientationDepth);
 
     // Left, top
     mNpcLimbVertexBuffer.emplace_back(
         quad.TopLeft,
         vec2f(-faceDirectionX, 1.0f),
-        backDepth);
+        backDepth,
+        orientationDepth);
 
     // Right, bottom
     mNpcLimbVertexBuffer.emplace_back(
         quad.BottomRight,
         vec2f(faceDirectionX, -1.0f),
-        backDepth);
+        backDepth,
+        orientationDepth);
 
     // Right, top
     mNpcLimbVertexBuffer.emplace_back(
         quad.TopRight,
         vec2f(faceDirectionX, 1.0f),
-        backDepth);
+        backDepth,
+        orientationDepth);
 }
 
 void RenderContext::UploadNpcHumanLimbsEnd()
