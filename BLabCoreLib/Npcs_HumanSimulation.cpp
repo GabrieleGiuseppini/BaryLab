@@ -287,12 +287,6 @@ void Npcs::UpdateHuman(
 
 					humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium, currentSimulationTime);
 
-					// Face: front/0
-					humanState.CurrentFaceOrientation = humanState.CurrentFaceOrientation == 0.0f
-						? (GameRandomEngine::GetInstance().GenerateUniformBoolean(0.5f) ? +1.0f : -1.0f)
-						: humanState.CurrentFaceOrientation; // Keep it
-					humanState.CurrentFaceDirectionX = 0.0f;
-
 					mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Equilibrium");
 				}
 			}

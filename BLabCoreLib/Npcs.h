@@ -231,17 +231,17 @@ public:
 				BehaviorType initialBehavior,
 				float currentSimulationTime)
 				: CurrentEquilibriumSoftTerminationDecision(0.0f)
-				, CurrentFaceOrientation(0.0f)
-				, CurrentFaceDirectionX(1.0f) // Futurework: randomize
+				, CurrentFaceOrientation(1.0f)
+				, CurrentFaceDirectionX(0.0f)
 				, PanicLevel(0.0f)
 				// Animation
-				, RightLegAngle(0.0f)
+				, RightLegAngle(0.2f)
 				, RightLegLengthMultiplier(1.0f)
-				, LeftLegAngle(0.0f)
+				, LeftLegAngle(-0.2f)
 				, LeftLegLengthMultiplier(1.0f)
-				, RightArmAngle(0.0f)
+				, RightArmAngle(0.2f)
 				, RightArmLengthMultiplier(1.0f)
-				, LeftArmAngle(0.0f)
+				, LeftArmAngle(-0.2f)
 				, LeftArmLengthMultiplier(1.0f)
 			{
 				TransitionToState(initialBehavior, currentSimulationTime);

@@ -301,11 +301,8 @@ void Npcs::Render(RenderContext & renderContext)
 					vec2f const actualBodyVDir = actualBodyVector.normalise(actualBodyLength);
 					vec2f const actualBodyHDir = actualBodyVDir.to_perpendicular(); // Points R
 					vec2f const neckPosition = headPosition + actualBodyVector * LabParameters::HumanNpcGeometry::HeadLengthFraction;
+					vec2f const shoulderPosition = neckPosition + actualBodyVector * LabParameters::HumanNpcGeometry::ArmDepthFraction / 2.0f;
 					vec2f const crotchPosition = headPosition + actualBodyVector * (LabParameters::HumanNpcGeometry::HeadLengthFraction + LabParameters::HumanNpcGeometry::TorsoLengthFraction);
-
-					// TODOTEST - see if ok being different than neck and crotch
-					vec2f const torsoTopPosition = neckPosition - actualBodyVector * LabParameters::HumanNpcGeometry::ArmDepthFraction / 2.0f;
-					vec2f const torsoBottomPosition = crotchPosition + actualBodyVector * LabParameters::HumanNpcGeometry::LegDepthFraction / 2.0f;
 
 					float const cosLeftArmAngle = std::cos(state.HumanNpcState->LeftArmAngle);
 					float const sinLeftArmAngle = std::sin(state.HumanNpcState->LeftArmAngle);
@@ -347,7 +344,7 @@ void Npcs::Render(RenderContext & renderContext)
 							// Front
 
 							// Left arm
-							vec2f const leftArmJointPosition = neckPosition - actualBodyHDir * (halfTorsoW - halfArmW);
+							vec2f const leftArmJointPosition = shoulderPosition - actualBodyHDir * (halfTorsoW - halfArmW);
 							vec2f const leftArmVector = actualBodyVDir.rotate(cosLeftArmAngle, sinLeftArmAngle) * leftArmLength;
 							vec2f const leftArmTraverseDir = leftArmVector.normalise().to_perpendicular();
 							renderContext.UploadNpcHumanLimb(
@@ -357,7 +354,7 @@ void Npcs::Render(RenderContext & renderContext)
 								leftArmJointPosition + leftArmVector + leftArmTraverseDir * halfArmW);
 
 							// Right arm
-							vec2f const rightArmJointPosition = neckPosition + actualBodyHDir * (halfTorsoW - halfArmW);
+							vec2f const rightArmJointPosition = shoulderPosition + actualBodyHDir * (halfTorsoW - halfArmW);
 							vec2f const rightArmVector = actualBodyVDir.rotate(cosRightArmAngle, sinRightArmAngle) * rightArmLength;
 							vec2f const rightArmTraverseDir = rightArmVector.normalise().to_perpendicular();
 							renderContext.UploadNpcHumanLimb(
@@ -396,10 +393,10 @@ void Npcs::Render(RenderContext & renderContext)
 						// Torso
 
 						renderContext.UploadNpcHumanLimb(
-							torsoTopPosition - actualBodyHDir * halfTorsoW,
-							torsoTopPosition + actualBodyHDir * halfTorsoW,
-							torsoBottomPosition - actualBodyHDir * halfTorsoW,
-							torsoBottomPosition + actualBodyHDir * halfTorsoW);
+							neckPosition - actualBodyHDir * halfTorsoW,
+							neckPosition + actualBodyHDir * halfTorsoW,
+							crotchPosition - actualBodyHDir * halfTorsoW,
+							crotchPosition + actualBodyHDir * halfTorsoW);
 					}
 					else
 					{
@@ -428,10 +425,10 @@ void Npcs::Render(RenderContext & renderContext)
 							vec2f const leftArmVector = actualBodyVDir.rotate(cosLeftArmAngle, sinLeftArmAngle) * leftArmLength;
 							vec2f const leftArmTraverseDir = leftArmVector.normalise().to_perpendicular();
 							renderContext.UploadNpcHumanLimb(
-								neckPosition - leftArmTraverseDir * halfArmD,
-								neckPosition + leftArmTraverseDir * halfArmD,
-								neckPosition + leftArmVector - leftArmTraverseDir * halfArmD,
-								neckPosition + leftArmVector + leftArmTraverseDir * halfArmD);
+								shoulderPosition - leftArmTraverseDir * halfArmD,
+								shoulderPosition + leftArmTraverseDir * halfArmD,
+								shoulderPosition + leftArmVector - leftArmTraverseDir * halfArmD,
+								shoulderPosition + leftArmVector + leftArmTraverseDir * halfArmD);
 
 							// Left leg
 							vec2f const leftLegVector = actualBodyVDir.rotate(cosLeftLegAngle, sinLeftLegAngle) * leftLegLength;
@@ -450,10 +447,10 @@ void Npcs::Render(RenderContext & renderContext)
 							vec2f const rightArmVector = actualBodyVDir.rotate(cosRightArmAngle, -sinRightArmAngle) * rightArmLength;
 							vec2f const rightArmTraverseDir = rightArmVector.normalise().to_perpendicular();
 							renderContext.UploadNpcHumanLimb(
-								neckPosition - rightArmTraverseDir * halfArmD,
-								neckPosition + rightArmTraverseDir * halfArmD,
-								neckPosition + rightArmVector - rightArmTraverseDir * halfArmD,
-								neckPosition + rightArmVector + rightArmTraverseDir * halfArmD);
+								shoulderPosition - rightArmTraverseDir * halfArmD,
+								shoulderPosition + rightArmTraverseDir * halfArmD,
+								shoulderPosition + rightArmVector - rightArmTraverseDir * halfArmD,
+								shoulderPosition + rightArmVector + rightArmTraverseDir * halfArmD);
 
 							// Right leg
 							vec2f const rightLegVector = actualBodyVDir.rotate(cosRightLegAngle, -sinRightLegAngle) * rightLegLength;
@@ -468,10 +465,10 @@ void Npcs::Render(RenderContext & renderContext)
 						// Torso
 
 						renderContext.UploadNpcHumanLimb(
-							torsoTopPosition - actualBodyHDir * halfTorsoD,
-							torsoTopPosition + actualBodyHDir * halfTorsoD,
-							torsoBottomPosition - actualBodyHDir * halfTorsoD,
-							torsoBottomPosition + actualBodyHDir * halfTorsoD);
+							neckPosition - actualBodyHDir * halfTorsoD,
+							neckPosition + actualBodyHDir * halfTorsoD,
+							crotchPosition - actualBodyHDir * halfTorsoD,
+							crotchPosition + actualBodyHDir * halfTorsoD);
 
 						// Arms and legs near
 
@@ -481,10 +478,10 @@ void Npcs::Render(RenderContext & renderContext)
 							vec2f const rightArmVector = actualBodyVDir.rotate(cosRightArmAngle, sinRightArmAngle) * rightArmLength;
 							vec2f const rightArmTraverseDir = rightArmVector.normalise().to_perpendicular();
 							renderContext.UploadNpcHumanLimb(
-								neckPosition - rightArmTraverseDir * halfArmD,
-								neckPosition + rightArmTraverseDir * halfArmD,
-								neckPosition + rightArmVector - rightArmTraverseDir * halfArmD,
-								neckPosition + rightArmVector + rightArmTraverseDir * halfArmD);
+								shoulderPosition - rightArmTraverseDir * halfArmD,
+								shoulderPosition + rightArmTraverseDir * halfArmD,
+								shoulderPosition + rightArmVector - rightArmTraverseDir * halfArmD,
+								shoulderPosition + rightArmVector + rightArmTraverseDir * halfArmD);
 
 							// Right leg
 							vec2f const rightLegVector = actualBodyVDir.rotate(cosRightLegAngle, sinRightLegAngle) * rightLegLength;
@@ -503,10 +500,10 @@ void Npcs::Render(RenderContext & renderContext)
 							vec2f const leftArmVector = actualBodyVDir.rotate(cosLeftArmAngle, -sinLeftArmAngle) * leftArmLength;
 							vec2f const leftArmTraverseDir = leftArmVector.normalise().to_perpendicular();
 							renderContext.UploadNpcHumanLimb(
-								neckPosition - leftArmTraverseDir * halfArmD,
-								neckPosition + leftArmTraverseDir * halfArmD,
-								neckPosition + leftArmVector - leftArmTraverseDir * halfArmD,
-								neckPosition + leftArmVector + leftArmTraverseDir * halfArmD);
+								shoulderPosition - leftArmTraverseDir * halfArmD,
+								shoulderPosition + leftArmTraverseDir * halfArmD,
+								shoulderPosition + leftArmVector - leftArmTraverseDir * halfArmD,
+								shoulderPosition + leftArmVector + leftArmTraverseDir * halfArmD);
 
 							// Left leg
 							vec2f const leftLegVector = actualBodyVDir.rotate(cosLeftLegAngle, -sinLeftLegAngle) * leftLegLength;
