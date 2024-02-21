@@ -389,14 +389,13 @@ void Npcs::UpdateHuman(
 
 			if (humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Free_InWater)
 			{
-				// Progress to swimming if there's enough alignment of head velocity and (opposite of) human vector
+				// Progress to swimming if not rotating
 
-				vec2f const humanDir = (feetPosition - headPosition).normalise();
-				vec2f const headVelocityDir = mParticles.GetVelocity(npc.DipoleState->SecondaryParticleState.ParticleIndex).normalise();
+				float const rotationMagnitude = (mParticles.GetVelocity(npc.DipoleState->SecondaryParticleState.ParticleIndex) - mParticles.GetVelocity(npc.PrimaryParticleState.ParticleIndex)).length();
+				float const targetSwim = 1.0f - Step(2.0f, rotationMagnitude);
 
-				float const targetSwim = std::max(headVelocityDir.dot(-humanDir), 0.0f);
-
-				float constexpr ToSwimmingConvergenceRate = 0.12f;
+				//float constexpr ToSwimmingConvergenceRate = 0.12f;
+				float constexpr ToSwimmingConvergenceRate = 0.06f;
 				humanState.CurrentBehaviorState.Free_InWater.ProgressToSwimming += (targetSwim - humanState.CurrentBehaviorState.Free_InWater.ProgressToSwimming) * ToSwimmingConvergenceRate;
 
 				publishStateQuantity = std::make_tuple("ProgressToSwimming", std::to_string(humanState.CurrentBehaviorState.Free_InWater.ProgressToSwimming));
