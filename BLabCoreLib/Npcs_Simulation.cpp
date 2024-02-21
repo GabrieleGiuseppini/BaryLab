@@ -1892,17 +1892,16 @@ void Npcs::UpdateNpcAnimation(
         switch (npc.HumanNpcState->CurrentBehavior)
         {
             case StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
-            case StateType::HumanNpcStateType::BehaviorType::Free_Aerial:
-            case StateType::HumanNpcStateType::BehaviorType::Free_InWater:
             {
-                // Only move arms: always pointing downward
-
                 vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
                 vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
                 vec2f const actualBodyDir = (feetPosition - headPosition).normalise();
 
+                // Arms: always pointing downward
+
                 float constexpr MaxAngleAroundPerp = Pi<float> / 2.0f * 0.7f;
-                targetRightArmAngle = Pi<float> / 2.0f - (actualBodyDir.dot(LabParameters::GravityDir)) * MaxAngleAroundPerp;
+                float const armAngle = Pi<float> / 2.0f - (actualBodyDir.dot(LabParameters::GravityDir)) * MaxAngleAroundPerp;
+                targetRightArmAngle = armAngle;
                 targetLeftArmAngle = -targetRightArmAngle;
 
                 // Leave legs as-is
@@ -2054,6 +2053,39 @@ void Npcs::UpdateNpcAnimation(
                         }
                     }
                 }
+
+                break;
+            }
+
+            case StateType::HumanNpcStateType::BehaviorType::Free_Aerial:
+            case StateType::HumanNpcStateType::BehaviorType::Free_InWater:
+            {
+                vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
+                vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
+                vec2f const actualBodyDir = (feetPosition - headPosition).normalise();
+
+                // Arms: always pointing downward
+
+                float constexpr MaxAngleAroundPerp = Pi<float> / 2.0f * 0.7f;
+                float const armAngle = Pi<float> / 2.0f - (actualBodyDir.dot(LabParameters::GravityDir)) * MaxAngleAroundPerp;
+                targetRightArmAngle = armAngle;
+                targetLeftArmAngle = -targetRightArmAngle;
+
+                // Legs: when arms far from rest, tight; when arms close, at fixed angle
+                float constexpr LegRestAngle = 0.4f;
+                float const legAngle = LegRestAngle * (1.0f - (armAngle - (Pi<float> / 2.0f - MaxAngleAroundPerp)) / (MaxAngleAroundPerp * 2.0f));
+                ////// TODOTEST
+                ////vec2f const relativeVelocity = mParticles.GetVelocity(primaryParticleIndex) - mParticles.GetVelocity(secondaryParticleIndex);
+                ////float const relativeVelocityLength = relativeVelocity.length();
+                ////vec2f const relativeVelocityDir = relativeVelocity.normalise(relativeVelocityLength);
+                ////float const angle = actualBodyDir.angleCw(relativeVelocityDir) * 0.6f * SmoothStep(1.0f, 16.0f, relativeVelocityLength);
+                mEventDispatcher.OnCustomProbe("angle", legAngle);
+                targetRightLegAngle = legAngle;
+                targetLeftLegAngle = -legAngle;
+
+                // Leave legs as-is
+
+                convergenceRate = 0.3f;
 
                 break;
             }
