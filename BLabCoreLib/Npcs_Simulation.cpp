@@ -2071,7 +2071,6 @@ void Npcs::UpdateNpcAnimation(
 
                 float constexpr Period1 = 3.00f;
                 float constexpr Period2 = 1.00f;
-                //float constexpr HalfPeriod = 2.0f;
 
                 float const arg =
                     (currentSimulationTime - npc.HumanNpcState->CurrentStateTransitionSimulationTimestamp) * 1.7f
@@ -2089,19 +2088,19 @@ void Npcs::UpdateNpcAnimation(
                 // y = 1.0 => ArmAngle2 = f(depth)
 
                 float constexpr ArmAngle1 = Pi<float> / 5.0f;
-                float constexpr LegAngle1 = 0.0f;
                 float const armAngle2 = Pi<float> / 2.0f
                     + Pi<float> / 3.0f
                     * std::min(
                         std::max(mParentWorld.GetOceanSurface().GetDepth(mParticles.GetPosition(secondaryParticleIndex)), 0.0f) / 2.0f, // 0->+ INF underwater, +1 at 2
                         1.0f);
-
                 float const armAngle = ArmAngle1 + y * (armAngle2 - ArmAngle1);
                 mEventDispatcher.OnCustomProbe("armAngle", armAngle);
                 targetRightArmAngle = armAngle;
                 targetLeftArmAngle = -targetRightArmAngle;
 
-                float const legAngle = LegAngle1 + y * (armAngle2 * 0.35f - LegAngle1);
+                float constexpr LegAngle1 = 0.0f;
+                float const legAngle2 = armAngle2 * 0.35f;
+                float const legAngle = LegAngle1 + y * (legAngle2 - LegAngle1);
                 targetRightLegAngle = legAngle;
                 targetLeftLegAngle = -targetRightLegAngle;
 
