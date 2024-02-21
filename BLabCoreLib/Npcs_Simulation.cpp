@@ -2069,16 +2069,18 @@ void Npcs::UpdateNpcAnimation(
                 //              |
                 //
 
-                float constexpr HalfPeriod = 2.0f;
+                float constexpr Period1 = 3.00f;
+                float constexpr Period2 = 1.00f;
+                //float constexpr HalfPeriod = 2.0f;
 
                 float const arg =
                     (currentSimulationTime - npc.HumanNpcState->CurrentStateTransitionSimulationTimestamp) * 1.7f
                     + npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition * 1.7f;
 
-                float const inPeriod = fmod(arg, 2.0f * HalfPeriod);
-                float const y = (inPeriod < HalfPeriod)
-                    ? std::sqrt(inPeriod / HalfPeriod)
-                    : (inPeriod - HalfPeriod - HalfPeriod) * (inPeriod - HalfPeriod - HalfPeriod) / (HalfPeriod * HalfPeriod);
+                float const inPeriod = fmod(arg, (Period1 + Period2));
+                float const y = (inPeriod < Period1)
+                    ? std::sqrt(inPeriod / Period1)
+                    : (inPeriod - Period1 - Period2) * (inPeriod - Period1 - Period2) / std::sqrt(Period2);
 
                 mEventDispatcher.OnCustomProbe("y", y);
 
