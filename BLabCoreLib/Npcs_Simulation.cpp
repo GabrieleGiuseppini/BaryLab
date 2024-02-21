@@ -2073,8 +2073,8 @@ void Npcs::UpdateNpcAnimation(
                 float constexpr Period2 = 1.00f;
 
                 float const arg =
-                    (currentSimulationTime - npc.HumanNpcState->CurrentStateTransitionSimulationTimestamp) * 1.7f
-                    + npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition * 1.7f;
+                    (currentSimulationTime - npc.HumanNpcState->CurrentStateTransitionSimulationTimestamp) * 2.6f
+                    + npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition * 0.7f;
 
                 float const inPeriod = fmod(arg, (Period1 + Period2));
                 float const y = (inPeriod < Period1)
@@ -2083,28 +2083,27 @@ void Npcs::UpdateNpcAnimation(
 
                 mEventDispatcher.OnCustomProbe("y", y);
 
-                // We flap with these mappings:
-                // y = 0.0 => ArmAngle1 (bottom)
-                // y = 1.0 => ArmAngle2 = f(depth) (top)
+                // 0: 0, 2: 1, >+ INF: 1
+                float const depthDamper = Clamp(mParentWorld.GetOceanSurface().GetDepth(mParticles.GetPosition(secondaryParticleIndex)) / 1.5f, 0.0f, 1.0f);
 
-                float constexpr ArmAngle1 = Pi<float> / 18.0f;
-                float const armAngle2 = Pi<float> / 2.0f
-                    + Pi<float> * 0.5f
-                    * std::min(
-                        std::max(mParentWorld.GetOceanSurface().GetDepth(mParticles.GetPosition(secondaryParticleIndex)), 0.0f) / 2.0f, // 0->+ INF underwater, +1 at 2
-                        1.0f);
-                float const armAngle = ArmAngle1 + y * (armAngle2 - ArmAngle1);
+                // Arms: flapping around PI/2, with amplitude depending on depth
+                float constexpr ArmAngleAmplitude = 2.9f;
+                float const armAngle =
+                    Pi<float> / 2
+                    + (y * 2.0f - 1.0f) * ArmAngleAmplitude / 2.0f * (depthDamper * 0.75f + 0.25f);
                 mEventDispatcher.OnCustomProbe("armAngle", armAngle);
                 targetRightArmAngle = armAngle;
                 targetLeftArmAngle = -targetRightArmAngle;
 
-                float constexpr LegAngle1 = 0.0f;
-                float const legAngle2 = armAngle2 * 0.2f;
-                float const legAngle = LegAngle1 + y * (legAngle2 - LegAngle1);
-                targetRightLegAngle = legAngle;
-                targetLeftLegAngle = -targetRightLegAngle;
+                // TODOHERE
+                ////float constexpr LegAngle1 = 0.0f;
+                ////float const legAngle2 = armAngle2 * 0.2f;
+                ////float const legAngle = LegAngle1 + y * (legAngle2 - LegAngle1);
+                ////targetRightLegAngle = legAngle;
+                ////targetLeftLegAngle = -targetRightLegAngle;
 
-                convergenceRate = 0.15f;
+                //convergenceRate = 0.15f;
+                convergenceRate = 0.25f;
 
                 break;
             }
