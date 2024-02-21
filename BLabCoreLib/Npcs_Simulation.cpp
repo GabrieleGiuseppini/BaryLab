@@ -2084,12 +2084,12 @@ void Npcs::UpdateNpcAnimation(
                 mEventDispatcher.OnCustomProbe("y", y);
 
                 // We flap with these mappings:
-                // y = 0.0 => ArmAngle1
-                // y = 1.0 => ArmAngle2 = f(depth)
+                // y = 0.0 => ArmAngle1 (bottom)
+                // y = 1.0 => ArmAngle2 = f(depth) (top)
 
-                float constexpr ArmAngle1 = Pi<float> / 5.0f;
+                float constexpr ArmAngle1 = Pi<float> / 18.0f;
                 float const armAngle2 = Pi<float> / 2.0f
-                    + Pi<float> / 3.0f
+                    + Pi<float> * 0.5f
                     * std::min(
                         std::max(mParentWorld.GetOceanSurface().GetDepth(mParticles.GetPosition(secondaryParticleIndex)), 0.0f) / 2.0f, // 0->+ INF underwater, +1 at 2
                         1.0f);
@@ -2099,7 +2099,7 @@ void Npcs::UpdateNpcAnimation(
                 targetLeftArmAngle = -targetRightArmAngle;
 
                 float constexpr LegAngle1 = 0.0f;
-                float const legAngle2 = armAngle2 * 0.35f;
+                float const legAngle2 = armAngle2 * 0.2f;
                 float const legAngle = LegAngle1 + y * (legAngle2 - LegAngle1);
                 targetRightLegAngle = legAngle;
                 targetLeftLegAngle = -targetRightLegAngle;
