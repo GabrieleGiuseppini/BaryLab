@@ -2073,7 +2073,8 @@ void Npcs::UpdateNpcAnimation(
                 float constexpr Period2 = 1.00f;
 
                 float const arg =
-                    (currentSimulationTime - npc.HumanNpcState->CurrentStateTransitionSimulationTimestamp) * 2.6f
+                    Period1 / 2.0f // Start some-halfway-through to avoid sudden extreme angles
+                    + (currentSimulationTime - npc.HumanNpcState->CurrentStateTransitionSimulationTimestamp) * 2.6f
                     + npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition * 0.7f;
 
                 float const inPeriod = fmod(arg, (Period1 + Period2));
