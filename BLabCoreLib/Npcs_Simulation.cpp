@@ -2060,6 +2060,8 @@ void Npcs::UpdateNpcAnimation(
             case StateType::HumanNpcStateType::BehaviorType::Free_Aerial:
             case StateType::HumanNpcStateType::BehaviorType::Free_InWater:
             {
+                // Rag doll
+
                 vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
                 vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
                 vec2f const actualBodyDir = (feetPosition - headPosition).normalise();
@@ -2072,18 +2074,16 @@ void Npcs::UpdateNpcAnimation(
                 targetLeftArmAngle = -targetRightArmAngle;
 
                 // Legs: when arms far from rest, tight; when arms close, at fixed angle
+
                 float constexpr LegRestAngle = 0.4f;
                 float const legAngle = LegRestAngle * (1.0f - (armAngle - (Pi<float> / 2.0f - MaxAngleAroundPerp)) / (MaxAngleAroundPerp * 2.0f));
-                ////// TODOTEST
-                ////vec2f const relativeVelocity = mParticles.GetVelocity(primaryParticleIndex) - mParticles.GetVelocity(secondaryParticleIndex);
-                ////float const relativeVelocityLength = relativeVelocity.length();
-                ////vec2f const relativeVelocityDir = relativeVelocity.normalise(relativeVelocityLength);
-                ////float const angle = actualBodyDir.angleCw(relativeVelocityDir) * 0.6f * SmoothStep(1.0f, 16.0f, relativeVelocityLength);
-                mEventDispatcher.OnCustomProbe("angle", legAngle);
-                targetRightLegAngle = legAngle;
-                targetLeftLegAngle = -legAngle;
 
-                // Leave legs as-is
+                // Legs inclined in direction opposite of relvel, by an amount proportional to relvel itself
+                vec2f const relativeVelocity = mParticles.GetVelocity(primaryParticleIndex) - mParticles.GetVelocity(secondaryParticleIndex);
+                float const relVelPerpToBody = relativeVelocity.dot(actualBodyDir.to_perpendicular());
+                float const legAngleOffset = -SmoothStep(0.0f, 3.0f, std::abs(relVelPerpToBody)) * (LegRestAngle + 0.3f) * (relVelPerpToBody < 0.0f ? -1.0f : 1.0f);
+                targetRightLegAngle = legAngle - legAngleOffset;
+                targetLeftLegAngle = -legAngle - legAngleOffset;
 
                 convergenceRate = 0.3f;
 
