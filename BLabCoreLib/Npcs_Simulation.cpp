@@ -2079,7 +2079,7 @@ void Npcs::UpdateNpcAnimation(
                 float const inPeriod = fmod(arg, (Period1 + Period2));
                 float const y = (inPeriod < Period1)
                     ? std::sqrt(inPeriod / Period1)
-                    : (inPeriod - Period1 - Period2) * (inPeriod - Period1 - Period2) / std::sqrt(Period2);
+                    : ((inPeriod - Period1) - Period2) * ((inPeriod - Period1) - Period2) / std::sqrt(Period2);
 
                 mEventDispatcher.OnCustomProbe("y", y);
 
@@ -2087,22 +2087,26 @@ void Npcs::UpdateNpcAnimation(
                 float const depthDamper = Clamp(mParentWorld.GetOceanSurface().GetDepth(mParticles.GetPosition(secondaryParticleIndex)) / 1.5f, 0.0f, 1.0f);
 
                 // Arms: flapping around PI/2, with amplitude depending on depth
-                float constexpr ArmAngleAmplitude = 2.9f;
+                float constexpr ArmAngleAmplitude = 2.9f; // Half of this on each side of center angle
+                float const armCenterAngle = Pi<float> / 2.0f;
                 float const armAngle =
-                    Pi<float> / 2
+                    armCenterAngle
                     + (y * 2.0f - 1.0f) * ArmAngleAmplitude / 2.0f * (depthDamper * 0.75f + 0.25f);
-                mEventDispatcher.OnCustomProbe("armAngle", armAngle);
+                //mEventDispatcher.OnCustomProbe("armAngle", armAngle);
                 targetRightArmAngle = armAngle;
                 targetLeftArmAngle = -targetRightArmAngle;
 
-                // TODOHERE
-                ////float constexpr LegAngle1 = 0.0f;
-                ////float const legAngle2 = armAngle2 * 0.2f;
-                ////float const legAngle = LegAngle1 + y * (legAngle2 - LegAngle1);
-                ////targetRightLegAngle = legAngle;
-                ////targetLeftLegAngle = -targetRightLegAngle;
+                // Legs:flapping around a (small) angle, which becomes even smaller
+                // width depth amplitude depending on depth
+                float constexpr LegAngleAmplitude = 0.39f * 2.0f; // Half of this on each side of center angle
+                float const legCenterAngle = 0.42f * (depthDamper * 0.5f + 0.5f);
+                float const legAngle =
+                    legCenterAngle
+                    + (y * 2.0f - 1.0f) * LegAngleAmplitude / 2.0f * (depthDamper * 0.45f + 0.55f);
+                //mEventDispatcher.OnCustomProbe("legAngle", legAngle);
+                targetRightLegAngle = legAngle;
+                targetLeftLegAngle = -targetRightLegAngle;
 
-                //convergenceRate = 0.15f;
                 convergenceRate = 0.25f;
 
                 break;
