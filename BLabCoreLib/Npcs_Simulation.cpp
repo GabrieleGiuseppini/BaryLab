@@ -2104,9 +2104,11 @@ void Npcs::UpdateNpcAnimation(
                 float constexpr Period1 = 3.00f;
                 float constexpr Period2 = 1.00f;
 
+                float const panicAccelerator = 1.0f + std::min(npc.HumanNpcState->PanicLevel, 2.0f) / 2.0f * 4.0f;
+
                 float const arg =
                     Period1 / 2.0f // Start some-halfway-through to avoid sudden extreme angles
-                    + (currentSimulationTime - npc.HumanNpcState->CurrentStateTransitionSimulationTimestamp) * 2.6f
+                    + (currentSimulationTime - npc.HumanNpcState->CurrentStateTransitionSimulationTimestamp) * 2.6f * panicAccelerator
                     + npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition * 0.7f;
 
                 float const inPeriod = fmod(arg, (Period1 + Period2));
