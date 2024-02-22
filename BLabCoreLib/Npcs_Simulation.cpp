@@ -1891,41 +1891,13 @@ void Npcs::UpdateNpcAnimation(
 
         switch (npc.HumanNpcState->CurrentBehavior)
         {
-            case StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
-            {
-                vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
-                vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
-                vec2f const actualBodyDir = (feetPosition - headPosition).normalise();
-
-                // Arms: always pointing downward
-
-                float constexpr MaxAngleAroundPerp = Pi<float> / 2.0f * 0.7f;
-                float const armAngle = Pi<float> / 2.0f - (actualBodyDir.dot(LabParameters::GravityDir)) * MaxAngleAroundPerp;
-                targetRightArmAngle = armAngle;
-                targetLeftArmAngle = -targetRightArmAngle;
-
-                // Leave legs as-is
-
-                convergenceRate = 0.3f;
-
-                break;
-            }
-
             case StateType::HumanNpcStateType::BehaviorType::Constrained_Rising:
             {
-                // Do nothing
+                // Arms slightly open
+                targetRightArmAngle = StateType::HumanNpcStateType::InitialArmAngle;
+                targetLeftArmAngle = -StateType::HumanNpcStateType::InitialArmAngle;
 
-                // TODOTEST
-                ////targetRightArmAngle = 0.0f;
-                ////targetRightArmLengthMultiplier = 1.0f;
-                ////targetLeftArmAngle = 0.0f;
-                ////targetLeftArmLengthMultiplier = 1.0f;
-                ////targetRightLegAngle = 0.0f;
-                ////targetRightLegLengthMultiplier = 1.0f;
-                ////targetLeftLegAngle = 0.0f;
-                ////targetLeftLegLengthMultiplier = 1.0f;
-
-                ////convergenceRate = 0.3f;
+                convergenceRate = 0.05f;
 
                 break;
             }
@@ -2057,10 +2029,65 @@ void Npcs::UpdateNpcAnimation(
                 break;
             }
 
+            case StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
+            {
+                // Do fall only if we've got a foot on the edge; otherwise, fallback to same
+                // behavior as Free_X
+
+
+                if (npc.PrimaryParticleState.ConstrainedState.has_value()
+                    && npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value()
+                    && npc.PrimaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords.is_on_edge())
+                {
+                    // Check if head is moving away from vertical
+                    vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
+                    vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
+                    ////vec2f const actualBodyDir = (feetPosition - headPosition).normalise();
+                    ////float const headMrvComponentTraverseToBody = npc.DipoleState->SecondaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(actualBodyDir.to_perpendicular());
+                    float const bodyLength = LabParameters::HumanNpcGeometry::BodyLength * labParameters.HumanNpcBodyLengthAdjustment;
+                    vec2f const idealHeadPosition = feetPosition + vec2f(0.0f, bodyLength);
+                    vec2f const actualToIdealVector = idealHeadPosition - headPosition;
+                    float const headMrvComponentAlongIdealHeadDir = npc.DipoleState->SecondaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(actualToIdealVector);
+                    mEventDispatcher.OnCustomProbe("dot", headMrvComponentAlongIdealHeadDir);
+                    //if (headMrvComponentAlongIdealHeadDir < -1.0f)
+                    if (headMrvComponentAlongIdealHeadDir < -0.1f)
+                    {
+                        // Both arms in direction of fall
+
+                        if (npc.DipoleState->SecondaryParticleState.ConstrainedState->MeshRelativeVelocity.x >= 0.0f)
+                        {
+                            //targetRightArmAngle = Pi<float> / 2.0f * LinearStep(0.0f, 2.0f, headMrvComponentTraverseToBody);
+                            targetRightArmAngle = Pi<float> / 2.0f;
+                            targetLeftArmAngle = targetRightArmAngle - 0.2f;
+                        }
+                        else
+                        {
+                            //targetLeftArmAngle = -Pi<float> / 2.0f * LinearStep(0.0f, 2.0f, std::abs(headMrvComponentTraverseToBody));
+                            targetLeftArmAngle = -Pi<float> / 2.0f;
+                            targetRightArmAngle = targetLeftArmAngle + 0.2f;
+                        }
+
+                        // Close legs
+                        targetRightLegAngle = 0.05f;
+                        targetLeftLegAngle = -0.05f;
+
+                        convergenceRate = 0.05f;
+
+                        //break;
+                    }
+
+                    break;
+                }
+
+                [[fallthrough]];
+            }
+
             case StateType::HumanNpcStateType::BehaviorType::Free_Aerial:
             case StateType::HumanNpcStateType::BehaviorType::Free_InWater:
             {
+                //
                 // Rag doll
+                //
 
                 vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
                 vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
@@ -2073,17 +2100,24 @@ void Npcs::UpdateNpcAnimation(
                 targetRightArmAngle = armAngle;
                 targetLeftArmAngle = -targetRightArmAngle;
 
-                // Legs: when arms far from rest, tight; when arms close, at fixed angle
+                if (npc.HumanNpcState->CurrentBehavior != StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut)
+                {
+                    // Legs: when arms far from rest, tight; when arms close, at fixed angle
 
-                float constexpr LegRestAngle = 0.4f;
-                float const legAngle = LegRestAngle * (1.0f - (armAngle - (Pi<float> / 2.0f - MaxAngleAroundPerp)) / (MaxAngleAroundPerp * 2.0f));
+                    float constexpr LegRestAngle = 0.4f;
+                    float const legAngle = LegRestAngle * (1.0f - (armAngle - (Pi<float> / 2.0f - MaxAngleAroundPerp)) / (MaxAngleAroundPerp * 2.0f));
 
-                // Legs inclined in direction opposite of relvel, by an amount proportional to relvel itself
-                vec2f const relativeVelocity = mParticles.GetVelocity(primaryParticleIndex) - mParticles.GetVelocity(secondaryParticleIndex);
-                float const relVelPerpToBody = relativeVelocity.dot(actualBodyDir.to_perpendicular());
-                float const legAngleOffset = -SmoothStep(0.0f, 3.0f, std::abs(relVelPerpToBody)) * (LegRestAngle + 0.3f) * (relVelPerpToBody < 0.0f ? -1.0f : 1.0f);
-                targetRightLegAngle = legAngle - legAngleOffset;
-                targetLeftLegAngle = -legAngle - legAngleOffset;
+                    // Legs inclined in direction opposite of relvel, by an amount proportional to relvel itself
+                    vec2f const relativeVelocity = mParticles.GetVelocity(primaryParticleIndex) - mParticles.GetVelocity(secondaryParticleIndex);
+                    float const relVelPerpToBody = relativeVelocity.dot(actualBodyDir.to_perpendicular());
+                    float const legAngleOffset = -SmoothStep(0.0f, 3.0f, std::abs(relVelPerpToBody)) * (LegRestAngle + 0.3f) * (relVelPerpToBody < 0.0f ? -1.0f : 1.0f);
+                    targetRightLegAngle = legAngle - legAngleOffset;
+                    targetLeftLegAngle = -legAngle - legAngleOffset;
+                }
+                else
+                {
+                    // Leave legs as-is
+                }
 
                 convergenceRate = 0.3f;
 

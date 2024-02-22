@@ -80,6 +80,13 @@ public:
             coords[2] * value);
     }
 
+    bool is_on_edge() const
+    {
+        return coords[0] == 0.0f
+            || coords[1] == 0.0f
+            || coords[2] == 0.0f;
+    }
+
     // Returns the index of the vertex we're on, if we're on a vertex
     std::optional<int> try_get_vertex() const
     {
