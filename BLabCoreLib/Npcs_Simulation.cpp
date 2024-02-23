@@ -2048,25 +2048,31 @@ void Npcs::UpdateNpcAnimation(
                     headVelocityAlongBodyPerp = mParticles.GetVelocity(npc.DipoleState->SecondaryParticleState.ParticleIndex).dot(actualBodyDir.to_perpendicular());
                 }
 
+                convergenceRate = 0.05f;
+
                 if (std::abs(headVelocityAlongBodyPerp) > 0.2f)
                 {
                     if (headVelocityAlongBodyPerp >= 0.0f)
                     {
-                        targetRightArmAngle = Pi<float> / 2.0f;
-                        targetLeftArmAngle = targetRightArmAngle - 0.2f;
+                        targetRightArmAngle = Pi<float> / 2.0f + 0.09f;
+                        targetLeftArmAngle = targetRightArmAngle - 0.18f;
                     }
                     else
                     {
-                        targetLeftArmAngle = -Pi<float> / 2.0f;
-                        targetRightArmAngle = targetLeftArmAngle + 0.2f;
+                        targetLeftArmAngle = -Pi<float> / 2.0f - 0.09f;
+                        targetRightArmAngle = targetLeftArmAngle + 0.18f;
+                    }
+
+                    if (headVelocityAlongBodyPerp * npc.HumanNpcState->CurrentFaceDirectionX < 0.0f)
+                    {
+                        // Opposite dir to our face direction, limit these angles
+                        convergenceRate = 0.01f;
                     }
                 }
 
                 // Close legs
                 targetRightLegAngle = 0.05f;
                 targetLeftLegAngle = -0.05f;
-
-                convergenceRate = 0.05f;
 
                 break;
             }
