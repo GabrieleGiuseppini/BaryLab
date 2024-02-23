@@ -1897,6 +1897,10 @@ void Npcs::UpdateNpcAnimation(
                 targetRightArmAngle = StateType::HumanNpcStateType::InitialArmAngle;
                 targetLeftArmAngle = -StateType::HumanNpcStateType::InitialArmAngle;
 
+                // Legs slightly open
+                targetRightLegAngle = StateType::HumanNpcStateType::InitialLegAngle;
+                targetLeftLegAngle = -StateType::HumanNpcStateType::InitialLegAngle;
+
                 convergenceRate = 0.05f;
 
                 break;
