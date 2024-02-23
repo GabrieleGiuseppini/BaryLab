@@ -2029,59 +2029,89 @@ void Npcs::UpdateNpcAnimation(
                 break;
             }
 
-            case StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
+            case StateType::HumanNpcStateType::BehaviorType::Constrained_Falling:
             {
-                // Do fall only if we've got a foot on the edge; otherwise, fallback to same
-                // behavior as Free_X
+                // Both arms in direction of fall
 
+                vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
+                vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
+                vec2f const actualBodyVector = feetPosition - headPosition; // From head to feet
+                vec2f const actualBodyDir = actualBodyVector.normalise();
 
-                if (npc.PrimaryParticleState.ConstrainedState.has_value()
-                    && npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value()
-                    && npc.PrimaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords.is_on_edge())
+                float headVelocityAlongBodyPerp;
+                if (npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value())
                 {
-                    // Check if head is moving away from vertical
-                    vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
-                    vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
-                    ////vec2f const actualBodyDir = (feetPosition - headPosition).normalise();
-                    ////float const headMrvComponentTraverseToBody = npc.DipoleState->SecondaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(actualBodyDir.to_perpendicular());
-                    float const bodyLength = LabParameters::HumanNpcGeometry::BodyLength * labParameters.HumanNpcBodyLengthAdjustment;
-                    vec2f const idealHeadPosition = feetPosition + vec2f(0.0f, bodyLength);
-                    vec2f const actualToIdealVector = idealHeadPosition - headPosition;
-                    float const headMrvComponentAlongIdealHeadDir = npc.DipoleState->SecondaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(actualToIdealVector);
-                    mEventDispatcher.OnCustomProbe("dot", headMrvComponentAlongIdealHeadDir);
-                    //if (headMrvComponentAlongIdealHeadDir < -1.0f)
-                    if (headMrvComponentAlongIdealHeadDir < -0.1f)
-                    {
-                        // Both arms in direction of fall
-
-                        if (npc.DipoleState->SecondaryParticleState.ConstrainedState->MeshRelativeVelocity.x >= 0.0f)
-                        {
-                            //targetRightArmAngle = Pi<float> / 2.0f * LinearStep(0.0f, 2.0f, headMrvComponentTraverseToBody);
-                            targetRightArmAngle = Pi<float> / 2.0f;
-                            targetLeftArmAngle = targetRightArmAngle - 0.2f;
-                        }
-                        else
-                        {
-                            //targetLeftArmAngle = -Pi<float> / 2.0f * LinearStep(0.0f, 2.0f, std::abs(headMrvComponentTraverseToBody));
-                            targetLeftArmAngle = -Pi<float> / 2.0f;
-                            targetRightArmAngle = targetLeftArmAngle + 0.2f;
-                        }
-
-                        // Close legs
-                        targetRightLegAngle = 0.05f;
-                        targetLeftLegAngle = -0.05f;
-
-                        convergenceRate = 0.05f;
-
-                        //break;
-                    }
-
-                    break;
+                    headVelocityAlongBodyPerp = npc.DipoleState->SecondaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(actualBodyDir.to_perpendicular());
+                }
+                else
+                {
+                    headVelocityAlongBodyPerp = mParticles.GetVelocity(npc.DipoleState->SecondaryParticleState.ParticleIndex).dot(actualBodyDir.to_perpendicular());
                 }
 
-                [[fallthrough]];
+                if (std::abs(headVelocityAlongBodyPerp) > 0.2f)
+                {
+                    if (headVelocityAlongBodyPerp >= 0.0f)
+                    {
+                        targetRightArmAngle = Pi<float> / 2.0f;
+                        targetLeftArmAngle = targetRightArmAngle - 0.2f;
+                    }
+                    else
+                    {
+                        targetLeftArmAngle = -Pi<float> / 2.0f;
+                        targetRightArmAngle = targetLeftArmAngle + 0.2f;
+                    }
+                }
+
+                // Close legs
+                targetRightLegAngle = 0.05f;
+                targetLeftLegAngle = -0.05f;
+
+                convergenceRate = 0.05f;
+
+                break;
             }
 
+            case StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
+            {
+                // Check if both head and feet are on a floot
+                bool const isHeadOnEdge = npc.PrimaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*npc.PrimaryParticleState.ConstrainedState, mesh);
+                bool const areFootOnEdge = npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*npc.DipoleState->SecondaryParticleState.ConstrainedState, mesh);
+                if (isHeadOnEdge and areFootOnEdge)
+                {
+                    // Arms: +/- PI or 0, depending on where they are now
+
+                    if (npc.HumanNpcState->RightArmAngle >= -Pi<float> / 2.0f
+                        && npc.HumanNpcState->RightArmAngle <= Pi<float> / 2.0f)
+                    {
+                        targetRightArmAngle = 0.0f;
+                    }
+                    else
+                    {
+                        targetRightArmAngle = Pi<float>;
+                    }
+
+                    if (npc.HumanNpcState->LeftArmAngle >= -Pi<float> / 2.0f
+                        && npc.HumanNpcState->LeftArmAngle <= Pi<float> / 2.0f)
+                    {
+                        targetLeftArmAngle = 0.0f;
+                    }
+                    else
+                    {
+                        targetLeftArmAngle = Pi<float>;
+                    }
+
+                    // Legs: 0
+
+                    targetRightLegAngle = 0.0f;
+                    targetLeftLegAngle = 0.0f;
+
+                    convergenceRate = 0.05f;
+                }
+
+                break;
+            }
+
+            case StateType::HumanNpcStateType::BehaviorType::Constrained_Aerial:
             case StateType::HumanNpcStateType::BehaviorType::Free_Aerial:
             case StateType::HumanNpcStateType::BehaviorType::Free_InWater:
             {
@@ -2237,7 +2267,8 @@ Npcs::StateType Npcs::MaterializeNpcState(
         humanNpcState = InitializeHuman(
             primaryParticleState,
             dipoleState->SecondaryParticleState,
-            currentSimulationTime);
+            currentSimulationTime,
+            mesh);
     }
 
     // Regime

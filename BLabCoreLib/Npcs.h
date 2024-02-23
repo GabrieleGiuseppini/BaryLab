@@ -119,7 +119,10 @@ public:
 		{
 			enum class BehaviorType
 			{
-				Constrained_KnockedOut, // Does nothing
+				Constrained_Falling, // Clueless, does nothing; with feet on edge
+				Constrained_Aerial, // Clueless, does nothing; with feet in air
+				Constrained_KnockedOut, // Clueless, does nothing, not relevant where; waits until can rise
+
 				Constrained_Rising, // Tries to stand up (appliying torque)
 				Constrained_Equilibrium, // Stands up; continues to adjust alignment with torque
 				Constrained_Walking, // Walks; continues to adjust alignment with torque
@@ -133,6 +136,25 @@ public:
 
 			union BehaviorStateType
 			{
+				struct Constrained_FallingStateType
+				{
+					float ProgressToAerial;
+					float ProgressToKnockedOut;
+
+					void Reset()
+					{
+						ProgressToAerial = 0.0f;
+						ProgressToKnockedOut = 0.0f;
+					}
+				} Constrained_Falling;
+
+				struct Constrained_AerialStateType
+				{
+					void Reset()
+					{
+					}
+				} Constrained_Aerial;
+
 				struct Constrained_KnockedOutStateType
 				{
 					float ProgressToRising;
@@ -262,10 +284,20 @@ public:
 
 				switch (behavior)
 				{
+					case BehaviorType::Constrained_Aerial:
+					{
+						CurrentBehaviorState.Constrained_Aerial.Reset();
+					}
+
 					case BehaviorType::Constrained_Equilibrium:
 					{
 						CurrentBehaviorState.Constrained_Equilibrium.Reset();
 						break;
+					}
+
+					case BehaviorType::Constrained_Falling:
+					{
+						CurrentBehaviorState.Constrained_Falling.Reset();
 					}
 
 					case BehaviorType::Constrained_KnockedOut:
@@ -788,7 +820,8 @@ private:
 	StateType::HumanNpcStateType InitializeHuman(
 		StateType::NpcParticleStateType const & primaryParticleState,
 		StateType::NpcParticleStateType const & secondaryParticleState,
-		float currentSimulationTime) const;
+		float currentSimulationTime,
+		Mesh const & mesh) const;
 
 	void UpdateHuman(
 		float currentSimulationTime,

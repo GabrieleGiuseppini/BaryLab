@@ -99,7 +99,8 @@ void Npcs::Add(
 			humanNpcState = InitializeHuman(
 				primaryParticleState,
 				secondaryParticleState,
-				currentSimulationTime);
+				currentSimulationTime,
+				mesh);
 
 			float const massFactor =
 				(feetMaterial.Mass * headMaterial.Mass)

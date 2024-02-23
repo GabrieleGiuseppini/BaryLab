@@ -14,7 +14,8 @@
 Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 	StateType::NpcParticleStateType const & primaryParticleState,
 	StateType::NpcParticleStateType const & secondaryParticleState,
-	float currentSimulationTime) const
+	float currentSimulationTime,
+	Mesh const & /*mesh*/) const
 {
 	// Return state
 
@@ -54,6 +55,118 @@ void Npcs::UpdateHuman(
 
 	switch (humanState.CurrentBehavior)
 	{
+		case StateType::HumanNpcStateType::BehaviorType::Constrained_Aerial:
+		{
+			if (isFree)
+			{
+				// Transition
+				TransitionHumanToFree(currentSimulationTime, npc);
+
+				break;
+			}
+
+			// Check conditions for falling
+			if (primaryParticleState.ConstrainedState.has_value()
+				&& IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh))
+			{
+				// Transition
+
+				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Falling, currentSimulationTime);
+
+				// Face: 0/direction of falling
+				humanState.CurrentFaceOrientation = 0.0f;
+				humanState.CurrentFaceDirectionX =
+					(!secondaryParticleState.ConstrainedState.has_value() && mParticles.GetVelocity(secondaryParticleState.ParticleIndex).x >= 0.0f)
+					|| (secondaryParticleState.ConstrainedState.has_value() && secondaryParticleState.ConstrainedState->MeshRelativeVelocity.x >= 0.0f)
+					? 1.0f
+					: -1.0f;
+
+				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Falling");
+
+				break;
+			}
+
+			break;
+		}
+
+		case StateType::HumanNpcStateType::BehaviorType::Constrained_Falling:
+		{
+			if (isFree)
+			{
+				// Transition
+				TransitionHumanToFree(currentSimulationTime, npc);
+
+				break;
+			}
+
+			// Check conditions for knocked out
+
+			bool const areFootOnEdge = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh);
+
+			float knockedOutTarget = 0.0f;
+			float constexpr MaxRelativeVelocityForKnockedOut = 1.0f;
+			if (areFootOnEdge
+				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForKnockedOut
+				&& (!secondaryParticleState.ConstrainedState.has_value() // TODO: also use free velocity if free
+					|| secondaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForKnockedOut))
+			{
+				knockedOutTarget = 1.0f;
+			}
+
+			// Advance towards knocked out
+
+			float const toKnockedConvergenceRate = 0.09f + std::min(humanState.PanicLevel, 1.0f) * 0.07f;
+			humanState.CurrentBehaviorState.Constrained_Falling.ProgressToKnockedOut +=
+				(knockedOutTarget - humanState.CurrentBehaviorState.Constrained_Falling.ProgressToKnockedOut)
+				* toKnockedConvergenceRate;
+
+			if (knockedOutTarget > 0.0f)
+				publishStateQuantity = std::make_tuple("ProgressToKnockedOut", std::to_string(humanState.CurrentBehaviorState.Constrained_Falling.ProgressToKnockedOut));
+
+			if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_Falling.ProgressToKnockedOut, 1.0f))
+			{
+				// Transition
+
+				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
+
+				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+
+				break;
+			}
+
+			// Check conditions for aerial
+
+			float aerialTarget = 0.0f;
+			if (!areFootOnEdge)
+			{
+				aerialTarget = 1.0f;
+			}
+
+			// Advance towards aerial
+
+			float constexpr ToAerialConvergenceRate = 0.15f;
+
+			humanState.CurrentBehaviorState.Constrained_Falling.ProgressToAerial +=
+				(aerialTarget - humanState.CurrentBehaviorState.Constrained_Falling.ProgressToAerial)
+				* ToAerialConvergenceRate;
+
+			if (aerialTarget > 0.0f)
+				publishStateQuantity = std::make_tuple("ProgressToAerial", std::to_string(humanState.CurrentBehaviorState.Constrained_Falling.ProgressToAerial));
+
+			if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_Falling.ProgressToAerial, 1.0f))
+			{
+				// Transition
+
+				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Aerial, currentSimulationTime);
+
+				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Aerial");
+
+				break;
+			}
+
+			break;
+		}
+
 		case StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
 		{
 			if (isFree)
@@ -70,12 +183,11 @@ void Npcs::UpdateHuman(
 			if (primaryParticleState.ConstrainedState.has_value()
 				&& IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh)
 				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityMagnitudeForEquilibrium
-				&& (!secondaryParticleState.ConstrainedState.has_value()
+				&& (!secondaryParticleState.ConstrainedState.has_value() // TODO: also use free velocity if free
 					|| secondaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityMagnitudeForEquilibrium))
 			{
 				risingTarget = 1.0f;
 			}
-
 
 			// Advance towards rising
 
@@ -96,7 +208,6 @@ void Npcs::UpdateHuman(
 
 				break;
 			}
-
 
 			break;
 		}
@@ -124,7 +235,9 @@ void Npcs::UpdateHuman(
 					// Advance towards walking
 
 					float const toWalkingConvergenceRate = 0.09f + std::min(humanState.PanicLevel, 1.0f) * 0.15f;
-					humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking += (1.0f - humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking) * toWalkingConvergenceRate;
+					humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking +=
+						(1.0f - humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking)
+						* toWalkingConvergenceRate;
 
 					publishStateQuantity = std::make_tuple("ProgressToWalking", std::to_string(humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking));
 
@@ -191,6 +304,7 @@ void Npcs::UpdateHuman(
 			if (humanState.CurrentBehavior != StateType::HumanNpcStateType::BehaviorType::Constrained_Walking)
 			{
 				// Not walking: we want to be draconian and can't stand a (small) relative velocity
+				// TODO: constrained-ness of primary
 				if (primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() >= MaxRelativeVelocityMagnitudeForEquilibrium)
 				{
 					isStateMaintained = false;
@@ -229,16 +343,8 @@ void Npcs::UpdateHuman(
 				{
 					// Opposite direction to walking
 
-					// Note: this check is also at flipping decision in maintaining walking state machine
-
-					// TODOTEST
-					////// Stop if we're at least a little bit opposite
-					////float constexpr MaxOppositeRelativeVelocityMagnitudeForWalking = 1.0f;
-					////if (primaryMeshRelativeVelocityAlongWalkDir <= -MaxOppositeRelativeVelocityMagnitudeForWalking)
-					////{
-					////	LogNpcDebug("MRV too much opposite");
-					////	isStateMaintained = false;
-					////}
+					// Note: this we check at flipping decision in maintaining walking state machine,
+					// so continue
 				}
 			}
 
@@ -255,16 +361,38 @@ void Npcs::UpdateHuman(
 					mParticles,
 					labParameters))
 			{
-				// Transition to knocked out
+				// Transition to aerial/falling, depending on whether we're on an edge
 
-				LogNpcDebug("Going to Constrained_KnockedOut; primary's barycentric coords: ",
+				LogNpcDebug("Going to Constrained_X; primary's barycentric coords: ",
 					primaryParticleState.ConstrainedState.has_value() ? primaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords.toString() : "N/A",
 					" primary's relative velocity mag: ", primaryParticleState.ConstrainedState.has_value() ? std::to_string(primaryParticleState.ConstrainedState->MeshRelativeVelocity.length()) : "N/A",
 					" (max=", MaxRelativeVelocityMagnitudeForEquilibrium, ")");
 
-				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
+				bool const areFootOnEdge = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh);
+				if (areFootOnEdge)
+				{
+					// Falling
 
-				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+					humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Falling, currentSimulationTime);
+
+					// Face: 0/direction of falling
+					humanState.CurrentFaceOrientation = 0.0f;
+					humanState.CurrentFaceDirectionX =
+						(!secondaryParticleState.ConstrainedState.has_value() && mParticles.GetVelocity(secondaryParticleState.ParticleIndex).x >= 0.0f)
+						|| (secondaryParticleState.ConstrainedState.has_value() && secondaryParticleState.ConstrainedState->MeshRelativeVelocity.x >= 0.0f)
+						? 1.0f
+						: -1.0f;
+
+					mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Falling");
+				}
+				else
+				{
+					// Aerial
+
+					humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Aerial, currentSimulationTime);
+
+					mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Aerial");
+				}
 
 				break;
 			}
