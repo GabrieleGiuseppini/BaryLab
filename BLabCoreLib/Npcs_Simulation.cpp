@@ -2031,71 +2031,24 @@ void Npcs::UpdateNpcAnimation(
 
             case StateType::HumanNpcStateType::BehaviorType::Constrained_Falling:
             {
-                // Both arms in direction of fall
+                // Both arms in direction of face, depending on head velocity in that direction
 
                 vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
                 vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
                 vec2f const actualBodyVector = feetPosition - headPosition; // From head to feet
                 vec2f const actualBodyDir = actualBodyVector.normalise();
 
-                // TODOTEST
+                float headVelocityAlongBodyPerp;
+                if (npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value())
+                {
+                    headVelocityAlongBodyPerp = npc.DipoleState->SecondaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(actualBodyDir.to_perpendicular());
+                }
+                else
+                {
+                    headVelocityAlongBodyPerp = mParticles.GetVelocity(npc.DipoleState->SecondaryParticleState.ParticleIndex).dot(actualBodyDir.to_perpendicular());
+                }
 
-                ////float headVelocityAlongBodyPerp;
-                ////if (npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value())
-                ////{
-                ////    headVelocityAlongBodyPerp = npc.DipoleState->SecondaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(actualBodyDir.to_perpendicular());
-                ////}
-                ////else
-                ////{
-                ////    headVelocityAlongBodyPerp = mParticles.GetVelocity(npc.DipoleState->SecondaryParticleState.ParticleIndex).dot(actualBodyDir.to_perpendicular());
-                ////}
-
-                ////convergenceRate = 0.05f;
-
-                ////if (std::abs(headVelocityAlongBodyPerp) > 0.05f)
-                ////{
-                ////    if (headVelocityAlongBodyPerp >= 0.0f)
-                ////    {
-                ////        // We want to send arms to the right...
-                ////        // ...but not against face direction
-                ////        if (npc.HumanNpcState->CurrentFaceDirectionX >= 0.0f)
-                ////        {
-                ////            targetRightArmAngle = Pi<float> / 2.0f + 0.09f;
-                ////            targetLeftArmAngle = targetRightArmAngle - 0.18f;
-                ////        }
-                ////        else
-                ////        {
-                ////            targetRightArmAngle = 0.0f;
-                ////            targetLeftArmAngle = 0.0f;
-                ////        }
-                ////    }
-                ////    else
-                ////    {
-                ////        // We want to send arms to the left...
-                ////       // ...but not against face direction
-                ////        if (npc.HumanNpcState->CurrentFaceDirectionX <= 0.0f)
-                ////        {
-                ////            targetLeftArmAngle = -Pi<float> / 2.0f - 0.09f;
-                ////            targetRightArmAngle = targetLeftArmAngle + 0.18f;
-                ////        }
-                ////        else
-                ////        {
-                ////            targetRightArmAngle = 0.0f;
-                ////            targetLeftArmAngle = 0.0f;
-                ////        }
-                ////    }
-
-                ////    ////if (headVelocityAlongBodyPerp * npc.HumanNpcState->CurrentFaceDirectionX < 0.0f)
-                ////    ////{
-                ////    ////    // Opposite dir to our face direction, limit these angles - as long
-                ////    ////    // as both arms are in the right direction
-                ////    ////    if (npc.HumanNpcState->LeftArmAngle * (-npc.HumanNpcState->CurrentFaceDirectionX) >= 0.0f
-                ////    ////        && npc.HumanNpcState->RightArmAngle * npc.HumanNpcState->CurrentFaceDirectionX >= 0.0f)
-                ////    ////    {
-                ////    ////        convergenceRate = 0.01f;
-                ////    ////    }
-                ////    ////}
-                ////}
+                float const targetDepth = LinearStep(0.0f, 3.0f, std::abs(headVelocityAlongBodyPerp));
 
                 if (npc.HumanNpcState->CurrentFaceDirectionX >= 0.0f)
                 {
@@ -2103,7 +2056,7 @@ void Npcs::UpdateNpcAnimation(
                     // ...but not against face direction
                     if (npc.HumanNpcState->CurrentFaceDirectionX >= 0.0f)
                     {
-                        targetRightArmAngle = Pi<float> / 2.0f + 0.09f;
+                        targetRightArmAngle = Pi<float> / 2.0f * targetDepth + 0.09f;
                         targetLeftArmAngle = targetRightArmAngle - 0.18f;
                     }
                     else
@@ -2118,7 +2071,7 @@ void Npcs::UpdateNpcAnimation(
                    // ...but not against face direction
                     if (npc.HumanNpcState->CurrentFaceDirectionX <= 0.0f)
                     {
-                        targetLeftArmAngle = -Pi<float> / 2.0f - 0.09f;
+                        targetLeftArmAngle = -Pi<float> / 2.0f * targetDepth - 0.09f;
                         targetRightArmAngle = targetLeftArmAngle + 0.18f;
                     }
                     else

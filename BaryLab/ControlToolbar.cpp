@@ -712,12 +712,18 @@ bool ControlToolbar::ProcessKeyDown(
 {
     if (keyCode == WXK_SPACE)
     {
-        // Pause
         if (!mSimulationControlPauseButton->GetValue())
         {
+            // Pause
             mSimulationControlPauseButton->SetFocus();
             mSimulationControlPauseButton->SetValue(true);
             OnSimulationControlButton(mSimulationControlPauseButton);
+            return true;
+        }
+        else
+        {
+            // Step
+            OnSimulationControlStepButton();
             return true;
         }
     }
