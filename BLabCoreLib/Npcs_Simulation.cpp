@@ -2038,17 +2038,30 @@ void Npcs::UpdateNpcAnimation(
                 vec2f const actualBodyVector = feetPosition - headPosition; // From head to feet
                 vec2f const actualBodyDir = actualBodyVector.normalise();
 
-                float headVelocityAlongBodyPerp;
+                // The extent to which we move arms depends on the avg velocity or head+feet
+
+                vec2f headVelocity;
                 if (npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value())
                 {
-                    headVelocityAlongBodyPerp = npc.DipoleState->SecondaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(actualBodyDir.to_perpendicular());
+                    headVelocity = npc.DipoleState->SecondaryParticleState.ConstrainedState->MeshRelativeVelocity;
                 }
                 else
                 {
-                    headVelocityAlongBodyPerp = mParticles.GetVelocity(npc.DipoleState->SecondaryParticleState.ParticleIndex).dot(actualBodyDir.to_perpendicular());
+                    headVelocity = mParticles.GetVelocity(npc.DipoleState->SecondaryParticleState.ParticleIndex);
                 }
 
-                float const targetDepth = LinearStep(0.0f, 3.0f, std::abs(headVelocityAlongBodyPerp));
+                vec2f feetVelocity;
+                if (npc.PrimaryParticleState.ConstrainedState.has_value())
+                {
+                    feetVelocity = npc.PrimaryParticleState.ConstrainedState->MeshRelativeVelocity;
+                }
+                else
+                {
+                    feetVelocity = mParticles.GetVelocity(npc.PrimaryParticleState.ParticleIndex);
+                }
+
+                float const avgVelocityAlongBodyPerp = (headVelocity + feetVelocity).dot(actualBodyDir.to_perpendicular());
+                float const targetDepth = LinearStep(0.0f, 3.0f, std::abs(avgVelocityAlongBodyPerp));
 
                 if (npc.HumanNpcState->CurrentFaceDirectionX >= 0.0f)
                 {
