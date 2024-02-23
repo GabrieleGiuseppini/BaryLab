@@ -150,8 +150,11 @@ public:
 
 				struct Constrained_AerialStateType
 				{
+					float ProgressToFalling;
+
 					void Reset()
 					{
+						ProgressToFalling = 0.0f;
 					}
 				} Constrained_Aerial;
 

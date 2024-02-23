@@ -66,10 +66,32 @@ void Npcs::UpdateHuman(
 			}
 
 			// Check conditions for falling
-			if (primaryParticleState.ConstrainedState.has_value()
-				&& IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh))
+
+			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, mesh);
+			bool const areFootOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh);
+
+			float fallingTarget;
+			if (isHeadOnFloor || areFootOnFloor)
 			{
-				// TODOHERE: should progress?
+				fallingTarget = 1.0f;
+			}
+			else
+			{
+				fallingTarget = 0.0f;
+			}
+
+			// Progress to falling
+
+			float constexpr ToFallingConvergenceRate = 0.75f; // Very high! We do this just to survive micro-instants
+
+			humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToFalling +=
+				(fallingTarget - humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToFalling)
+				* ToFallingConvergenceRate;
+
+			publishStateQuantity = std::make_tuple("ProgressToFalling", std::to_string(humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToFalling));
+
+			if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToFalling, 1.0f))
+			{
 				// Transition
 
 				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Falling, currentSimulationTime);
@@ -170,6 +192,8 @@ void Npcs::UpdateHuman(
 			{
 				// Reset progress to aerial
 				humanState.CurrentBehaviorState.Constrained_Falling.ProgressToAerial = 0.0f;
+				if (knockedOutTarget == 0.0f)
+					publishStateQuantity = std::make_tuple("ProgressToAerial", std::to_string(humanState.CurrentBehaviorState.Constrained_Falling.ProgressToAerial));
 			}
 
 			break;
