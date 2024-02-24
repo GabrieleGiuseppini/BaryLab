@@ -161,10 +161,12 @@ public:
 				struct Constrained_KnockedOutStateType
 				{
 					float ProgressToRising;
+					float ProgressToAerial;
 
 					void Reset()
 					{
 						ProgressToRising = 0.0f;
+						ProgressToAerial = 0.0f;
 					}
 				} Constrained_KnockedOut;
 

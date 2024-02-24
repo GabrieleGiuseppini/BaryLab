@@ -211,9 +211,10 @@ void Npcs::UpdateHuman(
 
 			// Check conditions for rising
 
+			bool const areFootOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh);
+
 			float risingTarget = 0.0f;
-			if (primaryParticleState.ConstrainedState.has_value()
-				&& IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh)
+			if (areFootOnFloor
 				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityMagnitudeForEquilibrium
 				&& (!secondaryParticleState.ConstrainedState.has_value() // TODO: also use free velocity if free
 					|| secondaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityMagnitudeForEquilibrium))
@@ -240,6 +241,42 @@ void Npcs::UpdateHuman(
 
 				break;
 			}
+
+			// Check conditions for aerial
+
+			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, mesh);
+
+			if (!areFootOnFloor && !isHeadOnFloor)
+			{
+				// Advance towards aerial
+
+				float constexpr ToAerialConvergenceRate = 0.15f;
+
+				humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToAerial +=
+					(1.0f - humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToAerial)
+					* ToAerialConvergenceRate;
+
+				publishStateQuantity = std::make_tuple("ProgressToAerial", std::to_string(humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToAerial));
+
+				if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToAerial, 1.0f))
+				{
+					// Transition
+
+					humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Aerial, currentSimulationTime);
+
+					mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Aerial");
+
+					break;
+				}
+			}
+			else
+			{
+				// Reset progress to aerial
+				humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToAerial = 0.0f;
+				publishStateQuantity = std::make_tuple("ProgressToAerial", std::to_string(humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToAerial));
+			}
+
+
 
 			break;
 		}

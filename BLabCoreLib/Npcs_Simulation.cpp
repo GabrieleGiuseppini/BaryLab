@@ -1875,7 +1875,9 @@ void Npcs::UpdateNpcAnimation(
         assert(npc.HumanNpcState.has_value());
 
         ElementIndex const primaryParticleIndex = npc.PrimaryParticleState.ParticleIndex;
+        auto const & primaryContrainedState = npc.PrimaryParticleState.ConstrainedState;
         ElementIndex const secondaryParticleIndex = npc.DipoleState->SecondaryParticleState.ParticleIndex;
+        auto const & secondaryConstrainedState = npc.DipoleState->SecondaryParticleState.ConstrainedState;
 
         float targetRightArmAngle = npc.HumanNpcState->RightArmAngle;
         float targetRightArmLengthMultiplier = 1.0f;
@@ -1902,11 +1904,10 @@ void Npcs::UpdateNpcAnimation(
                 targetLeftLegAngle = -StateType::HumanNpcStateType::InitialLegAngle * 2.0f;
 
                 // Leg that is against floor is "less open"
-                if (npc.PrimaryParticleState.ConstrainedState.has_value()
-                    && npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex != NoneElementIndex)
+                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualEdgeElementIndex != NoneElementIndex)
                 {
-                    vec2f const edg1 = mesh.GetEdges().GetEndpointAPosition(npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
-                    vec2f const edg2 = mesh.GetEdges().GetEndpointBPosition(npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
+                    vec2f const edg1 = mesh.GetEdges().GetEndpointAPosition(primaryContrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
+                    vec2f const edg2 = mesh.GetEdges().GetEndpointBPosition(primaryContrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
                     vec2f const head = mParticles.GetPosition(secondaryParticleIndex);
                     vec2f const feet = mParticles.GetPosition(primaryParticleIndex);
                     if ((head - feet).dot(edg2 - edg1) >= 0.0f)
@@ -1987,14 +1988,14 @@ void Npcs::UpdateNpcAnimation(
 
                 convergenceRate = 0.25f;
 
-                if (npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex != NoneElementIndex)
+                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualEdgeElementIndex != NoneElementIndex)
                 {
                     //
                     // We are walking on an edge - make sure feet don't look weird on sloped edges
                     //
 
-                    vec2f const edg1 = mesh.GetEdges().GetEndpointAPosition(npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
-                    vec2f const edg2 = mesh.GetEdges().GetEndpointBPosition(npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
+                    vec2f const edg1 = mesh.GetEdges().GetEndpointAPosition(primaryContrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
+                    vec2f const edg2 = mesh.GetEdges().GetEndpointBPosition(primaryContrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
                     vec2f const edgVector = edg2 - edg1;
                     vec2f const edgDir = edgVector.normalise();
 
@@ -2068,23 +2069,23 @@ void Npcs::UpdateNpcAnimation(
                 // The extent to which we move arms depends on the avg velocity or head+feet
 
                 vec2f headVelocity;
-                if (npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value())
+                if (secondaryConstrainedState.has_value())
                 {
-                    headVelocity = npc.DipoleState->SecondaryParticleState.ConstrainedState->MeshRelativeVelocity;
+                    headVelocity = secondaryConstrainedState->MeshRelativeVelocity;
                 }
                 else
                 {
-                    headVelocity = mParticles.GetVelocity(npc.DipoleState->SecondaryParticleState.ParticleIndex);
+                    headVelocity = mParticles.GetVelocity(secondaryParticleIndex);
                 }
 
                 vec2f feetVelocity;
-                if (npc.PrimaryParticleState.ConstrainedState.has_value())
+                if (primaryContrainedState.has_value())
                 {
-                    feetVelocity = npc.PrimaryParticleState.ConstrainedState->MeshRelativeVelocity;
+                    feetVelocity = primaryContrainedState->MeshRelativeVelocity;
                 }
                 else
                 {
-                    feetVelocity = mParticles.GetVelocity(npc.PrimaryParticleState.ParticleIndex);
+                    feetVelocity = mParticles.GetVelocity(primaryParticleIndex);
                 }
 
                 float const avgVelocityAlongBodyPerp = (headVelocity + feetVelocity).dot(actualBodyDir.to_perpendicular());
@@ -2133,8 +2134,8 @@ void Npcs::UpdateNpcAnimation(
             case StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
             {
                 // Check if both head and feet are on a floot
-                bool const isHeadOnEdge = npc.PrimaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*npc.PrimaryParticleState.ConstrainedState, mesh);
-                bool const areFootOnEdge = npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*npc.DipoleState->SecondaryParticleState.ConstrainedState, mesh);
+                bool const isHeadOnEdge = primaryContrainedState.has_value() && IsOnFloorEdge(*primaryContrainedState, mesh);
+                bool const areFootOnEdge = secondaryConstrainedState.has_value() && IsOnFloorEdge(*secondaryConstrainedState, mesh);
                 if (isHeadOnEdge && areFootOnEdge)
                 {
                     // Arms: +/- PI or 0, depending on where they are now
