@@ -203,7 +203,7 @@ void Npcs::UpdateNpcParticle(
         if (npc.HumanNpcState.has_value()
             && isPrimaryParticle) // Human is represented by primary particle
         {
-            npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition += physicsDeltaPos.length();
+            npc.HumanNpcState->TotalDistanceTraveledOffEdgeSinceStateTransition += physicsDeltaPos.length();
         }
 
         // We're done
@@ -755,7 +755,7 @@ void Npcs::UpdateNpcParticle(
                                 && isPrimaryParticle) // Human is represented by primary particle
                             {
                                 // Note: does not include eventual disance traveled after becoming free; fine because we will transition and wipe out total traveled
-                                npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition += std::abs(edgeTraveledActual);
+                                npc.HumanNpcState->TotalDistanceTraveledOnEdgeSinceStateTransition += std::abs(edgeTraveledActual);
                             }
 
                             // Update total vector walked along edge
@@ -837,7 +837,7 @@ void Npcs::UpdateNpcParticle(
                     && isPrimaryParticle) // Human is represented by primary particle
                 {
                     // Note: does not include eventual disance traveled after becoming free; fine because we will transition and wipe out total traveled
-                    npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition += std::abs(totalTraveled);
+                    npc.HumanNpcState->TotalDistanceTraveledOffEdgeSinceStateTransition += std::abs(totalTraveled);
                 }
 
                 if (npcParticle.ConstrainedState.has_value())
@@ -1934,7 +1934,10 @@ void Npcs::UpdateNpcAnimation(
 
                 float const adjustedStandardHumanHeight = LabParameters::HumanNpcGeometry::BodyLength * labParameters.HumanNpcBodyLengthAdjustment;
                 float const stepLength = LabParameters::HumanNpcGeometry::StepLengthFraction * adjustedStandardHumanHeight;
-                float const distanceInTwoSteps = std::fmod(npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition + 3.0f * stepLength / 2.0f, stepLength * 2.0f);
+                float const distance =
+                    npc.HumanNpcState->TotalDistanceTraveledOnEdgeSinceStateTransition
+                    + 0.3f * npc.HumanNpcState->TotalDistanceTraveledOffEdgeSinceStateTransition;
+                float const distanceInTwoSteps = std::fmod(distance + 3.0f * stepLength / 2.0f, stepLength * 2.0f);
                 LogNpcDebug("distanceInTwoSteps=", distanceInTwoSteps);
 
                 float const legAngle = std::abs(stepLength - distanceInTwoSteps) / stepLength * 2.0f * maxLegAngle - maxLegAngle;
@@ -2209,7 +2212,7 @@ void Npcs::UpdateNpcAnimation(
                 float const arg =
                     Period1 / 2.0f // Start some-halfway-through to avoid sudden extreme angles
                     + (currentSimulationTime - npc.HumanNpcState->CurrentStateTransitionSimulationTimestamp) * 2.6f * panicAccelerator
-                    + npc.HumanNpcState->TotalDistanceTraveledSinceStateTransition * 0.7f;
+                    + npc.HumanNpcState->TotalDistanceTraveledOffEdgeSinceStateTransition * 0.7f;
 
                 float const inPeriod = fmod(arg, (Period1 + Period2));
                 float const y = (inPeriod < Period1)

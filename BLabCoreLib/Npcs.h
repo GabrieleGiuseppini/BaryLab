@@ -230,7 +230,8 @@ public:
 			} CurrentBehaviorState;
 
 			float CurrentStateTransitionSimulationTimestamp;
-			float TotalDistanceTraveledSinceStateTransition; // [0.0f, +INF] - it's "edge traveled" when we're constrained on an edge (e.g. walking)
+			float TotalDistanceTraveledOnEdgeSinceStateTransition; // [0.0f, +INF] - when we're constrained on an edge (e.g. walking)
+			float TotalDistanceTraveledOffEdgeSinceStateTransition; // [0.0f, +INF] - when we're constrained off an edge or free
 
 			float CurrentEquilibriumSoftTerminationDecision; // Cross-state
 
@@ -342,7 +343,8 @@ public:
 				}
 
 				CurrentStateTransitionSimulationTimestamp = currentSimulationTime;
-				TotalDistanceTraveledSinceStateTransition = 0.0f;
+				TotalDistanceTraveledOnEdgeSinceStateTransition = 0.0f;
+				TotalDistanceTraveledOffEdgeSinceStateTransition = 0.0f;
 			}
 		};
 
