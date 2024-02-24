@@ -2115,7 +2115,7 @@ void Npcs::UpdateNpcAnimation(
                 // Check if both head and feet are on a floot
                 bool const isHeadOnEdge = npc.PrimaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*npc.PrimaryParticleState.ConstrainedState, mesh);
                 bool const areFootOnEdge = npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*npc.DipoleState->SecondaryParticleState.ConstrainedState, mesh);
-                if (isHeadOnEdge and areFootOnEdge)
+                if (isHeadOnEdge && areFootOnEdge)
                 {
                     // Arms: +/- PI or 0, depending on where they are now
 
