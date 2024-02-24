@@ -1898,8 +1898,28 @@ void Npcs::UpdateNpcAnimation(
                 targetLeftArmAngle = -StateType::HumanNpcStateType::InitialArmAngle;
 
                 // Legs slightly open
-                targetRightLegAngle = StateType::HumanNpcStateType::InitialLegAngle;
-                targetLeftLegAngle = -StateType::HumanNpcStateType::InitialLegAngle;
+                targetRightLegAngle = StateType::HumanNpcStateType::InitialLegAngle * 2.0f;
+                targetLeftLegAngle = -StateType::HumanNpcStateType::InitialLegAngle * 2.0f;
+
+                // Leg that is against floor is "less open"
+                if (npc.PrimaryParticleState.ConstrainedState.has_value()
+                    && npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex != NoneElementIndex)
+                {
+                    vec2f const edg1 = mesh.GetEdges().GetEndpointAPosition(npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
+                    vec2f const edg2 = mesh.GetEdges().GetEndpointBPosition(npc.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
+                    vec2f const head = mParticles.GetPosition(secondaryParticleIndex);
+                    vec2f const feet = mParticles.GetPosition(primaryParticleIndex);
+                    if ((head - feet).dot(edg2 - edg1) >= 0.0f)
+                    {
+                        // Left leg
+                        targetLeftLegAngle *= 0.2f;
+                    }
+                    else
+                    {
+                        // Right leg
+                        targetRightLegAngle *= 0.2f;
+                    }
+                }
 
                 convergenceRate = 0.05f;
 
