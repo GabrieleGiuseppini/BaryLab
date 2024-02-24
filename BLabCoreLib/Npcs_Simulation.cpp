@@ -2098,7 +2098,7 @@ void Npcs::UpdateNpcAnimation(
                     }
                 }
 
-                convergenceRate = 0.08f;
+                convergenceRate = 0.08f * (0.2f + targetDepth);
 
                 // Close legs
                 targetRightLegAngle = 0.05f;
