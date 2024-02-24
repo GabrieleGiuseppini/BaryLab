@@ -2251,7 +2251,6 @@ void Npcs::UpdateNpcAnimation(
                 float const armAngle =
                     armCenterAngle
                     + (y * 2.0f - 1.0f) * ArmAngleAmplitude / 2.0f * (depthDamper * 0.75f + 0.25f);
-                //mEventDispatcher.OnCustomProbe("armAngle", armAngle);
                 targetRightArmAngle = armAngle;
                 targetLeftArmAngle = -targetRightArmAngle;
 
@@ -2262,7 +2261,6 @@ void Npcs::UpdateNpcAnimation(
                 float const legAngle =
                     legCenterAngle
                     + (y * 2.0f - 1.0f) * LegAngleAmplitude / 2.0f * (depthDamper * 0.45f + 0.55f);
-                //mEventDispatcher.OnCustomProbe("legAngle", legAngle);
                 targetRightLegAngle = legAngle;
                 targetLeftLegAngle = -targetRightLegAngle;
 
