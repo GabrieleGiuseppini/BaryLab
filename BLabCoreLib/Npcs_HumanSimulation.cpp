@@ -70,8 +70,16 @@ void Npcs::UpdateHuman(
 			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, mesh);
 			bool const areFootOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh);
 
+			float constexpr MinVelocityMagnitudeForFalling = 0.3f;
+			vec2f const floorVector = (primaryParticleState.ConstrainedState.has_value() && primaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex != NoneElementIndex)
+				? mesh.GetTriangles().GetSubEdgeVector(primaryParticleState.ConstrainedState->CurrentTriangle, foo, mesh.GetVertices())
+				: vec2f(1.0f, 0.0); // H arbitrarily
+
 			float fallingTarget;
-			if (isHeadOnFloor || areFootOnFloor)
+			if ((isHeadOnFloor || areFootOnFloor)
+				// TODOHERE: change this to *component along edge|H*
+				&& (primaryParticleState.GetApplicableVelocity(mParticles).length() > MinVelocityMagnitudeForFalling
+					|| secondaryParticleState.GetApplicableVelocity(mParticles).length() > MinVelocityMagnitudeForFalling))
 			{
 				fallingTarget = 1.0f;
 			}
@@ -133,8 +141,7 @@ void Npcs::UpdateHuman(
 			float constexpr MaxRelativeVelocityForKnockedOut = 1.2f;
 			if (areFootOnFloor
 				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForKnockedOut
-				&& (!secondaryParticleState.ConstrainedState.has_value() // TODO: also use free velocity if free
-					|| secondaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForKnockedOut))
+				&& secondaryParticleState.GetApplicableVelocity(mParticles).length() < MaxRelativeVelocityForKnockedOut)
 			{
 				knockedOutTarget = 1.0f;
 			}
@@ -216,8 +223,7 @@ void Npcs::UpdateHuman(
 			float risingTarget = 0.0f;
 			if (areFootOnFloor
 				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityMagnitudeForEquilibrium
-				&& (!secondaryParticleState.ConstrainedState.has_value() // TODO: also use free velocity if free
-					|| secondaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityMagnitudeForEquilibrium))
+				&& secondaryParticleState.GetApplicableVelocity(mParticles).length() < MaxRelativeVelocityMagnitudeForEquilibrium)
 			{
 				risingTarget = 1.0f;
 			}
@@ -373,8 +379,8 @@ void Npcs::UpdateHuman(
 			if (humanState.CurrentBehavior != StateType::HumanNpcStateType::BehaviorType::Constrained_Walking)
 			{
 				// Not walking: we want to be draconian and can't stand a (small) relative velocity
-				// TODO: constrained-ness of primary
-				if (primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() >= MaxRelativeVelocityMagnitudeForEquilibrium)
+				if (!primaryParticleState.ConstrainedState.has_value()
+					|| primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() >= MaxRelativeVelocityMagnitudeForEquilibrium)
 				{
 					isStateMaintained = false;
 				}

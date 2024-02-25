@@ -1903,7 +1903,7 @@ void Npcs::UpdateNpcAnimation(
                 targetRightLegAngle = StateType::HumanNpcStateType::InitialLegAngle * 2.0f;
                 targetLeftLegAngle = -StateType::HumanNpcStateType::InitialLegAngle * 2.0f;
 
-                // Leg that is against floor is "less open"
+                // Leg and arm that is against floor is "less open"
                 if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualEdgeElementIndex != NoneElementIndex)
                 {
                     vec2f const edg1 = mesh.GetEdges().GetEndpointAPosition(primaryContrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
@@ -1912,11 +1912,15 @@ void Npcs::UpdateNpcAnimation(
                     vec2f const feet = mParticles.GetPosition(primaryParticleIndex);
                     if ((head - feet).dot(edg2 - edg1) >= 0.0f)
                     {
+                        targetRightArmAngle *= 2.0f;
+
                         // Left leg
                         targetLeftLegAngle *= 0.2f;
                     }
                     else
                     {
+                        targetLeftArmAngle *= 2.0f;
+
                         // Right leg
                         targetRightLegAngle *= 0.2f;
                     }
@@ -2068,25 +2072,8 @@ void Npcs::UpdateNpcAnimation(
 
                 // The extent to which we move arms depends on the avg velocity or head+feet
 
-                vec2f headVelocity;
-                if (secondaryConstrainedState.has_value())
-                {
-                    headVelocity = secondaryConstrainedState->MeshRelativeVelocity;
-                }
-                else
-                {
-                    headVelocity = mParticles.GetVelocity(secondaryParticleIndex);
-                }
-
-                vec2f feetVelocity;
-                if (primaryContrainedState.has_value())
-                {
-                    feetVelocity = primaryContrainedState->MeshRelativeVelocity;
-                }
-                else
-                {
-                    feetVelocity = mParticles.GetVelocity(primaryParticleIndex);
-                }
+                vec2f const & headVelocity = npc.DipoleState->SecondaryParticleState.GetApplicableVelocity(mParticles);
+                vec2f const & feetVelocity = npc.PrimaryParticleState.GetApplicableVelocity(mParticles);
 
                 float const avgVelocityAlongBodyPerp = (headVelocity + feetVelocity).dot(actualBodyDir.to_perpendicular());
                 float const targetDepth = LinearStep(0.0f, 3.0f, std::abs(avgVelocityAlongBodyPerp));

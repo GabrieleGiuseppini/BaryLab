@@ -84,6 +84,18 @@ public:
 				: ParticleIndex(particleIndex)
 				, ConstrainedState(std::move(constrainedState))
 			{}
+
+			vec2f const & GetApplicableVelocity(NpcParticles const & particles) const
+			{
+				if (ConstrainedState.has_value())
+				{
+					return ConstrainedState->MeshRelativeVelocity;
+				}
+				else
+				{
+					return particles.GetVelocity(ParticleIndex);
+				}
+			}
 		};
 
 		struct DipolePropertiesType final
