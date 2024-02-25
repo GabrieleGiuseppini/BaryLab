@@ -451,7 +451,7 @@ void Npcs::UpdateNpcParticle(
                             LogNpcDebug("    ConstrainedNonInertial: triangle=", npcParticle.ConstrainedState->CurrentTriangle, " edgeOrdinal=", edgeOrdinal, " bCoords=", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " trajectory=", trajectory);
                             LogNpcDebug("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
 
-                            npcParticle.ConstrainedState->CurrentVirtualEdgeElementIndex = currentEdgeElementIndex;
+                            npcParticle.ConstrainedState->CurrentVirtualEdgeOrdinal = edgeOrdinal;
 
                             //
                             // We're moving against the floor, hence we are in a non-inertial frame...
@@ -804,7 +804,7 @@ void Npcs::UpdateNpcParticle(
                 LogNpcDebug("    ConstrainedInertial: triangle=", npcParticle.ConstrainedState->CurrentTriangle, " bCoords=", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " physicsDeltaPos=", physicsDeltaPos);
                 LogNpcDebug("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
 
-                npcParticle.ConstrainedState->CurrentVirtualEdgeElementIndex = NoneElementIndex;
+                npcParticle.ConstrainedState->CurrentVirtualEdgeOrdinal = -1;
 
                 //
                 // Calculate target barycentric coords
@@ -1904,22 +1904,21 @@ void Npcs::UpdateNpcAnimation(
                 targetLeftLegAngle = -StateType::HumanNpcStateType::InitialLegAngle * 2.0f;
 
                 // Leg and arm that is against floor is "less open"
-                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualEdgeElementIndex != NoneElementIndex)
+                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualEdgeOrdinal >= 0)
                 {
-                    vec2f const edg1 = mesh.GetEdges().GetEndpointAPosition(primaryContrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
-                    vec2f const edg2 = mesh.GetEdges().GetEndpointBPosition(primaryContrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
+                    vec2f const edgeVector = mesh.GetTriangles().GetSubEdgeVector(primaryContrainedState->CurrentTriangle, primaryContrainedState->CurrentVirtualEdgeOrdinal, mesh.GetVertices());
                     vec2f const head = mParticles.GetPosition(secondaryParticleIndex);
                     vec2f const feet = mParticles.GetPosition(primaryParticleIndex);
-                    if ((head - feet).dot(edg2 - edg1) >= 0.0f)
+                    if ((head - feet).dot(edgeVector) >= 0.0f)
                     {
-                        targetRightArmAngle *= 2.0f;
+                        targetLeftArmAngle *= 2.0f;
 
                         // Left leg
                         targetLeftLegAngle *= 0.2f;
                     }
                     else
                     {
-                        targetLeftArmAngle *= 2.0f;
+                        targetRightArmAngle *= 2.0f;
 
                         // Right leg
                         targetRightLegAngle *= 0.2f;
@@ -1992,14 +1991,16 @@ void Npcs::UpdateNpcAnimation(
 
                 convergenceRate = 0.25f;
 
-                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualEdgeElementIndex != NoneElementIndex)
+                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualEdgeOrdinal >= 0)
                 {
                     //
                     // We are walking on an edge - make sure feet don't look weird on sloped edges
                     //
 
-                    vec2f const edg1 = mesh.GetEdges().GetEndpointAPosition(primaryContrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
-                    vec2f const edg2 = mesh.GetEdges().GetEndpointBPosition(primaryContrainedState->CurrentVirtualEdgeElementIndex, mesh.GetVertices());
+                    ElementIndex const edgeElementIndex = mesh.GetTriangles().GetSubEdges(primaryContrainedState->CurrentTriangle).EdgeIndices[primaryContrainedState->CurrentVirtualEdgeOrdinal];
+                    // Note: we do not care if not in CW order
+                    vec2f const edg1 = mesh.GetEdges().GetEndpointAPosition(edgeElementIndex, mesh.GetVertices());
+                    vec2f const edg2 = mesh.GetEdges().GetEndpointBPosition(edgeElementIndex, mesh.GetVertices());
                     vec2f const edgVector = edg2 - edg1;
                     vec2f const edgDir = edgVector.normalise();
 

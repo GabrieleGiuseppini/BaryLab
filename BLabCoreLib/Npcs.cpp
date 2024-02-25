@@ -719,7 +719,9 @@ bool Npcs::IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangle
 	return false;
 }
 
-bool Npcs::IsEdgeHostingCurrentlySelectedParticle(ElementIndex edgeIndex) const
+bool Npcs::IsEdgeHostingCurrentlySelectedParticle(
+	ElementIndex edgeIndex,
+	Mesh const & mesh) const
 {
 	if (mCurrentlySelectedParticle.has_value())
 	{
@@ -731,14 +733,16 @@ bool Npcs::IsEdgeHostingCurrentlySelectedParticle(ElementIndex edgeIndex) const
 				(state.DipoleState.has_value() && state.DipoleState->SecondaryParticleState.ParticleIndex == *mCurrentlySelectedParticle))
 			{
 				if (state.PrimaryParticleState.ConstrainedState.has_value()
-					&& edgeIndex == state.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex)
+					&& state.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal >= 0
+					&& edgeIndex == mesh.GetTriangles().GetSubEdges(state.PrimaryParticleState.ConstrainedState->CurrentTriangle).EdgeIndices[state.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal])
 				{
 					return true;
 				}
 
 				if (state.DipoleState.has_value()
 					&& state.DipoleState->SecondaryParticleState.ConstrainedState.has_value()
-					&& edgeIndex == state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex)
+					&& state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal >= 0
+					&& edgeIndex == mesh.GetTriangles().GetSubEdges(state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangle).EdgeIndices[state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal])
 				{
 					return true;
 				}

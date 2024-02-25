@@ -131,7 +131,7 @@ void LabController::Render()
         for (auto t : triangles)
         {
             rgbaColor color = edges.GetRenderColor(triangles.GetSubEdgeAIndex(t));
-            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(triangles.GetSubEdgeAIndex(t)))
+            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(triangles.GetSubEdgeAIndex(t), mModel->GetMesh()))
             {
                 color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
             }
@@ -141,7 +141,7 @@ void LabController::Render()
                 color);
 
             color = edges.GetRenderColor(triangles.GetSubEdgeBIndex(t));
-            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(triangles.GetSubEdgeBIndex(t)))
+            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(triangles.GetSubEdgeBIndex(t), mModel->GetMesh()))
             {
                 color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
             }
@@ -151,7 +151,7 @@ void LabController::Render()
                 color);
 
             color = edges.GetRenderColor(triangles.GetSubEdgeCIndex(t));
-            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(triangles.GetSubEdgeCIndex(t)))
+            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(triangles.GetSubEdgeCIndex(t), mModel->GetMesh()))
             {
                 color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
             }

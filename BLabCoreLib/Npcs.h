@@ -62,7 +62,7 @@ public:
 
 				bcoords3f CurrentTriangleBarycentricCoords;
 
-				ElementIndex CurrentVirtualEdgeElementIndex; // When set, we are "conceptually" along this edge - might not be really the case e.g. when we're at a vertex
+				int CurrentVirtualEdgeOrdinal; // When set, we are "conceptually" along this edge - might not be really the case e.g. when we're at a vertex
 
 				vec2f MeshRelativeVelocity; // Velocity of particle (as in velocity buffer), but relative to mesh at the moment velocity was calculated
 
@@ -71,7 +71,7 @@ public:
 					bcoords3f const & currentTriangleBarycentricCoords)
 					: CurrentTriangle(currentTriangle)
 					, CurrentTriangleBarycentricCoords(currentTriangleBarycentricCoords)
-					, CurrentVirtualEdgeElementIndex(NoneElementIndex)
+					, CurrentVirtualEdgeOrdinal(-1)
 					, MeshRelativeVelocity(vec2f::zero())
 				{}
 			};
@@ -163,10 +163,12 @@ public:
 				struct Constrained_AerialStateType
 				{
 					float ProgressToFalling;
+					float ProgressToKnockedOut;
 
 					void Reset()
 					{
 						ProgressToFalling = 0.0f;
+						ProgressToKnockedOut = 0.0f;
 					}
 				} Constrained_Aerial;
 
@@ -305,6 +307,7 @@ public:
 					case BehaviorType::Constrained_Aerial:
 					{
 						CurrentBehaviorState.Constrained_Aerial.Reset();
+						break;
 					}
 
 					case BehaviorType::Constrained_Equilibrium:
@@ -316,6 +319,7 @@ public:
 					case BehaviorType::Constrained_Falling:
 					{
 						CurrentBehaviorState.Constrained_Falling.Reset();
+						break;
 					}
 
 					case BehaviorType::Constrained_KnockedOut:
@@ -542,7 +546,9 @@ public:
 
 	bool IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangleIndex) const;
 
-	bool IsEdgeHostingCurrentlySelectedParticle(ElementIndex edgeIndex) const;
+	bool IsEdgeHostingCurrentlySelectedParticle(
+		ElementIndex edgeIndex,
+		Mesh const & mesh) const;
 
 public:
 

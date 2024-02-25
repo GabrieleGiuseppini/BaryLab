@@ -65,27 +65,48 @@ void Npcs::UpdateHuman(
 				break;
 			}
 
-			// Check conditions for falling
+			// Check conditions for falling/KO
 
 			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, mesh);
-			bool const areFootOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh);
+			bool const areFeetOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh);
 
-			float constexpr MinVelocityMagnitudeForFalling = 0.3f;
-			vec2f const floorVector = (primaryParticleState.ConstrainedState.has_value() && primaryParticleState.ConstrainedState->CurrentVirtualEdgeElementIndex != NoneElementIndex)
-				? mesh.GetTriangles().GetSubEdgeVector(primaryParticleState.ConstrainedState->CurrentTriangle, foo, mesh.GetVertices())
+			vec2f const floorVector = (primaryParticleState.ConstrainedState.has_value() && primaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal >= 0)
+				? mesh.GetTriangles().GetSubEdgeVector(primaryParticleState.ConstrainedState->CurrentTriangle, primaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal, mesh.GetVertices())
 				: vec2f(1.0f, 0.0); // H arbitrarily
+			float const headVelocityAlongFloor = secondaryParticleState.GetApplicableVelocity(mParticles).dot(floorVector);
+			float const feetVelocityAlongFloor = primaryParticleState.GetApplicableVelocity(mParticles).dot(floorVector);
+
+			float constexpr MinVelocityMagnitudeForFalling = 0.05f;
 
 			float fallingTarget;
-			if ((isHeadOnFloor || areFootOnFloor)
-				// TODOHERE: change this to *component along edge|H*
-				&& (primaryParticleState.GetApplicableVelocity(mParticles).length() > MinVelocityMagnitudeForFalling
-					|| secondaryParticleState.GetApplicableVelocity(mParticles).length() > MinVelocityMagnitudeForFalling))
+			float knockedOutTarget;
+			if (isHeadOnFloor || areFeetOnFloor)
 			{
-				fallingTarget = 1.0f;
+				if (std::abs(headVelocityAlongFloor) >= MinVelocityMagnitudeForFalling
+					|| std::abs(feetVelocityAlongFloor) >= MinVelocityMagnitudeForFalling)
+				{
+					// Likely falling
+					fallingTarget = 1.0f;
+
+					// Definitely not knocked out
+					knockedOutTarget = 0.0f;
+				}
+				else
+				{
+					// We're quite still...
+
+					// ...likely knocked out
+					knockedOutTarget = 1.0f;
+
+					// Definitely not falling
+					fallingTarget = 0.0f;
+				}
 			}
 			else
 			{
+				// Completely in the air, no transition
 				fallingTarget = 0.0f;
+				knockedOutTarget = 0.0f;
 			}
 
 			// Progress to falling
@@ -119,6 +140,75 @@ void Npcs::UpdateHuman(
 
 				break;
 			}
+
+			// Progress to knocked out
+
+			float constexpr ToKnockedOutConvergenceRate = 0.5f;
+
+			humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToKnockedOut +=
+				(knockedOutTarget - humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToKnockedOut)
+				* ToKnockedOutConvergenceRate;
+
+			if (fallingTarget == 0.0f)
+				publishStateQuantity = std::make_tuple("ProgressToKnockedOut", std::to_string(humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToKnockedOut));
+
+			if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToKnockedOut, 1.0f))
+			{
+				// Transition
+
+				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
+
+				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+
+				break;
+			}
+
+
+			////// TODOOLD
+
+			////float fallingTarget;
+			////if ((isHeadOnFloor || areFeetOnFloor)
+			////	&& (std::abs(headVelocityAlongFloor) > MinVelocityMagnitudeForFalling
+			////		|| std::abs(feetVelocityAlongFloor) > MinVelocityMagnitudeForFalling))
+			////{
+			////	fallingTarget = 1.0f;
+			////}
+			////else
+			////{
+			////	fallingTarget = 0.0f;
+			////}
+
+			////// Progress to falling
+
+			////float constexpr ToFallingConvergenceRate = 0.75f; // Very high! We do this just to survive micro-instants
+
+			////humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToFalling +=
+			////	(fallingTarget - humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToFalling)
+			////	* ToFallingConvergenceRate;
+
+			////publishStateQuantity = std::make_tuple("ProgressToFalling", std::to_string(humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToFalling));
+
+			////if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToFalling, 1.0f))
+			////{
+			////	// Transition
+
+			////	humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Falling, currentSimulationTime);
+
+			////	if (humanState.CurrentFaceOrientation != 0.0f)
+			////	{
+			////		// Face: 0/direction of falling
+			////		humanState.CurrentFaceOrientation = 0.0f;
+			////		humanState.CurrentFaceDirectionX =
+			////			(!secondaryParticleState.ConstrainedState.has_value() && mParticles.GetVelocity(secondaryParticleState.ParticleIndex).x >= 0.0f)
+			////			|| (secondaryParticleState.ConstrainedState.has_value() && secondaryParticleState.ConstrainedState->MeshRelativeVelocity.x >= 0.0f)
+			////			? 1.0f
+			////			: -1.0f;
+			////	}
+
+			////	mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Falling");
+
+			////	break;
+			////}
 
 			break;
 		}
