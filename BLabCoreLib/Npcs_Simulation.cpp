@@ -1964,7 +1964,7 @@ void Npcs::UpdateNpcAnimation(
                     }
                 }
 
-                convergenceRate = 0.05f;
+                convergenceRate = 0.1f;
 
                 break;
             }
