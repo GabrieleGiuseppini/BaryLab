@@ -369,7 +369,9 @@ void Npcs::UpdateHuman(
 			{
 				// Reset progress to aerial
 				humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToAerial = 0.0f;
-				publishStateQuantity = std::make_tuple("ProgressToAerial", std::to_string(humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToAerial));
+
+				if (risingTarget == 0.0f)
+					publishStateQuantity = std::make_tuple("ProgressToAerial", std::to_string(humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToAerial));
 			}
 
 

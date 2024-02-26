@@ -1903,24 +1903,63 @@ void Npcs::UpdateNpcAnimation(
                 targetRightLegAngle = StateType::HumanNpcStateType::InitialLegAngle * 2.0f;
                 targetLeftLegAngle = -StateType::HumanNpcStateType::InitialLegAngle * 2.0f;
 
-                // Leg and arm that is against floor is "less open"
+                // Leg and arm that are against floor "help"
                 if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualEdgeOrdinal >= 0)
                 {
                     vec2f const edgeVector = mesh.GetTriangles().GetSubEdgeVector(primaryContrainedState->CurrentTriangle, primaryContrainedState->CurrentVirtualEdgeOrdinal, mesh.GetVertices());
                     vec2f const head = mParticles.GetPosition(secondaryParticleIndex);
                     vec2f const feet = mParticles.GetPosition(primaryParticleIndex);
-                    if ((head - feet).dot(edgeVector) >= 0.0f)
-                    {
-                        targetLeftArmAngle *= 2.0f;
 
-                        // Left leg
+                    float humanEdgeAngle = edgeVector.angleCw(head - feet);
+                    if (humanEdgeAngle < 0.0f)
+                    {
+                        humanEdgeAngle += Pi<float>;
+                    }
+
+                    // Angle at which left arm is perpendicular to body and touching edge
+                    float constexpr MaxAngle = 0.40489178628508342331207292900944f;
+                    //static_assert(MaxAngle == std::atan(LabParameters::HumanNpcGeometry::ArmLengthFraction / (1.0f - LabParameters::HumanNpcGeometry::HeadLengthFraction)));
+
+                    if (humanEdgeAngle <= Pi<float> / 2.0f)
+                    {
+                        // *  0 --> PI/2
+                        //  \
+                        //   \
+                        // ----
+
+                        // Left arm grows up to PI/2 until max angle, then goes down to rest
+
+                        if (humanEdgeAngle <= MaxAngle)
+                        {
+                            targetLeftArmAngle = -(1.0f - (MaxAngle - humanEdgeAngle) / MaxAngle) * Pi<float> / 2.0f;
+                        }
+                        else
+                        {
+                            targetLeftArmAngle = -Pi<float> / 2.0f - (MaxAngle - humanEdgeAngle) / (MaxAngle - Pi<float> / 2.0f) * (StateType::HumanNpcStateType::InitialArmAngle - Pi<float> / 2.0f);
+                        }
+
+                        // Left leg slightly more open
                         targetLeftLegAngle *= 0.2f;
                     }
                     else
                     {
-                        targetRightArmAngle *= 2.0f;
+                        // <--  *   PI/2 <-- PI
+                        //     /
+                        //    /
+                        // ----
 
-                        // Right leg
+                        // Right arm grows up to PI/2 until PI - max angle, then goes down to rest
+
+                        if (humanEdgeAngle >= Pi<float> - MaxAngle)
+                        {
+                            targetRightArmAngle = Pi<float> / 2.0f + (Pi<float> - MaxAngle - humanEdgeAngle) / MaxAngle * (Pi<float> / 2.0f);
+                        }
+                        else
+                        {
+                            targetRightArmAngle = StateType::HumanNpcStateType::InitialArmAngle + (humanEdgeAngle - Pi<float> / 2.0f) / (Pi<float> -MaxAngle - Pi<float> / 2.0f) * (Pi<float> / 2.0f - StateType::HumanNpcStateType::InitialArmAngle);
+                        }
+
+                        // Right leg slightly more open
                         targetRightLegAngle *= 0.2f;
                     }
                 }
@@ -1934,7 +1973,8 @@ void Npcs::UpdateNpcAnimation(
             {
                 // Just small arms angle
 
-                float constexpr ArmsAngle = Pi<float> / 2.0f * 0.2f;
+                //float constexpr ArmsAngle = Pi<float> / 2.0f * 0.2f;
+                float constexpr ArmsAngle = StateType::HumanNpcStateType::InitialArmAngle;
 
                 targetRightArmAngle = ArmsAngle;
                 targetLeftArmAngle = -ArmsAngle;
