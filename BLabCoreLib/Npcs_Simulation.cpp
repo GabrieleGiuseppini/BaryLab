@@ -1938,6 +1938,9 @@ void Npcs::UpdateNpcAnimation(
                             targetLeftArmAngle = -Pi<float> / 2.0f - (MaxAngle - humanEdgeAngle) / (MaxAngle - Pi<float> / 2.0f) * (StateType::HumanNpcStateType::InitialArmAngle - Pi<float> / 2.0f);
                         }
 
+                        // Right arm helps
+                        targetRightArmAngle = targetLeftArmAngle + 0.2f;
+
                         // Left leg slightly more open
                         targetLeftLegAngle *= 0.2f;
                     }
@@ -1958,6 +1961,9 @@ void Npcs::UpdateNpcAnimation(
                         {
                             targetRightArmAngle = StateType::HumanNpcStateType::InitialArmAngle + (humanEdgeAngle - Pi<float> / 2.0f) / (Pi<float> -MaxAngle - Pi<float> / 2.0f) * (Pi<float> / 2.0f - StateType::HumanNpcStateType::InitialArmAngle);
                         }
+
+                        // Left arm helps
+                        targetLeftArmAngle = targetRightArmAngle - 0.2f;
 
                         // Right leg slightly more open
                         targetRightLegAngle *= 0.2f;
