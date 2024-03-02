@@ -416,18 +416,18 @@ void Npcs::UpdateNpcParticle(
                     // We are on this edge
 
                     int const edgeOrdinal = (vi + 1) % 3;
-                    ElementIndex const currentEdgeElementIndex = mesh.GetTriangles().GetSubEdges(npcParticle.ConstrainedState->CurrentTriangle).EdgeIndices[edgeOrdinal];
 
                     assert(isPrimaryParticle || npc.DipoleState.has_value());
 
-                    LogNpcDebug("      edge ", edgeOrdinal, ": isFloor=", IsEdgeFloorToParticle(currentEdgeElementIndex, npcParticle.ConstrainedState->CurrentTriangle, mesh));
+                    LogNpcDebug("      edge ", edgeOrdinal, ": isFloor=", IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentTriangle, edgeOrdinal, mesh));
 
                     // Check if this is really a floor to this particle
-                    if (IsEdgeFloorToParticle(currentEdgeElementIndex, npcParticle.ConstrainedState->CurrentTriangle, mesh)
+                    if (IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentTriangle, edgeOrdinal, mesh)
                         && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
                             mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex),
                             trajectoryStartAbsolutePosition, // Current (virtual, not yet real) position of this (secondary) particle
-                            currentEdgeElementIndex,
+                            npcParticle.ConstrainedState->CurrentTriangle,
+                            edgeOrdinal,
                             mesh)))
                     {
                         // On floor edge - so potentially in a non-inertial frame
@@ -602,11 +602,6 @@ void Npcs::UpdateNpcParticle(
 
                                 LogNpcDebug("        travel exceeds budget (edgeTraveledPlanned=", edgeTraveledPlanned, " budget=", remainingDistanceBudget,
                                     " => adjustedEdgeTraveledPlanned=", adjustedEdgeTraveledPlanned);
-
-                                // TODOTEST
-                                static float totalBudgetRestrictions = 0.0f;
-                                totalBudgetRestrictions += 1.0f;
-                                mEventDispatcher.OnCustomProbe("Budget restrictions", totalBudgetRestrictions);
                             }
                             else
                             {
@@ -1464,7 +1459,6 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
         assert(minIntersectionT > -Epsilon<float> && minIntersectionT <= 1.0f); // Guaranteed to exist, and within trajectory
 
         int const intersectionEdgeOrdinal = (intersectionVertexOrdinal + 1) % 3;
-        ElementIndex const intersectionEdgeElementIndex = mesh.GetTriangles().GetSubEdges(npcParticleConstrainedState.CurrentTriangle).EdgeIndices[intersectionEdgeOrdinal];
 
         // Calculate intersection barycentric coordinates
 
@@ -1499,11 +1493,12 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
 
         assert(isPrimaryParticle || npc.DipoleState.has_value());
 
-        if (IsEdgeFloorToParticle(intersectionEdgeElementIndex, npcParticleConstrainedState.CurrentTriangle, mesh)
+        if (IsEdgeFloorToParticle(npcParticleConstrainedState.CurrentTriangle, intersectionEdgeOrdinal, mesh)
             && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
                 mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex),
                 intersectionAbsolutePosition,
-                intersectionEdgeElementIndex,
+                npcParticleConstrainedState.CurrentTriangle,
+                intersectionEdgeOrdinal,
                 mesh)))
         {
             //
@@ -1547,6 +1542,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
             LogNpcDebug("      Climbing over non-floor edge");
 
             // Find opposite triangle
+            ElementIndex const intersectionEdgeElementIndex = mesh.GetTriangles().GetSubEdges(npcParticleConstrainedState.CurrentTriangle).EdgeIndices[intersectionEdgeOrdinal];
             ElementIndex const oppositeTriangle = mesh.GetEdges().GetOppositeTriangle(intersectionEdgeElementIndex, npcParticleConstrainedState.CurrentTriangle);
             if (oppositeTriangle == NoneElementIndex || mesh.GetTriangles().IsDeleted(oppositeTriangle))
             {
@@ -1689,13 +1685,12 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         // Check whether this new edge is floor
         //
 
-        ElementIndex const crossedEdgeElementIndex = mesh.GetTriangles().GetSubEdges(npcParticle.ConstrainedState->CurrentTriangle).EdgeIndices[crossedEdgeOrdinal];
-
-        if (IsEdgeFloorToParticle(crossedEdgeElementIndex, npcParticle.ConstrainedState->CurrentTriangle, mesh)
+        if (IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentTriangle, crossedEdgeOrdinal, mesh)
             && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
                 mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex),
                 trajectoryStartAbsolutePosition, // Current (virtual, not yet real) position of this (secondary) particle
-                crossedEdgeElementIndex,
+                npcParticle.ConstrainedState->CurrentTriangle,
+                crossedEdgeOrdinal,
                 mesh)))
         {
             //
@@ -1712,6 +1707,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         //
 
         // Find opposite triangle
+        ElementIndex const crossedEdgeElementIndex = mesh.GetTriangles().GetSubEdges(npcParticle.ConstrainedState->CurrentTriangle).EdgeIndices[crossedEdgeOrdinal];
         ElementIndex const oppositeTriangle = mesh.GetEdges().GetOppositeTriangle(crossedEdgeElementIndex, npcParticle.ConstrainedState->CurrentTriangle);
         if (oppositeTriangle == NoneElementIndex || mesh.GetTriangles().IsDeleted(oppositeTriangle))
         {

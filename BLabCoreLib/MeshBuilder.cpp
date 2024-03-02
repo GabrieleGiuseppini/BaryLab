@@ -159,7 +159,8 @@ std::unique_ptr<Mesh> MeshBuilder::BuildMesh(
 
     Triangles triangles = CreateTriangles(
         triangleInfos,
-        vertices);
+        vertices,
+        edges);
 
     //
     // We're done!
@@ -174,7 +175,7 @@ std::unique_ptr<Mesh> MeshBuilder::BuildMesh(
         std::move(vertices),
         std::move(edges),
         std::move(triangles));
-    
+
     return mesh;
 }
 
@@ -380,7 +381,7 @@ Vertices MeshBuilder::CreateVertices(
 {
     Vertices vertices(
         static_cast<ElementIndex>(vertexInfos.size()));
-    
+
     for (size_t v = 0; v < vertexInfos.size(); ++v)
     {
         MeshBuildVertex const & vertexInfo = vertexInfos[v];
@@ -436,7 +437,8 @@ Edges MeshBuilder::CreateEdges(
 
 Triangles MeshBuilder::CreateTriangles(
     std::vector<MeshBuildTriangle> const & triangleInfos,
-    Vertices & vertices)
+    Vertices & vertices,
+    Edges const & edges)
 {
     Triangles triangles(static_cast<ElementIndex>(triangleInfos.size()));
 
@@ -451,7 +453,10 @@ Triangles MeshBuilder::CreateTriangles(
             triangleInfos[t].VertexIndices[2],
             triangleInfos[t].Edges[0],
             triangleInfos[t].Edges[1],
-            triangleInfos[t].Edges[2]);
+            triangleInfos[t].Edges[2],
+            edges.GetSurfaceType(triangleInfos[t].Edges[0]),
+            edges.GetSurfaceType(triangleInfos[t].Edges[1]),
+            edges.GetSurfaceType(triangleInfos[t].Edges[2]));
 
         // Add triangle to its endpoints
         vertices.AddConnectedTriangle(triangleInfos[t].VertexIndices[0], t, true); // Owner

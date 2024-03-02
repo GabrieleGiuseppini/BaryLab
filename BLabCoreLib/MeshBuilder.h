@@ -53,5 +53,6 @@ private:
 
     static Triangles CreateTriangles(
         std::vector<MeshBuildTriangle> const & triangleInfos,
-        Vertices & vertices);
+        Vertices & vertices,
+        Edges const & edges);
 };

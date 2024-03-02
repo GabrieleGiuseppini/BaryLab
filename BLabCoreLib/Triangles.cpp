@@ -15,10 +15,14 @@ void Triangles::Add(
     ElementIndex particleCIndex,
     ElementIndex subEdgeAIndex,
     ElementIndex subEdgeBIndex,
-    ElementIndex subEdgeCIndex)
+    ElementIndex subEdgeCIndex,
+    SurfaceType subEdgeASurfaceType,
+    SurfaceType subEdgeBSurfaceType,
+    SurfaceType subEdgeCSurfaceType)
 {
     mEndpointsBuffer.emplace_back(particleAIndex, particleBIndex, particleCIndex);
     mSubEdgesBuffer.emplace_back(subEdgeAIndex, subEdgeBIndex, subEdgeCIndex);
+    mSubEdgeSurfaceTypesBuffer.emplace_back(SubEdgeSurfaceTypes({ subEdgeASurfaceType, subEdgeBSurfaceType, subEdgeCSurfaceType }));
 }
 
 bool Triangles::ContainsPoint(

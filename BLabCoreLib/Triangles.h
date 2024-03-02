@@ -6,6 +6,7 @@
 #pragma once
 
 #include "BarycentricCoords.h"
+#include "BLabTypes.h"
 #include "Buffer.h"
 #include "Colors.h"
 #include "ElementContainer.h"
@@ -54,6 +55,8 @@ private:
         {}
     };
 
+    using SubEdgeSurfaceTypes = std::array<SurfaceType, 3>;
+
 public:
 
     Triangles(ElementCount elementCount)
@@ -61,10 +64,10 @@ public:
         //////////////////////////////////
         // Buffers
         //////////////////////////////////
-        // Endpoints
+        // Container
         , mEndpointsBuffer(mBufferElementCount, mElementCount, Endpoints(NoneElementIndex, NoneElementIndex, NoneElementIndex))
-        // Sub wdges
         , mSubEdgesBuffer(mBufferElementCount, mElementCount, SubEdges(NoneElementIndex, NoneElementIndex, NoneElementIndex))
+        , mSubEdgeSurfaceTypesBuffer(mBufferElementCount, mElementCount, {SurfaceType::Open, SurfaceType::Open, SurfaceType::Open})
     {
     }
 
@@ -76,7 +79,10 @@ public:
         ElementIndex vertexCIndex,
         ElementIndex subEdgeAIndex,
         ElementIndex subEdgeBIndex,
-        ElementIndex subEdgeCIndex);
+        ElementIndex subEdgeCIndex,
+        SurfaceType subEdgeASurfaceType,
+        SurfaceType subEdgeBSurfaceType,
+        SurfaceType subEdgeCSurfaceType);
 
 public:
 
@@ -204,6 +210,15 @@ public:
         return vertices.GetPosition(v2) - vertices.GetPosition(v1);
     }
 
+    // Surface types
+
+    SurfaceType GetSubEdgeSurfaceType(
+        ElementIndex triangleElementIndex,
+        int edgeOrdinal) const
+    {
+        return mSubEdgeSurfaceTypesBuffer[triangleElementIndex][edgeOrdinal];
+    }
+
 private:
 
     inline vec2f InternalToBarycentricCoordinates(
@@ -222,4 +237,7 @@ private:
 
     // Sub edges
     Buffer<SubEdges> mSubEdgesBuffer;
+
+    // Surface types
+    Buffer<SubEdgeSurfaceTypes> mSubEdgeSurfaceTypesBuffer;
 };

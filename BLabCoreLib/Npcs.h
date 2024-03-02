@@ -553,8 +553,8 @@ public:
 public:
 
 	static bool IsEdgeFloorToParticle(
-		ElementIndex edgeElementIndex,
 		ElementIndex triangleElementIndex,
+		int edgeOrdinal,
 		Mesh const & mesh)
 	{
 		//
@@ -563,24 +563,24 @@ public:
 		// - The triangle is _not_ sealed, OR it _is_ sealed but crossing the edge would make the particle free
 		//
 
-		if (mesh.GetEdges().GetSurfaceType(edgeElementIndex) != SurfaceType::Floor)
+		if (mesh.GetTriangles().GetSubEdgeSurfaceType(triangleElementIndex, edgeOrdinal) != SurfaceType::Floor)
 		{
 			// Not even a floor
 			return false;
 		}
 
 		bool const isSealedTriangle =
-			mesh.GetEdges().GetSurfaceType(mesh.GetTriangles().GetSubEdgeAIndex(triangleElementIndex)) == SurfaceType::Floor
-			&& mesh.GetEdges().GetSurfaceType(mesh.GetTriangles().GetSubEdgeBIndex(triangleElementIndex)) == SurfaceType::Floor
-			&& mesh.GetEdges().GetSurfaceType(mesh.GetTriangles().GetSubEdgeCIndex(triangleElementIndex)) == SurfaceType::Floor;
+			mesh.GetTriangles().GetSubEdgeSurfaceType(triangleElementIndex, 0) == SurfaceType::Floor
+			&& mesh.GetTriangles().GetSubEdgeSurfaceType(triangleElementIndex, 1) == SurfaceType::Floor
+			&& mesh.GetTriangles().GetSubEdgeSurfaceType(triangleElementIndex, 2) == SurfaceType::Floor;
 
 		if (!isSealedTriangle)
 		{
 			return true;
 		}
 
-		ElementIndex const oppositeTriangle = mesh.GetEdges().GetOppositeTriangle(edgeElementIndex, triangleElementIndex);
-		if (oppositeTriangle == NoneElementIndex)
+		ElementIndex const oppositeTriangle = mesh.GetEdges().GetOppositeTriangle(mesh.GetTriangles().GetSubEdges(triangleElementIndex).EdgeIndices[edgeOrdinal], triangleElementIndex);
+		if (oppositeTriangle == NoneElementIndex || mesh.GetTriangles().IsDeleted(oppositeTriangle))
 		{
 			// Crossing this floor makes the particle free
 			return true;
@@ -592,9 +592,11 @@ public:
 	static bool DoesFloorSeparateFromPrimaryParticle(
 		vec2f const & primaryParticlePosition,
 		vec2f const & secondaryParticlePosition,
-		ElementIndex edgeElementIndex,
+		ElementIndex triangleElementIndex,
+		int edgeOrdinal,
 		Mesh const & mesh)
 	{
+		ElementIndex const edgeElementIndex = mesh.GetTriangles().GetSubEdges(triangleElementIndex).EdgeIndices[edgeOrdinal];
 		vec2f const aPos = mesh.GetEdges().GetEndpointAPosition(edgeElementIndex, mesh.GetVertices());
 		vec2f const bPos = mesh.GetEdges().GetEndpointBPosition(edgeElementIndex, mesh.GetVertices());
 		vec2f const & p1Pos = primaryParticlePosition;
@@ -621,8 +623,8 @@ public:
 
 		if (baryCoords[0] == 0.0f
 			&& IsEdgeFloorToParticle(
-				mesh.GetTriangles().GetSubEdges(triangleIndex).EdgeIndices[1],
 				triangleIndex,
+				1,
 				mesh))
 		{
 			return true;
@@ -630,8 +632,8 @@ public:
 
 		if (baryCoords[1] == 0.0f
 			&& IsEdgeFloorToParticle(
-				mesh.GetTriangles().GetSubEdges(triangleIndex).EdgeIndices[2],
 				triangleIndex,
+				2,
 				mesh))
 		{
 			return true;
@@ -639,8 +641,8 @@ public:
 
 		if (baryCoords[2] == 0.0f
 			&& IsEdgeFloorToParticle(
-				mesh.GetTriangles().GetSubEdges(triangleIndex).EdgeIndices[0],
 				triangleIndex,
+				0,
 				mesh))
 		{
 			return true;
