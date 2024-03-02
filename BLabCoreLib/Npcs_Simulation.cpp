@@ -1941,8 +1941,8 @@ void Npcs::UpdateNpcAnimation(
                         // Right arm helps
                         targetRightArmAngle = targetLeftArmAngle + 0.2f;
 
-                        // Left leg slightly more open
-                        targetLeftLegAngle *= 0.2f;
+                        // Right leg slightly more open
+                        targetRightLegAngle *= 0.2f;
                     }
                     else
                     {
@@ -1965,8 +1965,8 @@ void Npcs::UpdateNpcAnimation(
                         // Left arm helps
                         targetLeftArmAngle = targetRightArmAngle - 0.2f;
 
-                        // Right leg slightly more open
-                        targetRightLegAngle *= 0.2f;
+                        // Left leg slightly more open
+                        targetLeftLegAngle *= 0.2f;
                     }
                 }
 
@@ -2228,7 +2228,7 @@ void Npcs::UpdateNpcAnimation(
                 {
                     // Legs: when arms far from rest, tight; when arms close, at fixed angle
 
-                    float constexpr LegRestAngle = 0.4f;
+                    float constexpr LegRestAngle = StateType::HumanNpcStateType::InitialLegAngle;
                     float const legAngle = LegRestAngle * (1.0f - (armAngle - (Pi<float> / 2.0f - MaxAngleAroundPerp)) / (MaxAngleAroundPerp * 2.0f));
 
                     // Legs inclined in direction opposite of relvel, by an amount proportional to relvel itself
