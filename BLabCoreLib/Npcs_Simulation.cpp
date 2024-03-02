@@ -1939,7 +1939,7 @@ void Npcs::UpdateNpcAnimation(
                         }
 
                         // Right arm helps
-                        targetRightArmAngle = targetLeftArmAngle + 0.2f;
+                        targetRightArmAngle = targetLeftArmAngle + 0.15f;
 
                         // Right leg slightly more open
                         targetRightLegAngle *= 0.2f;
@@ -1963,7 +1963,7 @@ void Npcs::UpdateNpcAnimation(
                         }
 
                         // Left arm helps
-                        targetLeftArmAngle = targetRightArmAngle - 0.2f;
+                        targetLeftArmAngle = targetRightArmAngle - 0.15f;
 
                         // Left leg slightly more open
                         targetLeftLegAngle *= 0.2f;
