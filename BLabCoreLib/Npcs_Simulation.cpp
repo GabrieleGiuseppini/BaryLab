@@ -1931,7 +1931,8 @@ void Npcs::UpdateNpcAnimation(
 
                         if (humanEdgeAngle <= MaxAngle)
                         {
-                            targetLeftArmAngle = -(1.0f - (MaxAngle - humanEdgeAngle) / MaxAngle) * Pi<float> / 2.0f;
+                            // Quadratically
+                            targetLeftArmAngle = -(1.0f - (MaxAngle - humanEdgeAngle) * (MaxAngle - humanEdgeAngle) / (MaxAngle * MaxAngle)) * Pi<float> / 2.0f;
                         }
                         else
                         {
@@ -1949,13 +1950,14 @@ void Npcs::UpdateNpcAnimation(
                         // <--  *   PI/2 <-- PI
                         //     /
                         //    /
-                        // ----
+                        //  ------
 
                         // Right arm grows up to PI/2 until PI - max angle, then goes down to rest
 
                         if (humanEdgeAngle >= Pi<float> - MaxAngle)
                         {
-                            targetRightArmAngle = Pi<float> / 2.0f + (Pi<float> - MaxAngle - humanEdgeAngle) / MaxAngle * (Pi<float> / 2.0f);
+                            // Quadratically
+                            targetRightArmAngle = Pi<float> / 2.0f - (Pi<float> - MaxAngle - humanEdgeAngle) * (Pi<float> -MaxAngle - humanEdgeAngle) / (MaxAngle * MaxAngle) * (Pi<float> / 2.0f);
                         }
                         else
                         {
@@ -2167,7 +2169,7 @@ void Npcs::UpdateNpcAnimation(
 
             case StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
             {
-                // Check if both head and feet are on a floot
+                // Check if both head and feet are on a floor
                 bool const isHeadOnEdge = primaryContrainedState.has_value() && IsOnFloorEdge(*primaryContrainedState, mesh);
                 bool const areFootOnEdge = secondaryConstrainedState.has_value() && IsOnFloorEdge(*secondaryConstrainedState, mesh);
                 if (isHeadOnEdge && areFootOnEdge)
@@ -2199,7 +2201,7 @@ void Npcs::UpdateNpcAnimation(
                     targetRightLegAngle = 0.0f;
                     targetLeftLegAngle = 0.0f;
 
-                    convergenceRate = 0.05f;
+                    convergenceRate = 0.05f; // Quite slow
                 }
 
                 break;
