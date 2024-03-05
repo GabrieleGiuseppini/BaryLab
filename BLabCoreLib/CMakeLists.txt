@@ -43,12 +43,6 @@ set  (SOURCES
 	Log.cpp
 	Log.h
 	Matrix.h
-	Mesh.h
-	MeshBuilder.cpp
-	MeshBuilder.h
-	MeshBuilderTypes.h
-	MeshDefinition.cpp
-	MeshDefinition.h
 	Model.cpp
 	Model.h
 	NpcParticles.cpp
@@ -58,6 +52,7 @@ set  (SOURCES
 	Npcs_HumanSimulation.cpp
 	Npcs_Simulation.cpp
 	OceanSurface.h
+	Physics.h
 	RenderContext.cpp
 	RenderContext.h
 	ResourceLocator.h
@@ -65,6 +60,12 @@ set  (SOURCES
 	Settings.h
 	ShaderManager.cpp
 	ShaderManager.h
+	Ship.h
+	ShipBuilder.cpp
+	ShipBuilder.h
+	ShipBuilderTypes.h
+	ShipDefinition.cpp
+	ShipDefinition.h
 	StrongTypeDef.h
 	StructuralMaterial.cpp
 	StructuralMaterial.h

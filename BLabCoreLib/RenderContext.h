@@ -205,8 +205,8 @@ public:
 
     void UploadTrianglesEnd();
 
-    void UploadMeshVelocity(
-        vec2f const & meshVelocity,
+    void UploadShipVelocity(
+        vec2f const & shipVelocity,
         float highlight);
 
     void RenderEnd();
@@ -462,18 +462,18 @@ private:
     BLabOpenGLVBO mTriangleVertexVBO;
 
     ////////////////////////////////////////////////////////////////
-    // Mesh velocity
+    // Ship velocity
     ////////////////////////////////////////////////////////////////
 
 #pragma pack(push)
 
-    struct MeshVelocityVertex
+    struct ShipVelocityVertex
     {
         vec2f PositionNdc;
         vec2f VertexSpacePosition;
         float Highlight;
 
-        MeshVelocityVertex(
+        ShipVelocityVertex(
             vec2f const & positionNdc,
             vec2f const & vertexSpacePosition,
             float highlight)
@@ -485,10 +485,10 @@ private:
 
 #pragma pack(pop)
 
-    BLabOpenGLVAO mMeshVelocityVAO;
+    BLabOpenGLVAO mShipVelocityVAO;
 
-    std::vector<MeshVelocityVertex> mMeshVelocityVertexBuffer;
-    BLabOpenGLVBO mMeshVelocityVertexVBO;
+    std::vector<ShipVelocityVertex> mShipVelocityVertexBuffer;
+    BLabOpenGLVBO mShipVelocityVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // Grid

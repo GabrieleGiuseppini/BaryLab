@@ -11,13 +11,15 @@
 #include "Colors.h"
 #include "ElementContainer.h"
 #include "FixedSizeVector.h"
-#include "Vertices.h"
+#include "Physics.h"
 
 #include <algorithm>
 #include <array>
 #include <cassert>
 #include <functional>
 #include <optional>
+
+namespace Physics {
 
 class Triangles : public ElementContainer
 {
@@ -241,3 +243,5 @@ private:
     // Surface types
     Buffer<SubEdgeSurfaceTypes> mSubEdgeSurfaceTypesBuffer;
 };
+
+}

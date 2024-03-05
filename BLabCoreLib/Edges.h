@@ -9,9 +9,11 @@
 #include "Colors.h"
 #include "ElementContainer.h"
 #include "FixedSizeVector.h"
-#include "Vertices.h"
+#include "Physics.h"
 
 #include <cassert>
+
+namespace Physics {
 
 class Edges : public ElementContainer
 {
@@ -278,3 +280,5 @@ private:
 
     Buffer<rgbaColor> mRenderColorBuffer;
 };
+
+}

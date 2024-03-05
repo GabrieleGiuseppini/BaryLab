@@ -11,11 +11,14 @@
 #include "ElementContainer.h"
 #include "ElementIndexRangeIterator.h"
 #include "LabParameters.h"
+#include "Physics.h"
 #include "Vectors.h"
 
 #include <algorithm>
 #include <cassert>
 #include <optional>
+
+namespace Physics {
 
 class NpcParticles final : public ElementContainer
 {
@@ -231,3 +234,5 @@ private:
 
     Buffer<rgbaColor> mRenderColorBuffer;
 };
+
+}

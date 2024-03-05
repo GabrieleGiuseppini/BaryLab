@@ -3,7 +3,7 @@
  * Created:				2023-10-20
  * Copyright:			Gabriele Giuseppini  (https://github.com/GabrieleGiuseppini)
  ***************************************************************************************/
-#include "Npcs.h"
+#include "Physics.h"
 
 #include "BLabMath.h"
 #include "GameRandomEngine.h"
@@ -11,11 +11,13 @@
 
 #include <cmath>
 
+namespace Physics {
+
 Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 	StateType::NpcParticleStateType const & primaryParticleState,
 	StateType::NpcParticleStateType const & secondaryParticleState,
 	float currentSimulationTime,
-	Mesh const & /*mesh*/) const
+	Ship const & /*ship*/) const
 {
 	// Return state
 
@@ -37,7 +39,7 @@ Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 void Npcs::UpdateHuman(
 	float currentSimulationTime,
 	StateType & npc,
-	Mesh const & mesh,
+	Ship const & ship,
 	LabParameters const & labParameters)
 {
 	assert(npc.DipoleState.has_value());
@@ -67,11 +69,11 @@ void Npcs::UpdateHuman(
 
 			// Check conditions for falling/KO
 
-			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, mesh);
-			bool const areFeetOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh);
+			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, ship);
+			bool const areFeetOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, ship);
 
 			vec2f const floorVector = (primaryParticleState.ConstrainedState.has_value() && primaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal >= 0)
-				? mesh.GetTriangles().GetSubEdgeVector(primaryParticleState.ConstrainedState->CurrentTriangle, primaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal, mesh.GetVertices())
+				? ship.GetTriangles().GetSubEdgeVector(primaryParticleState.ConstrainedState->CurrentTriangle, primaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal, ship.GetVertices())
 				: vec2f(1.0f, 0.0); // H arbitrarily
 			float const headVelocityAlongFloor = secondaryParticleState.GetApplicableVelocity(mParticles).dot(floorVector);
 			float const feetVelocityAlongFloor = primaryParticleState.GetApplicableVelocity(mParticles).dot(floorVector);
@@ -163,53 +165,6 @@ void Npcs::UpdateHuman(
 				break;
 			}
 
-
-			////// TODOOLD
-
-			////float fallingTarget;
-			////if ((isHeadOnFloor || areFeetOnFloor)
-			////	&& (std::abs(headVelocityAlongFloor) > MinVelocityMagnitudeForFalling
-			////		|| std::abs(feetVelocityAlongFloor) > MinVelocityMagnitudeForFalling))
-			////{
-			////	fallingTarget = 1.0f;
-			////}
-			////else
-			////{
-			////	fallingTarget = 0.0f;
-			////}
-
-			////// Progress to falling
-
-			////float constexpr ToFallingConvergenceRate = 0.75f; // Very high! We do this just to survive micro-instants
-
-			////humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToFalling +=
-			////	(fallingTarget - humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToFalling)
-			////	* ToFallingConvergenceRate;
-
-			////publishStateQuantity = std::make_tuple("ProgressToFalling", std::to_string(humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToFalling));
-
-			////if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToFalling, 1.0f))
-			////{
-			////	// Transition
-
-			////	humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Falling, currentSimulationTime);
-
-			////	if (humanState.CurrentFaceOrientation != 0.0f)
-			////	{
-			////		// Face: 0/direction of falling
-			////		humanState.CurrentFaceOrientation = 0.0f;
-			////		humanState.CurrentFaceDirectionX =
-			////			(!secondaryParticleState.ConstrainedState.has_value() && mParticles.GetVelocity(secondaryParticleState.ParticleIndex).x >= 0.0f)
-			////			|| (secondaryParticleState.ConstrainedState.has_value() && secondaryParticleState.ConstrainedState->MeshRelativeVelocity.x >= 0.0f)
-			////			? 1.0f
-			////			: -1.0f;
-			////	}
-
-			////	mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Falling");
-
-			////	break;
-			////}
-
 			break;
 		}
 
@@ -225,7 +180,7 @@ void Npcs::UpdateHuman(
 
 			// Check conditions for knocked out
 
-			bool const areFootOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh);
+			bool const areFootOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, ship);
 
 			float knockedOutTarget = 0.0f;
 			float constexpr MaxRelativeVelocityForKnockedOut = 1.2f;
@@ -259,7 +214,7 @@ void Npcs::UpdateHuman(
 
 			// Check conditions for aerial
 
-			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, mesh);
+			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, ship);
 
 			if (!areFootOnFloor && !isHeadOnFloor)
 			{
@@ -308,7 +263,7 @@ void Npcs::UpdateHuman(
 
 			// Check conditions for rising
 
-			bool const areFootOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh);
+			bool const areFootOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, ship);
 
 			float risingTarget = 0.0f;
 			if (areFootOnFloor
@@ -340,7 +295,7 @@ void Npcs::UpdateHuman(
 
 			// Check conditions for aerial
 
-			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, mesh);
+			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, ship);
 
 			if (!areFootOnFloor && !isHeadOnFloor)
 			{
@@ -393,7 +348,7 @@ void Npcs::UpdateHuman(
 
 			bool const isOnEdge =
 				primaryParticleState.ConstrainedState.has_value()
-				&& IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh);
+				&& IsOnFloorEdge(*primaryParticleState.ConstrainedState, ship);
 
 			if (humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium)
 			{
@@ -535,7 +490,7 @@ void Npcs::UpdateHuman(
 					" primary's relative velocity mag: ", primaryParticleState.ConstrainedState.has_value() ? std::to_string(primaryParticleState.ConstrainedState->MeshRelativeVelocity.length()) : "N/A",
 					" (max=", MaxRelativeVelocityMagnitudeForEquilibrium, ")");
 
-				bool const areFootOnEdge = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, mesh);
+				bool const areFootOnEdge = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, ship);
 				if (areFootOnEdge)
 				{
 					// Falling
@@ -599,7 +554,7 @@ void Npcs::UpdateHuman(
 					RunWalkingHumanStateMachine(
 						humanState,
 						primaryParticleState,
-						mesh,
+						ship,
 						labParameters);
 				}
 
@@ -795,7 +750,7 @@ bool Npcs::CheckAndMaintainHumanEquilibrium(
 void Npcs::RunWalkingHumanStateMachine(
 	StateType::HumanNpcStateType & humanState,
 	StateType::NpcParticleStateType const & primaryParticleState,
-	Mesh const & /*mesh*/, // Will come useful when we'll *plan* the walk
+	Ship const & /*ship*/, // Will come useful when we'll *plan* the walk
 	LabParameters const & labParameters)
 {
 	assert(primaryParticleState.ConstrainedState.has_value());
@@ -940,4 +895,6 @@ float Npcs::CalculateActualHumanWalkingAbsoluteSpeed(
 		* humanState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude // Note that this is the only one that might be zero
 		* (1.0f + humanState.PanicLevel),
 		4.0f); // Absolute cap
+}
+
 }

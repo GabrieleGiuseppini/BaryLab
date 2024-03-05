@@ -12,11 +12,14 @@
 #include "ElementIndexRangeIterator.h"
 #include "FixedSizeVector.h"
 #include "LabParameters.h"
+#include "Physics.h"
 #include "Vectors.h"
 
 #include <algorithm>
 #include <cassert>
 #include <optional>
+
+namespace Physics {
 
 class Vertices : public ElementContainer
 {
@@ -198,3 +201,5 @@ private:
     Buffer<ConnectedEdgesVector> mConnectedEdgesBuffer;
     Buffer<ConnectedTrianglesVector> mConnectedTrianglesBuffer;
 };
+
+}

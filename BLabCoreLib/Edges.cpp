@@ -3,7 +3,9 @@
  * Created:              2020-05-16
  * Copyright:            Gabriele Giuseppini  (https://github.com/GabrieleGiuseppini)
  ***************************************************************************************/
-#include "Edges.h"
+#include "Physics.h"
+
+namespace Physics {
 
 void Edges::Add(
     ElementIndex vertexAIndex,
@@ -20,7 +22,9 @@ void Edges::Add(
     mSurfaceTypeBuffer.emplace_back(surface);
 
     mRenderColorBuffer.emplace_back(
-        surface == SurfaceType::Floor 
-        ? rgbaColor(0x0a, 0x0a, 0x0a, 0xff) 
+        surface == SurfaceType::Floor
+        ? rgbaColor(0x0a, 0x0a, 0x0a, 0xff)
         : rgbaColor(0xba, 0xba, 0xba, 0xff));
+}
+
 }

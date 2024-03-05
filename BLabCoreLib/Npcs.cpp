@@ -3,11 +3,13 @@
 * Created:              2023-10-06
 * Copyright:            Gabriele Giuseppini  (https://github.com/GabrieleGiuseppini)
 ***************************************************************************************/
-#include "Npcs.h"
+#include "Physics.h"
 
 #include "Colors.h"
 
 #include <cassert>
+
+namespace Physics {
 
 void Npcs::Add(
 	NpcType npcType,
@@ -15,7 +17,7 @@ void Npcs::Add(
 	std::optional<vec2f> secondaryPosition,
 	float currentSimulationTime,
 	StructuralMaterialDatabase const & materialDatabase,
-	Mesh const & mesh,
+	Ship const & ship,
 	LabParameters const & labParameters)
 {
 	assert(mParticles.GetParticleCount() < LabParameters::MaxNpcs);
@@ -28,7 +30,7 @@ void Npcs::Add(
 		primaryParticleIndex,
 		CalculateParticleConstrainedState(
 			primaryPosition,
-			mesh));
+			ship));
 
 	// Add particles and eventual other states
 
@@ -94,13 +96,13 @@ void Npcs::Add(
 				headParticleIndex,
 				CalculateParticleConstrainedState(
 					*secondaryPosition,
-					mesh));
+					ship));
 
 			humanNpcState = InitializeHuman(
 				primaryParticleState,
 				secondaryParticleState,
 				currentSimulationTime,
-				mesh);
+				ship);
 
 			float const massFactor =
 				(feetMaterial.Mass * headMaterial.Mass)
@@ -168,7 +170,7 @@ void Npcs::MoveParticleBy(
 	ElementIndex particleIndex,
 	vec2f const & offset,
 	float currentSimulationTime,
-	Mesh const & mesh)
+	Ship const & ship)
 {
 	//
 	// Move particle
@@ -193,7 +195,7 @@ void Npcs::MoveParticleBy(
 		if (state.PrimaryParticleState.ParticleIndex == particleIndex
 			|| (state.DipoleState.has_value() && state.DipoleState->SecondaryParticleState.ParticleIndex == particleIndex))
 		{
-			state = MaterializeNpcState(n, currentSimulationTime, mesh);
+			state = MaterializeNpcState(n, currentSimulationTime, ship);
 			break;
 		}
 	}
@@ -202,7 +204,7 @@ void Npcs::MoveParticleBy(
 	// Select particle
 	//
 
-	SelectParticle(particleIndex, mesh);
+	SelectParticle(particleIndex, ship);
 
 	//
 	// Reset trajectories
@@ -212,11 +214,11 @@ void Npcs::MoveParticleBy(
 	mCurrentParticleTrajectoryNotification.reset();
 }
 
-void Npcs::RotateParticlesWithMesh(
+void Npcs::RotateParticlesWithShip(
 	vec2f const & centerPos,
 	float cosAngle,
 	float sinAngle,
-	Mesh const & mesh)
+	Ship const & ship)
 {
 	//
 	// Rotate particles
@@ -226,28 +228,28 @@ void Npcs::RotateParticlesWithMesh(
 	{
 		auto & state = mStateBuffer[n];
 
-		RotateParticleWithMesh(
+		RotateParticleWithShip(
 			state.PrimaryParticleState,
 			centerPos,
 			cosAngle,
 			sinAngle,
-			mesh);
+			ship);
 
 		if (state.DipoleState.has_value())
 		{
-			RotateParticleWithMesh(
+			RotateParticleWithShip(
 				state.DipoleState->SecondaryParticleState,
 				centerPos,
 				cosAngle,
 				sinAngle,
-				mesh);
+				ship);
 		}
 	}
 }
 
 void Npcs::OnVertexMoved(
 	float currentSimulationTime,
-	Mesh const & mesh)
+	Ship const & ship)
 {
 	//
 	// Recalculate state of all NPCs
@@ -255,13 +257,13 @@ void Npcs::OnVertexMoved(
 
 	for (auto const n : *this)
 	{
-		mStateBuffer[n] = MaterializeNpcState(n, currentSimulationTime, mesh);
+		mStateBuffer[n] = MaterializeNpcState(n, currentSimulationTime, ship);
 	}
 }
 
 void Npcs::Update(
 	float currentSimulationTime,
-	Mesh const & mesh,
+	Ship const & ship,
 	LabParameters const & labParameters)
 {
 	//
@@ -277,13 +279,13 @@ void Npcs::Update(
 	// Update NPCs' state
 	//
 
-	UpdateNpcs(currentSimulationTime, mesh, labParameters);
+	UpdateNpcs(currentSimulationTime, ship, labParameters);
 
 	//
 	// Publish
 	//
 
-	Publish(mesh);
+	Publish(ship);
 }
 
 void Npcs::Render(RenderContext & renderContext)
@@ -721,7 +723,7 @@ bool Npcs::IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangle
 
 bool Npcs::IsEdgeHostingCurrentlySelectedParticle(
 	ElementIndex edgeIndex,
-	Mesh const & mesh) const
+	Ship const & ship) const
 {
 	if (mCurrentlySelectedParticle.has_value())
 	{
@@ -734,7 +736,7 @@ bool Npcs::IsEdgeHostingCurrentlySelectedParticle(
 			{
 				if (state.PrimaryParticleState.ConstrainedState.has_value()
 					&& state.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal >= 0
-					&& edgeIndex == mesh.GetTriangles().GetSubEdges(state.PrimaryParticleState.ConstrainedState->CurrentTriangle).EdgeIndices[state.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal])
+					&& edgeIndex == ship.GetTriangles().GetSubEdges(state.PrimaryParticleState.ConstrainedState->CurrentTriangle).EdgeIndices[state.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal])
 				{
 					return true;
 				}
@@ -742,7 +744,7 @@ bool Npcs::IsEdgeHostingCurrentlySelectedParticle(
 				if (state.DipoleState.has_value()
 					&& state.DipoleState->SecondaryParticleState.ConstrainedState.has_value()
 					&& state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal >= 0
-					&& edgeIndex == mesh.GetTriangles().GetSubEdges(state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangle).EdgeIndices[state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal])
+					&& edgeIndex == ship.GetTriangles().GetSubEdges(state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangle).EdgeIndices[state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal])
 				{
 					return true;
 				}
@@ -755,12 +757,12 @@ bool Npcs::IsEdgeHostingCurrentlySelectedParticle(
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Npcs::RotateParticleWithMesh(
+void Npcs::RotateParticleWithShip(
 	StateType::NpcParticleStateType const & npcParticleState,
 	vec2f const & centerPos,
 	float cosAngle,
 	float sinAngle,
-	Mesh const & mesh)
+	Ship const & ship)
 {
 	vec2f newPosition;
 
@@ -768,10 +770,10 @@ void Npcs::RotateParticleWithMesh(
 	{
 		// Simply set position from current bary coords
 
-		newPosition = mesh.GetTriangles().FromBarycentricCoordinates(
+		newPosition = ship.GetTriangles().FromBarycentricCoordinates(
 			npcParticleState.ConstrainedState->CurrentTriangleBarycentricCoords,
 			npcParticleState.ConstrainedState->CurrentTriangle,
-			mesh.GetVertices());
+			ship.GetVertices());
 	}
 	else
 	{
@@ -798,7 +800,7 @@ void Npcs::RenderParticle(
 		1.0f);
 }
 
-void Npcs::Publish(Mesh const & mesh)
+void Npcs::Publish(Ship const & ship)
 {
 	std::optional<ConstrainedRegimeParticleProbe> constrainedRegimeParticleProbe;
 	std::optional<bcoords3f> subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged;
@@ -820,10 +822,10 @@ void Npcs::Publish(Mesh const & mesh)
 
 					if (mCurrentOriginTriangle.has_value())
 					{
-						subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = mesh.GetTriangles().ToBarycentricCoordinates(
+						subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = ship.GetTriangles().ToBarycentricCoordinates(
 							mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
 							*mCurrentOriginTriangle,
-							mesh.GetVertices());
+							ship.GetVertices());
 					}
 				}
 
@@ -840,10 +842,10 @@ void Npcs::Publish(Mesh const & mesh)
 
 					if (mCurrentOriginTriangle.has_value())
 					{
-						subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = mesh.GetTriangles().ToBarycentricCoordinates(
+						subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = ship.GetTriangles().ToBarycentricCoordinates(
 							mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
 							*mCurrentOriginTriangle,
-							mesh.GetVertices());
+							ship.GetVertices());
 					}
 				}
 
@@ -855,4 +857,6 @@ void Npcs::Publish(Mesh const & mesh)
 	mEventDispatcher.OnSubjectParticleConstrainedRegimeUpdated(constrainedRegimeParticleProbe);
 	mEventDispatcher.OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged);
 	mEventDispatcher.OnSubjectParticlePhysicsUpdated(physicsParticleProbe);
+}
+
 }

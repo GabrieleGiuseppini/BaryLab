@@ -9,6 +9,8 @@
 
  // Placeholder for real World
 
+namespace Physics {
+
 class World
 {
 public:
@@ -31,3 +33,5 @@ private:
 
 	OceanSurface mOceanSurface;
 };
+
+}

@@ -11,24 +11,24 @@
 #include <string>
 
 /*
-* The complete definition of a mesh.
+* The complete definition of a mesh (ship).
 */
-struct MeshDefinition
+struct ShipDefinition
 {
 public:
 
     RgbImageData StructuralLayerImage;
-    std::string const MeshName;
+    std::string const ShipName;
 
-    static MeshDefinition Load(std::filesystem::path const & filepath);
+    static ShipDefinition Load(std::filesystem::path const & filepath);
 
 private:
 
-    MeshDefinition(
+    ShipDefinition(
         RgbImageData structuralLayerImage,
-        std::string const & meshName)
+        std::string const & shipName)
         : StructuralLayerImage(std::move(structuralLayerImage))
-        , MeshName(meshName)
+        , ShipName(shipName)
     {
     }
 };

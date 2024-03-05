@@ -5,15 +5,17 @@
  ***************************************************************************************/
 #pragma once
 
-#include "Edges.h"
-#include "Triangles.h"
-#include "Vertices.h"
+#include "Physics.h"
 
-class Mesh
+ // Placeholder for real Ship
+
+namespace Physics {
+
+class Ship
 {
 public:
 
-    Mesh(
+    Ship(
         Vertices && vertices,
         Edges && edges,
         Triangles && triangles)
@@ -59,3 +61,5 @@ private:
     Edges mEdges;
     Triangles mTriangles;
 };
+
+}

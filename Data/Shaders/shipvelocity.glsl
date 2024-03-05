@@ -6,8 +6,8 @@
 #define out varying
 
 // Inputs
-in vec4 inMeshVelocityAttributeGroup1; // PositionNdc, VertexSpace
-in float inMeshVelocityAttributeGroup2; // Highlight
+in vec4 inShipVelocityAttributeGroup1; // PositionNdc, VertexSpace
+in float inShipVelocityAttributeGroup2; // Highlight
 
 // Outputs
 out vec2 vertexSpace;
@@ -15,9 +15,9 @@ out float highlight;
 
 void main()
 {  
-    vertexSpace = inMeshVelocityAttributeGroup1.zw;
-    highlight = inMeshVelocityAttributeGroup2;
-    gl_Position = vec4(inMeshVelocityAttributeGroup1.xy, -1.0, 1.0);
+    vertexSpace = inShipVelocityAttributeGroup1.zw;
+    highlight = inShipVelocityAttributeGroup2;
+    gl_Position = vec4(inShipVelocityAttributeGroup1.xy, -1.0, 1.0);
 }
 
 ###FRAGMENT

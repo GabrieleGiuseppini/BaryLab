@@ -8,12 +8,12 @@
 #include "BLabTypes.h"
 #include "EventDispatcher.h"
 #include "LabParameters.h"
-#include "MeshDefinition.h"
 #include "Model.h"
+#include "Physics.h"
 #include "RenderContext.h"
+#include "ShipDefinition.h"
 #include "StructuralMaterialDatabase.h"
 #include "Vectors.h"
-#include "World.h"
 
 #include <cassert>
 #include <filesystem>
@@ -47,7 +47,7 @@ public:
 
     void SetSimulationControlPulse();
 
-    void LoadMesh(std::filesystem::path const & meshDefinitionFilepath);
+    void LoadShip(std::filesystem::path const & shipDefinitionFilepath);
 
     void Update();
 
@@ -63,9 +63,9 @@ public:
 
     void MoveVertexBy(ElementIndex vertexIndex, vec2f const & screenOffset);
 
-    void RotateMeshBy(vec2f const & centerScreenCoordinates, float screenStride);
+    void RotateShipBy(vec2f const & centerScreenCoordinates, float screenStride);
 
-    void RotateMeshBy(ElementIndex particleIndex, float screenStride);
+    void RotateShipBy(ElementIndex particleIndex, float screenStride);
 
     bool TrySelectOriginTriangle(vec2f const & screenCoordinates);
 
@@ -85,9 +85,9 @@ public:
 
     void SetGravityEnabled(bool isEnabled);
 
-    vec2f const & GetMeshVelocity() const;
+    vec2f const & GetShipVelocity() const;
 
-    void SetMeshVelocity(vec2f const & velocity);
+    void SetShipVelocity(vec2f const & velocity);
 
     void SetNpcPanicLevelForAllHumans(float panicLevel);
 
@@ -212,8 +212,8 @@ public:
 
     float GetSeaLevel() const { return mWorld.GetOceanSurface().GetDepth(); }
     void SetSeaLevel(float value) { mWorld.GetOceanSurface().SetDepth(value); }
-    float GetMinSeaLevel() const { return OceanSurface::MinDepth; }
-    float GetMaxSeaLevel() const { return OceanSurface::MaxDepth; }
+    float GetMinSeaLevel() const { return Physics::OceanSurface::MinDepth; }
+    float GetMaxSeaLevel() const { return Physics::OceanSurface::MaxDepth; }
 
     float GetSpringReductionFraction() const { return mLabParameters.SpringReductionFraction; }
     void SetSpringReductionFraction(float value) { mLabParameters.SpringReductionFraction = value; }
@@ -256,15 +256,15 @@ private:
         StructuralMaterialDatabase && structuralMaterialDatabase,
         std::unique_ptr<RenderContext> renderContext);
 
-    void LoadMesh(
-        std::filesystem::path const & meshDefinitionFilepath,
+    void LoadShip(
+        std::filesystem::path const & shipDefinitionFilepath,
         bool addExperimentalNpc);
 
     void Reset(
         std::unique_ptr<Model> newModel,
-        std::filesystem::path const & meshDefinitionFilepath);
+        std::filesystem::path const & shipDefinitionFilepath);
 
-    void UpdateMeshTransformations();
+    void UpdateShipTransformations();
 
 private:
 
@@ -278,14 +278,14 @@ private:
 
     LabParameters mLabParameters;
     std::unique_ptr<Model> mModel;
-    World mWorld; // Dummy placeholder
-    std::optional<std::filesystem::path> mCurrentMeshFilePath;
+    Physics::World mWorld; // Dummy placeholder
+    std::optional<std::filesystem::path> mCurrentShipFilePath;
 
     float mCurrentSimulationTime;
 
     bool mIsGravityEnabled;
-    vec2f mCurrentMeshTranslationVelocity;
-    float mCurrentMeshTranslationAccelerationIndicator;
+    vec2f mCurrentShipTranslationVelocity;
+    float mCurrentShipTranslationAccelerationIndicator;
 
     int mCurrentVideoStep;
 

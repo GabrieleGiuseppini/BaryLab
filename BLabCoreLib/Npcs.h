@@ -11,13 +11,11 @@
 #include "EventDispatcher.h"
 #include "LabParameters.h"
 #include "Log.h"
-#include "Mesh.h"
-#include "NpcParticles.h"
+#include "Physics.h"
 #include "RenderContext.h"
 #include "StrongTypeDef.h"
 #include "StructuralMaterialDatabase.h"
 #include "Vectors.h"
-#include "World.h"
 
 #include <optional>
 #include <vector>
@@ -33,6 +31,7 @@ void LogNpcDebug(TArgs&&... args)
 #endif
 }
 
+namespace Physics {
 
 class Npcs final
 {
@@ -64,7 +63,7 @@ public:
 
 				int CurrentVirtualEdgeOrdinal; // When set, we are "conceptually" along this edge - might not be really the case e.g. when we're at a vertex
 
-				vec2f MeshRelativeVelocity; // Velocity of particle (as in velocity buffer), but relative to mesh at the moment velocity was calculated
+				vec2f MeshRelativeVelocity; // Velocity of particle (as in velocity buffer), but relative to mesh (ship) at the moment velocity was calculated
 
 				ConstrainedStateType(
 					ElementIndex currentTriangle,
@@ -392,7 +391,7 @@ public:
 public:
 
 	Npcs(
-		World & parentWorld,
+		Physics::World & parentWorld,
 		EventDispatcher & eventDispatcher,
 		LabParameters const & labParameters,
 		bool isGravityEnabled)
@@ -413,7 +412,7 @@ public:
 		std::optional<vec2f> secondaryPosition,
 		float currentSimulationTime,
 		StructuralMaterialDatabase const & materialDatabase,
-		Mesh const & mesh,
+		Ship const & ship,
 		LabParameters const & labParameters);
 
 	void SetPanicLevelForAllHumans(float panicLevel);
@@ -426,21 +425,21 @@ public:
 		ElementIndex particleIndex,
 		vec2f const & offset,
 		float currentSimulationTime,
-		Mesh const & mesh);
+		Ship const & ship);
 
-	void RotateParticlesWithMesh(
+	void RotateParticlesWithShip(
 		vec2f const & centerPos,
 		float cosAngle,
 		float sinAngle,
-		Mesh const & mesh);
+		Ship const & ship);
 
 	void OnVertexMoved(
 		float currentSimulationTime,
-		Mesh const & mesh);
+		Ship const & ship);
 
 	void Update(
 		float currentSimulationTime,
-		Mesh const & mesh,
+		Ship const & ship,
 		LabParameters const & labParameters);
 
 	void Render(RenderContext & renderContext);
@@ -501,10 +500,10 @@ public:
 
 	void SelectParticle(
 		ElementIndex particleIndex,
-		Mesh const & mesh)
+		Ship const & ship)
 	{
 		mCurrentlySelectedParticle = particleIndex;
-		Publish(mesh);
+		Publish(ship);
 	}
 
 	std::optional<ElementIndex> GetCurrentOriginTriangle() const
@@ -548,14 +547,14 @@ public:
 
 	bool IsEdgeHostingCurrentlySelectedParticle(
 		ElementIndex edgeIndex,
-		Mesh const & mesh) const;
+		Ship const & ship) const;
 
 public:
 
 	static bool IsEdgeFloorToParticle(
 		ElementIndex triangleElementIndex,
 		int edgeOrdinal,
-		Mesh const & mesh)
+		Ship const & ship)
 	{
 		//
 		// An edge is a floor for a given (constrained) particle if:
@@ -563,24 +562,24 @@ public:
 		// - The triangle is _not_ sealed, OR it _is_ sealed but crossing the edge would make the particle free
 		//
 
-		if (mesh.GetTriangles().GetSubEdgeSurfaceType(triangleElementIndex, edgeOrdinal) != SurfaceType::Floor)
+		if (ship.GetTriangles().GetSubEdgeSurfaceType(triangleElementIndex, edgeOrdinal) != SurfaceType::Floor)
 		{
 			// Not even a floor
 			return false;
 		}
 
 		bool const isSealedTriangle =
-			mesh.GetTriangles().GetSubEdgeSurfaceType(triangleElementIndex, 0) == SurfaceType::Floor
-			&& mesh.GetTriangles().GetSubEdgeSurfaceType(triangleElementIndex, 1) == SurfaceType::Floor
-			&& mesh.GetTriangles().GetSubEdgeSurfaceType(triangleElementIndex, 2) == SurfaceType::Floor;
+			ship.GetTriangles().GetSubEdgeSurfaceType(triangleElementIndex, 0) == SurfaceType::Floor
+			&& ship.GetTriangles().GetSubEdgeSurfaceType(triangleElementIndex, 1) == SurfaceType::Floor
+			&& ship.GetTriangles().GetSubEdgeSurfaceType(triangleElementIndex, 2) == SurfaceType::Floor;
 
 		if (!isSealedTriangle)
 		{
 			return true;
 		}
 
-		ElementIndex const oppositeTriangle = mesh.GetEdges().GetOppositeTriangle(mesh.GetTriangles().GetSubEdges(triangleElementIndex).EdgeIndices[edgeOrdinal], triangleElementIndex);
-		if (oppositeTriangle == NoneElementIndex || mesh.GetTriangles().IsDeleted(oppositeTriangle))
+		ElementIndex const oppositeTriangle = ship.GetEdges().GetOppositeTriangle(ship.GetTriangles().GetSubEdges(triangleElementIndex).EdgeIndices[edgeOrdinal], triangleElementIndex);
+		if (oppositeTriangle == NoneElementIndex || ship.GetTriangles().IsDeleted(oppositeTriangle))
 		{
 			// Crossing this floor makes the particle free
 			return true;
@@ -594,11 +593,11 @@ public:
 		vec2f const & secondaryParticlePosition,
 		ElementIndex triangleElementIndex,
 		int edgeOrdinal,
-		Mesh const & mesh)
+		Ship const & ship)
 	{
-		ElementIndex const edgeElementIndex = mesh.GetTriangles().GetSubEdges(triangleElementIndex).EdgeIndices[edgeOrdinal];
-		vec2f const aPos = mesh.GetEdges().GetEndpointAPosition(edgeElementIndex, mesh.GetVertices());
-		vec2f const bPos = mesh.GetEdges().GetEndpointBPosition(edgeElementIndex, mesh.GetVertices());
+		ElementIndex const edgeElementIndex = ship.GetTriangles().GetSubEdges(triangleElementIndex).EdgeIndices[edgeOrdinal];
+		vec2f const aPos = ship.GetEdges().GetEndpointAPosition(edgeElementIndex, ship.GetVertices());
+		vec2f const bPos = ship.GetEdges().GetEndpointBPosition(edgeElementIndex, ship.GetVertices());
 		vec2f const & p1Pos = primaryParticlePosition;
 		vec2f const & p2Pos = secondaryParticlePosition;
 
@@ -616,7 +615,7 @@ public:
 
 	static bool IsOnFloorEdge(
 		Npcs::StateType::NpcParticleStateType::ConstrainedStateType const & constrainedState,
-		Mesh const & mesh)
+		Ship const & ship)
 	{
 		auto const & baryCoords = constrainedState.CurrentTriangleBarycentricCoords;
 		auto const & triangleIndex = constrainedState.CurrentTriangle;
@@ -625,7 +624,7 @@ public:
 			&& IsEdgeFloorToParticle(
 				triangleIndex,
 				1,
-				mesh))
+				ship))
 		{
 			return true;
 		}
@@ -634,7 +633,7 @@ public:
 			&& IsEdgeFloorToParticle(
 				triangleIndex,
 				2,
-				mesh))
+				ship))
 		{
 			return true;
 		}
@@ -643,7 +642,7 @@ public:
 			&& IsEdgeFloorToParticle(
 				triangleIndex,
 				0,
-				mesh))
+				ship))
 		{
 			return true;
 		}
@@ -669,18 +668,18 @@ public:
 
 private:
 
-	void RotateParticleWithMesh(
+	void RotateParticleWithShip(
 		StateType::NpcParticleStateType const & npcParticleState,
 		vec2f const & centerPos,
 		float cosAngle,
 		float sinAngle,
-		Mesh const & mesh);
+		Ship const & ship);
 
 	void RenderParticle(
 		StateType::NpcParticleStateType const & particleState,
 		RenderContext & renderContext);
 
-	void Publish(Mesh const & mesh);
+	void Publish(Ship const & ship);
 
 private:
 
@@ -690,13 +689,13 @@ private:
 
 	void UpdateNpcs(
 		float currentSimulationTime,
-		Mesh const & mesh,
+		Ship const & ship,
 		LabParameters const & labParameters);
 
 	void UpdateNpcParticle(
 		StateType & npc,
 		bool isPrimaryParticle,
-		Mesh const & mesh,
+		Ship const & ship,
 		LabParameters const & labParameters);
 
 	void CalculateNpcParticlePreliminaryForces(
@@ -732,7 +731,7 @@ private:
 		vec2f const meshVelocity,
 		float dt,
 		NpcParticles & particles,
-		Mesh const & mesh,
+		Ship const & ship,
 		LabParameters const & labParameters) const;
 
 	float UpdateNpcParticle_ConstrainedInertial(
@@ -745,7 +744,7 @@ private:
 		vec2f const meshVelocity,
 		float segmentDt,
 		NpcParticles & particles,
-		Mesh const & mesh,
+		Ship const & ship,
 		LabParameters const & labParameters) const;
 
 	struct NavigateVertexOutcome
@@ -796,7 +795,7 @@ private:
 		bcoords3f trajectoryEndBarycentricCoords,
 		bool isInitialStateUnknown,
 		NpcParticles & particles,
-		Mesh const & mesh,
+		Ship const & ship,
 		LabParameters const & labParameters) const;
 
 	inline void BounceConstrainedNpcParticle(
@@ -820,7 +819,7 @@ private:
 		float currentSimulationTime,
 		StateType & npc,
 		bool isPrimaryParticle,
-		Mesh const & mesh,
+		Ship const & ship,
 		LabParameters const & labParameters);
 
 private:
@@ -832,11 +831,11 @@ private:
 	StateType MaterializeNpcState(
 		ElementIndex npcIndex,
 		float currentSimulationTime,
-		Mesh const & mesh) const;
+		Ship const & ship) const;
 
 	std::optional<StateType::NpcParticleStateType::ConstrainedStateType> CalculateParticleConstrainedState(
 		vec2f const & position,
-		Mesh const & mesh) const;
+		Ship const & ship) const;
 
 private:
 
@@ -848,12 +847,12 @@ private:
 		StateType::NpcParticleStateType const & primaryParticleState,
 		StateType::NpcParticleStateType const & secondaryParticleState,
 		float currentSimulationTime,
-		Mesh const & mesh) const;
+		Ship const & ship) const;
 
 	void UpdateHuman(
 		float currentSimulationTime,
 		StateType & npc,
-		Mesh const & mesh,
+		Ship const & ship,
 		LabParameters const & labParameters);
 
 	bool CheckAndMaintainHumanEquilibrium(
@@ -867,7 +866,7 @@ private:
 	void RunWalkingHumanStateMachine(
 		StateType::HumanNpcStateType & humanState,
 		StateType::NpcParticleStateType const & primaryParticleState,
-		Mesh const & mesh,
+		Ship const & ship,
 		LabParameters const & labParameters);
 
 	void OnHumanImpact(
@@ -923,3 +922,5 @@ private:
 	// Cached from game parameters
 	float mCurrentHumanNpcBodyLengthAdjustment;
 };
+
+}

@@ -468,15 +468,15 @@ ShaderManager::ProgramType ShaderManager::ShaderFilenameToProgramType(std::strin
         return ProgramType::Edges;
     else if (Utils::CaseInsensitiveEquals(str, "Grid"))
         return ProgramType::Grid;
-    else if (Utils::CaseInsensitiveEquals(str, "MeshVelocity"))
-        return ProgramType::MeshVelocity;
     else if (Utils::CaseInsensitiveEquals(str, "NpcLimbs"))
         return ProgramType::NpcLimbs;
     else if (Utils::CaseInsensitiveEquals(str, "ParticleTrajectories"))
         return ProgramType::ParticleTrajectories;
     else if (Utils::CaseInsensitiveEquals(str, "Particles"))
         return ProgramType::Particles;
-    if (Utils::CaseInsensitiveEquals(str, "Springs"))
+    else if (Utils::CaseInsensitiveEquals(str, "ShipVelocity"))
+        return ProgramType::ShipVelocity;
+    else if (Utils::CaseInsensitiveEquals(str, "Springs"))
         return ProgramType::Springs;
     else if (Utils::CaseInsensitiveEquals(str, "Triangles"))
         return ProgramType::Triangles;
@@ -496,14 +496,14 @@ std::string ShaderManager::ProgramTypeToStr(ProgramType program)
             return "Edges";
         case ProgramType::Grid:
             return "Grid";
-        case ProgramType::MeshVelocity:
-            return "MeshVelocity";
         case ProgramType::NpcLimbs:
             return "NpcLimbs";
         case ProgramType::ParticleTrajectories:
             return "ParticleTrajectories";
         case ProgramType::Particles:
             return "Particles";
+        case ProgramType::ShipVelocity:
+            return "ShipVelocity";
         case ProgramType::Springs:
             return "Springs";
         case ProgramType::Triangles:
@@ -558,10 +558,6 @@ ShaderManager::VertexAttributeType ShaderManager::StrToVertexAttributeType(std::
         return VertexAttributeType::EdgeAttributeGroup1;
     else if (Utils::CaseInsensitiveEquals(str, "EdgeAttributeGroup2"))
         return VertexAttributeType::EdgeAttributeGroup2;
-    else if (Utils::CaseInsensitiveEquals(str, "MeshVelocityAttributeGroup1"))
-        return VertexAttributeType::MeshVelocityAttributeGroup1;
-    else if (Utils::CaseInsensitiveEquals(str, "MeshVelocityAttributeGroup2"))
-        return VertexAttributeType::MeshVelocityAttributeGroup2;
     else if (Utils::CaseInsensitiveEquals(str, "NpcLimbAttributeGroup1"))
         return VertexAttributeType::NpcLimbAttributeGroup1;
     else if (Utils::CaseInsensitiveEquals(str, "NpcLimbAttributeGroup2"))
@@ -574,6 +570,10 @@ ShaderManager::VertexAttributeType ShaderManager::StrToVertexAttributeType(std::
         return VertexAttributeType::ParticleTrajectoryAttributeGroup1;
     else if (Utils::CaseInsensitiveEquals(str, "ParticleTrajectoryAttributeGroup2"))
         return VertexAttributeType::ParticleTrajectoryAttributeGroup2;
+    else if (Utils::CaseInsensitiveEquals(str, "ShipVelocityAttributeGroup1"))
+        return VertexAttributeType::ShipVelocityAttributeGroup1;
+    else if (Utils::CaseInsensitiveEquals(str, "ShipVelocityAttributeGroup2"))
+        return VertexAttributeType::ShipVelocityAttributeGroup2;
     else if (Utils::CaseInsensitiveEquals(str, "SpringAttributeGroup1"))
         return VertexAttributeType::SpringAttributeGroup1;
     else if (Utils::CaseInsensitiveEquals(str, "SpringAttributeGroup2"))

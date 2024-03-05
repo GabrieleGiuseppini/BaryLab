@@ -3,9 +3,11 @@
 * Created:              2020-05-15
 * Copyright:            Gabriele Giuseppini  (https://github.com/GabrieleGiuseppini)
 ***************************************************************************************/
-#include "NpcParticles.h"
+#include "Physics.h"
 
 #include "Log.h"
+
+namespace Physics {
 
 void NpcParticles::Add(
     float mass,
@@ -32,4 +34,6 @@ void NpcParticles::Query(ElementIndex particleElementIndex) const
 {
     LogMessage("ParticleIndex: ", particleElementIndex);
     LogMessage("P=", mPositionBuffer[particleElementIndex].toString(), " V=", mVelocityBuffer[particleElementIndex].toString());
+}
+
 }

@@ -3,11 +3,13 @@
 * Created:              2018-05-13
 * Copyright:            Gabriele Giuseppini  (https://github.com/GabrieleGiuseppini)
 ***************************************************************************************/
-#include "Triangles.h"
+#include "Physics.h"
 
 #include "BLabMath.h"
 
 #include <cassert>
+
+namespace Physics {
 
 void Triangles::Add(
     ElementIndex particleAIndex,
@@ -177,4 +179,6 @@ vec2f Triangles::InternalToBarycentricCoordinates(
             l1,
             l2);
     }
+}
+
 }

@@ -6,8 +6,8 @@
 #pragma once
 
 #include "EventDispatcher.h"
-#include "Mesh.h"
 #include "Npcs.h"
+#include "Physics.h"
 #include "Vectors.h"
 
 #include <memory>
@@ -17,25 +17,25 @@ class Model
 {
 public:
 
-	Model(		
-		std::unique_ptr<Mesh> mesh,
+	Model(
+		std::unique_ptr<Physics::Ship> ship,
 		std::unique_ptr<Npcs> npcs,
 		EventDispatcher & eventDispatcher)
-		: mMesh(std::move(mesh))
+		: mShip(std::move(ship))
 		, mNpcs(std::move(npcs))
 		, mOriginTriangle()
 		, mTrajectoryDestination()
 		, mEventDispatcher(eventDispatcher)
 	{}
 
-	Mesh const & GetMesh() const
+	Physics::Ship const & GetShip() const
 	{
-		return *mMesh;
+		return *mShip;
 	}
 
-	Mesh & GetMesh()
+	Ship & GetShip()
 	{
-		return *mMesh;
+		return *mShip;
 	}
 
 	Npcs const & GetNpcs() const
@@ -70,9 +70,9 @@ private:
 
 	EventDispatcher & mEventDispatcher;
 
-	std::unique_ptr<Mesh> mMesh;
+	std::unique_ptr<Physics::Ship> mShip;
 	std::unique_ptr<Npcs> mNpcs;
-	
+
 	// Simulation state
 	std::optional<ElementIndex> mOriginTriangle;
 	std::optional<vec2f> mTrajectoryDestination;

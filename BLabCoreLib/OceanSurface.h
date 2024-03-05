@@ -9,6 +9,8 @@
 
 // Placeholder for real OceanSurface
 
+namespace Physics {
+
 class OceanSurface
 {
 public:
@@ -39,3 +41,5 @@ private:
 
 	float mDepth;
 };
+
+}

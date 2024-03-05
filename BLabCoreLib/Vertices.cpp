@@ -3,9 +3,11 @@
 * Created:              2023-07-20
 * Copyright:            Gabriele Giuseppini  (https://github.com/GabrieleGiuseppini)
 ***************************************************************************************/
-#include "Vertices.h"
+#include "Physics.h"
 
 #include "Log.h"
+
+namespace Physics {
 
 void Vertices::Add(vec2f const & position)
 {
@@ -20,4 +22,6 @@ void Vertices::Query(ElementIndex vertexElementIndex) const
     LogMessage("P=", mPositionBuffer[vertexElementIndex].toString());
     LogMessage("Edges: ", mConnectedEdgesBuffer[vertexElementIndex].size());
     LogMessage("Triangles: ", mConnectedTrianglesBuffer[vertexElementIndex].ConnectedTriangles.size());
+}
+
 }

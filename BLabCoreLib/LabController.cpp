@@ -7,8 +7,8 @@
 
 #include "AABB.h"
 #include "GameRandomEngine.h"
-#include "MeshBuilder.h"
 #include "ResourceLocator.h"
+#include "ShipBuilder.h"
 
 #include <cmath>
 #include <sstream>
@@ -47,11 +47,11 @@ LabController::LabController(
     , mLabParameters()
     , mModel()
     , mWorld()
-    , mCurrentMeshFilePath()
+    , mCurrentShipFilePath()
     , mCurrentSimulationTime(0.0f)
     , mIsGravityEnabled(true)
-    , mCurrentMeshTranslationVelocity(vec2f::zero())
-    , mCurrentMeshTranslationAccelerationIndicator(0.0f)
+    , mCurrentShipTranslationVelocity(vec2f::zero())
+    , mCurrentShipTranslationAccelerationIndicator(0.0f)
     , mCurrentVideoStep(0)
     // Simulation control
     , mSimulationControlState(SimulationControlStateType::Paused)
@@ -69,9 +69,9 @@ void LabController::SetSimulationControlPulse()
     mSimulationControlImpulse = true;
 }
 
-void LabController::LoadMesh(std::filesystem::path const & meshDefinitionFilepath)
+void LabController::LoadShip(std::filesystem::path const & shipDefinitionFilepath)
 {
-    LoadMesh(meshDefinitionFilepath, true);
+    LoadShip(shipDefinitionFilepath, true);
 }
 
 void LabController::Update()
@@ -81,18 +81,18 @@ void LabController::Update()
     if (mSimulationControlState == SimulationControlStateType::Play
         || mSimulationControlImpulse)
     {
-        UpdateMeshTransformations();
+        UpdateShipTransformations();
 
         mModel->GetNpcs().Update(
             mCurrentSimulationTime,
-            mModel->GetMesh(),
+            mModel->GetShip(),
             mLabParameters);
 
         // Update state
         mSimulationControlImpulse = false;
 
         // Update rendering
-        mCurrentMeshTranslationAccelerationIndicator *= 0.98f;
+        mCurrentShipTranslationAccelerationIndicator *= 0.98f;
     }
 
     mCurrentSimulationTime += LabParameters::SimulationTimeStepDuration;
@@ -108,9 +108,9 @@ void LabController::Render()
 
     if (mModel)
     {
-        auto const & vertices = mModel->GetMesh().GetVertices();
-        auto const & edges = mModel->GetMesh().GetEdges();
-        auto const & triangles = mModel->GetMesh().GetTriangles();
+        auto const & vertices = mModel->GetShip().GetVertices();
+        auto const & edges = mModel->GetShip().GetEdges();
+        auto const & triangles = mModel->GetShip().GetTriangles();
 
         //
         // Vertices
@@ -131,7 +131,7 @@ void LabController::Render()
         for (auto t : triangles)
         {
             rgbaColor color = edges.GetRenderColor(triangles.GetSubEdgeAIndex(t));
-            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(triangles.GetSubEdgeAIndex(t), mModel->GetMesh()))
+            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(triangles.GetSubEdgeAIndex(t), mModel->GetShip()))
             {
                 color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
             }
@@ -141,7 +141,7 @@ void LabController::Render()
                 color);
 
             color = edges.GetRenderColor(triangles.GetSubEdgeBIndex(t));
-            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(triangles.GetSubEdgeBIndex(t), mModel->GetMesh()))
+            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(triangles.GetSubEdgeBIndex(t), mModel->GetShip()))
             {
                 color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
             }
@@ -151,7 +151,7 @@ void LabController::Render()
                 color);
 
             color = edges.GetRenderColor(triangles.GetSubEdgeCIndex(t));
-            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(triangles.GetSubEdgeCIndex(t), mModel->GetMesh()))
+            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(triangles.GetSubEdgeCIndex(t), mModel->GetShip()))
             {
                 color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
             }
@@ -222,12 +222,12 @@ void LabController::Render()
         mModel->GetNpcs().Render(*mRenderContext);
 
         //
-        // Mesh velocity
+        // Ship velocity
         //
 
-        mRenderContext->UploadMeshVelocity(
-            mCurrentMeshTranslationVelocity,
-            mCurrentMeshTranslationAccelerationIndicator);
+        mRenderContext->UploadShipVelocity(
+            mCurrentShipTranslationVelocity,
+            mCurrentShipTranslationAccelerationIndicator);
     }
 
     mRenderContext->RenderEnd();
@@ -235,16 +235,16 @@ void LabController::Render()
 
 void LabController::Reset()
 {
-    assert(mCurrentMeshFilePath);
-    LoadMesh(*mCurrentMeshFilePath);
+    assert(mCurrentShipFilePath);
+    LoadShip(*mCurrentShipFilePath);
 }
 
-void LabController::UpdateMeshTransformations()
+void LabController::UpdateShipTransformations()
 {
-    vec2f const translation = mCurrentMeshTranslationVelocity * LabParameters::SimulationTimeStepDuration;
+    vec2f const translation = mCurrentShipTranslationVelocity * LabParameters::SimulationTimeStepDuration;
 
-    // Update mesh
-    auto & vertices = mModel->GetMesh().GetVertices();
+    // Update ship
+    auto & vertices = mModel->GetShip().GetVertices();
     for (auto v : vertices)
     {
         vertices.SetPosition(v, vertices.GetPosition(v) + translation);
@@ -269,7 +269,7 @@ std::optional<ElementIndex> LabController::TryPickVertex(vec2f const & screenCoo
     float bestSquareDistance = std::numeric_limits<float>::max();
     ElementIndex bestVertex = NoneElementIndex;
 
-    auto const & vertices = mModel->GetMesh().GetVertices();
+    auto const & vertices = mModel->GetShip().GetVertices();
     for (auto v : vertices)
     {
         float const squareDistance = (vertices.GetPosition(v) - worldCoordinates).squareLength();
@@ -295,14 +295,14 @@ void LabController::MoveVertexBy(
 
     vec2f const worldOffset = ScreenOffsetToWorldOffset(screenOffset);
 
-    mModel->GetMesh().GetVertices().SetPosition(
+    mModel->GetShip().GetVertices().SetPosition(
         vertexIndex,
-        mModel->GetMesh().GetVertices().GetPosition(vertexIndex) + worldOffset);
+        mModel->GetShip().GetVertices().GetPosition(vertexIndex) + worldOffset);
 
-    mModel->GetNpcs().OnVertexMoved(mCurrentSimulationTime, mModel->GetMesh());
+    mModel->GetNpcs().OnVertexMoved(mCurrentSimulationTime, mModel->GetShip());
 }
 
-void LabController::RotateMeshBy(
+void LabController::RotateShipBy(
     vec2f const & centerScreenCoordinates,
     float screenStride)
 {
@@ -315,10 +315,10 @@ void LabController::RotateMeshBy(
     float const sinAngle = std::sin(worldAngle);
 
     //
-    // Rotate mesh
+    // Rotate ship
     //
 
-    auto & vertices = mModel->GetMesh().GetVertices();
+    auto & vertices = mModel->GetShip().GetVertices();
     for (auto v : vertices)
     {
         vec2f const centeredPos = vertices.GetPosition(v) - worldCenter;
@@ -334,14 +334,14 @@ void LabController::RotateMeshBy(
     ////// Rotate particles
     //////
 
-    ////mModel->GetNpcs().RotateParticlesWithMesh(
+    ////mModel->GetNpcs().RotateParticlesWithShip(
     ////    worldCenter,
     ////    cosAngle,
     ////    sinAngle,
-    ////    mModel->GetMesh());
+    ////    mModel->GetShip());
 }
 
-void LabController::RotateMeshBy(
+void LabController::RotateShipBy(
     ElementIndex particleIndex,
     float screenStride)
 {
@@ -350,7 +350,7 @@ void LabController::RotateMeshBy(
     assert(particleIndex < mModel->GetNpcs().GetParticles().GetParticleCount());
 
     //
-    // Rotate mesh
+    // Rotate ship
     //
 
     vec2f const worldCenter = mModel->GetNpcs().GetParticles().GetPosition(particleIndex);
@@ -359,7 +359,7 @@ void LabController::RotateMeshBy(
     float const cosAngle = std::cos(worldAngle);
     float const sinAngle = std::sin(worldAngle);
 
-    auto & vertices = mModel->GetMesh().GetVertices();
+    auto & vertices = mModel->GetShip().GetVertices();
     for (auto v : vertices)
     {
         vec2f const centeredPos = vertices.GetPosition(v) - worldCenter;
@@ -375,11 +375,11 @@ void LabController::RotateMeshBy(
     ////// Rotate particles
     //////
 
-    ////mModel->GetNpcs().RotateParticlesWithMesh(
+    ////mModel->GetNpcs().RotateParticlesWithShip(
     ////    worldCenter,
     ////    cosAngle,
     ////    sinAngle,
-    ////    mModel->GetMesh());
+    ////    mModel->GetShip());
 }
 
 bool LabController::TrySelectOriginTriangle(vec2f const & screenCoordinates)
@@ -388,7 +388,7 @@ bool LabController::TrySelectOriginTriangle(vec2f const & screenCoordinates)
 
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
-    ElementIndex const t = mModel->GetMesh().GetTriangles().FindContaining(worldCoordinates, mModel->GetMesh().GetVertices());
+    ElementIndex const t = mModel->GetShip().GetTriangles().FindContaining(worldCoordinates, mModel->GetShip().GetVertices());
     if (t != NoneElementIndex)
     {
         mModel->GetNpcs().SelectOriginTriangle(t);
@@ -430,7 +430,7 @@ bool LabController::TrySelectParticle(vec2f const & screenCoordinates)
 
     if (bestParticle != NoneElementIndex)
     {
-        mModel->GetNpcs().SelectParticle(bestParticle, mModel->GetMesh());
+        mModel->GetNpcs().SelectParticle(bestParticle, mModel->GetShip());
         return true;
     }
     else
@@ -487,7 +487,7 @@ void LabController::MoveNpcParticleBy(
         npcParticleIndex,
         worldOffset,
         mCurrentSimulationTime,
-        mModel->GetMesh());
+        mModel->GetShip());
 }
 
 void LabController::NotifyNpcParticleTrajectory(
@@ -536,15 +536,15 @@ void LabController::SetGravityEnabled(bool isEnabled)
     }
 }
 
-vec2f const & LabController::GetMeshVelocity() const
+vec2f const & LabController::GetShipVelocity() const
 {
-    return mCurrentMeshTranslationVelocity;
+    return mCurrentShipTranslationVelocity;
 }
 
-void LabController::SetMeshVelocity(vec2f const & velocity)
+void LabController::SetShipVelocity(vec2f const & velocity)
 {
-    mCurrentMeshTranslationVelocity = velocity;
-    mCurrentMeshTranslationAccelerationIndicator = 1.0f;
+    mCurrentShipTranslationVelocity = velocity;
+    mCurrentShipTranslationAccelerationIndicator = 1.0f;
 }
 
 void LabController::SetNpcPanicLevelForAllHumans(float panicLevel)
@@ -560,8 +560,8 @@ void LabController::DoStepForVideo()
     //mModel->GetNpcs().FlipHumanFrontBack(0);
 
     ////// TODOTEST
-    //////RotateMeshBy(0, 3.1f * 3.0f); // Stuck against wall
-    ////RotateMeshBy(0, -3.1f * 12.0f); // Sfarfallio
+    //////RotateShipBy(0, 3.1f * 3.0f); // Stuck against wall
+    ////RotateShipBy(0, -3.1f * 12.0f); // Sfarfallio
     ////return;
 
     ////++mCurrentVideoStep;
@@ -572,10 +572,10 @@ void LabController::DoStepForVideo()
     ////////if (mCurrentVideoStep == matchIndex)
     ////////{
     ////////    //
-    ////////    // Load mesh and stay clean
+    ////////    // Load ship and stay clean
     ////////    //
 
-    ////////    LoadMesh(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
+    ////////    LoadShip(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
 
     ////////    // Enable gravity
     ////////    SetGravityEnabled(true);
@@ -601,7 +601,7 @@ void LabController::DoStepForVideo()
     ////////        vec2f(0.0f, 0.0f),
     ////////        std::nullopt,
     ////////        mStructuralMaterialDatabase,
-    ////////        mModel->GetMesh());
+    ////////        mModel->GetShip());
 
     ////////    return;
     ////////}
@@ -613,7 +613,7 @@ void LabController::DoStepForVideo()
     ////////    // Reset
     ////////    //
 
-    ////////    LoadMesh(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
+    ////////    LoadShip(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
 
     ////////    return;
     ////////}
@@ -636,7 +636,7 @@ void LabController::DoStepForVideo()
     ////////            position,
     ////////            std::nullopt,
     ////////            mStructuralMaterialDatabase,
-    ////////            mModel->GetMesh());
+    ////////            mModel->GetShip());
     ////////    }
 
     ////////    return;
@@ -649,7 +649,7 @@ void LabController::DoStepForVideo()
     ////////    // Reset
     ////////    //
 
-    ////////    LoadMesh(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
+    ////////    LoadShip(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
 
     ////////    return;
     ////////}
@@ -672,7 +672,7 @@ void LabController::DoStepForVideo()
     ////////            position,
     ////////            std::nullopt,
     ////////            mStructuralMaterialDatabase,
-    ////////            mModel->GetMesh());
+    ////////            mModel->GetShip());
     ////////    }
 
     ////////    return;
@@ -686,10 +686,10 @@ void LabController::DoStepForVideo()
     ////if (mCurrentVideoStep == matchIndex)
     ////{
     ////    //
-    ////    // Load mesh and stay clean
+    ////    // Load ship and stay clean
     ////    //
 
-    ////    LoadMesh(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
+    ////    LoadShip(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
 
     ////    // Enable auto-play
     ////    SetSimulationControlState(SimulationControlStateType::Play);
@@ -719,7 +719,7 @@ void LabController::DoStepForVideo()
     ////        secondaryPosition,
     ////        mCurrentSimulationTime,
     ////        mStructuralMaterialDatabase,
-    ////        mModel->GetMesh(),
+    ////        mModel->GetShip(),
     ////        mLabParameters);
 
     ////    return;
@@ -852,22 +852,22 @@ void LabController::DoStepForVideo()
 
 ////////////////////////////////////////////////
 
-void LabController::LoadMesh(
-    std::filesystem::path const & meshDefinitionFilepath,
+void LabController::LoadShip(
+    std::filesystem::path const & shipDefinitionFilepath,
     bool addExperimentalNpc)
 {
-    // Load mesh definition
-    auto meshDefinition = MeshDefinition::Load(meshDefinitionFilepath);
+    // Load ship definition
+    auto shipDefinition = ShipDefinition::Load(shipDefinitionFilepath);
 
-    // Make mesh
+    // Make ship
 
-    std::unique_ptr<Mesh> mesh = MeshBuilder::BuildMesh(
-        std::move(meshDefinition),
+    std::unique_ptr<Physics::Ship> ship = ShipBuilder::BuildShip(
+        std::move(shipDefinition),
         mStructuralMaterialDatabase);
 
-    if (mesh->GetTriangles().GetElementCount() < 1)
+    if (ship->GetTriangles().GetElementCount() < 1)
     {
-        throw BLabException("Mesh must contain at least one triangle");
+        throw BLabException("Ship must contain at least one triangle");
     }
 
     // Create NPCs
@@ -880,13 +880,13 @@ void LabController::LoadMesh(
 
     if (addExperimentalNpc)
     {
-        // TODO: for small mesh, in the middle
+        // TODO: for small ship, in the middle
         //vec2f const position = vec2f(0.5f, 0.0f);
-        // TODO: for small mesh, on the floor, left triangle
+        // TODO: for small ship, on the floor, left triangle
         vec2f const position = vec2f(-0.5f, -2.0f);
-        // TODO: for small mesh, on the floor, right triangle
+        // TODO: for small ship, on the floor, right triangle
         //vec2f const position = vec2f(0.5f, -2.0f);
-        // TODO: for large mesh, on floor
+        // TODO: for large ship, on floor
         //vec2f const position = vec2f(5.5f, -6.0f);
 
         // TODO: for repro of traj acceleration w/human
@@ -896,7 +896,7 @@ void LabController::LoadMesh(
         ////ElementIndex const triangleIndex = 46;
         ////float const TODO = 0.99435f;
         ////bcoords3f const baryCoords = bcoords3f(TODO, 0.0f, 1.0f - TODO);
-        ////vec2f const position = mesh->GetTriangles().FromBarycentricCoordinates(baryCoords, triangleIndex, mesh->GetVertices());
+        ////vec2f const position = ship->GetTriangles().FromBarycentricCoordinates(baryCoords, triangleIndex, ship->GetVertices());
 
         npcs->Add(
             // TODOTEST
@@ -906,7 +906,7 @@ void LabController::LoadMesh(
             std::nullopt, // Secondary position
             mCurrentSimulationTime,
             mStructuralMaterialDatabase,
-            *mesh,
+            *ship,
             mLabParameters);
 
         ////// TODOTEST: multiple balls
@@ -922,7 +922,7 @@ void LabController::LoadMesh(
         ////        std::nullopt, // Secondary position
         ////        mCurrentSimulationTime,
         ////        mStructuralMaterialDatabase,
-        ////        *mesh,
+        ////        *ship,
         ////        mLabParameters);
         ////}
 
@@ -936,12 +936,12 @@ void LabController::LoadMesh(
 
         // Select particle
         assert(npcs->GetParticles().GetParticleCount() > 0);
-        npcs->SelectParticle(0, *mesh);
+        npcs->SelectParticle(0, *ship);
     }
 
     // Create a new model
     std::unique_ptr<Model> newModel = std::make_unique<Model>(
-        std::move(mesh),
+        std::move(ship),
         std::move(npcs),
         mEventDispatcher);
 
@@ -951,12 +951,12 @@ void LabController::LoadMesh(
 
     Reset(
         std::move(newModel),
-        meshDefinitionFilepath);
+        shipDefinitionFilepath);
 }
 
 void LabController::Reset(
     std::unique_ptr<Model> newModel,
-    std::filesystem::path const & meshDefinitionFilepath)
+    std::filesystem::path const & shipDefinitionFilepath)
 {
     //
     // Take object in
@@ -964,7 +964,7 @@ void LabController::Reset(
 
     mModel.reset();
     mModel = std::move(newModel);
-    mCurrentMeshFilePath = meshDefinitionFilepath;
+    mCurrentShipFilePath = shipDefinitionFilepath;
 
     //
     // Reset our state
@@ -977,7 +977,7 @@ void LabController::Reset(
     //
 
     {
-        AABB const objectAABB = mModel->GetMesh().GetVertices().GetAABB();
+        AABB const objectAABB = mModel->GetShip().GetVertices().GetAABB();
 
         vec2f const objectSize = objectAABB.GetSize();
 

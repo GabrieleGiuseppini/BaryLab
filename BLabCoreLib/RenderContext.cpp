@@ -218,22 +218,22 @@ RenderContext::RenderContext(
     glBindVertexArray(0);
 
     //
-    // Mesh velocity
+    // Ship velocity
     //
 
     glGenVertexArrays(1, &tmpGLuint);
-    mMeshVelocityVAO = tmpGLuint;
-    glBindVertexArray(*mMeshVelocityVAO);
+    mShipVelocityVAO = tmpGLuint;
+    glBindVertexArray(*mShipVelocityVAO);
 
     glGenBuffers(1, &tmpGLuint);
-    mMeshVelocityVertexVBO = tmpGLuint;
-    glBindBuffer(GL_ARRAY_BUFFER, *mMeshVelocityVertexVBO);
+    mShipVelocityVertexVBO = tmpGLuint;
+    glBindBuffer(GL_ARRAY_BUFFER, *mShipVelocityVertexVBO);
 
-    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::MeshVelocityAttributeGroup1));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::MeshVelocityAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(MeshVelocityVertex), (void *)0);
-    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::MeshVelocityAttributeGroup2));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::MeshVelocityAttributeGroup2), 1, GL_FLOAT, GL_FALSE, sizeof(MeshVelocityVertex), (void *)(4 * sizeof(float)));
-    static_assert(sizeof(MeshVelocityVertex) == (4 + 1) * sizeof(float));
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::ShipVelocityAttributeGroup1));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::ShipVelocityAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(ShipVelocityVertex), (void *)0);
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::ShipVelocityAttributeGroup2));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::ShipVelocityAttributeGroup2), 1, GL_FLOAT, GL_FALSE, sizeof(ShipVelocityVertex), (void *)(4 * sizeof(float)));
+    static_assert(sizeof(ShipVelocityVertex) == (4 + 1) * sizeof(float));
 
     glBindVertexArray(0);
 
@@ -776,17 +776,17 @@ void RenderContext::UploadTrianglesEnd()
     }
 }
 
-void RenderContext::UploadMeshVelocity(
-    vec2f const & meshVelocity,
+void RenderContext::UploadShipVelocity(
+    vec2f const & shipVelocity,
     float highlight)
 {
     //
     // Create vertices
     //
 
-    mMeshVelocityVertexBuffer.clear();
+    mShipVelocityVertexBuffer.clear();
 
-    if (meshVelocity != vec2f::zero())
+    if (shipVelocity != vec2f::zero())
     {
         // Dimensions - NDC
         float const quadrantWidth = 0.4f;
@@ -795,8 +795,8 @@ void RenderContext::UploadMeshVelocity(
         vec2f const center = vec2f(1.0f - quadrantWidth / 2.0f, -1.0f + quadrantHeight / 2.0f);
 
         // Vector - in normalized space
-        float const vectorMagnitude = meshVelocity.length();
-        vec2f const vectorDir = meshVelocity.normalise(vectorMagnitude);
+        float const vectorMagnitude = shipVelocity.length();
+        vec2f const vectorDir = shipVelocity.normalise(vectorMagnitude);
         vec2f const vectorNormal = vectorDir.to_perpendicular();
         float constexpr ArrowHeadWidth = 0.3f; // To be kept inline with shader
         float constexpr MinVectorLength = ArrowHeadWidth + 0.04f; // Room for border & anti-aliasing, plus a portion of body
@@ -826,22 +826,22 @@ void RenderContext::UploadMeshVelocity(
         vec2f const j = a + vectorDir * LeftPortionWidth * halfQuadrantSize;
         vec2f const k = c + vectorDir * LeftPortionWidth * halfQuadrantSize;
 
-        mMeshVelocityVertexBuffer.emplace_back(
+        mShipVelocityVertexBuffer.emplace_back(
             a,
             vec2f(-0.5f, 0.5f),
             highlight);
 
-        mMeshVelocityVertexBuffer.emplace_back(
+        mShipVelocityVertexBuffer.emplace_back(
             c,
             vec2f(-0.5f, -0.5f),
             highlight);
 
-        mMeshVelocityVertexBuffer.emplace_back(
+        mShipVelocityVertexBuffer.emplace_back(
             j,
             vec2f(-0.25f, 0.5f),
             highlight);
 
-        mMeshVelocityVertexBuffer.emplace_back(
+        mShipVelocityVertexBuffer.emplace_back(
             k,
             vec2f(-0.25f, -0.5f),
             highlight);
@@ -852,12 +852,12 @@ void RenderContext::UploadMeshVelocity(
         vec2f const l = a + vectorDir * (LeftPortionWidth + middlePortionWidth) * halfQuadrantSize;
         vec2f const m = c + vectorDir * (LeftPortionWidth + middlePortionWidth) * halfQuadrantSize;
 
-        mMeshVelocityVertexBuffer.emplace_back(
+        mShipVelocityVertexBuffer.emplace_back(
             l,
             vec2f(0.0f, 0.5f),
             highlight);
 
-        mMeshVelocityVertexBuffer.emplace_back(
+        mShipVelocityVertexBuffer.emplace_back(
             m,
             vec2f(0.0f, -0.5f),
             highlight);
@@ -867,12 +867,12 @@ void RenderContext::UploadMeshVelocity(
         vec2f const b = a + vectorDir * scaledVectorLength * halfQuadrantSize;
         vec2f const d = c + vectorDir * scaledVectorLength * halfQuadrantSize;
 
-        mMeshVelocityVertexBuffer.emplace_back(
+        mShipVelocityVertexBuffer.emplace_back(
             b,
             vec2f(0.5f, 0.5f),
             highlight);
 
-        mMeshVelocityVertexBuffer.emplace_back(
+        mShipVelocityVertexBuffer.emplace_back(
             d,
             vec2f(0.5f, -0.5f),
             highlight);
@@ -882,10 +882,10 @@ void RenderContext::UploadMeshVelocity(
     // Upload buffer, if needed
     //
 
-    if (!mMeshVelocityVertexBuffer.empty())
+    if (!mShipVelocityVertexBuffer.empty())
     {
-        glBindBuffer(GL_ARRAY_BUFFER, *mMeshVelocityVertexVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(MeshVelocityVertex) * mMeshVelocityVertexBuffer.size(), mMeshVelocityVertexBuffer.data(), GL_STREAM_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, *mShipVelocityVertexVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(ShipVelocityVertex) * mShipVelocityVertexBuffer.size(), mShipVelocityVertexBuffer.data(), GL_STREAM_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 }
@@ -928,16 +928,16 @@ void RenderContext::RenderEnd()
     }
 
     ////////////////////////////////////////////////////////////////
-    // Mesh velocity
+    // Ship velocity
     ////////////////////////////////////////////////////////////////
 
-    if (!mMeshVelocityVertexBuffer.empty())
+    if (!mShipVelocityVertexBuffer.empty())
     {
-        glBindVertexArray(*mMeshVelocityVAO);
+        glBindVertexArray(*mShipVelocityVAO);
 
-        mShaderManager->ActivateProgram<ShaderManager::ProgramType::MeshVelocity>();
+        mShaderManager->ActivateProgram<ShaderManager::ProgramType::ShipVelocity>();
 
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, static_cast<GLsizei>(mMeshVelocityVertexBuffer.size()));
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, static_cast<GLsizei>(mShipVelocityVertexBuffer.size()));
 
         CheckOpenGLError();
 

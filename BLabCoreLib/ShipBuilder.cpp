@@ -3,7 +3,7 @@
 * Created:				2020-05-16
 * Copyright:			Gabriele Giuseppini  (https://github.com/GabrieleGiuseppini)
 ***************************************************************************************/
-#include "MeshBuilder.h"
+#include "ShipBuilder.h"
 
 #include "Log.h"
 
@@ -29,49 +29,49 @@ static int const TessellationCircularOrderDirections[8][2] = {
 
 rgbColor constexpr EmptyMaterialColorKey = rgbColor(255, 255, 255);
 
-std::unique_ptr<Mesh> MeshBuilder::BuildMesh(
-    MeshDefinition && meshDefinition,
+std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
+    ShipDefinition && shipDefinition,
     StructuralMaterialDatabase const & structuralMaterialDatabase)
 {
     //
     // Process structural layer and:
-    // - Create MeshBuildVertex's for each vertex
+    // - Create ShipBuildVertex's for each vertex
     // - Build a 2D matrix containing indices to the vertices
     //
 
-    int const meshWidth = meshDefinition.StructuralLayerImage.Size.Width;
-    float const halfMeshWidth = static_cast<float>(meshWidth / 2); // We want to align on integral world coords
+    int const shipWidth = shipDefinition.StructuralLayerImage.Size.Width;
+    float const halfShipWidth = static_cast<float>(shipWidth / 2); // We want to align on integral world coords
 
-    int const meshHeight = meshDefinition.StructuralLayerImage.Size.Height;
-    float const halfMeshHeight = static_cast<float>(meshHeight / 2); // We want to align on integral world coords
+    int const shipHeight = shipDefinition.StructuralLayerImage.Size.Height;
+    float const halfShipHeight = static_cast<float>(shipHeight / 2); // We want to align on integral world coords
 
-    auto const & structuralLayerBuffer = meshDefinition.StructuralLayerImage.Data;
+    auto const & structuralLayerBuffer = shipDefinition.StructuralLayerImage.Data;
 
     // Vertices
-    std::vector<MeshBuildVertex> vertexInfos;
+    std::vector<ShipBuildVertex> vertexInfos;
 
     // Edges
-    std::vector<MeshBuildEdge> edgeInfos;
+    std::vector<ShipBuildEdge> edgeInfos;
 
     // Triangles
-    std::vector<MeshBuildTriangle> triangleInfos;
+    std::vector<ShipBuildTriangle> triangleInfos;
 
     // Matrix of vertices - we allocate 2 extra dummy rows and cols - around - to avoid checking for boundaries
-    MeshBuildVertexIndexMatrix vertexIndexMatrix(meshWidth + 2, meshHeight + 2);
+    ShipBuildVertexIndexMatrix vertexIndexMatrix(shipWidth + 2, shipHeight + 2);
 
     // Region of actual content
-    int minX = meshWidth;
+    int minX = shipWidth;
     int maxX = 0;
-    int minY = meshHeight;
+    int minY = shipHeight;
     int maxY = 0;
 
     // Visit all columns
-    for (int x = 0; x < meshWidth; ++x)
+    for (int x = 0; x < shipWidth; ++x)
     {
         // From bottom to top
-        for (int y = 0; y < meshHeight; ++y)
+        for (int y = 0; y < shipHeight; ++y)
         {
-            StructuralMaterialDatabase::ColorKey const colorKey = structuralLayerBuffer[x + y * meshWidth];
+            StructuralMaterialDatabase::ColorKey const colorKey = structuralLayerBuffer[x + y * shipWidth];
             StructuralMaterial const * structuralMaterial = structuralMaterialDatabase.FindStructuralMaterial(colorKey);
             if (nullptr != structuralMaterial)
             {
@@ -85,8 +85,8 @@ std::unique_ptr<Mesh> MeshBuilder::BuildMesh(
 
                 vertexInfos.emplace_back(
                     vec2f(
-                        static_cast<float>(x) - halfMeshWidth,
-                        static_cast<float>(y) - halfMeshHeight),
+                        static_cast<float>(x) - halfShipWidth,
+                        static_cast<float>(y) - halfShipHeight),
                     colorKey,
                     *structuralMaterial);
 
@@ -109,9 +109,9 @@ std::unique_ptr<Mesh> MeshBuilder::BuildMesh(
 
     //
     // Visit vertex matrix and:
-    //  - Detect edges and create MeshBuildEdge's for them
+    //  - Detect edges and create ShipBuildEdge's for them
     //      - And populate the point pair -> edge index 1 map
-    //  - Do tessellation and create MeshBuildTriangle's
+    //  - Do tessellation and create ShipBuildTriangle's
     //
 
     CreateElementInfos(
@@ -138,14 +138,14 @@ std::unique_ptr<Mesh> MeshBuilder::BuildMesh(
         triangleInfos);
 
     //
-    // Visit all MeshBuildVertex's and create Vertices, i.e. the entire set of vertices
+    // Visit all ShipBuildVertex's and create Vertices, i.e. the entire set of vertices
     //
 
     Vertices vertices = CreateVertices(
         vertexInfos);
 
     //
-    // Create Edges for all MeshBuildEdge's
+    // Create Edges for all ShipBuildEdge's
     //
 
     Edges edges = CreateEdges(
@@ -154,7 +154,7 @@ std::unique_ptr<Mesh> MeshBuilder::BuildMesh(
         vertices);
 
     //
-    // Create Triangles for all MeshBuildTriangle's
+    // Create Triangles for all ShipBuildTriangle's
     //
 
     Triangles triangles = CreateTriangles(
@@ -166,36 +166,36 @@ std::unique_ptr<Mesh> MeshBuilder::BuildMesh(
     // We're done!
     //
 
-    LogMessage("MeshBuilder: Created mesh: W=", meshWidth, ", H=", meshHeight, ", ",
+    LogMessage("ShipBuilder: Created ship: W=", shipWidth, ", H=", shipHeight, ", ",
         vertices.GetBufferElementCount(), "buf vertices, ",
         edges.GetElementCount(), " edges, ",
         triangles.GetElementCount(), " triangles.");
 
-    auto mesh = std::make_unique<Mesh>(
+    auto ship = std::make_unique<Physics::Ship>(
         std::move(vertices),
         std::move(edges),
         std::move(triangles));
 
-    return mesh;
+    return ship;
 }
 
-void MeshBuilder::CreateElementInfos(
-    MeshBuildVertexIndexMatrix const & vertexIndexMatrix,
-    std::vector<MeshBuildVertex> & vertexInfos,
-    std::vector<MeshBuildEdge> & edgeInfos,
-    std::vector<MeshBuildTriangle> & triangleInfos)
+void ShipBuilder::CreateElementInfos(
+    ShipBuildVertexIndexMatrix const & vertexIndexMatrix,
+    std::vector<ShipBuildVertex> & vertexInfos,
+    std::vector<ShipBuildEdge> & edgeInfos,
+    std::vector<ShipBuildTriangle> & triangleInfos)
 {
     //
     // Visit vertex matrix and:
-    //  - Detect edges and create MeshBuildEdge's for them
-    //  - Do tessellation and create MeshBuildTriangle's
+    //  - Detect edges and create ShipBuildEdge's for them
+    //  - Do tessellation and create ShipBuildTriangle's
     //
 
     // From bottom to top - excluding extras at boundaries
     for (int y = 1; y < vertexIndexMatrix.height - 1; ++y)
     {
-        // We're starting a new row, so we're not in a mesh now
-        bool isInMesh = false;
+        // We're starting a new row, so we're not in a ship now
+        bool isInShip = false;
 
         // From left to right - excluding extras at boundaries
         for (int x = 1; x < vertexIndexMatrix.width - 1; ++x)
@@ -224,7 +224,7 @@ void MeshBuilder::CreateElementInfos(
                         // This vertex is adjacent to the first point at one of E, SE, S, SW
 
                         //
-                        // Create MeshBuildEdge
+                        // Create ShipBuildEdge
                         //
 
                         ElementIndex const otherEndpointIndex = *vertexIndexMatrix[{adjx1, adjy1}];
@@ -244,7 +244,7 @@ void MeshBuilder::CreateElementInfos(
 
                         //
                         // Check if a triangle exists
-                        // - If this is the first vertex that is in a mesh, we check all the way up to W;
+                        // - If this is the first vertex that is in a ship, we check all the way up to W;
                         // - Else, we check only up to S, so to avoid covering areas already covered by the triangulation
                         //   at the previous point
                         //
@@ -252,13 +252,13 @@ void MeshBuilder::CreateElementInfos(
                         // Check adjacent point in next CW direction
                         int adjx2 = x + TessellationCircularOrderDirections[i + 1][0];
                         int adjy2 = y + TessellationCircularOrderDirections[i + 1][1];
-                        if ((!isInMesh || i < 2)
+                        if ((!isInShip || i < 2)
                             && !!vertexIndexMatrix[{adjx2, adjy2}])
                         {
                             // This vertex is adjacent to the first vertex at one of SE, S, SW, W
 
                             //
-                            // Create MeshBuildTriangle
+                            // Create ShipBuildTriangle
                             //
 
                             triangleInfos.emplace_back(
@@ -283,7 +283,7 @@ void MeshBuilder::CreateElementInfos(
                             assert(!!vertexIndexMatrix[vec2i(x + TessellationCircularOrderDirections[0][0], y + TessellationCircularOrderDirections[0][1])]);
 
                             //
-                            // Create MeshBuildTriangle
+                            // Create ShipBuildTriangle
                             //
 
                             triangleInfos.emplace_back(
@@ -297,8 +297,8 @@ void MeshBuilder::CreateElementInfos(
                     }
                 }
 
-                // Remember now that we're in a mesh
-                isInMesh = true;
+                // Remember now that we're in a ship
+                isInShip = true;
             }
             else
             {
@@ -306,16 +306,16 @@ void MeshBuilder::CreateElementInfos(
                 // No vertex exists at these coordinates
                 //
 
-                // From now on we're not in a mesh anymore
-                isInMesh = false;
+                // From now on we're not in a ship anymore
+                isInShip = false;
             }
         }
     }
 }
 
-void MeshBuilder::ConnectVerticesToTriangles(
-    std::vector<MeshBuildVertex> & vertexInfos,
-    std::vector<MeshBuildTriangle> const & triangleInfos)
+void ShipBuilder::ConnectVerticesToTriangles(
+    std::vector<ShipBuildVertex> & vertexInfos,
+    std::vector<ShipBuildTriangle> const & triangleInfos)
 {
     for (ElementIndex t = 0; t < triangleInfos.size(); ++t)
     {
@@ -326,9 +326,9 @@ void MeshBuilder::ConnectVerticesToTriangles(
     }
 }
 
-void MeshBuilder::ConnectEdgesToTriangles(
-    std::vector<MeshBuildEdge> & edgeInfos,
-    std::vector<MeshBuildTriangle> & triangleInfos)
+void ShipBuilder::ConnectEdgesToTriangles(
+    std::vector<ShipBuildEdge> & edgeInfos,
+    std::vector<ShipBuildTriangle> & triangleInfos)
 {
     //
     // 1. Build Vertex Pair -> Edge table
@@ -376,15 +376,15 @@ void MeshBuilder::ConnectEdgesToTriangles(
     }
 }
 
-Vertices MeshBuilder::CreateVertices(
-    std::vector<MeshBuildVertex> const & vertexInfos)
+Vertices ShipBuilder::CreateVertices(
+    std::vector<ShipBuildVertex> const & vertexInfos)
 {
     Vertices vertices(
         static_cast<ElementIndex>(vertexInfos.size()));
 
     for (size_t v = 0; v < vertexInfos.size(); ++v)
     {
-        MeshBuildVertex const & vertexInfo = vertexInfos[v];
+        ShipBuildVertex const & vertexInfo = vertexInfos[v];
 
         //
         // Create vertex
@@ -397,9 +397,9 @@ Vertices MeshBuilder::CreateVertices(
     return vertices;
 }
 
-Edges MeshBuilder::CreateEdges(
-    std::vector<MeshBuildEdge> const & edgeInfos,
-    std::vector<MeshBuildVertex> & vertexInfos,
+Edges ShipBuilder::CreateEdges(
+    std::vector<ShipBuildEdge> const & edgeInfos,
+    std::vector<ShipBuildVertex> & vertexInfos,
     Vertices & vertices)
 {
     Edges edges(
@@ -435,8 +435,8 @@ Edges MeshBuilder::CreateEdges(
     return edges;
 }
 
-Triangles MeshBuilder::CreateTriangles(
-    std::vector<MeshBuildTriangle> const & triangleInfos,
+Triangles ShipBuilder::CreateTriangles(
+    std::vector<ShipBuildTriangle> const & triangleInfos,
     Vertices & vertices,
     Edges const & edges)
 {

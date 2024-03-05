@@ -17,12 +17,12 @@
 #include <vector>
 
 /*
- * Types describing the intermediate mesh structure.
+ * Types describing the intermediate ship structure.
  */
 
-using MeshBuildVertexIndexMatrix = Matrix2<std::optional<ElementIndex>>;
+using ShipBuildVertexIndexMatrix = Matrix2<std::optional<ElementIndex>>;
 
-struct MeshBuildVertex
+struct ShipBuildVertex
 {
     vec2f Position;
     rgbColor RenderColor;
@@ -31,7 +31,7 @@ struct MeshBuildVertex
     std::vector<ElementIndex> ConnectedEdges;
     std::vector<ElementIndex> ConnectedTriangles;
 
-    MeshBuildVertex(
+    ShipBuildVertex(
         vec2f position,
         rgbColor renderColor,
         StructuralMaterial const & material)
@@ -61,7 +61,7 @@ private:
     }
 };
 
-struct MeshBuildEdge
+struct ShipBuildEdge
 {
     ElementIndex VertexAIndex;
     uint32_t VertexAAngle;
@@ -71,7 +71,7 @@ struct MeshBuildEdge
 
     FixedSizeVector<ElementIndex, 2> Triangles; // Triangles that have this spring as an edge
 
-    MeshBuildEdge(
+    ShipBuildEdge(
         ElementIndex vertexAIndex,
         uint32_t vertexAAngle,
         ElementIndex vertexBIndex,
@@ -84,13 +84,13 @@ struct MeshBuildEdge
     }
 };
 
-struct MeshBuildTriangle
+struct ShipBuildTriangle
 {
     std::array<ElementIndex, 3> VertexIndices;
 
     FixedSizeVector<ElementIndex, 3> Edges;
 
-    MeshBuildTriangle(
+    ShipBuildTriangle(
         std::array<ElementIndex, 3> const & vertexIndices)
         : VertexIndices(vertexIndices)
         , Edges()
