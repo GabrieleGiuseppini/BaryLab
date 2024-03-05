@@ -350,7 +350,7 @@ public:
             if (inputState.IsLeftMouseDown)
             {
                 // Rotate
-                mLabController->RotateMeshBy(
+                mLabController->RotateShipBy(
                     mCurrentEngagementState->RotationCenter,
                     inputState.MousePosition.y - mCurrentEngagementState->LastPosition.y);
 
@@ -429,7 +429,7 @@ public:
             if (inputState.IsLeftMouseDown)
             {
                 // Rotate
-                mLabController->RotateMeshBy(
+                mLabController->RotateShipBy(
                     0,
                     inputState.MousePosition.y - mCurrentEngagementState->LastPosition.y);
 

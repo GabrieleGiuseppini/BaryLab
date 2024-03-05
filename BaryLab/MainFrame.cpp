@@ -556,7 +556,7 @@ void MainFrame::OnLoadMeshMenuItemSelected(wxCommandEvent & /*event*/)
         assert(!!mLabController);
         try
         {
-            mLabController->LoadMesh(filepath);
+            mLabController->LoadShip(filepath);
         }
         catch (std::exception const & ex)
         {
@@ -738,7 +738,7 @@ void MainFrame::OnViewControlGridToggled(wxCommandEvent & event)
 void MainFrame::OnMeshTransformationChanged(ControlToolbar::meshTransformationChangedEvent & event)
 {
     assert(!!mLabController);
-    mLabController->SetMeshVelocity(event.GetVelocity());
+    mLabController->SetShipVelocity(event.GetVelocity());
 }
 
 void MainFrame::OnHumanNpcPanicLevelChanged(ControlToolbar::humanNpcPanicLevelChangedEvent & event)
@@ -879,7 +879,7 @@ void MainFrame::FinishInitialization()
     // Load initial object
     //
 
-    mLabController->LoadMesh(ResourceLocator::GetDefaultMeshDefinitionFilePath());
+    mLabController->LoadShip(ResourceLocator::GetDefaultMeshDefinitionFilePath());
 
     //
     // Reconciliate UI

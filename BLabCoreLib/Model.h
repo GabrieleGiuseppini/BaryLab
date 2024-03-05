@@ -6,7 +6,6 @@
 #pragma once
 
 #include "EventDispatcher.h"
-#include "Npcs.h"
 #include "Physics.h"
 #include "Vectors.h"
 
@@ -19,7 +18,7 @@ public:
 
 	Model(
 		std::unique_ptr<Physics::Ship> ship,
-		std::unique_ptr<Npcs> npcs,
+		std::unique_ptr<Physics::Npcs> npcs,
 		EventDispatcher & eventDispatcher)
 		: mShip(std::move(ship))
 		, mNpcs(std::move(npcs))
@@ -33,17 +32,17 @@ public:
 		return *mShip;
 	}
 
-	Ship & GetShip()
+	Physics::Ship & GetShip()
 	{
 		return *mShip;
 	}
 
-	Npcs const & GetNpcs() const
+	Physics::Npcs const & GetNpcs() const
 	{
 		return *mNpcs;
 	}
 
-	Npcs & GetNpcs()
+	Physics::Npcs & GetNpcs()
 	{
 		return *mNpcs;
 	}
@@ -60,7 +59,7 @@ public:
 		mEventDispatcher.OnTrajectoryToggled(true);
 	}
 
-	void ResetNpcs(std::unique_ptr<Npcs> npcs)
+	void ResetNpcs(std::unique_ptr<Physics::Npcs> npcs)
 	{
 		mNpcs.reset();
 		mNpcs = std::move(npcs);
@@ -71,7 +70,7 @@ private:
 	EventDispatcher & mEventDispatcher;
 
 	std::unique_ptr<Physics::Ship> mShip;
-	std::unique_ptr<Npcs> mNpcs;
+	std::unique_ptr<Physics::Npcs> mNpcs;
 
 	// Simulation state
 	std::optional<ElementIndex> mOriginTriangle;

@@ -40,16 +40,16 @@ private:
         std::vector<ShipBuildEdge> & edgeInfos,
         std::vector<ShipBuildTriangle> & triangleInfos);
 
-    static Vertices CreateVertices(
+    static Physics::Vertices CreateVertices(
         std::vector<ShipBuildVertex> const & vertexInfos);
 
-    static Edges CreateEdges(
+    static Physics::Edges CreateEdges(
         std::vector<ShipBuildEdge> const & edgeInfos,
         std::vector<ShipBuildVertex> & vertexInfos,
-        Vertices & vertices);
+        Physics::Vertices & vertices);
 
-    static Triangles CreateTriangles(
+    static Physics::Triangles CreateTriangles(
         std::vector<ShipBuildTriangle> const & triangleInfos,
-        Vertices & vertices,
-        Edges const & edges);
+        Physics::Vertices & vertices,
+        Physics::Edges const & edges);
 };

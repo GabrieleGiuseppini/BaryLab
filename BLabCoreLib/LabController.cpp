@@ -872,7 +872,7 @@ void LabController::LoadShip(
 
     // Create NPCs
 
-    std::unique_ptr<Npcs> npcs = std::make_unique<Npcs>(
+    std::unique_ptr<Physics::Npcs> npcs = std::make_unique<Physics::Npcs>(
         mWorld,
         mEventDispatcher,
         mLabParameters,
@@ -900,8 +900,8 @@ void LabController::LoadShip(
 
         npcs->Add(
             // TODOTEST
-            //Npcs::NpcType::Furniture,
-            Npcs::NpcType::Human,
+            //Physics::Npcs::NpcType::Furniture,
+            Physics::Npcs::NpcType::Human,
             position,
             std::nullopt, // Secondary position
             mCurrentSimulationTime,

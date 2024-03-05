@@ -141,14 +141,14 @@ std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
     // Visit all ShipBuildVertex's and create Vertices, i.e. the entire set of vertices
     //
 
-    Vertices vertices = CreateVertices(
+    Physics::Vertices vertices = CreateVertices(
         vertexInfos);
 
     //
     // Create Edges for all ShipBuildEdge's
     //
 
-    Edges edges = CreateEdges(
+    Physics::Edges edges = CreateEdges(
         edgeInfos,
         vertexInfos,
         vertices);
@@ -157,7 +157,7 @@ std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
     // Create Triangles for all ShipBuildTriangle's
     //
 
-    Triangles triangles = CreateTriangles(
+    Physics::Triangles triangles = CreateTriangles(
         triangleInfos,
         vertices,
         edges);
@@ -376,10 +376,10 @@ void ShipBuilder::ConnectEdgesToTriangles(
     }
 }
 
-Vertices ShipBuilder::CreateVertices(
+Physics::Vertices ShipBuilder::CreateVertices(
     std::vector<ShipBuildVertex> const & vertexInfos)
 {
-    Vertices vertices(
+    Physics::Vertices vertices(
         static_cast<ElementIndex>(vertexInfos.size()));
 
     for (size_t v = 0; v < vertexInfos.size(); ++v)
@@ -397,13 +397,12 @@ Vertices ShipBuilder::CreateVertices(
     return vertices;
 }
 
-Edges ShipBuilder::CreateEdges(
+Physics::Edges ShipBuilder::CreateEdges(
     std::vector<ShipBuildEdge> const & edgeInfos,
     std::vector<ShipBuildVertex> & vertexInfos,
-    Vertices & vertices)
+    Physics::Vertices & vertices)
 {
-    Edges edges(
-        static_cast<ElementIndex>(edgeInfos.size()));
+    Physics::Edges edges(static_cast<ElementIndex>(edgeInfos.size()));
 
     for (ElementIndex e = 0; e < edgeInfos.size(); ++e)
     {
@@ -435,12 +434,12 @@ Edges ShipBuilder::CreateEdges(
     return edges;
 }
 
-Triangles ShipBuilder::CreateTriangles(
+Physics::Triangles ShipBuilder::CreateTriangles(
     std::vector<ShipBuildTriangle> const & triangleInfos,
-    Vertices & vertices,
-    Edges const & edges)
+    Physics::Vertices & vertices,
+    Physics::Edges const & edges)
 {
-    Triangles triangles(static_cast<ElementIndex>(triangleInfos.size()));
+    Physics::Triangles triangles(static_cast<ElementIndex>(triangleInfos.size()));
 
     for (ElementIndex t = 0; t < triangleInfos.size(); ++t)
     {
