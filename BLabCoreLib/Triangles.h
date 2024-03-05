@@ -17,7 +17,6 @@
 #include <array>
 #include <cassert>
 #include <functional>
-#include <optional>
 
 namespace Physics {
 
@@ -59,6 +58,25 @@ private:
 
     using SubEdgeSurfaceTypes = std::array<SurfaceType, 3>;
 
+    /*
+     * The opposite triangles of an edge, by edge ordinal.
+     */
+
+    struct OppositeTriangleInfo
+    {
+        ElementIndex TriangleElementIndex;
+        int EdgeOrdinal;
+
+        OppositeTriangleInfo(
+            ElementIndex triangleElementIndex,
+            int edgeOrdinal)
+            : TriangleElementIndex(triangleElementIndex)
+            , EdgeOrdinal(edgeOrdinal)
+        {}
+    };
+
+    using OppositeTrianglesInfo = std::array<OppositeTriangleInfo, 3>;
+
 public:
 
     Triangles(ElementCount elementCount)
@@ -69,6 +87,7 @@ public:
         // Container
         , mEndpointsBuffer(mBufferElementCount, mElementCount, Endpoints(NoneElementIndex, NoneElementIndex, NoneElementIndex))
         , mSubEdgesBuffer(mBufferElementCount, mElementCount, SubEdges(NoneElementIndex, NoneElementIndex, NoneElementIndex))
+        , mOppositeTrianglesBuffer(mBufferElementCount, mElementCount, { OppositeTriangleInfo(NoneElementIndex, -1), OppositeTriangleInfo(NoneElementIndex, -1), OppositeTriangleInfo(NoneElementIndex, -1) })
         , mSubEdgeSurfaceTypesBuffer(mBufferElementCount, mElementCount, {SurfaceType::Open, SurfaceType::Open, SurfaceType::Open})
     {
     }
@@ -82,6 +101,12 @@ public:
         ElementIndex subEdgeAIndex,
         ElementIndex subEdgeBIndex,
         ElementIndex subEdgeCIndex,
+        ElementIndex subEdgeAOppositeTriangle,
+        int subEdgeAOppositeTriangleEdgeOrdinal,
+        ElementIndex subEdgeBOppositeTriangle,
+        int subEdgeBOppositeTriangleEdgeOrdinal,
+        ElementIndex subEdgeCOppositeTriangle,
+        int subEdgeCOppositeTriangleEdgeOrdinal,
         SurfaceType subEdgeASurfaceType,
         SurfaceType subEdgeBSurfaceType,
         SurfaceType subEdgeCSurfaceType);
@@ -206,10 +231,27 @@ public:
         int edgeOrdinal,
         Vertices const & vertices) const
     {
+        assert(edgeOrdinal >= 0 && edgeOrdinal < 3);
+
         ElementIndex const v2 = mEndpointsBuffer[triangleElementIndex].VertexIndices[(edgeOrdinal + 1) % 3];
         ElementIndex const v1 = mEndpointsBuffer[triangleElementIndex].VertexIndices[edgeOrdinal];
 
         return vertices.GetPosition(v2) - vertices.GetPosition(v1);
+    }
+
+    // Opposite triangles
+
+    OppositeTrianglesInfo const & GetOppositeTriangles(ElementIndex triangleElementIndex) const
+    {
+        return mOppositeTrianglesBuffer[triangleElementIndex];
+    }
+
+    OppositeTriangleInfo const & GetOppositeTriangle(
+        ElementIndex triangleElementIndex,
+        int edgeOrdinal) const
+    {
+        assert(edgeOrdinal >= 0 && edgeOrdinal < 3);
+        return mOppositeTrianglesBuffer[triangleElementIndex][edgeOrdinal];
     }
 
     // Surface types
@@ -218,6 +260,7 @@ public:
         ElementIndex triangleElementIndex,
         int edgeOrdinal) const
     {
+        assert(edgeOrdinal >= 0 && edgeOrdinal < 3);
         return mSubEdgeSurfaceTypesBuffer[triangleElementIndex][edgeOrdinal];
     }
 
@@ -239,6 +282,9 @@ private:
 
     // Sub edges
     Buffer<SubEdges> mSubEdgesBuffer;
+
+    // Opposite triangles
+    Buffer<OppositeTrianglesInfo> mOppositeTrianglesBuffer;
 
     // Surface types
     Buffer<SubEdgeSurfaceTypes> mSubEdgeSurfaceTypesBuffer;

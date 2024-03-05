@@ -578,8 +578,8 @@ public:
 			return true;
 		}
 
-		ElementIndex const oppositeTriangle = ship.GetEdges().GetOppositeTriangle(ship.GetTriangles().GetSubEdges(triangleElementIndex).EdgeIndices[edgeOrdinal], triangleElementIndex);
-		if (oppositeTriangle == NoneElementIndex || ship.GetTriangles().IsDeleted(oppositeTriangle))
+		auto const & oppositeTriangleInfo = ship.GetTriangles().GetOppositeTriangle(triangleElementIndex, edgeOrdinal);
+		if (oppositeTriangleInfo.TriangleElementIndex == NoneElementIndex || ship.GetTriangles().IsDeleted(oppositeTriangleInfo.TriangleElementIndex))
 		{
 			// Crossing this floor makes the particle free
 			return true;

@@ -1544,9 +1544,8 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
             LogNpcDebug("      Climbing over non-floor edge");
 
             // Find opposite triangle
-            ElementIndex const intersectionEdgeElementIndex = ship.GetTriangles().GetSubEdges(npcParticleConstrainedState.CurrentTriangle).EdgeIndices[intersectionEdgeOrdinal];
-            ElementIndex const oppositeTriangle = ship.GetEdges().GetOppositeTriangle(intersectionEdgeElementIndex, npcParticleConstrainedState.CurrentTriangle);
-            if (oppositeTriangle == NoneElementIndex || ship.GetTriangles().IsDeleted(oppositeTriangle))
+            auto const & oppositeTriangleInfo = ship.GetTriangles().GetOppositeTriangle(npcParticleConstrainedState.CurrentTriangle, intersectionEdgeOrdinal);
+            if (oppositeTriangleInfo.TriangleElementIndex == NoneElementIndex || ship.GetTriangles().IsDeleted(oppositeTriangleInfo.TriangleElementIndex))
             {
                 //
                 // Become free
@@ -1576,18 +1575,16 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                 // Move to edge of opposite triangle
                 //
 
-                int const oppositeTriangleEdgeOrdinal = ship.GetTriangles().GetSubEdgeOrdinal(oppositeTriangle, intersectionEdgeElementIndex);
-
-                LogNpcDebug("      Moving to edge ", oppositeTriangleEdgeOrdinal, " of opposite triangle ", oppositeTriangle);
+                LogNpcDebug("      Moving to edge ", oppositeTriangleInfo.EdgeOrdinal, " of opposite triangle ", oppositeTriangleInfo.TriangleElementIndex);
 
                 // Move to triangle
-                npcParticleConstrainedState.CurrentTriangle = oppositeTriangle;
+                npcParticleConstrainedState.CurrentTriangle = oppositeTriangleInfo.TriangleElementIndex;
 
                 // Calculate new current barycentric coords (wrt new triangle)
                 bcoords3f newBarycentricCoords; // In new triangle
-                newBarycentricCoords[(oppositeTriangleEdgeOrdinal + 2) % 3] = 0.0f;
-                newBarycentricCoords[oppositeTriangleEdgeOrdinal] = npcParticleConstrainedState.CurrentTriangleBarycentricCoords[(intersectionEdgeOrdinal + 1) % 3];
-                newBarycentricCoords[(oppositeTriangleEdgeOrdinal + 1) % 3] = npcParticleConstrainedState.CurrentTriangleBarycentricCoords[intersectionEdgeOrdinal];
+                newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 2) % 3] = 0.0f;
+                newBarycentricCoords[oppositeTriangleInfo.EdgeOrdinal] = npcParticleConstrainedState.CurrentTriangleBarycentricCoords[(intersectionEdgeOrdinal + 1) % 3];
+                newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 1) % 3] = npcParticleConstrainedState.CurrentTriangleBarycentricCoords[intersectionEdgeOrdinal];
 
                 LogNpcDebug("      B-Coords: ", npcParticleConstrainedState.CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
 
@@ -1601,7 +1598,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                 // guaranteed to lie exactly on the (continuation of the) edge
                 segmentTrajectoryEndBarycentricCoords = ship.GetTriangles().ToBarycentricCoordinates(
                     segmentTrajectoryEndAbsolutePosition,
-                    oppositeTriangle,
+                    oppositeTriangleInfo.TriangleElementIndex,
                     ship.GetVertices());
 
                 LogNpcDebug("      TrajEndB-Coords: ", oldSegmentTrajectoryEndBarycentricCoords, " -> ", segmentTrajectoryEndBarycentricCoords);
@@ -1709,9 +1706,8 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         //
 
         // Find opposite triangle
-        ElementIndex const crossedEdgeElementIndex = ship.GetTriangles().GetSubEdges(npcParticle.ConstrainedState->CurrentTriangle).EdgeIndices[crossedEdgeOrdinal];
-        ElementIndex const oppositeTriangle = ship.GetEdges().GetOppositeTriangle(crossedEdgeElementIndex, npcParticle.ConstrainedState->CurrentTriangle);
-        if (oppositeTriangle == NoneElementIndex || ship.GetTriangles().IsDeleted(oppositeTriangle))
+        auto const & oppositeTriangleInfo = ship.GetTriangles().GetOppositeTriangle(npcParticle.ConstrainedState->CurrentTriangle, crossedEdgeOrdinal);
+        if (oppositeTriangleInfo.TriangleElementIndex == NoneElementIndex || ship.GetTriangles().IsDeleted(oppositeTriangleInfo.TriangleElementIndex))
         {
             //
             // Become free
@@ -1735,17 +1731,15 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         // Move to triangle
         //
 
-        int const oppositeTriangleCrossedEdgeOrdinal = ship.GetTriangles().GetSubEdgeOrdinal(oppositeTriangle, crossedEdgeElementIndex);
+        LogNpcDebug("      Moving to edge ", oppositeTriangleInfo.EdgeOrdinal, " of opposite triangle ", oppositeTriangleInfo.TriangleElementIndex);
 
-        LogNpcDebug("      Moving to edge ", oppositeTriangleCrossedEdgeOrdinal, " of opposite triangle ", oppositeTriangle);
-
-        npcParticle.ConstrainedState->CurrentTriangle = oppositeTriangle;
+        npcParticle.ConstrainedState->CurrentTriangle = oppositeTriangleInfo.TriangleElementIndex;
 
         // Calculate new current barycentric coords (wrt opposite triangle - note that we haven't moved)
         bcoords3f newBarycentricCoords; // In new triangle
-        newBarycentricCoords[(oppositeTriangleCrossedEdgeOrdinal + 2) % 3] = 0.0f;
-        newBarycentricCoords[oppositeTriangleCrossedEdgeOrdinal] = npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords[(crossedEdgeOrdinal + 1) % 3];
-        newBarycentricCoords[(oppositeTriangleCrossedEdgeOrdinal + 1) % 3] = npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords[crossedEdgeOrdinal];
+        newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 2) % 3] = 0.0f;
+        newBarycentricCoords[oppositeTriangleInfo.EdgeOrdinal] = npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords[(crossedEdgeOrdinal + 1) % 3];
+        newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 1) % 3] = npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords[crossedEdgeOrdinal];
 
         LogNpcDebug("      B-Coords: ", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
 
@@ -1754,16 +1748,16 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords = newBarycentricCoords;
 
         // New vertex: we know that coord of vertex opposite of crossed edge (i.e. vertex with ordinal crossed_edge+2) is 0.0
-        if (newBarycentricCoords[oppositeTriangleCrossedEdgeOrdinal] == 0.0f)
+        if (newBarycentricCoords[oppositeTriangleInfo.EdgeOrdinal] == 0.0f)
         {
             // Between edge and edge+1
-            vertexOrdinal = (oppositeTriangleCrossedEdgeOrdinal + 1) % 3;
+            vertexOrdinal = (oppositeTriangleInfo.EdgeOrdinal + 1) % 3;
         }
         else
         {
             // Between edge and edge-1
-            assert(newBarycentricCoords[(oppositeTriangleCrossedEdgeOrdinal + 1) % 3] == 0.0f);
-            vertexOrdinal = oppositeTriangleCrossedEdgeOrdinal;
+            assert(newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 1) % 3] == 0.0f);
+            vertexOrdinal = oppositeTriangleInfo.EdgeOrdinal;
         }
 
         //

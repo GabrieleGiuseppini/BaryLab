@@ -51,5 +51,6 @@ private:
     static Physics::Triangles CreateTriangles(
         std::vector<ShipBuildTriangle> const & triangleInfos,
         Physics::Vertices & vertices,
+        std::vector<ShipBuildEdge> const & edgeInfos,
         Physics::Edges const & edges);
 };

@@ -18,12 +18,22 @@ void Triangles::Add(
     ElementIndex subEdgeAIndex,
     ElementIndex subEdgeBIndex,
     ElementIndex subEdgeCIndex,
+    ElementIndex subEdgeAOppositeTriangle,
+    int subEdgeAOppositeTriangleEdgeOrdinal,
+    ElementIndex subEdgeBOppositeTriangle,
+    int subEdgeBOppositeTriangleEdgeOrdinal,
+    ElementIndex subEdgeCOppositeTriangle,
+    int subEdgeCOppositeTriangleEdgeOrdinal,
     SurfaceType subEdgeASurfaceType,
     SurfaceType subEdgeBSurfaceType,
     SurfaceType subEdgeCSurfaceType)
 {
     mEndpointsBuffer.emplace_back(particleAIndex, particleBIndex, particleCIndex);
     mSubEdgesBuffer.emplace_back(subEdgeAIndex, subEdgeBIndex, subEdgeCIndex);
+    mOppositeTrianglesBuffer.emplace_back(OppositeTrianglesInfo{
+        OppositeTriangleInfo(subEdgeAOppositeTriangle, subEdgeAOppositeTriangleEdgeOrdinal),
+        OppositeTriangleInfo(subEdgeBOppositeTriangle, subEdgeBOppositeTriangleEdgeOrdinal),
+        OppositeTriangleInfo(subEdgeCOppositeTriangle, subEdgeCOppositeTriangleEdgeOrdinal) });
     mSubEdgeSurfaceTypesBuffer.emplace_back(SubEdgeSurfaceTypes({ subEdgeASurfaceType, subEdgeBSurfaceType, subEdgeCSurfaceType }));
 }
 

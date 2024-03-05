@@ -160,6 +160,7 @@ std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
     Physics::Triangles triangles = CreateTriangles(
         triangleInfos,
         vertices,
+        edgeInfos,
         edges);
 
     //
@@ -437,6 +438,7 @@ Physics::Edges ShipBuilder::CreateEdges(
 Physics::Triangles ShipBuilder::CreateTriangles(
     std::vector<ShipBuildTriangle> const & triangleInfos,
     Physics::Vertices & vertices,
+    std::vector<ShipBuildEdge> const & edgeInfos,
     Physics::Edges const & edges)
 {
     Physics::Triangles triangles(static_cast<ElementIndex>(triangleInfos.size()));
@@ -444,6 +446,54 @@ Physics::Triangles ShipBuilder::CreateTriangles(
     for (ElementIndex t = 0; t < triangleInfos.size(); ++t)
     {
         assert(triangleInfos[t].Edges.size() == 3);
+
+        std::array<std::pair<ElementIndex, int>, 3> subEdgesOppositeTriangle;
+        for (int iEdge = 0; iEdge < 3; ++iEdge)
+        {
+            ElementIndex const edgeElementIndex = triangleInfos[t].Edges[iEdge];
+            assert(edgeInfos[edgeElementIndex].Triangles.size() >= 1 && edgeInfos[edgeElementIndex].Triangles.size() <= 2);
+
+            if (edgeInfos[edgeElementIndex].Triangles[0] == t)
+            {
+                if (edgeInfos[edgeElementIndex].Triangles.size() >= 2)
+                {
+                    assert(edgeInfos[edgeElementIndex].Triangles.size() == 2);
+                    subEdgesOppositeTriangle[iEdge].first = edgeInfos[edgeElementIndex].Triangles[1];
+                }
+                else
+                {
+                    subEdgesOppositeTriangle[iEdge].first = NoneElementIndex;
+                }
+            }
+            else if (edgeInfos[edgeElementIndex].Triangles.size() >= 2)
+            {
+                assert(edgeInfos[edgeElementIndex].Triangles.size() == 2);
+                assert(edgeInfos[edgeElementIndex].Triangles[1] == t);
+                subEdgesOppositeTriangle[iEdge].first = edgeInfos[edgeElementIndex].Triangles[0];
+            }
+            else
+            {
+                subEdgesOppositeTriangle[iEdge].first = NoneElementIndex;
+            }
+
+            if (subEdgesOppositeTriangle[iEdge].first != NoneElementIndex)
+            {
+                if (triangleInfos[subEdgesOppositeTriangle[iEdge].first].Edges[0] == triangleInfos[t].Edges[iEdge])
+                {
+                    subEdgesOppositeTriangle[iEdge].second = 0;
+                }
+                else if (triangleInfos[subEdgesOppositeTriangle[iEdge].first].Edges[1] == triangleInfos[t].Edges[iEdge])
+                {
+                    subEdgesOppositeTriangle[iEdge].second = 1;
+                }
+                else
+                {
+                    assert(triangleInfos[subEdgesOppositeTriangle[iEdge].first].Edges[2] == triangleInfos[t].Edges[iEdge]);
+                    subEdgesOppositeTriangle[iEdge].second = 2;
+                }
+            }
+
+        }
 
         // Create triangle
         triangles.Add(
@@ -453,6 +503,12 @@ Physics::Triangles ShipBuilder::CreateTriangles(
             triangleInfos[t].Edges[0],
             triangleInfos[t].Edges[1],
             triangleInfos[t].Edges[2],
+            subEdgesOppositeTriangle[0].first,
+            subEdgesOppositeTriangle[0].second,
+            subEdgesOppositeTriangle[1].first,
+            subEdgesOppositeTriangle[1].second,
+            subEdgesOppositeTriangle[2].first,
+            subEdgesOppositeTriangle[2].second,
             edges.GetSurfaceType(triangleInfos[t].Edges[0]),
             edges.GetSurfaceType(triangleInfos[t].Edges[1]),
             edges.GetSurfaceType(triangleInfos[t].Edges[2]));
