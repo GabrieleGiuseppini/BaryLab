@@ -247,7 +247,7 @@ void Npcs::RotateParticlesWithShip(
 	}
 }
 
-void Npcs::OnVertexMoved(
+void Npcs::OnPointMoved(
 	float currentSimulationTime,
 	Ship const & ship)
 {
@@ -721,8 +721,8 @@ bool Npcs::IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangle
 	return false;
 }
 
-bool Npcs::IsEdgeHostingCurrentlySelectedParticle(
-	ElementIndex edgeIndex,
+bool Npcs::IsSpringHostingCurrentlySelectedParticle(
+	ElementIndex springIndex,
 	Ship const & ship) const
 {
 	if (mCurrentlySelectedParticle.has_value())
@@ -736,7 +736,7 @@ bool Npcs::IsEdgeHostingCurrentlySelectedParticle(
 			{
 				if (state.PrimaryParticleState.ConstrainedState.has_value()
 					&& state.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal >= 0
-					&& edgeIndex == ship.GetTriangles().GetSubEdges(state.PrimaryParticleState.ConstrainedState->CurrentTriangle).EdgeIndices[state.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal])
+					&& springIndex == ship.GetTriangles().GetSubSprings(state.PrimaryParticleState.ConstrainedState->CurrentTriangle).SpringIndices[state.PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal])
 				{
 					return true;
 				}
@@ -744,7 +744,7 @@ bool Npcs::IsEdgeHostingCurrentlySelectedParticle(
 				if (state.DipoleState.has_value()
 					&& state.DipoleState->SecondaryParticleState.ConstrainedState.has_value()
 					&& state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal >= 0
-					&& edgeIndex == ship.GetTriangles().GetSubEdges(state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangle).EdgeIndices[state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal])
+					&& springIndex == ship.GetTriangles().GetSubSprings(state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangle).SpringIndices[state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal])
 				{
 					return true;
 				}
@@ -773,7 +773,7 @@ void Npcs::RotateParticleWithShip(
 		newPosition = ship.GetTriangles().FromBarycentricCoordinates(
 			npcParticleState.ConstrainedState->CurrentTriangleBarycentricCoords,
 			npcParticleState.ConstrainedState->CurrentTriangle,
-			ship.GetVertices());
+			ship.GetPoints());
 	}
 	else
 	{
@@ -825,7 +825,7 @@ void Npcs::Publish(Ship const & ship)
 						subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = ship.GetTriangles().ToBarycentricCoordinates(
 							mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
 							*mCurrentOriginTriangle,
-							ship.GetVertices());
+							ship.GetPoints());
 					}
 				}
 
@@ -845,7 +845,7 @@ void Npcs::Publish(Ship const & ship)
 						subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = ship.GetTriangles().ToBarycentricCoordinates(
 							mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
 							*mCurrentOriginTriangle,
-							ship.GetVertices());
+							ship.GetPoints());
 					}
 				}
 

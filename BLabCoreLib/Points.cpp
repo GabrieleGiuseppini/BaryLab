@@ -9,18 +9,18 @@
 
 namespace Physics {
 
-void Vertices::Add(vec2f const & position)
+void Points::Add(vec2f const & position)
 {
     mPositionBuffer.emplace_back(position);
-    mConnectedEdgesBuffer.emplace_back();
+    mConnectedSpringsBuffer.emplace_back();
     mConnectedTrianglesBuffer.emplace_back();
 }
 
-void Vertices::Query(ElementIndex vertexElementIndex) const
+void Points::Query(ElementIndex vertexElementIndex) const
 {
     LogMessage("VertexIndex: ", vertexElementIndex);
     LogMessage("P=", mPositionBuffer[vertexElementIndex].toString());
-    LogMessage("Edges: ", mConnectedEdgesBuffer[vertexElementIndex].size());
+    LogMessage("Edges: ", mConnectedSpringsBuffer[vertexElementIndex].size());
     LogMessage("Triangles: ", mConnectedTrianglesBuffer[vertexElementIndex].ConnectedTriangles.size());
 }
 

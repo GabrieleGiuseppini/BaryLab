@@ -61,7 +61,7 @@ public:
 
 				bcoords3f CurrentTriangleBarycentricCoords;
 
-				int CurrentVirtualEdgeOrdinal; // When set, we are "conceptually" along this edge - might not be really the case e.g. when we're at a vertex
+				int CurrentVirtualEdgeOrdinal; // When set, we are "conceptually" along this edge of the current triangle - might not be really the case e.g. when we're at a vertex
 
 				vec2f MeshRelativeVelocity; // Velocity of particle (as in velocity buffer), but relative to mesh (ship) at the moment velocity was calculated
 
@@ -433,7 +433,7 @@ public:
 		float sinAngle,
 		Ship const & ship);
 
-	void OnVertexMoved(
+	void OnPointMoved(
 		float currentSimulationTime,
 		Ship const & ship);
 
@@ -545,8 +545,8 @@ public:
 
 	bool IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangleIndex) const;
 
-	bool IsEdgeHostingCurrentlySelectedParticle(
-		ElementIndex edgeIndex,
+	bool IsSpringHostingCurrentlySelectedParticle(
+		ElementIndex springIndex,
 		Ship const & ship) const;
 
 public:
@@ -562,16 +562,16 @@ public:
 		// - The triangle is _not_ sealed, OR it _is_ sealed but crossing the edge would make the particle free
 		//
 
-		if (ship.GetTriangles().GetSubEdgeSurfaceType(triangleElementIndex, edgeOrdinal) != SurfaceType::Floor)
+		if (ship.GetTriangles().GetSubSpringSurfaceType(triangleElementIndex, edgeOrdinal) != SurfaceType::Floor)
 		{
 			// Not even a floor
 			return false;
 		}
 
 		bool const isSealedTriangle =
-			ship.GetTriangles().GetSubEdgeSurfaceType(triangleElementIndex, 0) == SurfaceType::Floor
-			&& ship.GetTriangles().GetSubEdgeSurfaceType(triangleElementIndex, 1) == SurfaceType::Floor
-			&& ship.GetTriangles().GetSubEdgeSurfaceType(triangleElementIndex, 2) == SurfaceType::Floor;
+			ship.GetTriangles().GetSubSpringSurfaceType(triangleElementIndex, 0) == SurfaceType::Floor
+			&& ship.GetTriangles().GetSubSpringSurfaceType(triangleElementIndex, 1) == SurfaceType::Floor
+			&& ship.GetTriangles().GetSubSpringSurfaceType(triangleElementIndex, 2) == SurfaceType::Floor;
 
 		if (!isSealedTriangle)
 		{
@@ -595,9 +595,9 @@ public:
 		int edgeOrdinal,
 		Ship const & ship)
 	{
-		ElementIndex const edgeElementIndex = ship.GetTriangles().GetSubEdges(triangleElementIndex).EdgeIndices[edgeOrdinal];
-		vec2f const aPos = ship.GetEdges().GetEndpointAPosition(edgeElementIndex, ship.GetVertices());
-		vec2f const bPos = ship.GetEdges().GetEndpointBPosition(edgeElementIndex, ship.GetVertices());
+		ElementIndex const springElementIndex = ship.GetTriangles().GetSubSprings(triangleElementIndex).SpringIndices[edgeOrdinal];
+		vec2f const aPos = ship.GetSprings().GetEndpointAPosition(springElementIndex, ship.GetPoints());
+		vec2f const bPos = ship.GetSprings().GetEndpointBPosition(springElementIndex, ship.GetPoints());
 		vec2f const & p1Pos = primaryParticlePosition;
 		vec2f const & p2Pos = secondaryParticlePosition;
 

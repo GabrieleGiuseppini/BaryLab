@@ -27,8 +27,8 @@ struct LabParameters
     // Structural constants
     //
 
-    static size_t constexpr MaxEdgesPerVertex = 8u;
-    static size_t constexpr MaxTrianglesPerVertex = 8u;
+    static size_t constexpr MaxSpringsPerPoint = 8u;
+    static size_t constexpr MaxTrianglesPerPoint = 8u;
     static size_t constexpr MaxNpcs = 128u;
     static size_t constexpr MaxParticlesPerNpc = 2u;
 

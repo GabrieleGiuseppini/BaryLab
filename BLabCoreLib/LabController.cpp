@@ -108,8 +108,8 @@ void LabController::Render()
 
     if (mModel)
     {
-        auto const & vertices = mModel->GetShip().GetVertices();
-        auto const & edges = mModel->GetShip().GetEdges();
+        auto const & points = mModel->GetShip().GetPoints();
+        auto const & springs = mModel->GetShip().GetSprings();
         auto const & triangles = mModel->GetShip().GetTriangles();
 
         //
@@ -117,8 +117,8 @@ void LabController::Render()
         //
 
         mRenderContext->UploadVertices(
-            vertices.GetElementCount(),
-            vertices.GetPositionBuffer());
+            points.GetElementCount(),
+            points.GetPositionBuffer());
 
         //
         // Edges (of triangles)
@@ -130,50 +130,36 @@ void LabController::Render()
 
         for (auto t : triangles)
         {
-            rgbaColor color = edges.GetRenderColor(triangles.GetSubEdgeAIndex(t));
-            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(triangles.GetSubEdgeAIndex(t), mModel->GetShip()))
+            rgbaColor color = springs.GetRenderColor(triangles.GetSubSpringAIndex(t));
+            if (mModel->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringAIndex(t), mModel->GetShip()))
             {
                 color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
             }
             mRenderContext->UploadEdge(
-                vertices.GetPosition(triangles.GetVertexAIndex(t)),
-                vertices.GetPosition(triangles.GetVertexBIndex(t)),
+                points.GetPosition(triangles.GetPointAIndex(t)),
+                points.GetPosition(triangles.GetPointBIndex(t)),
                 color);
 
-            color = edges.GetRenderColor(triangles.GetSubEdgeBIndex(t));
-            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(triangles.GetSubEdgeBIndex(t), mModel->GetShip()))
+            color = springs.GetRenderColor(triangles.GetSubSpringBIndex(t));
+            if (mModel->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringBIndex(t), mModel->GetShip()))
             {
                 color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
             }
             mRenderContext->UploadEdge(
-                vertices.GetPosition(triangles.GetVertexBIndex(t)),
-                vertices.GetPosition(triangles.GetVertexCIndex(t)),
+                points.GetPosition(triangles.GetPointBIndex(t)),
+                points.GetPosition(triangles.GetPointCIndex(t)),
                 color);
 
-            color = edges.GetRenderColor(triangles.GetSubEdgeCIndex(t));
-            if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(triangles.GetSubEdgeCIndex(t), mModel->GetShip()))
+            color = springs.GetRenderColor(triangles.GetSubSpringCIndex(t));
+            if (mModel->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringCIndex(t), mModel->GetShip()))
             {
                 color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
             }
             mRenderContext->UploadEdge(
-                vertices.GetPosition(triangles.GetVertexCIndex(t)),
-                vertices.GetPosition(triangles.GetVertexAIndex(t)),
+                points.GetPosition(triangles.GetPointCIndex(t)),
+                points.GetPosition(triangles.GetPointAIndex(t)),
                 color);
         }
-
-        ////for (auto e : edges)
-        ////{
-        ////    rgbaColor color = edges.GetRenderColor(e);
-        ////    if (mModel->GetNpcs().IsEdgeHostingCurrentlySelectedParticle(e))
-        ////    {
-        ////        color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
-        ////    }
-
-        ////    mRenderContext->UploadEdge(
-        ////        vertices.GetPosition(edges.GetEndpointAIndex(e)),
-        ////        vertices.GetPosition(edges.GetEndpointBIndex(e)),
-        ////        color);
-        ////}
 
         mRenderContext->UploadEdgesEnd();
 
@@ -196,9 +182,9 @@ void LabController::Render()
                 color = rgbaColor(227, 107, 107, 77);
             }
             else if (
-                edges.GetSurfaceType(triangles.GetSubEdgeAIndex(t)) == SurfaceType::Floor
-                && edges.GetSurfaceType(triangles.GetSubEdgeBIndex(t)) == SurfaceType::Floor
-                && edges.GetSurfaceType(triangles.GetSubEdgeCIndex(t)) == SurfaceType::Floor)
+                springs.GetSurfaceType(triangles.GetSubSpringAIndex(t)) == SurfaceType::Floor
+                && springs.GetSurfaceType(triangles.GetSubSpringBIndex(t)) == SurfaceType::Floor
+                && springs.GetSurfaceType(triangles.GetSubSpringCIndex(t)) == SurfaceType::Floor)
             {
                 color = rgbaColor(35, 35, 35, 77);
             }
@@ -206,9 +192,9 @@ void LabController::Render()
             if (color)
             {
                 mRenderContext->UploadTriangle(
-                    vertices.GetPosition(triangles.GetVertexAIndex(t)),
-                    vertices.GetPosition(triangles.GetVertexBIndex(t)),
-                    vertices.GetPosition(triangles.GetVertexCIndex(t)),
+                    points.GetPosition(triangles.GetPointAIndex(t)),
+                    points.GetPosition(triangles.GetPointBIndex(t)),
+                    points.GetPosition(triangles.GetPointCIndex(t)),
                     *color);
             }
         }
@@ -244,10 +230,10 @@ void LabController::UpdateShipTransformations()
     vec2f const translation = mCurrentShipTranslationVelocity * LabParameters::SimulationTimeStepDuration;
 
     // Update ship
-    auto & vertices = mModel->GetShip().GetVertices();
-    for (auto v : vertices)
+    auto & points = mModel->GetShip().GetPoints();
+    for (auto p : points)
     {
-        vertices.SetPosition(v, vertices.GetPosition(v) + translation);
+        points.SetPosition(p, points.GetPosition(p) + translation);
     }
 
     // Update camera pan
@@ -267,39 +253,39 @@ std::optional<ElementIndex> LabController::TryPickVertex(vec2f const & screenCoo
     float constexpr SquareSearchRadius = LabParameters::VertexRadius * LabParameters::VertexRadius;
 
     float bestSquareDistance = std::numeric_limits<float>::max();
-    ElementIndex bestVertex = NoneElementIndex;
+    ElementIndex bestPoint = NoneElementIndex;
 
-    auto const & vertices = mModel->GetShip().GetVertices();
-    for (auto v : vertices)
+    auto const & points = mModel->GetShip().GetPoints();
+    for (auto p : points)
     {
-        float const squareDistance = (vertices.GetPosition(v) - worldCoordinates).squareLength();
+        float const squareDistance = (points.GetPosition(p) - worldCoordinates).squareLength();
         if (squareDistance < SquareSearchRadius
             && squareDistance < bestSquareDistance)
         {
             bestSquareDistance = squareDistance;
-            bestVertex = v;
+            bestPoint = p;
         }
     }
 
-    if (bestVertex != NoneElementIndex)
-        return bestVertex;
+    if (bestPoint != NoneElementIndex)
+        return bestPoint;
     else
         return std::nullopt;
 }
 
 void LabController::MoveVertexBy(
-    ElementIndex vertexIndex,
+    ElementIndex pointIndex,
     vec2f const & screenOffset)
 {
     assert(!!mModel);
 
     vec2f const worldOffset = ScreenOffsetToWorldOffset(screenOffset);
 
-    mModel->GetShip().GetVertices().SetPosition(
-        vertexIndex,
-        mModel->GetShip().GetVertices().GetPosition(vertexIndex) + worldOffset);
+    mModel->GetShip().GetPoints().SetPosition(
+        pointIndex,
+        mModel->GetShip().GetPoints().GetPosition(pointIndex) + worldOffset);
 
-    mModel->GetNpcs().OnVertexMoved(mCurrentSimulationTime, mModel->GetShip());
+    mModel->GetNpcs().OnPointMoved(mCurrentSimulationTime, mModel->GetShip());
 }
 
 void LabController::RotateShipBy(
@@ -318,15 +304,15 @@ void LabController::RotateShipBy(
     // Rotate ship
     //
 
-    auto & vertices = mModel->GetShip().GetVertices();
-    for (auto v : vertices)
+    auto & points = mModel->GetShip().GetPoints();
+    for (auto p : points)
     {
-        vec2f const centeredPos = vertices.GetPosition(v) - worldCenter;
+        vec2f const centeredPos = points.GetPosition(p) - worldCenter;
         vec2f const rotatedPos = vec2f(
             centeredPos.x * cosAngle - centeredPos.y * sinAngle,
             centeredPos.x * sinAngle + centeredPos.y * cosAngle);
 
-        vertices.SetPosition(v, rotatedPos + worldCenter);
+        points.SetPosition(p, rotatedPos + worldCenter);
     }
 
     // TODOTEST
@@ -359,15 +345,15 @@ void LabController::RotateShipBy(
     float const cosAngle = std::cos(worldAngle);
     float const sinAngle = std::sin(worldAngle);
 
-    auto & vertices = mModel->GetShip().GetVertices();
-    for (auto v : vertices)
+    auto & points = mModel->GetShip().GetPoints();
+    for (auto p : points)
     {
-        vec2f const centeredPos = vertices.GetPosition(v) - worldCenter;
+        vec2f const centeredPos = points.GetPosition(p) - worldCenter;
         vec2f const rotatedPos = vec2f(
             centeredPos.x * cosAngle - centeredPos.y * sinAngle,
             centeredPos.x * sinAngle + centeredPos.y * cosAngle);
 
-        vertices.SetPosition(v, rotatedPos + worldCenter);
+        points.SetPosition(p, rotatedPos + worldCenter);
     }
 
     // TODOTEST
@@ -388,7 +374,7 @@ bool LabController::TrySelectOriginTriangle(vec2f const & screenCoordinates)
 
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
-    ElementIndex const t = mModel->GetShip().GetTriangles().FindContaining(worldCoordinates, mModel->GetShip().GetVertices());
+    ElementIndex const t = mModel->GetShip().GetTriangles().FindContaining(worldCoordinates, mModel->GetShip().GetPoints());
     if (t != NoneElementIndex)
     {
         mModel->GetNpcs().SelectOriginTriangle(t);
@@ -896,7 +882,7 @@ void LabController::LoadShip(
         ////ElementIndex const triangleIndex = 46;
         ////float const TODO = 0.99435f;
         ////bcoords3f const baryCoords = bcoords3f(TODO, 0.0f, 1.0f - TODO);
-        ////vec2f const position = ship->GetTriangles().FromBarycentricCoordinates(baryCoords, triangleIndex, ship->GetVertices());
+        ////vec2f const position = ship->GetTriangles().FromBarycentricCoordinates(baryCoords, triangleIndex, ship->GetPoints());
 
         npcs->Add(
             // TODOTEST
@@ -977,7 +963,7 @@ void LabController::Reset(
     //
 
     {
-        AABB const objectAABB = mModel->GetShip().GetVertices().GetAABB();
+        AABB const objectAABB = mModel->GetShip().GetPoints().GetAABB();
 
         vec2f const objectSize = objectAABB.GetSize();
 

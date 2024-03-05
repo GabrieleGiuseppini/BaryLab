@@ -21,39 +21,39 @@
 
 namespace Physics {
 
-class Vertices : public ElementContainer
+class Points : public ElementContainer
 {
 public:
 
     /*
      * The metadata of a single edge connected to a vertex.
      */
-    struct ConnectedEdge
+    struct ConnectedSpring
     {
-        ElementIndex EdgeIndex;
+        ElementIndex SpringIndex;
         ElementIndex OtherEndpointIndex;
 
-        ConnectedEdge()
-            : EdgeIndex(NoneElementIndex)
+        ConnectedSpring()
+            : SpringIndex(NoneElementIndex)
             , OtherEndpointIndex(NoneElementIndex)
         {}
 
-        ConnectedEdge(
-            ElementIndex edgeIndex,
+        ConnectedSpring(
+            ElementIndex springIndex,
             ElementIndex otherEndpointIndex)
-            : EdgeIndex(edgeIndex)
+            : SpringIndex(springIndex)
             , OtherEndpointIndex(otherEndpointIndex)
         {}
     };
 
-    using ConnectedEdgesVector = FixedSizeVector<ConnectedEdge, LabParameters::MaxEdgesPerVertex>;
+    using ConnectedSpringsVector = FixedSizeVector<ConnectedSpring, LabParameters::MaxSpringsPerPoint>;
 
     /*
      * The metadata of all the triangles connected to a vertex.
      */
     struct ConnectedTrianglesVector
     {
-        FixedSizeVector<ElementIndex, LabParameters::MaxTrianglesPerVertex> ConnectedTriangles;
+        FixedSizeVector<ElementIndex, LabParameters::MaxTrianglesPerPoint> ConnectedTriangles;
         size_t OwnedConnectedTrianglesCount;
 
         ConnectedTrianglesVector()
@@ -101,39 +101,39 @@ public:
 
 public:
 
-    Vertices(ElementCount vertexCount)
-        : ElementContainer(vertexCount)
+    Points(ElementCount pointCount)
+        : ElementContainer(pointCount)
         //////////////////////////////////
         // Buffers
         //////////////////////////////////
-        , mPositionBuffer(mBufferElementCount, vertexCount, vec2f::zero())
-        , mConnectedEdgesBuffer(mBufferElementCount, vertexCount, ConnectedEdgesVector())
-        , mConnectedTrianglesBuffer(mBufferElementCount, vertexCount, ConnectedTrianglesVector())
+        , mPositionBuffer(mBufferElementCount, pointCount, vec2f::zero())
+        , mConnectedSpringsBuffer(mBufferElementCount, pointCount, ConnectedSpringsVector())
+        , mConnectedTrianglesBuffer(mBufferElementCount, pointCount, ConnectedTrianglesVector())
     {
     }
 
-    Vertices(Vertices && other) = default;
+    Points(Points && other) = default;
 
     void Add(vec2f const & position);
 
     AABB GetAABB() const
     {
         AABB box;
-        for (ElementIndex vertexIndex : *this)
+        for (ElementIndex pointIndex : *this)
         {
-            box.ExtendTo(GetPosition(vertexIndex));
+            box.ExtendTo(GetPosition(pointIndex));
         }
 
         return box;
     }
 
-    void Query(ElementIndex vertexElementIndex) const;
+    void Query(ElementIndex pointElementIndex) const;
 
 public:
 
-    vec2f const & GetPosition(ElementIndex vertexElementIndex) const noexcept
+    vec2f const & GetPosition(ElementIndex pointElementIndex) const noexcept
     {
-        return mPositionBuffer[vertexElementIndex];
+        return mPositionBuffer[pointElementIndex];
     }
 
     vec2f const * GetPositionBuffer() const noexcept
@@ -147,50 +147,50 @@ public:
     }
 
     void SetPosition(
-        ElementIndex vertexElementIndex,
+        ElementIndex pointElementIndex,
         vec2f const & value) noexcept
     {
-        mPositionBuffer[vertexElementIndex] = value;
+        mPositionBuffer[pointElementIndex] = value;
     }
 
-    auto const & GetConnectedEdges(ElementIndex vertexElementIndex) const
+    auto const & GetConnectedSprings(ElementIndex pointElementIndex) const
     {
-        return mConnectedEdgesBuffer[vertexElementIndex];
+        return mConnectedSpringsBuffer[pointElementIndex];
     }
 
-    void AddConnectedEdge(
-        ElementIndex vertexElementIndex,
-        ElementIndex edgeElementIndex,
+    void AddConnectedSpring(
+        ElementIndex pointElementIndex,
+        ElementIndex springElementIndex,
         ElementIndex otherEndpointElementIndex)
     {
-        assert(!mConnectedEdgesBuffer[vertexElementIndex].contains(
-            [edgeElementIndex](auto const & cs)
+        assert(!mConnectedSpringsBuffer[pointElementIndex].contains(
+            [springElementIndex](auto const & cs)
             {
-                return cs.EdgeIndex == edgeElementIndex;
+                return cs.SpringIndex == springElementIndex;
             }));
 
-        mConnectedEdgesBuffer[vertexElementIndex].emplace_back(
-            edgeElementIndex,
+        mConnectedSpringsBuffer[pointElementIndex].emplace_back(
+            springElementIndex,
             otherEndpointElementIndex);
     }
 
-    auto const & GetConnectedTriangles(ElementIndex vertexElementIndex) const
+    auto const & GetConnectedTriangles(ElementIndex pointElementIndex) const
     {
-        return mConnectedTrianglesBuffer[vertexElementIndex];
+        return mConnectedTrianglesBuffer[pointElementIndex];
     }
 
     void AddConnectedTriangle(
-        ElementIndex vertexElementIndex,
+        ElementIndex pointElementIndex,
         ElementIndex triangleElementIndex,
         bool isAtOwner)
     {
-        assert(!mConnectedTrianglesBuffer[vertexElementIndex].ConnectedTriangles.contains(
+        assert(!mConnectedTrianglesBuffer[pointElementIndex].ConnectedTriangles.contains(
             [triangleElementIndex](auto const & ct)
             {
                 return ct == triangleElementIndex;
             }));
 
-        mConnectedTrianglesBuffer[vertexElementIndex].ConnectTriangle(
+        mConnectedTrianglesBuffer[pointElementIndex].ConnectTriangle(
             triangleElementIndex,
             isAtOwner);
     }
@@ -198,7 +198,7 @@ public:
 private:
 
     Buffer<vec2f> mPositionBuffer;
-    Buffer<ConnectedEdgesVector> mConnectedEdgesBuffer;
+    Buffer<ConnectedSpringsVector> mConnectedSpringsBuffer;
     Buffer<ConnectedTrianglesVector> mConnectedTrianglesBuffer;
 };
 

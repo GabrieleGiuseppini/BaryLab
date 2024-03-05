@@ -22,8 +22,6 @@ set  (SOURCES
 	CircularList.h
 	Colors.cpp
 	Colors.h
-	Edges.cpp
-	Edges.h
 	ElementContainer.h
 	ElementIndexRangeIterator.h
 	EventDispatcher.h
@@ -53,6 +51,8 @@ set  (SOURCES
 	Npcs_Simulation.cpp
 	OceanSurface.h
 	Physics.h
+	Points.cpp
+	Points.h
 	RenderContext.cpp
 	RenderContext.h
 	ResourceLocator.h
@@ -66,6 +66,8 @@ set  (SOURCES
 	ShipBuilderTypes.h
 	ShipDefinition.cpp
 	ShipDefinition.h
+	Springs.cpp
+	Springs.h
 	StrongTypeDef.h
 	StructuralMaterial.cpp
 	StructuralMaterial.h
@@ -78,8 +80,6 @@ set  (SOURCES
 	Vectors.cpp
 	Vectors.h
 	Version.h
-	Vertices.cpp
-	Vertices.h
 	ViewModel.h
 	World.h
 )

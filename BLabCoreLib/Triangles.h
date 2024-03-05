@@ -30,33 +30,33 @@ private:
     struct Endpoints
     {
         // A, B, C
-        std::array<ElementIndex, 3u> VertexIndices;
+        std::array<ElementIndex, 3u> PointIndices;
 
         Endpoints(
-            ElementIndex vertexAIndex,
-            ElementIndex vertexBIndex,
-            ElementIndex vertexCIndex)
-            : VertexIndices({ vertexAIndex, vertexBIndex, vertexCIndex })
+            ElementIndex pointAIndex,
+            ElementIndex pointBIndex,
+            ElementIndex pointCIndex)
+            : PointIndices({ pointAIndex, pointBIndex, pointCIndex })
         {}
     };
 
     /*
      * The edges of a triangle, in CW order.
      */
-    struct SubEdges
+    struct SubSprings
     {
         // A, B, C
-        std::array<ElementIndex, 3u> EdgeIndices;
+        std::array<ElementIndex, 3u> SpringIndices;
 
-        SubEdges(
-            ElementIndex subEdgeAIndex,
-            ElementIndex subEdgeBIndex,
-            ElementIndex subEdgeCIndex)
-            : EdgeIndices({ subEdgeAIndex, subEdgeBIndex, subEdgeCIndex })
+        SubSprings(
+            ElementIndex subSpringAIndex,
+            ElementIndex subSpringBIndex,
+            ElementIndex subSpringCIndex)
+            : SpringIndices({ subSpringAIndex, subSpringBIndex, subSpringCIndex })
         {}
     };
 
-    using SubEdgeSurfaceTypes = std::array<SurfaceType, 3>;
+    using SubSpringSurfaceTypes = std::array<SurfaceType, 3>;
 
     /*
      * The opposite triangles of an edge, by edge ordinal.
@@ -86,30 +86,30 @@ public:
         //////////////////////////////////
         // Container
         , mEndpointsBuffer(mBufferElementCount, mElementCount, Endpoints(NoneElementIndex, NoneElementIndex, NoneElementIndex))
-        , mSubEdgesBuffer(mBufferElementCount, mElementCount, SubEdges(NoneElementIndex, NoneElementIndex, NoneElementIndex))
+        , mSubSpringsBuffer(mBufferElementCount, mElementCount, SubSprings(NoneElementIndex, NoneElementIndex, NoneElementIndex))
         , mOppositeTrianglesBuffer(mBufferElementCount, mElementCount, { OppositeTriangleInfo(NoneElementIndex, -1), OppositeTriangleInfo(NoneElementIndex, -1), OppositeTriangleInfo(NoneElementIndex, -1) })
-        , mSubEdgeSurfaceTypesBuffer(mBufferElementCount, mElementCount, {SurfaceType::Open, SurfaceType::Open, SurfaceType::Open})
+        , mSubSpringSurfaceTypesBuffer(mBufferElementCount, mElementCount, {SurfaceType::Open, SurfaceType::Open, SurfaceType::Open})
     {
     }
 
     Triangles(Triangles && other) = default;
 
     void Add(
-        ElementIndex vertexAIndex,
-        ElementIndex vertexBIndex,
-        ElementIndex vertexCIndex,
-        ElementIndex subEdgeAIndex,
-        ElementIndex subEdgeBIndex,
-        ElementIndex subEdgeCIndex,
-        ElementIndex subEdgeAOppositeTriangle,
-        int subEdgeAOppositeTriangleEdgeOrdinal,
-        ElementIndex subEdgeBOppositeTriangle,
-        int subEdgeBOppositeTriangleEdgeOrdinal,
-        ElementIndex subEdgeCOppositeTriangle,
-        int subEdgeCOppositeTriangleEdgeOrdinal,
-        SurfaceType subEdgeASurfaceType,
-        SurfaceType subEdgeBSurfaceType,
-        SurfaceType subEdgeCSurfaceType);
+        ElementIndex pointAIndex,
+        ElementIndex pointBIndex,
+        ElementIndex pointCIndex,
+        ElementIndex subSpringAIndex,
+        ElementIndex subSpringBIndex,
+        ElementIndex subSpringCIndex,
+        ElementIndex subSpringAOppositeTriangle,
+        int subSpringAOppositeTriangleEdgeOrdinal,
+        ElementIndex subSpringBOppositeTriangle,
+        int subSpringBOppositeTriangleEdgeOrdinal,
+        ElementIndex subSpringCOppositeTriangle,
+        int subSpringCOppositeTriangleEdgeOrdinal,
+        SurfaceType subSpringASurfaceType,
+        SurfaceType subSpringBSurfaceType,
+        SurfaceType subSpringCSurfaceType);
 
 public:
 
@@ -123,101 +123,101 @@ public:
     // Endpoints
     //
 
-    inline auto const & GetVertexIndices(ElementIndex triangleElementIndex) const
+    inline auto const & GetPointIndices(ElementIndex triangleElementIndex) const
     {
-        return mEndpointsBuffer[triangleElementIndex].VertexIndices;
+        return mEndpointsBuffer[triangleElementIndex].PointIndices;
     }
 
-    inline ElementIndex GetVertexAIndex(ElementIndex triangleElementIndex) const
+    inline ElementIndex GetPointAIndex(ElementIndex triangleElementIndex) const
     {
-        return mEndpointsBuffer[triangleElementIndex].VertexIndices[0];
+        return mEndpointsBuffer[triangleElementIndex].PointIndices[0];
     }
 
-    inline ElementIndex GetVertexBIndex(ElementIndex triangleElementIndex) const
+    inline ElementIndex GetPointBIndex(ElementIndex triangleElementIndex) const
     {
-        return mEndpointsBuffer[triangleElementIndex].VertexIndices[1];
+        return mEndpointsBuffer[triangleElementIndex].PointIndices[1];
     }
 
-    inline ElementIndex GetVertexCIndex(ElementIndex triangleElementIndex) const
+    inline ElementIndex GetPointCIndex(ElementIndex triangleElementIndex) const
     {
-        return mEndpointsBuffer[triangleElementIndex].VertexIndices[2];
+        return mEndpointsBuffer[triangleElementIndex].PointIndices[2];
     }
 
-    inline bool AreVerticesInCwOrder(
+    inline bool ArePointsInCwOrder(
         ElementIndex triangleElementIndex,
-        ElementIndex vertex1Index,
-        ElementIndex vertex2Index) const
+        ElementIndex point1Index,
+        ElementIndex point2Index) const
     {
-        return (GetVertexAIndex(triangleElementIndex) == vertex1Index && GetVertexBIndex(triangleElementIndex) == vertex2Index)
-            || (GetVertexBIndex(triangleElementIndex) == vertex1Index && GetVertexCIndex(triangleElementIndex) == vertex2Index)
-            || (GetVertexCIndex(triangleElementIndex) == vertex1Index && GetVertexAIndex(triangleElementIndex) == vertex2Index);
+        return (GetPointAIndex(triangleElementIndex) == point1Index && GetPointBIndex(triangleElementIndex) == point2Index)
+            || (GetPointBIndex(triangleElementIndex) == point1Index && GetPointCIndex(triangleElementIndex) == point2Index)
+            || (GetPointCIndex(triangleElementIndex) == point1Index && GetPointAIndex(triangleElementIndex) == point2Index);
     }
 
     bool ContainsPoint(
         vec2f const & position,
         ElementIndex triangleElementIndex,
-        Vertices const & vertices) const;
+        Points const & points) const;
 
     ElementIndex FindContaining(
         vec2f const & position,
-        Vertices const & vertices) const;
+        Points const & points) const;
 
     bcoords3f ToBarycentricCoordinates(
         vec2f const & position,
         ElementIndex triangleElementIndex,
-        Vertices const & vertices) const;
+        Points const & points) const;
 
     bcoords3f ToBarycentricCoordinates(
         vec2f const & position,
         ElementIndex triangleElementIndex,
-        Vertices const & vertices,
+        Points const & points,
         float epsilon) const;
 
     bcoords3f ToBarycentricCoordinatesFromWithinTriangle(
         vec2f const & position,
         ElementIndex triangleElementIndex,
-        Vertices const & vertices) const;
+        Points const & points) const;
 
     vec2f FromBarycentricCoordinates(
         bcoords3f const & barycentricCoordinates,
         ElementIndex triangleElementIndex,
-        Vertices const & vertices) const;
+        Points const & points) const;
 
     //
-    // Sub edges
+    // Sub springs
     //
 
-    auto const & GetSubEdges(ElementIndex triangleElementIndex) const
+    auto const & GetSubSprings(ElementIndex triangleElementIndex) const
     {
-        return mSubEdgesBuffer[triangleElementIndex];
+        return mSubSpringsBuffer[triangleElementIndex];
     }
 
-    inline ElementIndex GetSubEdgeAIndex(ElementIndex triangleElementIndex) const
+    inline ElementIndex GetSubSpringAIndex(ElementIndex triangleElementIndex) const
     {
-        return mSubEdgesBuffer[triangleElementIndex].EdgeIndices[0];
+        return mSubSpringsBuffer[triangleElementIndex].SpringIndices[0];
     }
 
-    inline ElementIndex GetSubEdgeBIndex(ElementIndex triangleElementIndex) const
+    inline ElementIndex GetSubSpringBIndex(ElementIndex triangleElementIndex) const
     {
-        return mSubEdgesBuffer[triangleElementIndex].EdgeIndices[1];
+        return mSubSpringsBuffer[triangleElementIndex].SpringIndices[1];
     }
 
-    inline ElementIndex GetSubEdgeCIndex(ElementIndex triangleElementIndex) const
+    inline ElementIndex GetSubSpringCIndex(ElementIndex triangleElementIndex) const
     {
-        return mSubEdgesBuffer[triangleElementIndex].EdgeIndices[2];
+        return mSubSpringsBuffer[triangleElementIndex].SpringIndices[2];
     }
 
-    inline int GetSubEdgeOrdinal(
+    inline int GetSubSpringOrdinal(
         ElementIndex triangleElementIndex,
-        ElementIndex edgeElementIndex) const
+        ElementIndex springElementIndex) const
     {
-        if (mSubEdgesBuffer[triangleElementIndex].EdgeIndices[0] == edgeElementIndex)
+        if (mSubSpringsBuffer[triangleElementIndex].SpringIndices[0] == springElementIndex)
             return 0;
-        else if (mSubEdgesBuffer[triangleElementIndex].EdgeIndices[1] == edgeElementIndex)
+        else if (mSubSpringsBuffer[triangleElementIndex].SpringIndices[1] == springElementIndex)
             return 1;
         else
         {
-            assert(mSubEdgesBuffer[triangleElementIndex].EdgeIndices[2] == edgeElementIndex);
+            assert(mSubSpringsBuffer[triangleElementIndex].SpringIndices[2] == springElementIndex);
             return 2;
         }
     }
@@ -226,17 +226,17 @@ public:
      * Returns the vector representing the specified edge (ordinal), oriented
      * according to the triangle's point of view (thus CW).
      */
-    inline vec2f GetSubEdgeVector(
+    inline vec2f GetSubSpringVector(
         ElementIndex triangleElementIndex,
-        int edgeOrdinal,
-        Vertices const & vertices) const
+        int springOrdinal,
+        Points const & points) const
     {
-        assert(edgeOrdinal >= 0 && edgeOrdinal < 3);
+        assert(springOrdinal >= 0 && springOrdinal < 3);
 
-        ElementIndex const v2 = mEndpointsBuffer[triangleElementIndex].VertexIndices[(edgeOrdinal + 1) % 3];
-        ElementIndex const v1 = mEndpointsBuffer[triangleElementIndex].VertexIndices[edgeOrdinal];
+        ElementIndex const v2 = mEndpointsBuffer[triangleElementIndex].PointIndices[(springOrdinal + 1) % 3];
+        ElementIndex const v1 = mEndpointsBuffer[triangleElementIndex].PointIndices[springOrdinal];
 
-        return vertices.GetPosition(v2) - vertices.GetPosition(v1);
+        return points.GetPosition(v2) - points.GetPosition(v1);
     }
 
     // Opposite triangles
@@ -248,20 +248,20 @@ public:
 
     OppositeTriangleInfo const & GetOppositeTriangle(
         ElementIndex triangleElementIndex,
-        int edgeOrdinal) const
+        int springOrdinal) const
     {
-        assert(edgeOrdinal >= 0 && edgeOrdinal < 3);
-        return mOppositeTrianglesBuffer[triangleElementIndex][edgeOrdinal];
+        assert(springOrdinal >= 0 && springOrdinal < 3);
+        return mOppositeTrianglesBuffer[triangleElementIndex][springOrdinal];
     }
 
     // Surface types
 
-    SurfaceType GetSubEdgeSurfaceType(
+    SurfaceType GetSubSpringSurfaceType(
         ElementIndex triangleElementIndex,
-        int edgeOrdinal) const
+        int springOrdinal) const
     {
-        assert(edgeOrdinal >= 0 && edgeOrdinal < 3);
-        return mSubEdgeSurfaceTypesBuffer[triangleElementIndex][edgeOrdinal];
+        assert(springOrdinal >= 0 && springOrdinal < 3);
+        return mSubSpringSurfaceTypesBuffer[triangleElementIndex][springOrdinal];
     }
 
 private:
@@ -269,7 +269,7 @@ private:
     inline vec2f InternalToBarycentricCoordinates(
         vec2f const & position,
         ElementIndex triangleElementIndex,
-        Vertices const & vertices) const;
+        Points const & points) const;
 
 private:
 
@@ -280,14 +280,14 @@ private:
     // Endpoints
     Buffer<Endpoints> mEndpointsBuffer;
 
-    // Sub edges
-    Buffer<SubEdges> mSubEdgesBuffer;
+    // Sub springs
+    Buffer<SubSprings> mSubSpringsBuffer;
 
     // Opposite triangles
     Buffer<OppositeTrianglesInfo> mOppositeTrianglesBuffer;
 
     // Surface types
-    Buffer<SubEdgeSurfaceTypes> mSubEdgeSurfaceTypesBuffer;
+    Buffer<SubSpringSurfaceTypes> mSubSpringSurfaceTypesBuffer;
 };
 
 }

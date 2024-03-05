@@ -35,8 +35,8 @@ std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
 {
     //
     // Process structural layer and:
-    // - Create ShipBuildVertex's for each vertex
-    // - Build a 2D matrix containing indices to the vertices
+    // - Create ShipBuildPoint's for each point
+    // - Build a 2D matrix containing indices to the points
     //
 
     int const shipWidth = shipDefinition.StructuralLayerImage.Size.Width;
@@ -47,17 +47,17 @@ std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
 
     auto const & structuralLayerBuffer = shipDefinition.StructuralLayerImage.Data;
 
-    // Vertices
-    std::vector<ShipBuildVertex> vertexInfos;
+    // Points
+    std::vector<ShipBuildPoint> pointInfos;
 
-    // Edges
-    std::vector<ShipBuildEdge> edgeInfos;
+    // Springs
+    std::vector<ShipBuildSpring> springInfos;
 
     // Triangles
     std::vector<ShipBuildTriangle> triangleInfos;
 
-    // Matrix of vertices - we allocate 2 extra dummy rows and cols - around - to avoid checking for boundaries
-    ShipBuildVertexIndexMatrix vertexIndexMatrix(shipWidth + 2, shipHeight + 2);
+    // Matrix of points - we allocate 2 extra dummy rows and cols - around - to avoid checking for boundaries
+    ShipBuildPointIndexMatrix pointIndexMatrix(shipWidth + 2, shipHeight + 2);
 
     // Region of actual content
     int minX = shipWidth;
@@ -76,14 +76,14 @@ std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
             if (nullptr != structuralMaterial)
             {
                 //
-                // Make a vertex
+                // Make a point
                 //
 
-                ElementIndex const vertexIndex = static_cast<ElementIndex>(vertexInfos.size());
+                ElementIndex const pointIndex = static_cast<ElementIndex>(pointInfos.size());
 
-                vertexIndexMatrix[{x + 1, y + 1}] = static_cast<ElementIndex>(vertexIndex);
+                pointIndexMatrix[{x + 1, y + 1}] = static_cast<ElementIndex>(pointIndex);
 
-                vertexInfos.emplace_back(
+                pointInfos.emplace_back(
                     vec2f(
                         static_cast<float>(x) - halfShipWidth,
                         static_cast<float>(y) - halfShipHeight),
@@ -108,50 +108,50 @@ std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
 
 
     //
-    // Visit vertex matrix and:
-    //  - Detect edges and create ShipBuildEdge's for them
+    // Visit point matrix and:
+    //  - Detect edges and create ShipBuildSpring's for them
     //      - And populate the point pair -> edge index 1 map
     //  - Do tessellation and create ShipBuildTriangle's
     //
 
     CreateElementInfos(
-        vertexIndexMatrix,
-        vertexInfos,
-        edgeInfos,
+        pointIndexMatrix,
+        pointInfos,
+        springInfos,
         triangleInfos);
 
 
     //
-    // Connect vertices to triangles
+    // Connect points to triangles
     //
 
-    ConnectVerticesToTriangles(
-        vertexInfos,
+    ConnectPointsToTriangles(
+        pointInfos,
         triangleInfos);
 
     //
     // Associate all edges with their triangles
     //
 
-    ConnectEdgesToTriangles(
-        edgeInfos,
+    ConnectSpringsToTriangles(
+        springInfos,
         triangleInfos);
 
     //
-    // Visit all ShipBuildVertex's and create Vertices, i.e. the entire set of vertices
+    // Visit all ShipBuildPoint's and create Points, i.e. the entire set of points
     //
 
-    Physics::Vertices vertices = CreateVertices(
-        vertexInfos);
+    Physics::Points points = CreatePoints(
+        pointInfos);
 
     //
-    // Create Edges for all ShipBuildEdge's
+    // Create Springs for all ShipBuildSpring's
     //
 
-    Physics::Edges edges = CreateEdges(
-        edgeInfos,
-        vertexInfos,
-        vertices);
+    Physics::Springs springs = CreateSprings(
+        springInfos,
+        pointInfos,
+        points);
 
     //
     // Create Triangles for all ShipBuildTriangle's
@@ -159,93 +159,93 @@ std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
 
     Physics::Triangles triangles = CreateTriangles(
         triangleInfos,
-        vertices,
-        edgeInfos,
-        edges);
+        points,
+        springInfos,
+        springs);
 
     //
     // We're done!
     //
 
     LogMessage("ShipBuilder: Created ship: W=", shipWidth, ", H=", shipHeight, ", ",
-        vertices.GetBufferElementCount(), "buf vertices, ",
-        edges.GetElementCount(), " edges, ",
+        points.GetBufferElementCount(), "buf vertices, ",
+        springs.GetElementCount(), " edges, ",
         triangles.GetElementCount(), " triangles.");
 
     auto ship = std::make_unique<Physics::Ship>(
-        std::move(vertices),
-        std::move(edges),
+        std::move(points),
+        std::move(springs),
         std::move(triangles));
 
     return ship;
 }
 
 void ShipBuilder::CreateElementInfos(
-    ShipBuildVertexIndexMatrix const & vertexIndexMatrix,
-    std::vector<ShipBuildVertex> & vertexInfos,
-    std::vector<ShipBuildEdge> & edgeInfos,
+    ShipBuildPointIndexMatrix const & pointIndexMatrix,
+    std::vector<ShipBuildPoint> & pointInfos,
+    std::vector<ShipBuildSpring> & springInfos,
     std::vector<ShipBuildTriangle> & triangleInfos)
 {
     //
-    // Visit vertex matrix and:
-    //  - Detect edges and create ShipBuildEdge's for them
+    // Visit point matrix and:
+    //  - Detect edges and create ShipBuildSpring's for them
     //  - Do tessellation and create ShipBuildTriangle's
     //
 
     // From bottom to top - excluding extras at boundaries
-    for (int y = 1; y < vertexIndexMatrix.height - 1; ++y)
+    for (int y = 1; y < pointIndexMatrix.height - 1; ++y)
     {
         // We're starting a new row, so we're not in a ship now
         bool isInShip = false;
 
         // From left to right - excluding extras at boundaries
-        for (int x = 1; x < vertexIndexMatrix.width - 1; ++x)
+        for (int x = 1; x < pointIndexMatrix.width - 1; ++x)
         {
-            if (!!vertexIndexMatrix[{x, y}])
+            if (!!pointIndexMatrix[{x, y}])
             {
                 //
-                // A vertex exists at these coordinates
+                // A point exists at these coordinates
                 //
 
-                ElementIndex vertexIndex = *vertexIndexMatrix[{x, y}];
+                ElementIndex pointIndex = *pointIndexMatrix[{x, y}];
 
                 //
                 // Check if an edge exists
                 //
 
                 // First four directions out of 8: from 0 deg (+x) through to 225 deg (-x -y),
-                // i.e. E, SE, S, SW - this covers each pair of vertices in each direction
+                // i.e. E, SE, S, SW - this covers each pair of points in each direction
                 for (int i = 0; i < 4; ++i)
                 {
                     int adjx1 = x + TessellationCircularOrderDirections[i][0];
                     int adjy1 = y + TessellationCircularOrderDirections[i][1];
 
-                    if (!!vertexIndexMatrix[{adjx1, adjy1}])
+                    if (!!pointIndexMatrix[{adjx1, adjy1}])
                     {
-                        // This vertex is adjacent to the first point at one of E, SE, S, SW
+                        // This point is adjacent to the first point at one of E, SE, S, SW
 
                         //
-                        // Create ShipBuildEdge
+                        // Create ShipBuildSpring
                         //
 
-                        ElementIndex const otherEndpointIndex = *vertexIndexMatrix[{adjx1, adjy1}];
+                        ElementIndex const otherEndpointIndex = *pointIndexMatrix[{adjx1, adjy1}];
 
-                        // Add edge to edge infos
-                        ElementIndex const edgeIndex = static_cast<ElementIndex>(edgeInfos.size());
-                        edgeInfos.emplace_back(
-                            vertexIndex,
+                        // Add spring to spring infos
+                        ElementIndex const springIndex = static_cast<ElementIndex>(springInfos.size());
+                        springInfos.emplace_back(
+                            pointIndex,
                             i,
                             otherEndpointIndex,
                             (i + 4) % 8);
 
-                        // Add the edge to its endpoints
-                        vertexInfos[vertexIndex].AddConnectedEdge(edgeIndex);
-                        vertexInfos[otherEndpointIndex].AddConnectedEdge(edgeIndex);
+                        // Add the spring to its endpoints
+                        pointInfos[pointIndex].AddConnectedSpring(springIndex);
+                        pointInfos[otherEndpointIndex].AddConnectedSpring(springIndex);
 
 
                         //
                         // Check if a triangle exists
-                        // - If this is the first vertex that is in a ship, we check all the way up to W;
+                        // - If this is the first point that is in a ship, we check all the way up to W;
                         // - Else, we check only up to S, so to avoid covering areas already covered by the triangulation
                         //   at the previous point
                         //
@@ -254,45 +254,45 @@ void ShipBuilder::CreateElementInfos(
                         int adjx2 = x + TessellationCircularOrderDirections[i + 1][0];
                         int adjy2 = y + TessellationCircularOrderDirections[i + 1][1];
                         if ((!isInShip || i < 2)
-                            && !!vertexIndexMatrix[{adjx2, adjy2}])
+                            && !!pointIndexMatrix[{adjx2, adjy2}])
                         {
-                            // This vertex is adjacent to the first vertex at one of SE, S, SW, W
+                            // This point is adjacent to the first point at one of SE, S, SW, W
 
                             //
                             // Create ShipBuildTriangle
                             //
 
                             triangleInfos.emplace_back(
-                                std::array<ElementIndex, 3>( // Vertices are in CW order
+                                std::array<ElementIndex, 3>( // Points are in CW order
                                 {
-                                    vertexIndex,
+                                    pointIndex,
                                     otherEndpointIndex,
-                                    * vertexIndexMatrix[{adjx2, adjy2}]
+                                    * pointIndexMatrix[{adjx2, adjy2}]
                                 }));
                         }
 
-                        // Now, we also want to check whether the single "irregular" triangle from this vertex exists,
-                        // i.e. the triangle between this vertex, the vertex at its E, and the vertex at its
-                        // S, in case there is no vertex at SE.
-                        // We do this so that we can forget the entire W side for inner vertices and yet ensure
+                        // Now, we also want to check whether the single "irregular" triangle from this point exists,
+                        // i.e. the triangle between this point, the point at its E, and the point at its
+                        // S, in case there is no point at SE.
+                        // We do this so that we can forget the entire W side for inner points and yet ensure
                         // full coverage of the area
                         if (i == 0
-                            && !vertexIndexMatrix[{x + TessellationCircularOrderDirections[1][0], y + TessellationCircularOrderDirections[1][1]}]
-                            && !!vertexIndexMatrix[{x + TessellationCircularOrderDirections[2][0], y + TessellationCircularOrderDirections[2][1]}])
+                            && !pointIndexMatrix[{x + TessellationCircularOrderDirections[1][0], y + TessellationCircularOrderDirections[1][1]}]
+                            && !!pointIndexMatrix[{x + TessellationCircularOrderDirections[2][0], y + TessellationCircularOrderDirections[2][1]}])
                         {
                             // If we're here, the point at E exists
-                            assert(!!vertexIndexMatrix[vec2i(x + TessellationCircularOrderDirections[0][0], y + TessellationCircularOrderDirections[0][1])]);
+                            assert(!!pointIndexMatrix[vec2i(x + TessellationCircularOrderDirections[0][0], y + TessellationCircularOrderDirections[0][1])]);
 
                             //
                             // Create ShipBuildTriangle
                             //
 
                             triangleInfos.emplace_back(
-                                std::array<ElementIndex, 3>( // Vertices are in CW order
+                                std::array<ElementIndex, 3>( // Points are in CW order
                                 {
-                                    vertexIndex,
-                                    * vertexIndexMatrix[{x + TessellationCircularOrderDirections[0][0], y + TessellationCircularOrderDirections[0][1]}],
-                                    * vertexIndexMatrix[{x + TessellationCircularOrderDirections[2][0], y + TessellationCircularOrderDirections[2][1]}]
+                                    pointIndex,
+                                    * pointIndexMatrix[{x + TessellationCircularOrderDirections[0][0], y + TessellationCircularOrderDirections[0][1]}],
+                                    * pointIndexMatrix[{x + TessellationCircularOrderDirections[2][0], y + TessellationCircularOrderDirections[2][1]}]
                                 }));
                         }
                     }
@@ -304,7 +304,7 @@ void ShipBuilder::CreateElementInfos(
             else
             {
                 //
-                // No vertex exists at these coordinates
+                // No point exists at these coordinates
                 //
 
                 // From now on we're not in a ship anymore
@@ -314,182 +314,182 @@ void ShipBuilder::CreateElementInfos(
     }
 }
 
-void ShipBuilder::ConnectVerticesToTriangles(
-    std::vector<ShipBuildVertex> & vertexInfos,
+void ShipBuilder::ConnectPointsToTriangles(
+    std::vector<ShipBuildPoint> & pointInfos,
     std::vector<ShipBuildTriangle> const & triangleInfos)
 {
     for (ElementIndex t = 0; t < triangleInfos.size(); ++t)
     {
         // Add triangle to its endpoints
-        vertexInfos[triangleInfos[t].VertexIndices[0]].ConnectedTriangles.emplace_back(t);
-        vertexInfos[triangleInfos[t].VertexIndices[1]].ConnectedTriangles.emplace_back(t);
-        vertexInfos[triangleInfos[t].VertexIndices[2]].ConnectedTriangles.emplace_back(t);
+        pointInfos[triangleInfos[t].PointIndices[0]].ConnectedTriangles.emplace_back(t);
+        pointInfos[triangleInfos[t].PointIndices[1]].ConnectedTriangles.emplace_back(t);
+        pointInfos[triangleInfos[t].PointIndices[2]].ConnectedTriangles.emplace_back(t);
     }
 }
 
-void ShipBuilder::ConnectEdgesToTriangles(
-    std::vector<ShipBuildEdge> & edgeInfos,
+void ShipBuilder::ConnectSpringsToTriangles(
+    std::vector<ShipBuildSpring> & springInfos,
     std::vector<ShipBuildTriangle> & triangleInfos)
 {
     //
-    // 1. Build Vertex Pair -> Edge table
+    // 1. Build Point Pair -> Spring table
     //
 
-    VertexPairToIndexMap vertexPairToEdgeMap;
+    PointPairToIndexMap pointPairToSpringMap;
 
-    for (ElementIndex s = 0; s < edgeInfos.size(); ++s)
+    for (ElementIndex s = 0; s < springInfos.size(); ++s)
     {
-        vertexPairToEdgeMap.emplace(
+        pointPairToSpringMap.emplace(
             std::piecewise_construct,
-            std::forward_as_tuple(edgeInfos[s].VertexAIndex, edgeInfos[s].VertexBIndex),
+            std::forward_as_tuple(springInfos[s].PointAIndex, springInfos[s].PointBIndex),
             std::forward_as_tuple(s));
     }
 
     //
-    // 2. Visit all triangles and connect them to their edges
+    // 2. Visit all triangles and connect them to their springs
     //
 
     for (ElementIndex t = 0; t < triangleInfos.size(); ++t)
     {
-        for (size_t p = 0; p < triangleInfos[t].VertexIndices.size(); ++p)
+        for (size_t p = 0; p < triangleInfos[t].PointIndices.size(); ++p)
         {
-            ElementIndex const endpointIndex1 = triangleInfos[t].VertexIndices[p];
+            ElementIndex const endpointIndex1 = triangleInfos[t].PointIndices[p];
 
             ElementIndex const nextEndpointIndex1 =
-                p < triangleInfos[t].VertexIndices.size() - 1
-                ? triangleInfos[t].VertexIndices[p + 1]
-                : triangleInfos[t].VertexIndices[0];
+                p < triangleInfos[t].PointIndices.size() - 1
+                ? triangleInfos[t].PointIndices[p + 1]
+                : triangleInfos[t].PointIndices[0];
 
-            // Lookup edge for this pair
-            auto const edgeIt = vertexPairToEdgeMap.find({ endpointIndex1, nextEndpointIndex1 });
-            assert(edgeIt != vertexPairToEdgeMap.end());
+            // Lookup spring for this pair
+            auto const springIt = pointPairToSpringMap.find({ endpointIndex1, nextEndpointIndex1 });
+            assert(springIt != pointPairToSpringMap.end());
 
-            ElementIndex const edgeIndex = edgeIt->second;
+            ElementIndex const springIndex = springIt->second;
 
             // Tell this spring that it has this additional super triangle
-            edgeInfos[edgeIndex].Triangles.push_back(t);
-            assert(edgeInfos[edgeIndex].Triangles.size() <= 2);
+            springInfos[springIndex].Triangles.push_back(t);
+            assert(springInfos[springIndex].Triangles.size() <= 2);
 
             // Tell the triangle about this sub spring
-            assert(!triangleInfos[t].Edges.contains(edgeIndex));
-            triangleInfos[t].Edges.push_back(edgeIndex);
+            assert(!triangleInfos[t].Springs.contains(springIndex));
+            triangleInfos[t].Springs.push_back(springIndex);
         }
     }
 }
 
-Physics::Vertices ShipBuilder::CreateVertices(
-    std::vector<ShipBuildVertex> const & vertexInfos)
+Physics::Points ShipBuilder::CreatePoints(
+    std::vector<ShipBuildPoint> const & pointInfos)
 {
-    Physics::Vertices vertices(
-        static_cast<ElementIndex>(vertexInfos.size()));
+    Physics::Points points(
+        static_cast<ElementIndex>(pointInfos.size()));
 
-    for (size_t v = 0; v < vertexInfos.size(); ++v)
+    for (size_t v = 0; v < pointInfos.size(); ++v)
     {
-        ShipBuildVertex const & vertexInfo = vertexInfos[v];
+        ShipBuildPoint const & pointInfo = pointInfos[v];
 
         //
-        // Create vertex
+        // Create point
         //
 
-        vertices.Add(
-            vertexInfo.Position);
+        points.Add(
+            pointInfo.Position);
     }
 
-    return vertices;
+    return points;
 }
 
-Physics::Edges ShipBuilder::CreateEdges(
-    std::vector<ShipBuildEdge> const & edgeInfos,
-    std::vector<ShipBuildVertex> & vertexInfos,
-    Physics::Vertices & vertices)
+Physics::Springs ShipBuilder::CreateSprings(
+    std::vector<ShipBuildSpring> const & springInfos,
+    std::vector<ShipBuildPoint> & pointInfos,
+    Physics::Points & points)
 {
-    Physics::Edges edges(static_cast<ElementIndex>(edgeInfos.size()));
+    Physics::Springs springs(static_cast<ElementIndex>(springInfos.size()));
 
-    for (ElementIndex e = 0; e < edgeInfos.size(); ++e)
+    for (ElementIndex e = 0; e < springInfos.size(); ++e)
     {
         // Determine surface type
         SurfaceType const surface =
-            (vertexInfos[edgeInfos[e].VertexAIndex].Material.Surface == SurfaceType::Floor && vertexInfos[edgeInfos[e].VertexBIndex].Material.Surface == SurfaceType::Floor)
+            (pointInfos[springInfos[e].PointAIndex].Material.Surface == SurfaceType::Floor && pointInfos[springInfos[e].PointBIndex].Material.Surface == SurfaceType::Floor)
             ? SurfaceType::Floor : SurfaceType::Open;
 
-        // Create edge
-        edges.Add(
-            edgeInfos[e].VertexAIndex,
-            edgeInfos[e].VertexBIndex,
-            edgeInfos[e].VertexAAngle,
-            edgeInfos[e].VertexBAngle,
+        // Create spring
+        springs.Add(
+            springInfos[e].PointAIndex,
+            springInfos[e].PointBIndex,
+            springInfos[e].PointAAngle,
+            springInfos[e].PointBAngle,
             surface,
-            edgeInfos[e].Triangles);
+            springInfos[e].Triangles);
 
-        // Add edge to its endpoints
-        vertices.AddConnectedEdge(
-            edgeInfos[e].VertexAIndex,
+        // Add spring to its endpoints
+        points.AddConnectedSpring(
+            springInfos[e].PointAIndex,
             e,
-            edgeInfos[e].VertexBIndex);
-        vertices.AddConnectedEdge(
-            edgeInfos[e].VertexBIndex,
+            springInfos[e].PointBIndex);
+        points.AddConnectedSpring(
+            springInfos[e].PointBIndex,
             e,
-            edgeInfos[e].VertexAIndex);
+            springInfos[e].PointAIndex);
     }
 
-    return edges;
+    return springs;
 }
 
 Physics::Triangles ShipBuilder::CreateTriangles(
     std::vector<ShipBuildTriangle> const & triangleInfos,
-    Physics::Vertices & vertices,
-    std::vector<ShipBuildEdge> const & edgeInfos,
-    Physics::Edges const & edges)
+    Physics::Points & points,
+    std::vector<ShipBuildSpring> const & springInfos,
+    Physics::Springs const & springs)
 {
     Physics::Triangles triangles(static_cast<ElementIndex>(triangleInfos.size()));
 
     for (ElementIndex t = 0; t < triangleInfos.size(); ++t)
     {
-        assert(triangleInfos[t].Edges.size() == 3);
+        assert(triangleInfos[t].Springs.size() == 3);
 
-        std::array<std::pair<ElementIndex, int>, 3> subEdgesOppositeTriangle;
+        std::array<std::pair<ElementIndex, int>, 3> subSpringsOppositeTriangle;
         for (int iEdge = 0; iEdge < 3; ++iEdge)
         {
-            ElementIndex const edgeElementIndex = triangleInfos[t].Edges[iEdge];
-            assert(edgeInfos[edgeElementIndex].Triangles.size() >= 1 && edgeInfos[edgeElementIndex].Triangles.size() <= 2);
+            ElementIndex const springElementIndex = triangleInfos[t].Springs[iEdge];
+            assert(springInfos[springElementIndex].Triangles.size() >= 1 && springInfos[springElementIndex].Triangles.size() <= 2);
 
-            if (edgeInfos[edgeElementIndex].Triangles[0] == t)
+            if (springInfos[springElementIndex].Triangles[0] == t)
             {
-                if (edgeInfos[edgeElementIndex].Triangles.size() >= 2)
+                if (springInfos[springElementIndex].Triangles.size() >= 2)
                 {
-                    assert(edgeInfos[edgeElementIndex].Triangles.size() == 2);
-                    subEdgesOppositeTriangle[iEdge].first = edgeInfos[edgeElementIndex].Triangles[1];
+                    assert(springInfos[springElementIndex].Triangles.size() == 2);
+                    subSpringsOppositeTriangle[iEdge].first = springInfos[springElementIndex].Triangles[1];
                 }
                 else
                 {
-                    subEdgesOppositeTriangle[iEdge].first = NoneElementIndex;
+                    subSpringsOppositeTriangle[iEdge].first = NoneElementIndex;
                 }
             }
-            else if (edgeInfos[edgeElementIndex].Triangles.size() >= 2)
+            else if (springInfos[springElementIndex].Triangles.size() >= 2)
             {
-                assert(edgeInfos[edgeElementIndex].Triangles.size() == 2);
-                assert(edgeInfos[edgeElementIndex].Triangles[1] == t);
-                subEdgesOppositeTriangle[iEdge].first = edgeInfos[edgeElementIndex].Triangles[0];
+                assert(springInfos[springElementIndex].Triangles.size() == 2);
+                assert(springInfos[springElementIndex].Triangles[1] == t);
+                subSpringsOppositeTriangle[iEdge].first = springInfos[springElementIndex].Triangles[0];
             }
             else
             {
-                subEdgesOppositeTriangle[iEdge].first = NoneElementIndex;
+                subSpringsOppositeTriangle[iEdge].first = NoneElementIndex;
             }
 
-            if (subEdgesOppositeTriangle[iEdge].first != NoneElementIndex)
+            if (subSpringsOppositeTriangle[iEdge].first != NoneElementIndex)
             {
-                if (triangleInfos[subEdgesOppositeTriangle[iEdge].first].Edges[0] == triangleInfos[t].Edges[iEdge])
+                if (triangleInfos[subSpringsOppositeTriangle[iEdge].first].Springs[0] == triangleInfos[t].Springs[iEdge])
                 {
-                    subEdgesOppositeTriangle[iEdge].second = 0;
+                    subSpringsOppositeTriangle[iEdge].second = 0;
                 }
-                else if (triangleInfos[subEdgesOppositeTriangle[iEdge].first].Edges[1] == triangleInfos[t].Edges[iEdge])
+                else if (triangleInfos[subSpringsOppositeTriangle[iEdge].first].Springs[1] == triangleInfos[t].Springs[iEdge])
                 {
-                    subEdgesOppositeTriangle[iEdge].second = 1;
+                    subSpringsOppositeTriangle[iEdge].second = 1;
                 }
                 else
                 {
-                    assert(triangleInfos[subEdgesOppositeTriangle[iEdge].first].Edges[2] == triangleInfos[t].Edges[iEdge]);
-                    subEdgesOppositeTriangle[iEdge].second = 2;
+                    assert(triangleInfos[subSpringsOppositeTriangle[iEdge].first].Springs[2] == triangleInfos[t].Springs[iEdge]);
+                    subSpringsOppositeTriangle[iEdge].second = 2;
                 }
             }
 
@@ -497,26 +497,26 @@ Physics::Triangles ShipBuilder::CreateTriangles(
 
         // Create triangle
         triangles.Add(
-            triangleInfos[t].VertexIndices[0],
-            triangleInfos[t].VertexIndices[1],
-            triangleInfos[t].VertexIndices[2],
-            triangleInfos[t].Edges[0],
-            triangleInfos[t].Edges[1],
-            triangleInfos[t].Edges[2],
-            subEdgesOppositeTriangle[0].first,
-            subEdgesOppositeTriangle[0].second,
-            subEdgesOppositeTriangle[1].first,
-            subEdgesOppositeTriangle[1].second,
-            subEdgesOppositeTriangle[2].first,
-            subEdgesOppositeTriangle[2].second,
-            edges.GetSurfaceType(triangleInfos[t].Edges[0]),
-            edges.GetSurfaceType(triangleInfos[t].Edges[1]),
-            edges.GetSurfaceType(triangleInfos[t].Edges[2]));
+            triangleInfos[t].PointIndices[0],
+            triangleInfos[t].PointIndices[1],
+            triangleInfos[t].PointIndices[2],
+            triangleInfos[t].Springs[0],
+            triangleInfos[t].Springs[1],
+            triangleInfos[t].Springs[2],
+            subSpringsOppositeTriangle[0].first,
+            subSpringsOppositeTriangle[0].second,
+            subSpringsOppositeTriangle[1].first,
+            subSpringsOppositeTriangle[1].second,
+            subSpringsOppositeTriangle[2].first,
+            subSpringsOppositeTriangle[2].second,
+            springs.GetSurfaceType(triangleInfos[t].Springs[0]),
+            springs.GetSurfaceType(triangleInfos[t].Springs[1]),
+            springs.GetSurfaceType(triangleInfos[t].Springs[2]));
 
         // Add triangle to its endpoints
-        vertices.AddConnectedTriangle(triangleInfos[t].VertexIndices[0], t, true); // Owner
-        vertices.AddConnectedTriangle(triangleInfos[t].VertexIndices[1], t, false); // Not owner
-        vertices.AddConnectedTriangle(triangleInfos[t].VertexIndices[2], t, false); // Not owner
+        points.AddConnectedTriangle(triangleInfos[t].PointIndices[0], t, true); // Owner
+        points.AddConnectedTriangle(triangleInfos[t].PointIndices[1], t, false); // Not owner
+        points.AddConnectedTriangle(triangleInfos[t].PointIndices[2], t, false); // Not owner
     }
 
     return triangles;

@@ -20,104 +20,104 @@
  * Types describing the intermediate ship structure.
  */
 
-using ShipBuildVertexIndexMatrix = Matrix2<std::optional<ElementIndex>>;
+using ShipBuildPointIndexMatrix = Matrix2<std::optional<ElementIndex>>;
 
-struct ShipBuildVertex
+struct ShipBuildPoint
 {
     vec2f Position;
     rgbColor RenderColor;
     StructuralMaterial const & Material;
 
-    std::vector<ElementIndex> ConnectedEdges;
+    std::vector<ElementIndex> ConnectedSprings;
     std::vector<ElementIndex> ConnectedTriangles;
 
-    ShipBuildVertex(
+    ShipBuildPoint(
         vec2f position,
         rgbColor renderColor,
         StructuralMaterial const & material)
         : Position(position)
         , RenderColor(renderColor)
         , Material(material)
-        , ConnectedEdges()
+        , ConnectedSprings()
         , ConnectedTriangles()
     {
     }
 
-    void AddConnectedEdge(ElementIndex edgeIndex)
+    void AddConnectedSpring(ElementIndex springIndex)
     {
-        assert(!ContainsConnectedEdge(edgeIndex));
-        ConnectedEdges.push_back(edgeIndex);
+        assert(!ContainsConnectedSpring(springIndex));
+        ConnectedSprings.push_back(springIndex);
     }
 
 private:
 
-    inline bool ContainsConnectedEdge(ElementIndex edgeIndex1) const
+    inline bool ContainsConnectedSpring(ElementIndex springIndex1) const
     {
         return std::find(
-            ConnectedEdges.cbegin(),
-            ConnectedEdges.cend(),
-            edgeIndex1)
-            != ConnectedEdges.cend();
+            ConnectedSprings.cbegin(),
+            ConnectedSprings.cend(),
+            springIndex1)
+            != ConnectedSprings.cend();
     }
 };
 
-struct ShipBuildEdge
+struct ShipBuildSpring
 {
-    ElementIndex VertexAIndex;
-    uint32_t VertexAAngle;
+    ElementIndex PointAIndex;
+    uint32_t PointAAngle;
 
-    ElementIndex VertexBIndex;
-    uint32_t VertexBAngle;
+    ElementIndex PointBIndex;
+    uint32_t PointBAngle;
 
     FixedSizeVector<ElementIndex, 2> Triangles; // Triangles that have this spring as an edge
 
-    ShipBuildEdge(
-        ElementIndex vertexAIndex,
-        uint32_t vertexAAngle,
-        ElementIndex vertexBIndex,
-        uint32_t vertexBAngle)
-        : VertexAIndex(vertexAIndex)
-        , VertexAAngle(vertexAAngle)
-        , VertexBIndex(vertexBIndex)
-        , VertexBAngle(vertexBAngle)
+    ShipBuildSpring(
+        ElementIndex pointAIndex,
+        uint32_t pointAAngle,
+        ElementIndex pointBIndex,
+        uint32_t pointBAngle)
+        : PointAIndex(pointAIndex)
+        , PointAAngle(pointAAngle)
+        , PointBIndex(pointBIndex)
+        , PointBAngle(pointBAngle)
     {
     }
 };
 
 struct ShipBuildTriangle
 {
-    std::array<ElementIndex, 3> VertexIndices;
+    std::array<ElementIndex, 3> PointIndices;
 
-    FixedSizeVector<ElementIndex, 3> Edges;
+    FixedSizeVector<ElementIndex, 3> Springs;
 
     ShipBuildTriangle(
-        std::array<ElementIndex, 3> const & vertexIndices)
-        : VertexIndices(vertexIndices)
-        , Edges()
+        std::array<ElementIndex, 3> const & pointIndices)
+        : PointIndices(pointIndices)
+        , Springs()
     {
     }
 };
 
 // Utilities for navigating object's structure
 
-struct VertexPair
+struct PointPair
 {
     ElementIndex Endpoint1Index;
     ElementIndex Endpoint2Index;
 
-    VertexPair()
+    PointPair()
         : Endpoint1Index(NoneElementIndex)
         , Endpoint2Index(NoneElementIndex)
     {}
 
-    VertexPair(
+    PointPair(
         ElementIndex endpoint1Index,
         ElementIndex endpoint2Index)
         : Endpoint1Index(std::min(endpoint1Index, endpoint2Index))
         , Endpoint2Index(std::max(endpoint1Index, endpoint2Index))
     {}
 
-    bool operator==(VertexPair const & other) const
+    bool operator==(PointPair const & other) const
     {
         return this->Endpoint1Index == other.Endpoint1Index
             && this->Endpoint2Index == other.Endpoint2Index;
@@ -125,7 +125,7 @@ struct VertexPair
 
     struct Hasher
     {
-        size_t operator()(VertexPair const & p) const
+        size_t operator()(PointPair const & p) const
         {
             return p.Endpoint1Index * 23
                 + p.Endpoint2Index;
@@ -133,4 +133,4 @@ struct VertexPair
     };
 };
 
-using VertexPairToIndexMap = std::unordered_map<VertexPair, ElementIndex, VertexPair::Hasher>;
+using PointPairToIndexMap = std::unordered_map<PointPair, ElementIndex, PointPair::Hasher>;

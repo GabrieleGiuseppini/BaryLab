@@ -2,18 +2,18 @@
 
 namespace Physics
 {
-    class Edges;
     class Npcs;
     class NpcParticles;
     class OceanSurface;
+    class Points;
     class Ship;
+    class Springs;
     class Triangles;
-    class Vertices;
     class World;
 }
 
-#include "Vertices.h"
-#include "Edges.h"
+#include "Points.h"
+#include "Springs.h"
 #include "NpcParticles.h"
 #include "OceanSurface.h"
 #include "Triangles.h"

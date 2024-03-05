@@ -73,7 +73,7 @@ void Npcs::UpdateHuman(
 			bool const areFeetOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, ship);
 
 			vec2f const floorVector = (primaryParticleState.ConstrainedState.has_value() && primaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal >= 0)
-				? ship.GetTriangles().GetSubEdgeVector(primaryParticleState.ConstrainedState->CurrentTriangle, primaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal, ship.GetVertices())
+				? ship.GetTriangles().GetSubSpringVector(primaryParticleState.ConstrainedState->CurrentTriangle, primaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal, ship.GetPoints())
 				: vec2f(1.0f, 0.0); // H arbitrarily
 			float const headVelocityAlongFloor = secondaryParticleState.GetApplicableVelocity(mParticles).dot(floorVector);
 			float const feetVelocityAlongFloor = primaryParticleState.GetApplicableVelocity(mParticles).dot(floorVector);

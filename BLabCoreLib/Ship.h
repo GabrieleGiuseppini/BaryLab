@@ -16,33 +16,33 @@ class Ship
 public:
 
     Ship(
-        Vertices && vertices,
-        Edges && edges,
+        Points && points,
+        Springs && springs,
         Triangles && triangles)
-        : mVertices(std::move(vertices))
-        , mEdges(std::move(edges))
+        : mPoints(std::move(points))
+        , mSprings(std::move(springs))
         , mTriangles(std::move(triangles))
     {}
 
 
-    Vertices const & GetVertices() const
+    Points const & GetPoints() const
     {
-        return mVertices;
+        return mPoints;
     }
 
-    Vertices & GetVertices()
+    Points & GetPoints()
     {
-        return mVertices;
+        return mPoints;
     }
 
-    Edges const & GetEdges() const
+    Springs const & GetSprings() const
     {
-        return mEdges;
+        return mSprings;
     }
 
-    Edges & GetEdges()
+    Springs & GetSprings()
     {
-        return mEdges;
+        return mSprings;
     }
 
     Triangles const & GetTriangles() const
@@ -57,8 +57,8 @@ public:
 
 private:
 
-    Vertices mVertices;
-    Edges mEdges;
+    Points mPoints;
+    Springs mSprings;
     Triangles mTriangles;
 };
 

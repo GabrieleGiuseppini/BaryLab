@@ -12,39 +12,39 @@
 namespace Physics {
 
 void Triangles::Add(
-    ElementIndex particleAIndex,
-    ElementIndex particleBIndex,
-    ElementIndex particleCIndex,
-    ElementIndex subEdgeAIndex,
-    ElementIndex subEdgeBIndex,
-    ElementIndex subEdgeCIndex,
-    ElementIndex subEdgeAOppositeTriangle,
-    int subEdgeAOppositeTriangleEdgeOrdinal,
-    ElementIndex subEdgeBOppositeTriangle,
-    int subEdgeBOppositeTriangleEdgeOrdinal,
-    ElementIndex subEdgeCOppositeTriangle,
-    int subEdgeCOppositeTriangleEdgeOrdinal,
-    SurfaceType subEdgeASurfaceType,
-    SurfaceType subEdgeBSurfaceType,
-    SurfaceType subEdgeCSurfaceType)
+    ElementIndex pointAIndex,
+    ElementIndex pointBIndex,
+    ElementIndex pointCIndex,
+    ElementIndex subSpringAIndex,
+    ElementIndex subSpringBIndex,
+    ElementIndex subSpringCIndex,
+    ElementIndex subSpringAOppositeTriangle,
+    int subSpringAOppositeTriangleEdgeOrdinal,
+    ElementIndex subSpringBOppositeTriangle,
+    int subSpringBOppositeTriangleEdgeOrdinal,
+    ElementIndex subSpringCOppositeTriangle,
+    int subSpringCOppositeTriangleEdgeOrdinal,
+    SurfaceType subSpringASurfaceType,
+    SurfaceType subSpringBSurfaceType,
+    SurfaceType subSpringCSurfaceType)
 {
-    mEndpointsBuffer.emplace_back(particleAIndex, particleBIndex, particleCIndex);
-    mSubEdgesBuffer.emplace_back(subEdgeAIndex, subEdgeBIndex, subEdgeCIndex);
+    mEndpointsBuffer.emplace_back(pointAIndex, pointBIndex, pointCIndex);
+    mSubSpringsBuffer.emplace_back(subSpringAIndex, subSpringBIndex, subSpringCIndex);
     mOppositeTrianglesBuffer.emplace_back(OppositeTrianglesInfo{
-        OppositeTriangleInfo(subEdgeAOppositeTriangle, subEdgeAOppositeTriangleEdgeOrdinal),
-        OppositeTriangleInfo(subEdgeBOppositeTriangle, subEdgeBOppositeTriangleEdgeOrdinal),
-        OppositeTriangleInfo(subEdgeCOppositeTriangle, subEdgeCOppositeTriangleEdgeOrdinal) });
-    mSubEdgeSurfaceTypesBuffer.emplace_back(SubEdgeSurfaceTypes({ subEdgeASurfaceType, subEdgeBSurfaceType, subEdgeCSurfaceType }));
+        OppositeTriangleInfo(subSpringAOppositeTriangle, subSpringAOppositeTriangleEdgeOrdinal),
+        OppositeTriangleInfo(subSpringBOppositeTriangle, subSpringBOppositeTriangleEdgeOrdinal),
+        OppositeTriangleInfo(subSpringCOppositeTriangle, subSpringCOppositeTriangleEdgeOrdinal) });
+    mSubSpringSurfaceTypesBuffer.emplace_back(SubSpringSurfaceTypes({ subSpringASurfaceType, subSpringBSurfaceType, subSpringCSurfaceType }));
 }
 
 bool Triangles::ContainsPoint(
     vec2f const & position,
     ElementIndex triangleElementIndex,
-    Vertices const & vertices) const
+    Points const & points) const
 {
-    vec2f const aPosition = vertices.GetPosition(GetVertexAIndex(triangleElementIndex));
-    vec2f const bPosition = vertices.GetPosition(GetVertexBIndex(triangleElementIndex));
-    vec2f const cPosition = vertices.GetPosition(GetVertexCIndex(triangleElementIndex));
+    vec2f const aPosition = points.GetPosition(GetPointAIndex(triangleElementIndex));
+    vec2f const bPosition = points.GetPosition(GetPointBIndex(triangleElementIndex));
+    vec2f const cPosition = points.GetPosition(GetPointCIndex(triangleElementIndex));
 
     return (position - aPosition).cross(bPosition - aPosition) >= 0.0f
         && (position - bPosition).cross(cPosition - bPosition) >= 0.0f
@@ -53,11 +53,11 @@ bool Triangles::ContainsPoint(
 
 ElementIndex Triangles::FindContaining(
     vec2f const & position,
-    Vertices const & vertices) const
+    Points const & points) const
 {
     for (auto const t : *this)
     {
-        if (ContainsPoint(position, t, vertices))
+        if (ContainsPoint(position, t, points))
         {
             return t;
         }
@@ -69,12 +69,12 @@ ElementIndex Triangles::FindContaining(
 bcoords3f Triangles::ToBarycentricCoordinates(
     vec2f const & position,
     ElementIndex triangleElementIndex,
-    Vertices const & vertices) const
+    Points const & points) const
 {
     vec2f abBaryCoords = InternalToBarycentricCoordinates(
         position,
         triangleElementIndex,
-        vertices);
+        points);
 
     return bcoords3f(
         abBaryCoords.x,
@@ -85,13 +85,13 @@ bcoords3f Triangles::ToBarycentricCoordinates(
 bcoords3f Triangles::ToBarycentricCoordinates(
     vec2f const & position,
     ElementIndex triangleElementIndex,
-    Vertices const & vertices,
+    Points const & points,
     float epsilon) const
 {
     vec2f abBaryCoords = InternalToBarycentricCoordinates(
         position,
         triangleElementIndex,
-        vertices);
+        points);
 
     if (std::abs(abBaryCoords.x) < epsilon)
     {
@@ -118,14 +118,14 @@ bcoords3f Triangles::ToBarycentricCoordinates(
 bcoords3f Triangles::ToBarycentricCoordinatesFromWithinTriangle(
     vec2f const & position,
     ElementIndex triangleElementIndex,
-    Vertices const & vertices) const
+    Points const & points) const
 {
-    assert(ContainsPoint(position, triangleElementIndex, vertices));
+    assert(ContainsPoint(position, triangleElementIndex, points));
 
     vec2f abBaryCoords = InternalToBarycentricCoordinates(
         position,
         triangleElementIndex,
-        vertices).clamp(0.0f, 1.0f, 0.0f, 1.0f);
+        points).clamp(0.0f, 1.0f, 0.0f, 1.0f);
 
     return bcoords3f(
         abBaryCoords.x,
@@ -136,11 +136,11 @@ bcoords3f Triangles::ToBarycentricCoordinatesFromWithinTriangle(
 vec2f Triangles::FromBarycentricCoordinates(
     bcoords3f const & barycentricCoordinates,
     ElementIndex triangleElementIndex,
-    Vertices const & vertices) const
+    Points const & points) const
 {
-    vec2f const & positionA = vertices.GetPosition(mEndpointsBuffer[triangleElementIndex].VertexIndices[0]);
-    vec2f const & positionB = vertices.GetPosition(mEndpointsBuffer[triangleElementIndex].VertexIndices[1]);
-    vec2f const & positionC = vertices.GetPosition(mEndpointsBuffer[triangleElementIndex].VertexIndices[2]);
+    vec2f const & positionA = points.GetPosition(mEndpointsBuffer[triangleElementIndex].PointIndices[0]);
+    vec2f const & positionB = points.GetPosition(mEndpointsBuffer[triangleElementIndex].PointIndices[1]);
+    vec2f const & positionC = points.GetPosition(mEndpointsBuffer[triangleElementIndex].PointIndices[2]);
 
     return
         positionA * barycentricCoordinates[0]
@@ -153,11 +153,11 @@ vec2f Triangles::FromBarycentricCoordinates(
 vec2f Triangles::InternalToBarycentricCoordinates(
     vec2f const & position,
     ElementIndex triangleElementIndex,
-    Vertices const & vertices) const
+    Points const & points) const
 {
-    vec2f const & positionA = vertices.GetPosition(mEndpointsBuffer[triangleElementIndex].VertexIndices[0]);
-    vec2f const & positionB = vertices.GetPosition(mEndpointsBuffer[triangleElementIndex].VertexIndices[1]);
-    vec2f const & positionC = vertices.GetPosition(mEndpointsBuffer[triangleElementIndex].VertexIndices[2]);
+    vec2f const & positionA = points.GetPosition(mEndpointsBuffer[triangleElementIndex].PointIndices[0]);
+    vec2f const & positionB = points.GetPosition(mEndpointsBuffer[triangleElementIndex].PointIndices[1]);
+    vec2f const & positionC = points.GetPosition(mEndpointsBuffer[triangleElementIndex].PointIndices[2]);
 
     float const denominator =
         (positionB.y - positionC.y) * (positionA.x - positionC.x)

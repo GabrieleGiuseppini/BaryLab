@@ -27,30 +27,30 @@ public:
 private:
 
     static void CreateElementInfos(
-        ShipBuildVertexIndexMatrix const & vertexIndexMatrix,
-        std::vector<ShipBuildVertex> & vertexInfos,
-        std::vector<ShipBuildEdge> & edgeInfos,
+        ShipBuildPointIndexMatrix const & pointIndexMatrix,
+        std::vector<ShipBuildPoint> & pointInfos,
+        std::vector<ShipBuildSpring> & springInfos,
         std::vector<ShipBuildTriangle> & triangleInfos);
 
-    static void ConnectVerticesToTriangles(
-        std::vector<ShipBuildVertex> & vertexInfos,
+    static void ConnectPointsToTriangles(
+        std::vector<ShipBuildPoint> & pointInfos,
         std::vector<ShipBuildTriangle> const & triangleInfos);
 
-    static void ConnectEdgesToTriangles(
-        std::vector<ShipBuildEdge> & edgeInfos,
+    static void ConnectSpringsToTriangles(
+        std::vector<ShipBuildSpring> & springInfos,
         std::vector<ShipBuildTriangle> & triangleInfos);
 
-    static Physics::Vertices CreateVertices(
-        std::vector<ShipBuildVertex> const & vertexInfos);
+    static Physics::Points CreatePoints(
+        std::vector<ShipBuildPoint> const & pointInfos);
 
-    static Physics::Edges CreateEdges(
-        std::vector<ShipBuildEdge> const & edgeInfos,
-        std::vector<ShipBuildVertex> & vertexInfos,
-        Physics::Vertices & vertices);
+    static Physics::Springs CreateSprings(
+        std::vector<ShipBuildSpring> const & springInfos,
+        std::vector<ShipBuildPoint> & pointInfos,
+        Physics::Points & points);
 
     static Physics::Triangles CreateTriangles(
         std::vector<ShipBuildTriangle> const & triangleInfos,
-        Physics::Vertices & vertices,
-        std::vector<ShipBuildEdge> const & edgeInfos,
-        Physics::Edges const & edges);
+        Physics::Points & points,
+        std::vector<ShipBuildSpring> const & springInfos,
+        Physics::Springs const & springs);
 };

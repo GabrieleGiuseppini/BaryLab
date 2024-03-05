@@ -7,15 +7,15 @@
 
 namespace Physics {
 
-void Edges::Add(
-    ElementIndex vertexAIndex,
-    ElementIndex vertexBIndex,
+void Springs::Add(
+    ElementIndex pointAIndex,
+    ElementIndex pointBIndex,
     Octant pointAOctant,
     Octant pointBOctant,
     SurfaceType surface,
     TrianglesVector const & triangles)
 {
-    mEndpointsBuffer.emplace_back(vertexAIndex, vertexBIndex);
+    mEndpointsBuffer.emplace_back(pointAIndex, pointBIndex);
     mEndpointOctantsBuffer.emplace_back(pointAOctant, pointBOctant);
     mTrianglesBuffer.emplace_back(triangles);
 
