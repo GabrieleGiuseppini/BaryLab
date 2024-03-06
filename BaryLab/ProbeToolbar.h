@@ -7,7 +7,7 @@
 
 #include "UIControls/ScalarTimeSeriesProbeControl.h"
 
-#include <BLabCoreLib/IEventHandler.h>
+#include <BLabCoreLib/IGameEventHandlers.h>
 
 #include <wx/sizer.h>
 #include <wx/stattext.h>
@@ -20,7 +20,7 @@
 
 class ProbeToolbar final
     : public wxPanel
-    , public IEventHandler
+    , public IBLabEventHandler
 {
 public:
 
@@ -36,7 +36,7 @@ public:
     // Simulation event handlers
     //
 
-    void OnReset() override;
+    void OnBLabReset() override;
 
     void OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(std::optional<bcoords3f> const & coordinates) override;
 

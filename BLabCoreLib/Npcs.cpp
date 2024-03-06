@@ -853,9 +853,9 @@ void Npcs::Publish(Ship const & ship)
 		}
 	}
 
-	mEventDispatcher.OnSubjectParticleConstrainedRegimeUpdated(constrainedRegimeParticleProbe);
-	mEventDispatcher.OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged);
-	mEventDispatcher.OnSubjectParticlePhysicsUpdated(physicsParticleProbe);
+	mGameEventDispatcher.OnSubjectParticleConstrainedRegimeUpdated(constrainedRegimeParticleProbe);
+	mGameEventDispatcher.OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged);
+	mGameEventDispatcher.OnSubjectParticlePhysicsUpdated(physicsParticleProbe);
 }
 
 }

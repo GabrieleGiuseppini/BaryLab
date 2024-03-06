@@ -23,13 +23,13 @@ set  (SOURCES
 	Colors.cpp
 	Colors.h
 	ElementContainer.h
-	ElementIndexRangeIterator.h
-	EventDispatcher.h
+	ElementIndexRangeIterator.h	
 	FileSystem.h
 	FixedSizeVector.h
 	FloatingPoint.h
+	GameEventDispatcher.h
 	GameRandomEngine.h
-	IEventHandler.h
+	IGameEventHandlers.h
 	ImageData.h
 	ImageFileTools.cpp
 	ImageFileTools.h

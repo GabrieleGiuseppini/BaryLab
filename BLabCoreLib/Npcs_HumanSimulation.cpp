@@ -25,13 +25,13 @@ Npcs::StateType::HumanNpcStateType Npcs::InitializeHuman(
 		&& !secondaryParticleState.ConstrainedState.has_value())
 	{
 		// Whole NPC is free
-		mEventDispatcher.OnHumanNpcBehaviorChanged("Free_Aerial");
+		mGameEventDispatcher.OnHumanNpcBehaviorChanged("Free_Aerial");
 		return StateType::HumanNpcStateType(StateType::HumanNpcStateType::BehaviorType::Free_Aerial, currentSimulationTime);
 	}
 	else
 	{
 		// NPC is constrained
-		mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+		mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 		return StateType::HumanNpcStateType(StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
 	}
 }
@@ -138,7 +138,7 @@ void Npcs::UpdateHuman(
 						: -1.0f;
 				}
 
-				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Falling");
+				mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Falling");
 
 				break;
 			}
@@ -160,7 +160,7 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
 
-				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+				mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 
 				break;
 			}
@@ -207,7 +207,7 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
 
-				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+				mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 
 				break;
 			}
@@ -235,7 +235,7 @@ void Npcs::UpdateHuman(
 
 					humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Aerial, currentSimulationTime);
 
-					mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Aerial");
+					mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Aerial");
 
 					break;
 				}
@@ -288,7 +288,7 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Rising, currentSimulationTime);
 
-				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Rising");
+				mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Rising");
 
 				break;
 			}
@@ -315,7 +315,7 @@ void Npcs::UpdateHuman(
 
 					humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Aerial, currentSimulationTime);
 
-					mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Aerial");
+					mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Aerial");
 
 					break;
 				}
@@ -375,7 +375,7 @@ void Npcs::UpdateHuman(
 
 						// Keep torque
 
-						mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Walking");
+						mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Walking");
 
 						break;
 					}
@@ -505,7 +505,7 @@ void Npcs::UpdateHuman(
 						? 1.0f
 						: -1.0f;
 
-					mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Falling");
+					mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Falling");
 				}
 				else
 				{
@@ -513,7 +513,7 @@ void Npcs::UpdateHuman(
 
 					humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Aerial, currentSimulationTime);
 
-					mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Aerial");
+					mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Aerial");
 				}
 
 				break;
@@ -537,7 +537,7 @@ void Npcs::UpdateHuman(
 
 					humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium, currentSimulationTime);
 
-					mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Equilibrium");
+					mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Equilibrium");
 				}
 			}
 			else if (humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium)
@@ -575,7 +575,7 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
 
-				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+				mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 
 				break;
 			}
@@ -594,7 +594,7 @@ void Npcs::UpdateHuman(
 
 				npc.HumanNpcState->TransitionToState(StateType::HumanNpcStateType::BehaviorType::Free_InWater, currentSimulationTime);
 
-				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_InWater");
+				mGameEventDispatcher.OnHumanNpcBehaviorChanged("Free_InWater");
 
 				break;
 			}
@@ -611,7 +611,7 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
 
-				mEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+				mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 
 				break;
 			}
@@ -630,7 +630,7 @@ void Npcs::UpdateHuman(
 
 				npc.HumanNpcState->TransitionToState(StateType::HumanNpcStateType::BehaviorType::Free_Aerial, currentSimulationTime);
 
-				mEventDispatcher.OnHumanNpcBehaviorChanged("Free_Aerial");
+				mGameEventDispatcher.OnHumanNpcBehaviorChanged("Free_Aerial");
 
 				break;
 			}
@@ -661,7 +661,7 @@ void Npcs::UpdateHuman(
 					humanState.CurrentFaceOrientation = 1.0f; // TODO: random: back
 					humanState.CurrentFaceDirectionX = 0.0f;
 
-					mEventDispatcher.OnHumanNpcBehaviorChanged("Free_Swimming");
+					mGameEventDispatcher.OnHumanNpcBehaviorChanged("Free_Swimming");
 
 					break;
 				}
@@ -671,7 +671,7 @@ void Npcs::UpdateHuman(
 		}
 	}
 
-	mEventDispatcher.OnHumanNpcStateQuantityChanged(publishStateQuantity);
+	mGameEventDispatcher.OnHumanNpcStateQuantityChanged(publishStateQuantity);
 }
 
 bool Npcs::CheckAndMaintainHumanEquilibrium(
@@ -875,12 +875,12 @@ void Npcs::TransitionHumanToFree(
 		&& mParentWorld.GetOceanSurface().GetDepth(feetPosition) > 0.0f)
 	{
 		npc.HumanNpcState->TransitionToState(StateType::HumanNpcStateType::BehaviorType::Free_InWater, currentSimulationTime);
-		mEventDispatcher.OnHumanNpcBehaviorChanged("Free_InWater");
+		mGameEventDispatcher.OnHumanNpcBehaviorChanged("Free_InWater");
 	}
 	else
 	{
 		npc.HumanNpcState->TransitionToState(StateType::HumanNpcStateType::BehaviorType::Free_Aerial, currentSimulationTime);
-		mEventDispatcher.OnHumanNpcBehaviorChanged("Free_Aerial");
+		mGameEventDispatcher.OnHumanNpcBehaviorChanged("Free_Aerial");
 	}
 }
 

@@ -5,32 +5,32 @@
 ***************************************************************************************/
 #pragma once
 
-#include "IEventHandler.h"
+#include "IGameEventHandlers.h"
 
 #include <vector>
 
-class EventDispatcher final : public IEventHandler
+class GameEventDispatcher final : public IBLabEventHandler
 {
 public:
 
-    EventDispatcher()
-        : mSinks()
+    GameEventDispatcher()
+        : mBLabSinks()
     {
     }
 
 public:
 
-    void OnReset() override
+    void OnBLabReset() override
     {
-        for (auto sink : mSinks)
+        for (auto sink : mBLabSinks)
         {
-            sink->OnReset();
+            sink->OnBLabReset();
         }
     }
 
     void OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(std::optional<bcoords3f> const & coordinates) override
     {
-        for (auto sink : mSinks)
+        for (auto sink : mBLabSinks)
         {
             sink->OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(coordinates);
         }
@@ -38,7 +38,7 @@ public:
 
     void OnSubjectParticleConstrainedRegimeUpdated(std::optional<ConstrainedRegimeParticleProbe> const & constrainedRegimeParticleProbe) override
     {
-        for (auto sink : mSinks)
+        for (auto sink : mBLabSinks)
         {
             sink->OnSubjectParticleConstrainedRegimeUpdated(constrainedRegimeParticleProbe);
         }
@@ -46,7 +46,7 @@ public:
 
     void OnSubjectParticlePhysicsUpdated(std::optional<PhysicsParticleProbe> const & physicsParticleProbe) override
     {
-        for (auto sink : mSinks)
+        for (auto sink : mBLabSinks)
         {
             sink->OnSubjectParticlePhysicsUpdated(physicsParticleProbe);
         }
@@ -54,7 +54,7 @@ public:
 
     void OnTrajectoryToggled(bool isTrajectorySet) override
     {
-        for (auto sink : mSinks)
+        for (auto sink : mBLabSinks)
         {
             sink->OnTrajectoryToggled(isTrajectorySet);
         }
@@ -63,7 +63,7 @@ public:
     void OnHumanNpcBehaviorChanged(
         std::optional<std::string> behavior) override
     {
-        for (auto sink : mSinks)
+        for (auto sink : mBLabSinks)
         {
             sink->OnHumanNpcBehaviorChanged(behavior);
         }
@@ -72,7 +72,7 @@ public:
     void OnHumanNpcStateQuantityChanged(
         std::optional<std::tuple<std::string, std::string>> nameAndValue) override
     {
-        for (auto sink : mSinks)
+        for (auto sink : mBLabSinks)
         {
             sink->OnHumanNpcStateQuantityChanged(nameAndValue);
         }
@@ -82,7 +82,7 @@ public:
         std::string const & name,
         float value) override
     {
-        for (auto sink : mSinks)
+        for (auto sink : mBLabSinks)
         {
             sink->OnCustomProbe(name, value);
         }
@@ -90,13 +90,13 @@ public:
 
 public:
 
-    void RegisterEventHandler(IEventHandler * sink)
+    void RegisterBLabEventHandler(IBLabEventHandler * sink)
     {
-        mSinks.push_back(sink);
+        mBLabSinks.push_back(sink);
     }
 
 private:
 
     // The registered sinks
-    std::vector<IEventHandler *> mSinks;
+    std::vector<IBLabEventHandler *> mBLabSinks;
 };

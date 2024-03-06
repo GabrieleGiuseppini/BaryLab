@@ -5,7 +5,7 @@
  ***************************************************************************************/
 #pragma once
 
-#include "EventDispatcher.h"
+#include "GameEventDispatcher.h"
 #include "Physics.h"
 #include "Vectors.h"
 
@@ -19,12 +19,12 @@ public:
 	Model(
 		std::unique_ptr<Physics::Ship> ship,
 		std::unique_ptr<Physics::Npcs> npcs,
-		EventDispatcher & eventDispatcher)
+		GameEventDispatcher & gameEventDispatcher)
 		: mShip(std::move(ship))
 		, mNpcs(std::move(npcs))
 		, mOriginTriangle()
 		, mTrajectoryDestination()
-		, mEventDispatcher(eventDispatcher)
+		, mGameEventDispatcher(gameEventDispatcher)
 	{}
 
 	Physics::Ship const & GetShip() const
@@ -56,7 +56,7 @@ public:
 	{
 		mTrajectoryDestination = destinationPosition;
 
-		mEventDispatcher.OnTrajectoryToggled(true);
+		mGameEventDispatcher.OnTrajectoryToggled(true);
 	}
 
 	void ResetNpcs(std::unique_ptr<Physics::Npcs> npcs)
@@ -67,7 +67,7 @@ public:
 
 private:
 
-	EventDispatcher & mEventDispatcher;
+	GameEventDispatcher & mGameEventDispatcher;
 
 	std::unique_ptr<Physics::Ship> mShip;
 	std::unique_ptr<Physics::Npcs> mNpcs;

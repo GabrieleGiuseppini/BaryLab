@@ -873,7 +873,7 @@ void MainFrame::FinishInitialization()
     // Register event handlers
     //
 
-    mLabController->RegisterEventHandler(mProbeToolbar);
+    mLabController->RegisterBLabEventHandler(mProbeToolbar);
 
     //
     // Load initial object

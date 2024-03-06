@@ -20,9 +20,9 @@
  * only care about a subset of the events.
  */
 
-struct IEventHandler
+struct IBLabEventHandler
 {
-    virtual void OnReset()
+    virtual void OnBLabReset()
     {
         // Default-implemented
     }

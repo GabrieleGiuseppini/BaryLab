@@ -8,7 +8,7 @@
 #include "BLabTypes.h"
 #include "BarycentricCoords.h"
 #include "ElementIndexRangeIterator.h"
-#include "EventDispatcher.h"
+#include "GameEventDispatcher.h"
 #include "LabParameters.h"
 #include "Log.h"
 #include "MaterialDatabase.h"
@@ -393,12 +393,12 @@ public:
 	Npcs(
 		Physics::World & parentWorld,
 		MaterialDatabase const & materialDatabase,
-		EventDispatcher & eventDispatcher,
+		GameEventDispatcher & gameEventDispatcher,
 		LabParameters const & labParameters,
 		bool isGravityEnabled)
 		: mParentWorld(parentWorld)
 		, mMaterialDatabase(materialDatabase)
-		, mEventDispatcher(eventDispatcher)
+		, mGameEventDispatcher(gameEventDispatcher)
 		// Container
 		, mStateBuffer()
 		, mParticles(LabParameters::MaxNpcs * LabParameters::MaxParticlesPerNpc)
@@ -894,7 +894,7 @@ private:
 
 	World & mParentWorld;
 	MaterialDatabase const & mMaterialDatabase;
-	EventDispatcher & mEventDispatcher;
+	GameEventDispatcher & mGameEventDispatcher;
 
 	//
 	// Container

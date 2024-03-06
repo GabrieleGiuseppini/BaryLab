@@ -6,7 +6,7 @@
 #pragma once
 
 #include "BLabTypes.h"
-#include "EventDispatcher.h"
+#include "GameEventDispatcher.h"
 #include "LabParameters.h"
 #include "MaterialDatabase.h"
 #include "Model.h"
@@ -34,9 +34,9 @@ public:
 
 public:
 
-    void RegisterEventHandler(IEventHandler * handler)
+    void RegisterBLabEventHandler(IBLabEventHandler * handler)
     {
-        mEventDispatcher.RegisterEventHandler(handler);
+        mGameEventDispatcher.RegisterBLabEventHandler(handler);
     }
 
     //
@@ -270,7 +270,7 @@ private:
 
     MaterialDatabase mMaterialDatabase;
     std::unique_ptr<RenderContext> mRenderContext;
-    EventDispatcher mEventDispatcher;
+    GameEventDispatcher mGameEventDispatcher;
 
     //
     // Current state

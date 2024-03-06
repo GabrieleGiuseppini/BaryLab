@@ -361,7 +361,7 @@ std::unique_ptr<ScalarTimeSeriesProbeControl> ProbeToolbar::AddScalarTimeSeriesP
 
 ///////////////////////////////////////////////////////////////////////////////////////
 
-void ProbeToolbar::OnReset()
+void ProbeToolbar::OnBLabReset()
 {
     mOriginTriangleBarycentricCoordinateL1TextCtrl->SetValue("");
     mOriginTriangleBarycentricCoordinateL2TextCtrl->SetValue("");

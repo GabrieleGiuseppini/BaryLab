@@ -42,7 +42,7 @@ LabController::LabController(
     std::unique_ptr<RenderContext> renderContext)
     : mMaterialDatabase(std::move(materialDatabase))
     , mRenderContext(std::move(renderContext))
-    , mEventDispatcher()
+    , mGameEventDispatcher()
     // Simulation state
     , mLabParameters()
     , mModel()
@@ -861,7 +861,7 @@ void LabController::LoadShip(
     std::unique_ptr<Physics::Npcs> npcs = std::make_unique<Physics::Npcs>(
         mWorld,
         mMaterialDatabase,
-        mEventDispatcher,
+        mGameEventDispatcher,
         mLabParameters,
         mIsGravityEnabled);
 
@@ -929,7 +929,7 @@ void LabController::LoadShip(
     std::unique_ptr<Model> newModel = std::make_unique<Model>(
         std::move(ship),
         std::move(npcs),
-        mEventDispatcher);
+        mGameEventDispatcher);
 
     //
     // No errors, so we may continue
@@ -985,6 +985,6 @@ void LabController::Reset(
     // Publish reset
     //
 
-    mEventDispatcher.OnReset();
+    mGameEventDispatcher.OnBLabReset();
 }
 

@@ -876,8 +876,8 @@ void Npcs::UpdateNpcParticle(
 
         vec2f const particleVelocity = (mParticles.GetPosition(npcParticle.ParticleIndex) - particleStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration;
 
-        mEventDispatcher.OnCustomProbe("VelX", particleVelocity.x);
-        mEventDispatcher.OnCustomProbe("VelY", particleVelocity.y);
+        mGameEventDispatcher.OnCustomProbe("VelX", particleVelocity.x);
+        mGameEventDispatcher.OnCustomProbe("VelY", particleVelocity.y);
     }
 }
 
@@ -2267,8 +2267,6 @@ void Npcs::UpdateNpcAnimation(
                 float const y = (inPeriod < Period1)
                     ? std::sqrt(inPeriod / Period1)
                     : ((inPeriod - Period1) - Period2) * ((inPeriod - Period1) - Period2) / std::sqrt(Period2);
-
-                mEventDispatcher.OnCustomProbe("y", y);
 
                 // 0: 0, 2: 1, >+ INF: 1
                 float const depthDamper = Clamp(mParentWorld.GetOceanSurface().GetDepth(mParticles.GetPosition(secondaryParticleIndex)) / 1.5f, 0.0f, 1.0f);
