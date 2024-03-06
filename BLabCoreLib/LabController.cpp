@@ -20,7 +20,7 @@ std::unique_ptr<LabController> LabController::Create(
     LogMessage("InitialCanvasSize: ", initialCanvasWidth, "x", initialCanvasHeight);
 
     // Load materials
-    StructuralMaterialDatabase structuralMaterialDatabase = StructuralMaterialDatabase::Load();
+    MaterialDatabase structuralMaterialDatabase = MaterialDatabase::Load();
 
     // Create render context
     std::unique_ptr<RenderContext> renderContext = std::make_unique<RenderContext>(
@@ -38,9 +38,9 @@ std::unique_ptr<LabController> LabController::Create(
 }
 
 LabController::LabController(
-    StructuralMaterialDatabase && structuralMaterialDatabase,
+    MaterialDatabase && materialDatabase,
     std::unique_ptr<RenderContext> renderContext)
-    : mStructuralMaterialDatabase(std::move(structuralMaterialDatabase))
+    : mMaterialDatabase(std::move(materialDatabase))
     , mRenderContext(std::move(renderContext))
     , mEventDispatcher()
     // Simulation state
@@ -849,7 +849,7 @@ void LabController::LoadShip(
 
     std::unique_ptr<Physics::Ship> ship = ShipBuilder::BuildShip(
         std::move(shipDefinition),
-        mStructuralMaterialDatabase);
+        mMaterialDatabase);
 
     if (ship->GetTriangles().GetElementCount() < 1)
     {
@@ -860,6 +860,7 @@ void LabController::LoadShip(
 
     std::unique_ptr<Physics::Npcs> npcs = std::make_unique<Physics::Npcs>(
         mWorld,
+        mMaterialDatabase,
         mEventDispatcher,
         mLabParameters,
         mIsGravityEnabled);
@@ -891,7 +892,6 @@ void LabController::LoadShip(
             position,
             std::nullopt, // Secondary position
             mCurrentSimulationTime,
-            mStructuralMaterialDatabase,
             *ship,
             mLabParameters);
 

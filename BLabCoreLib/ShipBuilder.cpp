@@ -31,7 +31,7 @@ rgbColor constexpr EmptyMaterialColorKey = rgbColor(255, 255, 255);
 
 std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
     ShipDefinition && shipDefinition,
-    StructuralMaterialDatabase const & structuralMaterialDatabase)
+    MaterialDatabase const & materialDatabase)
 {
     //
     // Process structural layer and:
@@ -71,8 +71,8 @@ std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
         // From bottom to top
         for (int y = 0; y < shipHeight; ++y)
         {
-            StructuralMaterialDatabase::ColorKey const colorKey = structuralLayerBuffer[x + y * shipWidth];
-            StructuralMaterial const * structuralMaterial = structuralMaterialDatabase.FindStructuralMaterial(colorKey);
+            MaterialDatabase::ColorKey const colorKey = structuralLayerBuffer[x + y * shipWidth];
+            StructuralMaterial const * structuralMaterial = materialDatabase.FindStructuralMaterial(colorKey);
             if (nullptr != structuralMaterial)
             {
                 //

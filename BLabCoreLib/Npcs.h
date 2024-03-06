@@ -11,10 +11,10 @@
 #include "EventDispatcher.h"
 #include "LabParameters.h"
 #include "Log.h"
+#include "MaterialDatabase.h"
 #include "Physics.h"
 #include "RenderContext.h"
 #include "StrongTypeDef.h"
-#include "StructuralMaterialDatabase.h"
 #include "Vectors.h"
 
 #include <optional>
@@ -392,10 +392,12 @@ public:
 
 	Npcs(
 		Physics::World & parentWorld,
+		MaterialDatabase const & materialDatabase,
 		EventDispatcher & eventDispatcher,
 		LabParameters const & labParameters,
 		bool isGravityEnabled)
 		: mParentWorld(parentWorld)
+		, mMaterialDatabase(materialDatabase)
 		, mEventDispatcher(eventDispatcher)
 		// Container
 		, mStateBuffer()
@@ -411,7 +413,6 @@ public:
 		vec2f primaryPosition,
 		std::optional<vec2f> secondaryPosition,
 		float currentSimulationTime,
-		StructuralMaterialDatabase const & materialDatabase,
 		Ship const & ship,
 		LabParameters const & labParameters);
 
@@ -892,6 +893,7 @@ private:
 private:
 
 	World & mParentWorld;
+	MaterialDatabase const & mMaterialDatabase;
 	EventDispatcher & mEventDispatcher;
 
 	//

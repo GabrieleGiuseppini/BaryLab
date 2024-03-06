@@ -16,7 +16,6 @@ void Npcs::Add(
 	vec2f primaryPosition,
 	std::optional<vec2f> secondaryPosition,
 	float currentSimulationTime,
-	StructuralMaterialDatabase const & materialDatabase,
 	Ship const & ship,
 	LabParameters const & labParameters)
 {
@@ -41,7 +40,7 @@ void Npcs::Add(
 	{
 		case NpcType::Furniture:
 		{
-			auto const & material = materialDatabase.GetStructuralMaterial(StructuralMaterialDatabase::UniqueMaterialKeyType::Furniture);
+			auto const & material = mMaterialDatabase.GetNpcMaterial(NpcMaterial::KindType::Furniture);
 
 			mParticles.Add(
 				material.Mass,
@@ -61,7 +60,7 @@ void Npcs::Add(
 
 			// Feet (primary)
 
-			auto const & feetMaterial = materialDatabase.GetStructuralMaterial(StructuralMaterialDatabase::UniqueMaterialKeyType::HumanFeet);
+			auto const & feetMaterial = mMaterialDatabase.GetNpcMaterial(NpcMaterial::KindType::HumanFeet);
 
 			mParticles.Add(
 				feetMaterial.Mass,
@@ -76,7 +75,7 @@ void Npcs::Add(
 
 			ElementIndex const headParticleIndex = mParticles.GetParticleCount();
 
-			auto const & headMaterial = materialDatabase.GetStructuralMaterial(StructuralMaterialDatabase::UniqueMaterialKeyType::HumanHead);
+			auto const & headMaterial = mMaterialDatabase.GetNpcMaterial(NpcMaterial::KindType::HumanHead);
 
 			if (!secondaryPosition)
 			{

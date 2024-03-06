@@ -6,10 +6,10 @@
 #pragma once
 
 #include "BLabTypes.h"
+#include "MaterialDatabase.h"
 #include "Physics.h"
 #include "ShipBuilderTypes.h"
 #include "ShipDefinition.h"
-#include "StructuralMaterialDatabase.h"
 
 #include <memory>
 
@@ -22,7 +22,7 @@ public:
 
     static std::unique_ptr<Physics::Ship> BuildShip(
         ShipDefinition && shipDefinition,
-        StructuralMaterialDatabase const & structuralMaterialDatabase);
+        MaterialDatabase const & materialDatabase);
 
 private:
 

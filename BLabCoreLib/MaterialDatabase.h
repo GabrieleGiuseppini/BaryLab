@@ -5,8 +5,8 @@
 ***************************************************************************************/
 #pragma once
 
+#include "Materials.h"
 #include "ResourceLocator.h"
-#include "StructuralMaterial.h"
 
 #include "BLabException.h"
 #include "Colors.h"
@@ -18,23 +18,20 @@
 #include <cstdint>
 #include <map>
 
-class StructuralMaterialDatabase
+class MaterialDatabase
 {
 public:
 
     using ColorKey = rgbColor;
 
-    enum class UniqueMaterialKeyType
-    {
-        Furniture,
-        HumanHead,
-        HumanFeet
-    };
-
 public:
 
-    static StructuralMaterialDatabase Load()
+    static MaterialDatabase Load()
     {
+        //
+        // Structural
+        //
+
         picojson::value structuralMaterialsRoot = Utils::ParseJSONFile(ResourceLocator::GetStructuralMaterialDatabaseFilePath());
 
         if (!structuralMaterialsRoot.is<picojson::array>())
@@ -42,12 +39,9 @@ public:
             throw BLabException("Structural materials definition is not a JSON array");
         }
 
-        //
         // Read into map
-        //
 
         std::map<ColorKey, StructuralMaterial> structuralMaterialsMap;
-        std::map<UniqueMaterialKeyType, ColorKey> structuralMaterialByUniqueKeyMap;
 
         picojson::array const & structuralMaterialsRootArray = structuralMaterialsRoot.get<picojson::array>();
         for (auto const & materialElem : structuralMaterialsRootArray)
@@ -79,26 +73,49 @@ public:
                     material));
 
             assert(storedEntry.second);
+        }
 
-            // Store by unique key, if any
-            auto const uniqueKeyStr = Utils::GetOptionalJsonMember<std::string>(materialObject, "unique_material");
-            if (uniqueKeyStr.has_value())
+        //
+        // NPC
+        //
+
+        picojson::value npcMaterialsRoot = Utils::ParseJSONFile(ResourceLocator::GetNpcMaterialDatabaseFilePath());
+
+        if (!npcMaterialsRoot.is<picojson::array>())
+        {
+            throw BLabException("NPC materials definition is not a JSON array");
+        }
+
+        // Read into map
+
+        std::map<NpcMaterial::KindType, NpcMaterial> npcMaterialsMap;
+
+        picojson::array const & npcMaterialsRootArray = npcMaterialsRoot.get<picojson::array>();
+        for (auto const & materialElem : npcMaterialsRootArray)
+        {
+            if (!materialElem.is<picojson::object>())
             {
-                UniqueMaterialKeyType const uniqueMaterialKey = StrToUniqueMaterialKey(*uniqueKeyStr);
-                auto [_, isUniqueMaterialInserted] = structuralMaterialByUniqueKeyMap.emplace(
-                    std::make_pair(
-                        uniqueMaterialKey,
-                        colorKey));
-                if (!isUniqueMaterialInserted)
-                {
-                    throw BLabException("Found more than one material with unique key \"" + *uniqueKeyStr + "\"");
-                }
+                throw BLabException("Found a non-object in NPC materials definition");
+            }
+
+            picojson::object const & materialObject = materialElem.get<picojson::object>();
+
+            NpcMaterial material = NpcMaterial::Create(materialObject);
+
+            // Store
+            auto const storedEntry = npcMaterialsMap.emplace(
+                material.Kind,
+                material);
+
+            if (!storedEntry.second)
+            {
+                throw BLabException("NPC material \"" + material.Name + "\" has a duplicate kind");
             }
         }
 
-        return StructuralMaterialDatabase(
+        return MaterialDatabase(
             std::move(structuralMaterialsMap),
-            std::move(structuralMaterialByUniqueKeyMap));
+            std::move(npcMaterialsMap));
     }
 
     StructuralMaterial const * FindStructuralMaterial(ColorKey const & colorKey) const
@@ -114,33 +131,24 @@ public:
         return nullptr;
     }
 
-    StructuralMaterial const & GetStructuralMaterial(UniqueMaterialKeyType const & uniqueKey) const
+    NpcMaterial const & GetNpcMaterial(NpcMaterial::KindType kind) const
     {
-        return mStructuralMaterialMap.at(mStructuralMaterialByUniqueKeyMap.at(uniqueKey));
+        return mNpcMaterialMap.at(kind);
     }
 
 private:
 
-    StructuralMaterialDatabase(
+    MaterialDatabase(
         std::map<ColorKey, StructuralMaterial> && structuralMaterialMap,
-        std::map<UniqueMaterialKeyType, ColorKey> && structuralMaterialByUniqueKeyMap)
+        std::map<NpcMaterial::KindType, NpcMaterial> && npcMaterialMap)
         : mStructuralMaterialMap(std::move(structuralMaterialMap))
-        , mStructuralMaterialByUniqueKeyMap(std::move(structuralMaterialByUniqueKeyMap))
+        , mNpcMaterialMap(std::move(npcMaterialMap))
     {
     }
 
-    static UniqueMaterialKeyType StrToUniqueMaterialKey(std::string const & str)
-    {
-        if (Utils::CaseInsensitiveEquals(str, "Furniture"))
-            return UniqueMaterialKeyType::Furniture;
-        else if (Utils::CaseInsensitiveEquals(str, "HumanFeet"))
-            return UniqueMaterialKeyType::HumanFeet;
-        else if (Utils::CaseInsensitiveEquals(str, "HumanHead"))
-            return UniqueMaterialKeyType::HumanHead;
-        else
-            throw BLabException("Unrecognized unique material key \"" + str + "\"");
-    }
-
+    // Structural
     std::map<ColorKey, StructuralMaterial> const mStructuralMaterialMap;
-    std::map<UniqueMaterialKeyType, ColorKey> const mStructuralMaterialByUniqueKeyMap;
+
+    // NPC
+    std::map<NpcMaterial::KindType, NpcMaterial> const mNpcMaterialMap;
 };

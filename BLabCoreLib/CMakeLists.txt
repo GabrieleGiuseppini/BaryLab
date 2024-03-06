@@ -40,6 +40,9 @@ set  (SOURCES
 	LabParameters.h	
 	Log.cpp
 	Log.h
+	MaterialDatabase.h
+	Materials.cpp
+	Materials.h
 	Matrix.h
 	Model.cpp
 	Model.h
@@ -69,9 +72,6 @@ set  (SOURCES
 	Springs.cpp
 	Springs.h
 	StrongTypeDef.h
-	StructuralMaterial.cpp
-	StructuralMaterial.h
-	StructuralMaterialDatabase.h
 	SysSpecifics.h
 	Triangles.cpp
 	Triangles.h

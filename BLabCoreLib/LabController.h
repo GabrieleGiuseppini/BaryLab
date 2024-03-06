@@ -8,11 +8,11 @@
 #include "BLabTypes.h"
 #include "EventDispatcher.h"
 #include "LabParameters.h"
+#include "MaterialDatabase.h"
 #include "Model.h"
 #include "Physics.h"
 #include "RenderContext.h"
 #include "ShipDefinition.h"
-#include "StructuralMaterialDatabase.h"
 #include "Vectors.h"
 
 #include <cassert>
@@ -252,8 +252,8 @@ public:
 
 private:
 
-    explicit LabController(
-        StructuralMaterialDatabase && structuralMaterialDatabase,
+    LabController(
+        MaterialDatabase && materialDatabase,
         std::unique_ptr<RenderContext> renderContext);
 
     void LoadShip(
@@ -268,7 +268,7 @@ private:
 
 private:
 
-    StructuralMaterialDatabase mStructuralMaterialDatabase;
+    MaterialDatabase mMaterialDatabase;
     std::unique_ptr<RenderContext> mRenderContext;
     EventDispatcher mEventDispatcher;
 

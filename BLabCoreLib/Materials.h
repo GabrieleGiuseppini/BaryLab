@@ -19,12 +19,6 @@ public:
     std::string Name;
     rgbaColor RenderColor;
 
-    float Mass;
-    float StaticFriction;
-    float KineticFriction;
-    float Elasticity;
-    float BuoyancyVolumeFill;
-
     SurfaceType Surface;
 
 public:
@@ -36,6 +30,46 @@ public:
     StructuralMaterial(
         std::string name,
         rgbaColor const & renderColor,
+        SurfaceType surface)
+        : Name(name)
+        , RenderColor(renderColor)
+        , Surface(surface)
+    {}
+};
+
+struct NpcMaterial
+{
+public:
+
+    enum class KindType
+    {
+        Furniture,
+        HumanHead,
+        HumanFeet
+    };
+
+public:
+
+    std::string Name;
+    KindType Kind;
+    rgbaColor RenderColor;
+
+    float Mass;
+    float StaticFriction;
+    float KineticFriction;
+    float Elasticity;
+    float BuoyancyVolumeFill;
+
+    SurfaceType Surface;
+
+public:
+
+    static NpcMaterial Create(picojson::object const & npcMaterialJson);
+
+    NpcMaterial(
+        std::string name,
+        KindType kind,
+        rgbaColor const & renderColor,
         float mass,
         float staticFriction,
         float kineticFriction,
@@ -43,6 +77,7 @@ public:
         float buoyancyVolumeFill,
         SurfaceType surface)
         : Name(name)
+        , Kind(kind)
         , RenderColor(renderColor)
         , Mass(mass)
         , StaticFriction(staticFriction)
@@ -51,4 +86,8 @@ public:
         , BuoyancyVolumeFill(buoyancyVolumeFill)
         , Surface(surface)
     {}
+
+private:
+
+    static KindType StrToKindType(std::string const & strKind);
 };

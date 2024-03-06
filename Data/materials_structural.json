@@ -9,46 +9,5 @@
         "color_key": "#BABABA", 
 	"name": "Open",
 	"surface": "Open"
-    },
-
-
-
-
-
-    {
-        "color_key": "#000060", 
-	"name": "Furniture",
-	"unique_material": "Furniture",
-	"mass": 34.5,
-	"static_friction": 0.07,
-	"kinetic_friction": 0.05,
-	"elasticity": 0.6,
-	"buoyancy_volume_fill": 0.05,
-	"surface": "Open"
-    },
-
-    {
-        "color_key": "#006000", 
-	"name": "HumanHead",
-	"unique_material": "HumanHead",
-	"mass": 34.5,
-	"static_friction": 0.1,
-	"kinetic_friction": 0.1,
-	"elasticity": 0.6,
-	"buoyancy_volume_fill": 0.05,
-	"surface": "Open"
-    },
-
-    {
-        "color_key": "#600000", 
-	"name": "HumanFeet",
-	"unique_material": "HumanFeet",
-	"mass": 34.5,
-	"static_friction": 1.045,
-	"kinetic_friction": 1.0,
-	"elasticity": 0.6,
-	"buoyancy_volume_fill": 0.03,
-	"surface": "Open"
     }
-
 ]

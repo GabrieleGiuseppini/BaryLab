@@ -8,8 +8,8 @@
 #include "BLabTypes.h"
 #include "Colors.h"
 #include "FixedSizeVector.h"
+#include "Materials.h"
 #include "Matrix.h"
-#include "StructuralMaterialDatabase.h"
 #include "Vectors.h"
 
 #include <memory>
