@@ -5,7 +5,7 @@
 ***************************************************************************************/
 #include "ImageFileTools.h"
 
-#include "BLabException.h"
+#include "GameException.h"
 
 #include <IL/il.h>
 #include <IL/ilu.h>
@@ -46,7 +46,7 @@ ImageSize ImageFileTools::GetImageSize(std::filesystem::path const & filepath)
 
     if (width == 0 || height == 0)
     {
-        throw BLabException("Could not load image \"" + filepath.string() + "\": image is empty");
+        throw GameException("Could not load image \"" + filepath.string() + "\": image is empty");
     }
 
     return ImageSize(width, height);
@@ -129,12 +129,12 @@ unsigned int ImageFileTools::InternalLoadImage(std::filesystem::path const & fil
         // First check if the file is missing altogether
         if (!std::filesystem::exists(filepath))
         {
-            throw BLabException("Could not load image \"" + filepathStr + "\": the file does not exist");
+            throw GameException("Could not load image \"" + filepathStr + "\": the file does not exist");
         }
 
         // Provide DevIL's error message now
         std::string const devilErrorMessage(iluErrorString(devilError));
-        throw BLabException("Could not load image \"" + filepathStr + "\": " + devilErrorMessage);
+        throw GameException("Could not load image \"" + filepathStr + "\": " + devilErrorMessage);
     }
 
     return static_cast<unsigned int>(imghandle);
@@ -164,7 +164,7 @@ ImageData<TColor> ImageFileTools::InternalLoadImage(
         {
             ILint devilError = ilGetError();
             std::string devilErrorMessage(iluErrorString(devilError));
-            throw BLabException("Could not convert image \"" + filepath.string() + "\": " + devilErrorMessage);
+            throw GameException("Could not convert image \"" + filepath.string() + "\": " + devilErrorMessage);
         }
     }
 

@@ -7,7 +7,7 @@
 
 #include "BLabOpenGL.h"
 #include "BLabOpenGLMappedBuffer.h"
-#include "BLabTypes.h"
+#include "GameTypes.h"
 #include "LabParameters.h"
 #include "ShaderManager.h"
 #include "Vectors.h"

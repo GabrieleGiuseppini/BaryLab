@@ -7,7 +7,7 @@
 
 #include "BLabOpenGL_Ext.h"
 
-#include "BLabException.h"
+#include "GameException.h"
 #include "Log.h"
 
 #include <cassert>
@@ -259,7 +259,7 @@ inline void _CheckOpenGLError(char const * file, int line)
             }
         }
 
-        throw BLabException("OpenGL Error \"" + errorCodeString + "\" at file " + std::string(file) + ", line " + std::to_string(line));
+        throw GameException("OpenGL Error \"" + errorCodeString + "\" at file " + std::string(file) + ", line " + std::to_string(line));
     }
 }
 

@@ -5,8 +5,8 @@
 ***************************************************************************************/
 #pragma once
 
-#include "BLabTypes.h"
 #include "BarycentricCoords.h"
+#include "GameTypes.h"
 #include "Vectors.h"
 
 #include <chrono>

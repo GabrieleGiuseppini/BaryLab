@@ -6,11 +6,11 @@
 #pragma once
 
 #include "AABB.h"
-#include "BLabTypes.h"
 #include "Buffer.h"
 #include "ElementContainer.h"
 #include "ElementIndexRangeIterator.h"
 #include "FixedSizeVector.h"
+#include "GameTypes.h"
 #include "LabParameters.h"
 #include "Physics.h"
 #include "Vectors.h"

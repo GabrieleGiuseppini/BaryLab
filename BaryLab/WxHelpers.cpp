@@ -5,7 +5,7 @@
 ***************************************************************************************/
 #include "WxHelpers.h"
 
-#include <BLabCoreLib/BLabException.h>
+#include <BLabCoreLib/GameException.h>
 #include <BLabCoreLib/ResourceLocator.h>
 
 #include <wx/rawbmp.h>
@@ -35,7 +35,7 @@ wxImage WxHelpers::MakeCursorImage(
     auto bmp = std::make_unique<wxBitmap>(filepath.string(), wxBITMAP_TYPE_PNG);
     if (!bmp->IsOk())
     {
-        throw BLabException("Cursor \"" + filepath.string() + "\" could not be loaded");
+        throw GameException("Cursor \"" + filepath.string() + "\" could not be loaded");
     }
 
     wxImage img = bmp->ConvertToImage();

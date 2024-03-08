@@ -5,10 +5,10 @@
 ***************************************************************************************/
 #pragma once
 
-#include "BLabTypes.h"
 #include "BarycentricCoords.h"
 #include "ElementIndexRangeIterator.h"
 #include "GameEventDispatcher.h"
+#include "GameTypes.h"
 #include "LabParameters.h"
 #include "Log.h"
 #include "MaterialDatabase.h"

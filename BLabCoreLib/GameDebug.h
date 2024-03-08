@@ -5,7 +5,7 @@
 ***************************************************************************************/
 #pragma once
 
-#include "BLabException.h"
+#include "GameException.h"
 
 #ifdef _DEBUG
 
@@ -13,7 +13,7 @@ inline void Verify(bool expression)
 {
     if (!expression)
     {
-        throw BLabException("Verification failed!");
+        throw GameException("Verification failed!");
     }
 }
 

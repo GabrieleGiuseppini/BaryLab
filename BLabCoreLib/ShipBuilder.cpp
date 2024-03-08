@@ -101,7 +101,7 @@ std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
             }
             else if (colorKey != EmptyMaterialColorKey)
             {
-                throw BLabException("Pixel at coordinate (" + std::to_string(x) + ", " + std::to_string(y) + ") is not a recognized material");
+                throw GameException("Pixel at coordinate (" + std::to_string(x) + ", " + std::to_string(y) + ") is not a recognized material");
             }
         }
     }

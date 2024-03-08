@@ -5,7 +5,7 @@
 ***************************************************************************************/
 #include "BLabOpenGL_Ext.h"
 
-#include "BLabException.h"
+#include "GameException.h"
 #include "Log.h"
 
 #include <string>
@@ -16,7 +16,7 @@ void LoadAndVerify(char const * functionName, TFunc * & pFunc, GLADloadproc load
     pFunc = reinterpret_cast<TFunc *>(load(functionName));
     if (nullptr == pFunc)
     {
-        throw BLabException(std::string("OpenGL function '") + functionName + "' is not supported");
+        throw GameException(std::string("OpenGL function '") + functionName + "' is not supported");
     }
 }
 
@@ -98,7 +98,7 @@ void InitOpenGLExt_Framebuffer(GLADloadproc load)
     }
     else
     {
-        throw BLabException("Framebuffer functionality is not supported");
+        throw GameException("Framebuffer functionality is not supported");
     }
 }
 
@@ -131,7 +131,7 @@ void InitOpenGLExt_DrawInstanced(GLADloadproc load)
     }
     else
     {
-        throw BLabException("Instanced Drawing functionality is not supported");
+        throw GameException("Instanced Drawing functionality is not supported");
     }
 }
 
@@ -165,7 +165,7 @@ void InitOpenGLExt_VertexArray(GLADloadproc load)
     }
     else
     {
-        throw BLabException("VAO functionality is not supported");
+        throw GameException("VAO functionality is not supported");
     }
 }
 
@@ -182,7 +182,7 @@ void InitOpenGLExt_TextureFloat(GLADloadproc /*load*/)
     }
     else
     {
-        throw BLabException("Texture Float functionality is not supported");
+        throw GameException("Texture Float functionality is not supported");
     }
 }
 
@@ -214,7 +214,7 @@ void InitOpenGLExt()
     }
     catch (std::exception const & ex)
     {
-        throw BLabException(
+        throw GameException(
             std::string("We are sorry, but this game requires OpenGL functionality which your graphics driver appears to not support;")
             + " the error is: " + ex.what());
     }

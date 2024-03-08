@@ -3,10 +3,9 @@
 * Created:				2020-05-15
 * Copyright:			Gabriele Giuseppini  (https://github.com/GabrieleGiuseppini)
 ***************************************************************************************/
-#include "BLabTypes.h"
+#include "GameTypes.h"
 
-#include "BLabException.h"
-
+#include "GameException.h"
 #include "Utils.h"
 
 SurfaceType StrToSurfaceType(std::string const & str)
@@ -16,5 +15,5 @@ SurfaceType StrToSurfaceType(std::string const & str)
     else if (Utils::CaseInsensitiveEquals(str, "Open"))
         return SurfaceType::Open;
     else
-        throw BLabException("Unrecognized SurfaceType \"" + str + "\"");
+        throw GameException("Unrecognized SurfaceType \"" + str + "\"");
 }

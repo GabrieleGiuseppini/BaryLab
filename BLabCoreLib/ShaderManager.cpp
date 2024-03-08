@@ -16,7 +16,7 @@ static const std::string StaticParametersFilenameStem = "static_parameters";
 ShaderManager::ShaderManager(std::filesystem::path const & shadersRoot)
 {
     if (!std::filesystem::exists(shadersRoot))
-        throw BLabException("Shaders root path \"" + shadersRoot.string() + "\" does not exist");
+        throw GameException("Shaders root path \"" + shadersRoot.string() + "\" does not exist");
 
     //
     // Make static parameters
@@ -81,7 +81,7 @@ ShaderManager::ShaderManager(std::filesystem::path const & shadersRoot)
     {
         if (i >= mPrograms.size() || !(mPrograms[i].OpenGLHandle))
         {
-            throw BLabException("Cannot find GLSL source file for program \"" + ProgramTypeToStr(static_cast<ProgramType>(i)) + "\"");
+            throw GameException("Cannot find GLSL source file for program \"" + ProgramTypeToStr(static_cast<ProgramType>(i)) + "\"");
         }
     }
 }
@@ -197,9 +197,9 @@ void ShaderManager::CompileShader(
                 "param" + ProgramParameterTypeToStr(programParameter));
         }
     }
-    catch (BLabException const & ex)
+    catch (GameException const & ex)
     {
-        throw BLabException("Error compiling shader file \"" + shaderFilename + "\": " + ex.what());
+        throw GameException("Error compiling shader file \"" + shaderFilename + "\": " + ex.what());
     }
 }
 
@@ -236,12 +236,12 @@ std::string ShaderManager::ResolveIncludes(
                 auto includeIt = shaderSources.find(includeFilename);
                 if (includeIt == shaderSources.end())
                 {
-                    throw BLabException("Cannot find include file \"" + includeFilename + "\"");
+                    throw GameException("Cannot find include file \"" + includeFilename + "\"");
                 }
 
                 if (resolvedIncludes.count(includeFilename) > 0)
                 {
-                    throw BLabException("Detected include file loop at include file \"" + includeFilename + "\"");
+                    throw GameException("Detected include file loop at include file \"" + includeFilename + "\"");
                 }
 
                 // Insert include
@@ -282,14 +282,14 @@ std::tuple<std::string, std::string> ShaderManager::SplitSource(std::string cons
     {
         if (!std::getline(sSource, line))
         {
-            throw BLabException("Cannot find ***VERTEX declaration");
+            throw GameException("Cannot find ***VERTEX declaration");
         }
 
         if (!line.empty())
         {
             if (!std::regex_match(line, VertexHeaderRegex))
             {
-                throw BLabException("Cannot find ***VERTEX declaration");
+                throw GameException("Cannot find ***VERTEX declaration");
             }
 
             break;
@@ -301,7 +301,7 @@ std::tuple<std::string, std::string> ShaderManager::SplitSource(std::string cons
     while (true)
     {
         if (!std::getline(sSource, line))
-            throw BLabException("Cannot find ***FRAGMENT declaration");
+            throw GameException("Cannot find ***FRAGMENT declaration");
 
         if (std::regex_match(line, FragmentHeaderRegex))
             break;
@@ -342,7 +342,7 @@ void ShaderManager::ParseLocalStaticParameters(
             std::smatch match;
             if (!std::regex_search(line, match, StaticParamDefinitionRegex))
             {
-                throw BLabException("Error parsing static parameter definition \"" + line + "\"");
+                throw GameException("Error parsing static parameter definition \"" + line + "\"");
             }
 
             assert(3 == match.size());
@@ -352,7 +352,7 @@ void ShaderManager::ParseLocalStaticParameters(
             // Check whether it's a dupe
             if (staticParameters.count(staticParameterName) > 0)
             {
-                throw BLabException("Static parameters \"" + staticParameterName + "\" has already been defined");
+                throw GameException("Static parameters \"" + staticParameterName + "\" has already been defined");
             }
 
             // Store
@@ -382,7 +382,7 @@ std::string ShaderManager::SubstituteStaticParameters(
         auto const & paramIt = staticParameters.find(staticParameterName);
         if (paramIt == staticParameters.end())
         {
-            throw BLabException("Static parameter \"" + staticParameterName + "\" is not recognized");
+            throw GameException("Static parameter \"" + staticParameterName + "\" is not recognized");
         }
 
         // Substitute the parameter
@@ -422,7 +422,7 @@ std::set<ShaderManager::ProgramParameterType> ShaderManager::ExtractShaderParame
                 // Store it, making sure it's not specified more than once
                 if (!shaderParameters.insert(shaderParameter).second)
                 {
-                    throw BLabException("Shader parameter \"" + shaderParameterName + "\" is declared more than once");
+                    throw GameException("Shader parameter \"" + shaderParameterName + "\" is declared more than once");
                 }
             }
         }
@@ -450,7 +450,7 @@ std::set<std::string> ShaderManager::ExtractVertexAttributeNames(std::string con
         // Store it, making sure it's not specified more than once
         if (!attributeNames.insert(attributeName).second)
         {
-            throw BLabException("Attribute name \"" + attributeName + "\" is declared more than once");
+            throw GameException("Attribute name \"" + attributeName + "\" is declared more than once");
         }
 
         // Advance
@@ -483,7 +483,7 @@ ShaderManager::ProgramType ShaderManager::ShaderFilenameToProgramType(std::strin
     else if (Utils::CaseInsensitiveEquals(str, "Vertices"))
         return ProgramType::Vertices;
     else
-        throw BLabException("Unrecognized program \"" + str + "\"");
+        throw GameException("Unrecognized program \"" + str + "\"");
 }
 
 std::string ShaderManager::ProgramTypeToStr(ProgramType program)
@@ -512,7 +512,7 @@ std::string ShaderManager::ProgramTypeToStr(ProgramType program)
             return "Vertices";
         default:
             assert(false);
-            throw BLabException("Unsupported ProgramType");
+            throw GameException("Unsupported ProgramType");
     }
 }
 
@@ -527,7 +527,7 @@ ShaderManager::ProgramParameterType ShaderManager::StrToProgramParameterType(std
     else if (str == "WorldStep")
         return ProgramParameterType::WorldStep;
     else
-        throw BLabException("Unrecognized program parameter \"" + str + "\"");
+        throw GameException("Unrecognized program parameter \"" + str + "\"");
 }
 
 std::string ShaderManager::ProgramParameterTypeToStr(ProgramParameterType programParameter)
@@ -544,7 +544,7 @@ std::string ShaderManager::ProgramParameterTypeToStr(ProgramParameterType progra
             return "WorldStep";
         default:
             assert(false);
-            throw BLabException("Unsupported ProgramParameterType");
+            throw GameException("Unsupported ProgramParameterType");
     }
 }
 
@@ -585,5 +585,5 @@ ShaderManager::VertexAttributeType ShaderManager::StrToVertexAttributeType(std::
     else if (Utils::CaseInsensitiveEquals(str, "VertexAttributeGroup1"))
         return VertexAttributeType::VertexAttributeGroup1;
     else
-        throw BLabException("Unrecognized vertex attribute \"" + str + "\"");
+        throw GameException("Unrecognized vertex attribute \"" + str + "\"");
 }

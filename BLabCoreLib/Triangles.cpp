@@ -5,7 +5,7 @@
 ***************************************************************************************/
 #include "Physics.h"
 
-#include "BLabMath.h"
+#include "GameMath.h"
 
 #include <cassert>
 

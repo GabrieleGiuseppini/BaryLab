@@ -5,8 +5,8 @@
  ***************************************************************************************/
 #include "Settings.h"
 
-#include "BLabException.h"
 #include "Colors.h"
+#include "GameException.h"
 
 #include <regex>
 
@@ -119,7 +119,7 @@ void SettingsStorage::ListSettings(
                 auto settingsValue = Utils::ParseJSONStream(*is);
                 if (!settingsValue.is<picojson::object>())
                 {
-                    throw BLabException("JSON settings could not be loaded: root value is not an object");
+                    throw GameException("JSON settings could not be loaded: root value is not an object");
                 }
 
                 auto const & description = Utils::GetMandatoryJsonMember<std::string>(
@@ -220,7 +220,7 @@ SettingsDeserializationContext::SettingsDeserializationContext(
     auto settingsValue = Utils::ParseJSONStream(*is);
     if (!settingsValue.is<picojson::object>())
     {
-        throw BLabException("JSON settings could not be loaded: root value is not an object");
+        throw GameException("JSON settings could not be loaded: root value is not an object");
     }
 
     auto & settingsObject = settingsValue.get<picojson::object>();
@@ -232,7 +232,7 @@ SettingsDeserializationContext::SettingsDeserializationContext(
     if (0 == settingsObject.count("version")
         || !settingsObject["version"].is<std::string>())
     {
-        throw BLabException("JSON settings could not be loaded: missing 'version' attribute");
+        throw GameException("JSON settings could not be loaded: missing 'version' attribute");
     }
 
     mSettingsVersion = Version::FromString(settingsObject["version"].get<std::string>());
@@ -244,7 +244,7 @@ SettingsDeserializationContext::SettingsDeserializationContext(
     if (0 == settingsObject.count("settings")
         || !settingsObject["settings"].is<picojson::object>())
     {
-        throw BLabException("JSON settings could not be loaded: missing 'settings' attribute");
+        throw GameException("JSON settings could not be loaded: missing 'settings' attribute");
     }
 
     mSettingsRoot = settingsObject["settings"].get<picojson::object>();

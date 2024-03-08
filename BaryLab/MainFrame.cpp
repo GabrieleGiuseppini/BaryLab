@@ -7,8 +7,8 @@
 
 #include "StandardSystemPaths.h"
 
-#include <BLabCoreLib/BLabException.h>
 #include <BLabCoreLib/BLabOpenGL.h>
+#include <BLabCoreLib/GameException.h>
 #include <BLabCoreLib/Log.h>
 #include <BLabCoreLib/Utils.h>
 #include <BLabCoreLib/Version.h>
@@ -761,7 +761,7 @@ void MainFrame::OnSimulationTimer(wxTimerEvent & /*event*/)
         {
             FinishInitialization();
         }
-        catch (BLabException const & e)
+        catch (GameException const & e)
         {
             mSimulationTimer->Stop(); // Stop looping and allow Die() to finish
 
@@ -835,7 +835,7 @@ void MainFrame::FinishInitialization()
     }
     catch (std::exception const & e)
     {
-        throw BLabException("Error during initialization of simulation controller: " + std::string(e.what()));
+        throw GameException("Error during initialization of simulation controller: " + std::string(e.what()));
     }
 
     //
@@ -864,7 +864,7 @@ void MainFrame::FinishInitialization()
     }
     catch (std::exception const & e)
     {
-        throw BLabException("Error during initialization of tool controller: " + std::string(e.what()));
+        throw GameException("Error during initialization of tool controller: " + std::string(e.what()));
     }
 
     mControlToolbar->ReconciliateUIWithTool(InitialToolType);

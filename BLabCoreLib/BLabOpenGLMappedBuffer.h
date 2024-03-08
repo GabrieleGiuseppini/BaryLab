@@ -44,7 +44,7 @@ public:
 
             if (nullptr == mMappedBuffer)
             {
-                throw BLabException("glMapBuffer returned null pointer");
+                throw GameException("glMapBuffer returned null pointer");
             }
         }
 

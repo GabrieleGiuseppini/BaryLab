@@ -5,8 +5,7 @@
  ***************************************************************************************/
 #include "Materials.h"
 
-#include "BLabException.h"
-
+#include "GameException.h"
 #include "Utils.h"
 
 StructuralMaterial StructuralMaterial::Create(
@@ -25,9 +24,9 @@ StructuralMaterial StructuralMaterial::Create(
             renderColor,
             surface);
     }
-    catch (BLabException const & ex)
+    catch (GameException const & ex)
     {
-        throw BLabException(std::string("Error parsing structural material \"") + name + "\": " + ex.what());
+        throw GameException(std::string("Error parsing structural material \"") + name + "\": " + ex.what());
     }
 }
 
@@ -60,9 +59,9 @@ NpcMaterial NpcMaterial::Create(picojson::object const & npcMaterialJson)
             buoyancyVolumeFill,
             surface);
     }
-    catch (BLabException const & ex)
+    catch (GameException const & ex)
     {
-        throw BLabException(std::string("Error parsing NPC material \"") + name + "\": " + ex.what());
+        throw GameException(std::string("Error parsing NPC material \"") + name + "\": " + ex.what());
     }
 }
 
@@ -75,5 +74,5 @@ NpcMaterial::KindType NpcMaterial::StrToKindType(std::string const & strKind)
     else if (strKind == "HumanFeet")
         return KindType::HumanFeet;
     else
-        throw BLabException("Unrecognized NPC kind \"" + strKind + "\"");
+        throw GameException("Unrecognized NPC kind \"" + strKind + "\"");
 }

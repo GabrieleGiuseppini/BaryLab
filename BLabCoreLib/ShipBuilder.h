@@ -5,7 +5,7 @@
 ***************************************************************************************/
 #pragma once
 
-#include "BLabTypes.h"
+#include "GameTypes.h"
 #include "MaterialDatabase.h"
 #include "Physics.h"
 #include "ShipBuilderTypes.h"

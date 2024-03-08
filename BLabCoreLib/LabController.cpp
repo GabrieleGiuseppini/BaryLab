@@ -853,7 +853,7 @@ void LabController::LoadShip(
 
     if (ship->GetTriangles().GetElementCount() < 1)
     {
-        throw BLabException("Ship must contain at least one triangle");
+        throw GameException("Ship must contain at least one triangle");
     }
 
     // Create NPCs

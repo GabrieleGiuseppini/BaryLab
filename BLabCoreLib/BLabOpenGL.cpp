@@ -22,7 +22,7 @@ void BLabOpenGL::InitOpenGL()
     int status = gladLoadGL();
     if (!status)
     {
-        throw BLabException("We are sorry, but this game requires OpenGL and it seems your graphics driver does not support it; the error is: failed to initialize GLAD");
+        throw GameException("We are sorry, but this game requires OpenGL and it seems your graphics driver does not support it; the error is: failed to initialize GLAD");
     }
 
     //
@@ -34,7 +34,7 @@ void BLabOpenGL::InitOpenGL()
     if (GLVersion.major < MinOpenGLVersionMaj
         || (GLVersion.major == MinOpenGLVersionMaj && GLVersion.minor < MinOpenGLVersionMin))
     {
-        throw BLabException(
+        throw GameException(
             std::string("We are sorry, but this game requires at least OpenGL ")
             + std::to_string(MinOpenGLVersionMaj) + "." + std::to_string(MinOpenGLVersionMin)
             + ", while the version currently supported by your graphics driver is "
@@ -89,7 +89,7 @@ void BLabOpenGL::CompileShader(
     GLenum glError = glGetError();
     if (GL_NO_ERROR != glError)
     {
-        throw BLabException("Error setting " + shaderTypeName + " shader source for program \"" + programName + "\"");
+        throw GameException("Error setting " + shaderTypeName + " shader source for program \"" + programName + "\"");
     }
 
     // Compile
@@ -100,7 +100,7 @@ void BLabOpenGL::CompileShader(
     {
         char infoLog[1024];
         glGetShaderInfoLog(shader, sizeof(infoLog) - 1, NULL, infoLog);
-        throw BLabException("Error compiling " + shaderTypeName + " shader: " + std::string(infoLog));
+        throw GameException("Error compiling " + shaderTypeName + " shader: " + std::string(infoLog));
     }
 
     // Attach to program
@@ -108,7 +108,7 @@ void BLabOpenGL::CompileShader(
     glError = glGetError();
     if (GL_NO_ERROR != glError)
     {
-        throw BLabException("Error attaching compiled " + shaderTypeName + " shader to program \"" + programName + "\"");
+        throw GameException("Error attaching compiled " + shaderTypeName + " shader to program \"" + programName + "\"");
     }
 
     // Delete shader
@@ -128,7 +128,7 @@ void BLabOpenGL::LinkShaderProgram(
     {
         char infoLog[1024];
         glGetShaderInfoLog(*shaderProgram, sizeof(infoLog), NULL, infoLog);
-        throw BLabException("Error linking " + programName + " shader program: " + std::string(infoLog));
+        throw GameException("Error linking " + programName + " shader program: " + std::string(infoLog));
     }
 }
 
@@ -142,7 +142,7 @@ GLint BLabOpenGL::GetParameterLocation(
     if (parameterLocation == -1
         || GL_NO_ERROR != glError)
     {
-        throw BLabException("Cannot retrieve location of parameter \"" + parameterName + "\"");
+        throw GameException("Cannot retrieve location of parameter \"" + parameterName + "\"");
     }
 
     return parameterLocation;
@@ -161,7 +161,7 @@ void BLabOpenGL::BindAttributeLocation(
     GLenum glError = glGetError();
     if (GL_NO_ERROR != glError)
     {
-        throw BLabException("Error binding attribute location for attribute \"" + attributeName + "\"");
+        throw GameException("Error binding attribute location for attribute \"" + attributeName + "\"");
     }
 }
 

@@ -5,8 +5,8 @@
 ***************************************************************************************/
 #pragma once
 
-#include "BLabTypes.h"
 #include "ElementIndexRangeIterator.h"
+#include "GameTypes.h"
 #include "SysSpecifics.h"
 
 #include <cassert>

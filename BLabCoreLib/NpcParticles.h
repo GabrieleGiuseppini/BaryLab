@@ -5,11 +5,11 @@
 ***************************************************************************************/
 #pragma once
 
-#include "BLabTypes.h"
 #include "Buffer.h"
 #include "Colors.h"
 #include "ElementContainer.h"
 #include "ElementIndexRangeIterator.h"
+#include "GameTypes.h"
 #include "LabParameters.h"
 #include "Physics.h"
 #include "Vectors.h"

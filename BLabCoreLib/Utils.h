@@ -5,8 +5,8 @@
  ***************************************************************************************/
 #pragma once
 
-#include "BLabException.h"
 #include "Colors.h"
+#include "GameException.h"
 #include "Vectors.h"
 
 #include <picojson.h>
@@ -50,7 +50,7 @@ namespace Utils
     {
         if (!value.is<T>())
         {
-            throw BLabException("Error parsing JSON: member \"" + memberName + "\" is not of the expected type");
+            throw GameException("Error parsing JSON: member \"" + memberName + "\" is not of the expected type");
         }
 
         return value.get<T>();
@@ -70,7 +70,7 @@ namespace Utils
 
         if (!memberIt->second.is<T>())
         {
-            throw BLabException("Error parsing JSON: member \"" + memberName + "\" is not of the expected type");
+            throw GameException("Error parsing JSON: member \"" + memberName + "\" is not of the expected type");
         }
 
         return memberIt->second.get<T>();
@@ -119,7 +119,7 @@ namespace Utils
 
         if (!memberIt->second.is<T>())
         {
-            throw BLabException("Error parsing JSON: member \"" + memberName + "\" is not of the expected type");
+            throw GameException("Error parsing JSON: member \"" + memberName + "\" is not of the expected type");
         }
 
         return std::make_optional<T>(memberIt->second.get<T>());
@@ -161,7 +161,7 @@ namespace Utils
 
         if (!memberIt->second.is<picojson::object>())
         {
-            throw BLabException("Error parsing JSON: member \"" + memberName + "\" is not of type 'object'");
+            throw GameException("Error parsing JSON: member \"" + memberName + "\" is not of type 'object'");
         }
 
         return memberIt->second.get<picojson::object>();
@@ -175,12 +175,12 @@ namespace Utils
         auto const & memberIt = obj.find(memberName);
         if (obj.end() == memberIt)
         {
-            throw BLabException("Error parsing JSON: cannot find member \"" + memberName + "\"");
+            throw GameException("Error parsing JSON: cannot find member \"" + memberName + "\"");
         }
 
         if (!memberIt->second.is<T>())
         {
-            throw BLabException("Error parsing JSON: member \"" + memberName + "\" is not of the expected type");
+            throw GameException("Error parsing JSON: member \"" + memberName + "\" is not of the expected type");
         }
 
         return memberIt->second.get<T>();
@@ -215,12 +215,12 @@ namespace Utils
         auto const & memberIt = obj.find(memberName);
         if (obj.end() == memberIt)
         {
-            throw BLabException("Error parsing JSON: cannot find member \"" + memberName + "\"");
+            throw GameException("Error parsing JSON: cannot find member \"" + memberName + "\"");
         }
 
         if (!memberIt->second.is<picojson::object>())
         {
-            throw BLabException("Error parsing JSON: requested member \"" + memberName + "\" is not of type 'object'");
+            throw GameException("Error parsing JSON: requested member \"" + memberName + "\" is not of type 'object'");
         }
 
         return memberIt->second.get<picojson::object>();
@@ -233,12 +233,12 @@ namespace Utils
         auto const & memberIt = obj.find(memberName);
         if (obj.end() == memberIt)
         {
-            throw BLabException("Error parsing JSON: cannot find member \"" + memberName + "\"");
+            throw GameException("Error parsing JSON: cannot find member \"" + memberName + "\"");
         }
 
         if (!memberIt->second.is<picojson::array>())
         {
-            throw BLabException("Error parsing JSON: requested member \"" + memberName + "\" is not of type 'array'");
+            throw GameException("Error parsing JSON: requested member \"" + memberName + "\" is not of type 'array'");
         }
 
         return memberIt->second.get<picojson::array>();
@@ -323,7 +323,7 @@ namespace Utils
             str = str.substr(1);
 
         if (str.length() != 6)
-            throw BLabException("Error: badly formed hex color value \"" + str + "\"");
+            throw GameException("Error: badly formed hex color value \"" + str + "\"");
 
         return rgbColor(
             Hex2Byte(str.substr(0, 2)),
@@ -418,7 +418,7 @@ namespace Utils
         std::ifstream file(filepath.string(), std::ios::in);
         if (!file.is_open())
         {
-            throw BLabException("Cannot open file \"" + filepath.string() + "\"");
+            throw GameException("Cannot open file \"" + filepath.string() + "\"");
         }
 
         std::stringstream ss;
@@ -446,7 +446,7 @@ namespace Utils
         std::ofstream file(filepath.string(), std::ios::out);
         if (!file.is_open())
         {
-            throw BLabException("Cannot open file \"" + filepath.string() + "\"");
+            throw GameException("Cannot open file \"" + filepath.string() + "\"");
         }
 
         file << content;

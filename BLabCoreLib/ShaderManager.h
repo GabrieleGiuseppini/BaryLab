@@ -5,8 +5,8 @@
 ***************************************************************************************/
 #pragma once
 
-#include "BLabException.h"
 #include "BLabOpenGL.h"
+#include "GameException.h"
 #include "ResourceLocator.h"
 
 #include <cassert>
@@ -220,7 +220,7 @@ private:
         GLenum glError = glGetError();
         if (GL_NO_ERROR != glError)
         {
-            throw BLabException("Error setting uniform for parameter \"" + ProgramParameterTypeToStr(Parameter) + "\" on program \"" + ProgramTypeToStr(Program) + "\"");
+            throw GameException("Error setting uniform for parameter \"" + ProgramParameterTypeToStr(Parameter) + "\" on program \"" + ProgramTypeToStr(Program) + "\"");
         }
     }
 
@@ -231,7 +231,7 @@ private:
         GLenum glError = glGetError();
         if (GL_NO_ERROR != glError)
         {
-            throw BLabException("Error setting uniform for parameter \"" + ProgramParameterTypeToStr(parameter) + "\" on program \"" + ProgramTypeToStr(program) + "\"");
+            throw GameException("Error setting uniform for parameter \"" + ProgramParameterTypeToStr(parameter) + "\" on program \"" + ProgramTypeToStr(program) + "\"");
         }
     }
 

@@ -8,8 +8,8 @@
 #include "Materials.h"
 #include "ResourceLocator.h"
 
-#include "BLabException.h"
 #include "Colors.h"
+#include "GameException.h"
 #include "Utils.h"
 
 #include <picojson.h>
@@ -36,7 +36,7 @@ public:
 
         if (!structuralMaterialsRoot.is<picojson::array>())
         {
-            throw BLabException("Structural materials definition is not a JSON array");
+            throw GameException("Structural materials definition is not a JSON array");
         }
 
         // Read into map
@@ -48,7 +48,7 @@ public:
         {
             if (!materialElem.is<picojson::object>())
             {
-                throw BLabException("Found a non-object in structural materials definition");
+                throw GameException("Found a non-object in structural materials definition");
             }
 
             picojson::object const & materialObject = materialElem.get<picojson::object>();
@@ -63,7 +63,7 @@ public:
             // Make sure there are no dupes
             if (structuralMaterialsMap.count(colorKey) != 0)
             {
-                throw BLabException("Structural material \"" + material.Name + "\" has a duplicate color key");
+                throw GameException("Structural material \"" + material.Name + "\" has a duplicate color key");
             }
 
             // Store
@@ -83,7 +83,7 @@ public:
 
         if (!npcMaterialsRoot.is<picojson::array>())
         {
-            throw BLabException("NPC materials definition is not a JSON array");
+            throw GameException("NPC materials definition is not a JSON array");
         }
 
         // Read into map
@@ -95,7 +95,7 @@ public:
         {
             if (!materialElem.is<picojson::object>())
             {
-                throw BLabException("Found a non-object in NPC materials definition");
+                throw GameException("Found a non-object in NPC materials definition");
             }
 
             picojson::object const & materialObject = materialElem.get<picojson::object>();
@@ -109,7 +109,7 @@ public:
 
             if (!storedEntry.second)
             {
-                throw BLabException("NPC material \"" + material.Name + "\" has a duplicate kind");
+                throw GameException("NPC material \"" + material.Name + "\" has a duplicate kind");
             }
         }
 

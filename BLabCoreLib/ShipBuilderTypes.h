@@ -5,9 +5,9 @@
 ***************************************************************************************/
 #pragma once
 
-#include "BLabTypes.h"
 #include "Colors.h"
 #include "FixedSizeVector.h"
+#include "GameTypes.h"
 #include "Materials.h"
 #include "Matrix.h"
 #include "Vectors.h"

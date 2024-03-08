@@ -5,8 +5,8 @@
  ***************************************************************************************/
 #pragma once
 
-#include "BLabTypes.h"
 #include "Colors.h"
+#include "GameTypes.h"
 
 #include <picojson.h>
 

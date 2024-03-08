@@ -5,8 +5,8 @@
 ***************************************************************************************/
 #pragma once
 
-#include "BLabTypes.h"
 #include "GameEventDispatcher.h"
+#include "GameTypes.h"
 #include "LabParameters.h"
 #include "MaterialDatabase.h"
 #include "Model.h"

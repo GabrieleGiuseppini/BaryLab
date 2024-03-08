@@ -6,11 +6,11 @@
 #pragma once
 
 #include "BarycentricCoords.h"
-#include "BLabTypes.h"
 #include "Buffer.h"
 #include "Colors.h"
 #include "ElementContainer.h"
 #include "FixedSizeVector.h"
+#include "GameTypes.h"
 #include "Physics.h"
 
 #include <algorithm>

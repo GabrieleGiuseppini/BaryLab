@@ -7,17 +7,11 @@ set  (SOURCES
 	AABB.h
 	BarycentricCoords.cpp
 	BarycentricCoords.h
-	BLabDebug.h
-	BLabException.h
-	BLabMath.h
 	BLabOpenGL.cpp
 	BLabOpenGL.h
 	BLabOpenGL_Ext.cpp
 	BLabOpenGL_Ext.h
 	BLabOpenGLMappedBuffer.h
-	BLabRandomEngine.h
-	BLabTypes.cpp
-	BLabTypes.h
 	Buffer.h
 	CircularList.h
 	Colors.cpp
@@ -27,8 +21,13 @@ set  (SOURCES
 	FileSystem.h
 	FixedSizeVector.h
 	FloatingPoint.h
+	GameDebug.h
 	GameEventDispatcher.h
+	GameException.h
+	GameMath.h
 	GameRandomEngine.h
+	GameTypes.cpp
+	GameTypes.h
 	IGameEventHandlers.h
 	ImageData.h
 	ImageFileTools.cpp

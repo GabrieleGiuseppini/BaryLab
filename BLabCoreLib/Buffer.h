@@ -5,7 +5,7 @@
 ***************************************************************************************/
 #pragma once
 
-#include "BLabMath.h"
+#include "GameMath.h"
 #include "SysSpecifics.h"
 
 #include <algorithm>
