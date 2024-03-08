@@ -45,12 +45,12 @@ set  (SOURCES
 	Matrix.h
 	Model.cpp
 	Model.h
-	NpcParticles.cpp
-	NpcParticles.h
-	Npcs.cpp
-	Npcs.h
-	Npcs_HumanSimulation.cpp
-	Npcs_Simulation.cpp
+	NpcSimulation/NpcParticles.cpp
+	NpcSimulation/NpcParticles.h
+	NpcSimulation/Npcs.cpp
+	NpcSimulation/Npcs.h
+	NpcSimulation/Npcs_HumanSimulation.cpp
+	NpcSimulation/Npcs_Simulation.cpp
 	OceanSurface.h
 	Physics.h
 	Points.cpp

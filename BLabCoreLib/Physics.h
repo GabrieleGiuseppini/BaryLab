@@ -14,9 +14,9 @@ namespace Physics
 
 #include "Points.h"
 #include "Springs.h"
-#include "NpcParticles.h"
+#include "NpcSimulation/NpcParticles.h"
 #include "OceanSurface.h"
 #include "Triangles.h"
 #include "Ship.h"
 #include "World.h"
-#include "Npcs.h"
+#include "NpcSimulation/Npcs.h"
