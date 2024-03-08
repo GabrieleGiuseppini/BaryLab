@@ -9,8 +9,8 @@
 #include "Colors.h"
 #include "ElementContainer.h"
 #include "ElementIndexRangeIterator.h"
+#include "GameParameters.h"
 #include "GameTypes.h"
-#include "LabParameters.h"
 #include "Physics.h"
 #include "Vectors.h"
 

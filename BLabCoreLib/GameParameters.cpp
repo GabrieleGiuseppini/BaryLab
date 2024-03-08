@@ -3,9 +3,9 @@
 * Created:				2023-07-19
 * Copyright:			Gabriele Giuseppini  (https://github.com/GabrieleGiuseppini)
 ***************************************************************************************/
-#include "LabParameters.h"
+#include "GameParameters.h"
 
-LabParameters::LabParameters()
+GameParameters::GameParameters()
 	: MassAdjustment(1.0f)
 	, GravityAdjustment(1.0f)
 	, GlobalDamping(0.0078f)

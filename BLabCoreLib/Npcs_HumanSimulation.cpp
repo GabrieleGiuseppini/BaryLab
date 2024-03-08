@@ -40,7 +40,7 @@ void Npcs::UpdateHuman(
 	float currentSimulationTime,
 	StateType & npc,
 	Ship const & ship,
-	LabParameters const & labParameters)
+	GameParameters const & gameParameters)
 {
 	assert(npc.DipoleState.has_value());
 	auto const & primaryParticleState = npc.PrimaryParticleState;
@@ -441,7 +441,7 @@ void Npcs::UpdateHuman(
 				vec2f const idealWalkVelocityDir = vec2f(
 					humanState.CurrentFaceDirectionX,
 					0.0f);
-				float const idealWalkVelocityMagnitude = CalculateActualHumanWalkingAbsoluteSpeed(humanState, labParameters);
+				float const idealWalkVelocityMagnitude = CalculateActualHumanWalkingAbsoluteSpeed(humanState, gameParameters);
 				vec2f const idealWalkVelocity = idealWalkVelocityDir * idealWalkVelocityMagnitude;
 
 				float const primaryMeshRelativeVelocityAlongWalkDir = primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(idealWalkVelocityDir);
@@ -481,7 +481,7 @@ void Npcs::UpdateHuman(
 					humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Rising,
 					isOnEdge, // doMaintainEquilibrium
 					mParticles,
-					labParameters))
+					gameParameters))
 			{
 				// Transition to aerial/falling, depending on whether we're on an edge
 
@@ -555,7 +555,7 @@ void Npcs::UpdateHuman(
 						humanState,
 						primaryParticleState,
 						ship,
-						labParameters);
+						gameParameters);
 				}
 
 				if (humanState.CurrentBehaviorState.Constrained_Walking.CurrentFlipDecision != 0.0f)
@@ -680,7 +680,7 @@ bool Npcs::CheckAndMaintainHumanEquilibrium(
 	bool isRisingState,
 	bool doMaintainEquilibrium,
 	NpcParticles & particles,
-	LabParameters const & /*labParameters*/)
+	GameParameters const & /*gameParameters*/)
 {
 	//
 	// Make sure we are not falling out of equilibrium
@@ -696,7 +696,7 @@ bool Npcs::CheckAndMaintainHumanEquilibrium(
 	// |-/
 	// |/
 	//
-	float const staticDisplacementAngleCW = (-LabParameters::GravityDir).angleCw(humanVector);
+	float const staticDisplacementAngleCW = (-GameParameters::GravityDir).angleCw(humanVector);
 
 	// Calculate CW angle that head would rotate by (relative to feet) due to relative velocity alone;
 	// positive when new position is CW wrt old
@@ -706,7 +706,7 @@ bool Npcs::CheckAndMaintainHumanEquilibrium(
 	// | /\
     // |/__L___H'
 	//
-	vec2f const relativeVelocityDisplacement = (particles.GetVelocity(secondaryParticleIndex) - particles.GetVelocity(primaryParticleIndex)) * LabParameters::SimulationTimeStepDuration;
+	vec2f const relativeVelocityDisplacement = (particles.GetVelocity(secondaryParticleIndex) - particles.GetVelocity(primaryParticleIndex)) * GameParameters::SimulationTimeStepDuration;
 	float const relativeVelocityAngleCW = humanVector.angleCw(humanVector + relativeVelocityDisplacement);
 
 	//
@@ -751,7 +751,7 @@ void Npcs::RunWalkingHumanStateMachine(
 	StateType::HumanNpcStateType & humanState,
 	StateType::NpcParticleStateType const & primaryParticleState,
 	Ship const & /*ship*/, // Will come useful when we'll *plan* the walk
-	LabParameters const & labParameters)
+	GameParameters const & gameParameters)
 {
 	assert(primaryParticleState.ConstrainedState.has_value());
 	assert(humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking);
@@ -766,7 +766,7 @@ void Npcs::RunWalkingHumanStateMachine(
 		float constexpr MinRelativeVelocityAgreementToAcceptWalk = 0.025f;
 		float const relativeVelocityAgreement = primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(
 			vec2f(
-				humanState.CurrentFaceDirectionX * CalculateActualHumanWalkingAbsoluteSpeed(humanState, labParameters),
+				humanState.CurrentFaceDirectionX * CalculateActualHumanWalkingAbsoluteSpeed(humanState, gameParameters),
 				0.0f));
 		if (relativeVelocityAgreement < MinRelativeVelocityAgreementToAcceptWalk)
 		{
@@ -886,12 +886,12 @@ void Npcs::TransitionHumanToFree(
 
 float Npcs::CalculateActualHumanWalkingAbsoluteSpeed(
 	StateType::HumanNpcStateType & humanState,
-	LabParameters const & labParameters) const
+	GameParameters const & gameParameters) const
 {
 	assert(humanState.CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking);
 
 	return std::min(
-		labParameters.HumanNpcWalkingSpeed
+		gameParameters.HumanNpcWalkingSpeed
 		* humanState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude // Note that this is the only one that might be zero
 		* (1.0f + humanState.PanicLevel),
 		4.0f); // Absolute cap

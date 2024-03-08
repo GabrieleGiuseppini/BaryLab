@@ -10,9 +10,9 @@
 /*
  * Parameters that affect the lab.
  */
-struct LabParameters
+struct GameParameters
 {
-    LabParameters();
+    GameParameters();
 
     //
     // Physical Constants

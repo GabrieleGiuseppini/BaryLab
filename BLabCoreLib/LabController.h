@@ -6,8 +6,8 @@
 #pragma once
 
 #include "GameEventDispatcher.h"
+#include "GameParameters.h"
 #include "GameTypes.h"
-#include "LabParameters.h"
 #include "MaterialDatabase.h"
 #include "Model.h"
 #include "Physics.h"
@@ -180,75 +180,75 @@ public:
     // Simmulation parameters
     //
 
-    float GetElasticityAdjustment() const { return mLabParameters.ElasticityAdjustment; }
-    void SetElasticityAdjustment(float value) { mLabParameters.ElasticityAdjustment = value; }
-    float GetMinElasticityAdjustment() const { return LabParameters::MinElasticityAdjustment; }
-    float GetMaxElasticityAdjustment() const { return LabParameters::MaxElasticityAdjustment; }
+    float GetElasticityAdjustment() const { return mGameParameters.ElasticityAdjustment; }
+    void SetElasticityAdjustment(float value) { mGameParameters.ElasticityAdjustment = value; }
+    float GetMinElasticityAdjustment() const { return GameParameters::MinElasticityAdjustment; }
+    float GetMaxElasticityAdjustment() const { return GameParameters::MaxElasticityAdjustment; }
 
-    float GetStaticFrictionAdjustment() const { return mLabParameters.StaticFrictionAdjustment; }
-    void SetStaticFrictionAdjustment(float value) { mLabParameters.StaticFrictionAdjustment = value; }
-    float GetMinStaticFrictionAdjustment() const { return LabParameters::MinStaticFrictionAdjustment; }
-    float GetMaxStaticFrictionAdjustment() const { return LabParameters::MaxStaticFrictionAdjustment; }
+    float GetStaticFrictionAdjustment() const { return mGameParameters.StaticFrictionAdjustment; }
+    void SetStaticFrictionAdjustment(float value) { mGameParameters.StaticFrictionAdjustment = value; }
+    float GetMinStaticFrictionAdjustment() const { return GameParameters::MinStaticFrictionAdjustment; }
+    float GetMaxStaticFrictionAdjustment() const { return GameParameters::MaxStaticFrictionAdjustment; }
 
-    float GetKineticFrictionAdjustment() const { return mLabParameters.KineticFrictionAdjustment; }
-    void SetKineticFrictionAdjustment(float value) { mLabParameters.KineticFrictionAdjustment = value; }
-    float GetMinKineticFrictionAdjustment() const { return LabParameters::MinKineticFrictionAdjustment; }
-    float GetMaxKineticFrictionAdjustment() const { return LabParameters::MaxKineticFrictionAdjustment; }
+    float GetKineticFrictionAdjustment() const { return mGameParameters.KineticFrictionAdjustment; }
+    void SetKineticFrictionAdjustment(float value) { mGameParameters.KineticFrictionAdjustment = value; }
+    float GetMinKineticFrictionAdjustment() const { return GameParameters::MinKineticFrictionAdjustment; }
+    float GetMaxKineticFrictionAdjustment() const { return GameParameters::MaxKineticFrictionAdjustment; }
 
-    float GetMassAdjustment() const { return mLabParameters.MassAdjustment; }
-    void SetMassAdjustment(float value) { mLabParameters.MassAdjustment = value; }
-    float GetMinMassAdjustment() const { return LabParameters::MinMassAdjustment; }
-    float GetMaxMassAdjustment() const { return LabParameters::MaxMassAdjustment; }
+    float GetMassAdjustment() const { return mGameParameters.MassAdjustment; }
+    void SetMassAdjustment(float value) { mGameParameters.MassAdjustment = value; }
+    float GetMinMassAdjustment() const { return GameParameters::MinMassAdjustment; }
+    float GetMaxMassAdjustment() const { return GameParameters::MaxMassAdjustment; }
 
-    float GetGravityAdjustment() const { return mLabParameters.GravityAdjustment; }
-    void SetGravityAdjustment(float value) { mLabParameters.GravityAdjustment = value; }
-    float GetMinGravityAdjustment() const { return LabParameters::MinGravityAdjustment; }
-    float GetMaxGravityAdjustment() const { return LabParameters::MaxGravityAdjustment; }
+    float GetGravityAdjustment() const { return mGameParameters.GravityAdjustment; }
+    void SetGravityAdjustment(float value) { mGameParameters.GravityAdjustment = value; }
+    float GetMinGravityAdjustment() const { return GameParameters::MinGravityAdjustment; }
+    float GetMaxGravityAdjustment() const { return GameParameters::MaxGravityAdjustment; }
 
-    float GetGlobalDamping() const { return mLabParameters.GlobalDamping; }
-    void SetGlobalDamping(float value) { mLabParameters.GlobalDamping = value; }
-    float GetMinGlobalDamping() const { return LabParameters::MinGlobalDamping; }
-    float GetMaxGlobalDamping() const { return LabParameters::MaxGlobalDamping; }
+    float GetGlobalDamping() const { return mGameParameters.GlobalDamping; }
+    void SetGlobalDamping(float value) { mGameParameters.GlobalDamping = value; }
+    float GetMinGlobalDamping() const { return GameParameters::MinGlobalDamping; }
+    float GetMaxGlobalDamping() const { return GameParameters::MaxGlobalDamping; }
 
     float GetSeaLevel() const { return mWorld.GetOceanSurface().GetDepth(); }
     void SetSeaLevel(float value) { mWorld.GetOceanSurface().SetDepth(value); }
     float GetMinSeaLevel() const { return Physics::OceanSurface::MinDepth; }
     float GetMaxSeaLevel() const { return Physics::OceanSurface::MaxDepth; }
 
-    float GetSpringReductionFraction() const { return mLabParameters.SpringReductionFraction; }
-    void SetSpringReductionFraction(float value) { mLabParameters.SpringReductionFraction = value; }
-    float GetMinSpringReductionFraction() const { return LabParameters::MinSpringReductionFraction; }
-    float GetMaxSpringReductionFraction() const { return LabParameters::MaxSpringReductionFraction; }
+    float GetSpringReductionFraction() const { return mGameParameters.SpringReductionFraction; }
+    void SetSpringReductionFraction(float value) { mGameParameters.SpringReductionFraction = value; }
+    float GetMinSpringReductionFraction() const { return GameParameters::MinSpringReductionFraction; }
+    float GetMaxSpringReductionFraction() const { return GameParameters::MaxSpringReductionFraction; }
 
-    float GetSpringDampingCoefficient() const { return mLabParameters.SpringDampingCoefficient; }
-    void SetSpringDampingCoefficient(float value) { mLabParameters.SpringDampingCoefficient = value; }
-    float GetMinSpringDampingCoefficient() const { return LabParameters::MinSpringDampingCoefficient; }
-    float GetMaxSpringDampingCoefficient() const { return LabParameters::MaxSpringDampingCoefficient; }
+    float GetSpringDampingCoefficient() const { return mGameParameters.SpringDampingCoefficient; }
+    void SetSpringDampingCoefficient(float value) { mGameParameters.SpringDampingCoefficient = value; }
+    float GetMinSpringDampingCoefficient() const { return GameParameters::MinSpringDampingCoefficient; }
+    float GetMaxSpringDampingCoefficient() const { return GameParameters::MaxSpringDampingCoefficient; }
 
-    float GetWaterFrictionDragCoefficientAdjustment() const { return mLabParameters.WaterFrictionDragCoefficientAdjustment; }
-    void SetWaterFrictionDragCoefficientAdjustment(float value) { mLabParameters.WaterFrictionDragCoefficientAdjustment = value; }
-    float GetMinWaterFrictionDragCoefficientAdjustment() const { return LabParameters::MinWaterFrictionDragCoefficientAdjustment; }
-    float GetMaxWaterFrictionDragCoefficientAdjustment() const { return LabParameters::MaxWaterFrictionDragCoefficientAdjustment; }
+    float GetWaterFrictionDragCoefficientAdjustment() const { return mGameParameters.WaterFrictionDragCoefficientAdjustment; }
+    void SetWaterFrictionDragCoefficientAdjustment(float value) { mGameParameters.WaterFrictionDragCoefficientAdjustment = value; }
+    float GetMinWaterFrictionDragCoefficientAdjustment() const { return GameParameters::MinWaterFrictionDragCoefficientAdjustment; }
+    float GetMaxWaterFrictionDragCoefficientAdjustment() const { return GameParameters::MaxWaterFrictionDragCoefficientAdjustment; }
 
-    float GetBuoyancyAdjustment() const { return mLabParameters.BuoyancyAdjustment; }
-    void SetBuoyancyAdjustment(float value) { mLabParameters.BuoyancyAdjustment = value; }
-    float GetMinBuoyancyAdjustment() const { return LabParameters::MinBuoyancyAdjustment; }
-    float GetMaxBuoyancyAdjustment() const { return LabParameters::MaxBuoyancyAdjustment; }
+    float GetBuoyancyAdjustment() const { return mGameParameters.BuoyancyAdjustment; }
+    void SetBuoyancyAdjustment(float value) { mGameParameters.BuoyancyAdjustment = value; }
+    float GetMinBuoyancyAdjustment() const { return GameParameters::MinBuoyancyAdjustment; }
+    float GetMaxBuoyancyAdjustment() const { return GameParameters::MaxBuoyancyAdjustment; }
 
-    float GetHumanNpcEquilibriumTorqueStiffnessCoefficient() const { return mLabParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient; }
-    void SetHumanNpcEquilibriumTorqueStiffnessCoefficient(float value) { mLabParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient = value; }
-    float GetMinHumanNpcEquilibriumTorqueStiffnessCoefficient() const { return LabParameters::MinHumanNpcEquilibriumTorqueStiffnessCoefficient; }
-    float GetMaxHumanNpcEquilibriumTorqueStiffnessCoefficient() const { return LabParameters::MaxHumanNpcEquilibriumTorqueStiffnessCoefficient; }
+    float GetHumanNpcEquilibriumTorqueStiffnessCoefficient() const { return mGameParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient; }
+    void SetHumanNpcEquilibriumTorqueStiffnessCoefficient(float value) { mGameParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient = value; }
+    float GetMinHumanNpcEquilibriumTorqueStiffnessCoefficient() const { return GameParameters::MinHumanNpcEquilibriumTorqueStiffnessCoefficient; }
+    float GetMaxHumanNpcEquilibriumTorqueStiffnessCoefficient() const { return GameParameters::MaxHumanNpcEquilibriumTorqueStiffnessCoefficient; }
 
-    float GetHumanNpcEquilibriumTorqueDampingCoefficient() const { return mLabParameters.HumanNpcEquilibriumTorqueDampingCoefficient; }
-    void SetHumanNpcEquilibriumTorqueDampingCoefficient(float value) { mLabParameters.HumanNpcEquilibriumTorqueDampingCoefficient = value; }
-    float GetMinHumanNpcEquilibriumTorqueDampingCoefficient() const { return LabParameters::MinHumanNpcEquilibriumTorqueDampingCoefficient; }
-    float GetMaxHumanNpcEquilibriumTorqueDampingCoefficient() const { return LabParameters::MaxHumanNpcEquilibriumTorqueDampingCoefficient; }
+    float GetHumanNpcEquilibriumTorqueDampingCoefficient() const { return mGameParameters.HumanNpcEquilibriumTorqueDampingCoefficient; }
+    void SetHumanNpcEquilibriumTorqueDampingCoefficient(float value) { mGameParameters.HumanNpcEquilibriumTorqueDampingCoefficient = value; }
+    float GetMinHumanNpcEquilibriumTorqueDampingCoefficient() const { return GameParameters::MinHumanNpcEquilibriumTorqueDampingCoefficient; }
+    float GetMaxHumanNpcEquilibriumTorqueDampingCoefficient() const { return GameParameters::MaxHumanNpcEquilibriumTorqueDampingCoefficient; }
 
-    float GetHumanNpcWalkingSpeed() const { return mLabParameters.HumanNpcWalkingSpeed; }
-    void SetHumanNpcWalkingSpeed(float value) { mLabParameters.HumanNpcWalkingSpeed = value; }
-    float GetMinHumanNpcWalkingSpeed() const { return LabParameters::MinHumanNpcWalkingSpeed; }
-    float GetMaxHumanNpcWalkingSpeed() const { return LabParameters::MaxHumanNpcWalkingSpeed; }
+    float GetHumanNpcWalkingSpeed() const { return mGameParameters.HumanNpcWalkingSpeed; }
+    void SetHumanNpcWalkingSpeed(float value) { mGameParameters.HumanNpcWalkingSpeed = value; }
+    float GetMinHumanNpcWalkingSpeed() const { return GameParameters::MinHumanNpcWalkingSpeed; }
+    float GetMaxHumanNpcWalkingSpeed() const { return GameParameters::MaxHumanNpcWalkingSpeed; }
 
 private:
 
@@ -276,7 +276,7 @@ private:
     // Current state
     //
 
-    LabParameters mLabParameters;
+    GameParameters mGameParameters;
     std::unique_ptr<Model> mModel;
     Physics::World mWorld; // Dummy placeholder
     std::optional<std::filesystem::path> mCurrentShipFilePath;

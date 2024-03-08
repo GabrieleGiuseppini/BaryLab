@@ -8,8 +8,8 @@
 #include "BarycentricCoords.h"
 #include "ElementIndexRangeIterator.h"
 #include "GameEventDispatcher.h"
+#include "GameParameters.h"
 #include "GameTypes.h"
-#include "LabParameters.h"
 #include "Log.h"
 #include "MaterialDatabase.h"
 #include "Physics.h"
@@ -394,18 +394,18 @@ public:
 		Physics::World & parentWorld,
 		MaterialDatabase const & materialDatabase,
 		GameEventDispatcher & gameEventDispatcher,
-		LabParameters const & labParameters,
+		GameParameters const & gameParameters,
 		bool isGravityEnabled)
 		: mParentWorld(parentWorld)
 		, mMaterialDatabase(materialDatabase)
 		, mGameEventDispatcher(gameEventDispatcher)
 		// Container
 		, mStateBuffer()
-		, mParticles(LabParameters::MaxNpcs * LabParameters::MaxParticlesPerNpc)
+		, mParticles(GameParameters::MaxNpcs * GameParameters::MaxParticlesPerNpc)
 		// Parameters
 		, mGravityGate(isGravityEnabled ? 1.0f : 0.0f)
 		, mNpcRenderMode(NpcRenderMode::Limbs)
-		, mCurrentHumanNpcBodyLengthAdjustment(labParameters.HumanNpcBodyLengthAdjustment)
+		, mCurrentHumanNpcBodyLengthAdjustment(gameParameters.HumanNpcBodyLengthAdjustment)
 	{}
 
 	void Add(
@@ -414,7 +414,7 @@ public:
 		std::optional<vec2f> secondaryPosition,
 		float currentSimulationTime,
 		Ship const & ship,
-		LabParameters const & labParameters);
+		GameParameters const & gameParameters);
 
 	void SetPanicLevelForAllHumans(float panicLevel);
 
@@ -441,7 +441,7 @@ public:
 	void Update(
 		float currentSimulationTime,
 		Ship const & ship,
-		LabParameters const & labParameters);
+		GameParameters const & gameParameters);
 
 	void Render(RenderContext & renderContext);
 
@@ -659,7 +659,7 @@ public:
 
 	static float CalculateVerticalAlignment(vec2f const & humanVector)
 	{
-		return humanVector.normalise().dot(LabParameters::GravityDir);
+		return humanVector.normalise().dot(GameParameters::GravityDir);
 	}
 
 	static float CalculateVerticalAlignment(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)
@@ -691,31 +691,31 @@ private:
 	void UpdateNpcs(
 		float currentSimulationTime,
 		Ship const & ship,
-		LabParameters const & labParameters);
+		GameParameters const & gameParameters);
 
 	void UpdateNpcParticle(
 		StateType & npc,
 		bool isPrimaryParticle,
 		Ship const & ship,
-		LabParameters const & labParameters);
+		GameParameters const & gameParameters);
 
 	void CalculateNpcParticlePreliminaryForces(
 		StateType const & npc,
 		bool isPrimaryParticle,
-		LabParameters const & labParameters);
+		GameParameters const & gameParameters);
 
 	vec2f CalculateNpcParticleDefinitiveForces(
 		StateType const & npc,
 		bool isPrimaryParticle,
 		float particleMass,
-		LabParameters const & labParameters) const;
+		GameParameters const & gameParameters) const;
 
 	void UpdateNpcParticle_Free(
 		StateType::NpcParticleStateType & particle,
 		vec2f const & startPosition,
 		vec2f const & endPosition,
 		NpcParticles & particles,
-		LabParameters const & labParameters) const;
+		GameParameters const & gameParameters) const;
 
 	// Returns total edge traveled (in step), and isStop
 	std::tuple<float, bool> UpdateNpcParticle_ConstrainedNonInertial(
@@ -733,7 +733,7 @@ private:
 		float dt,
 		NpcParticles & particles,
 		Ship const & ship,
-		LabParameters const & labParameters) const;
+		GameParameters const & gameParameters) const;
 
 	float UpdateNpcParticle_ConstrainedInertial(
 		StateType & npc,
@@ -746,7 +746,7 @@ private:
 		float segmentDt,
 		NpcParticles & particles,
 		Ship const & ship,
-		LabParameters const & labParameters) const;
+		GameParameters const & gameParameters) const;
 
 	struct NavigateVertexOutcome
 	{
@@ -797,7 +797,7 @@ private:
 		bool isInitialStateUnknown,
 		NpcParticles & particles,
 		Ship const & ship,
-		LabParameters const & labParameters) const;
+		GameParameters const & gameParameters) const;
 
 	inline void BounceConstrainedNpcParticle(
 		StateType & npc,
@@ -808,7 +808,7 @@ private:
 		vec2f const meshVelocity,
 		float dt,
 		NpcParticles & particles,
-		LabParameters const & labParameters) const;
+		GameParameters const & gameParameters) const;
 
 	void OnImpact(
 		vec2f const & impactVector,
@@ -821,7 +821,7 @@ private:
 		StateType & npc,
 		bool isPrimaryParticle,
 		Ship const & ship,
-		LabParameters const & labParameters);
+		GameParameters const & gameParameters);
 
 private:
 
@@ -854,7 +854,7 @@ private:
 		float currentSimulationTime,
 		StateType & npc,
 		Ship const & ship,
-		LabParameters const & labParameters);
+		GameParameters const & gameParameters);
 
 	bool CheckAndMaintainHumanEquilibrium(
 		ElementIndex primaryParticleIndex,
@@ -862,13 +862,13 @@ private:
 		bool isRisingState,
 		bool doMaintainEquilibrium,
 		NpcParticles & particles,
-		LabParameters const & labParameters);
+		GameParameters const & gameParameters);
 
 	void RunWalkingHumanStateMachine(
 		StateType::HumanNpcStateType & humanState,
 		StateType::NpcParticleStateType const & primaryParticleState,
 		Ship const & ship,
-		LabParameters const & labParameters);
+		GameParameters const & gameParameters);
 
 	void OnHumanImpact(
 		vec2f const & impactVector,
@@ -888,7 +888,7 @@ private:
 
 	float CalculateActualHumanWalkingAbsoluteSpeed(
 		StateType::HumanNpcStateType & humanState,
-		LabParameters const & labParameters) const;
+		GameParameters const & gameParameters) const;
 
 private:
 

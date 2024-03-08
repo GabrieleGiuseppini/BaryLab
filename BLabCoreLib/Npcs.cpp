@@ -17,9 +17,9 @@ void Npcs::Add(
 	std::optional<vec2f> secondaryPosition,
 	float currentSimulationTime,
 	Ship const & ship,
-	LabParameters const & labParameters)
+	GameParameters const & gameParameters)
 {
-	assert(mParticles.GetParticleCount() < LabParameters::MaxNpcs);
+	assert(mParticles.GetParticleCount() < GameParameters::MaxNpcs);
 
 	// Primary particle state
 
@@ -56,7 +56,7 @@ void Npcs::Add(
 
 		case NpcType::Human:
 		{
-			float const bodyLength = LabParameters::HumanNpcGeometry::BodyLength * labParameters.HumanNpcBodyLengthAdjustment;
+			float const bodyLength = GameParameters::HumanNpcGeometry::BodyLength * gameParameters.HumanNpcBodyLengthAdjustment;
 
 			// Feet (primary)
 
@@ -263,22 +263,22 @@ void Npcs::OnPointMoved(
 void Npcs::Update(
 	float currentSimulationTime,
 	Ship const & ship,
-	LabParameters const & labParameters)
+	GameParameters const & gameParameters)
 {
 	//
 	// Update parameters
 	//
 
-	if (labParameters.HumanNpcBodyLengthAdjustment != mCurrentHumanNpcBodyLengthAdjustment)
+	if (gameParameters.HumanNpcBodyLengthAdjustment != mCurrentHumanNpcBodyLengthAdjustment)
 	{
-		mCurrentHumanNpcBodyLengthAdjustment = labParameters.HumanNpcBodyLengthAdjustment;
+		mCurrentHumanNpcBodyLengthAdjustment = gameParameters.HumanNpcBodyLengthAdjustment;
 	}
 
 	//
 	// Update NPCs' state
 	//
 
-	UpdateNpcs(currentSimulationTime, ship, labParameters);
+	UpdateNpcs(currentSimulationTime, ship, gameParameters);
 
 	//
 	// Publish
@@ -293,7 +293,7 @@ void Npcs::Render(RenderContext & renderContext)
 	// Particles & limbs
 	//
 
-	float const adjustedStandardHumanHeight = LabParameters::HumanNpcGeometry::BodyLength * mCurrentHumanNpcBodyLengthAdjustment;
+	float const adjustedStandardHumanHeight = GameParameters::HumanNpcGeometry::BodyLength * mCurrentHumanNpcBodyLengthAdjustment;
 
 	renderContext.UploadParticlesStart();
 	renderContext.UploadNpcHumanLimbsStart();
@@ -321,9 +321,9 @@ void Npcs::Render(RenderContext & renderContext)
 					float const actualBodyLength = actualBodyVector.length();
 					vec2f const actualBodyVDir = actualBodyVector.normalise(actualBodyLength);
 					vec2f const actualBodyHDir = actualBodyVDir.to_perpendicular(); // Points R (of the screen)
-					vec2f const neckPosition = headPosition + actualBodyVector * LabParameters::HumanNpcGeometry::HeadLengthFraction;
-					vec2f const shoulderPosition = neckPosition + actualBodyVector * LabParameters::HumanNpcGeometry::ArmDepthFraction / 2.0f;
-					vec2f const crotchPosition = headPosition + actualBodyVector * (LabParameters::HumanNpcGeometry::HeadLengthFraction + LabParameters::HumanNpcGeometry::TorsoLengthFraction);
+					vec2f const neckPosition = headPosition + actualBodyVector * GameParameters::HumanNpcGeometry::HeadLengthFraction;
+					vec2f const shoulderPosition = neckPosition + actualBodyVector * GameParameters::HumanNpcGeometry::ArmDepthFraction / 2.0f;
+					vec2f const crotchPosition = headPosition + actualBodyVector * (GameParameters::HumanNpcGeometry::HeadLengthFraction + GameParameters::HumanNpcGeometry::TorsoLengthFraction);
 
 					float const cosLeftArmAngle = std::cos(state.HumanNpcState->LeftArmAngle);
 					float const sinLeftArmAngle = std::sin(state.HumanNpcState->LeftArmAngle);
@@ -334,10 +334,10 @@ void Npcs::Render(RenderContext & renderContext)
 					float const cosRightLegAngle = std::cos(state.HumanNpcState->RightLegAngle);
 					float const sinRightLegAngle = std::sin(state.HumanNpcState->RightLegAngle);
 
-					float const leftArmLength = adjustedStandardHumanHeight * LabParameters::HumanNpcGeometry::ArmLengthFraction * state.HumanNpcState->LeftArmLengthMultiplier;
-					float const rightArmLength = adjustedStandardHumanHeight * LabParameters::HumanNpcGeometry::ArmLengthFraction * state.HumanNpcState->RightArmLengthMultiplier;
-					float const leftLegLength = adjustedStandardHumanHeight * LabParameters::HumanNpcGeometry::LegLengthFraction * state.HumanNpcState->LeftLegLengthMultiplier;
-					float const rightLegLength = adjustedStandardHumanHeight * LabParameters::HumanNpcGeometry::LegLengthFraction * state.HumanNpcState->RightLegLengthMultiplier;
+					float const leftArmLength = adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::ArmLengthFraction * state.HumanNpcState->LeftArmLengthMultiplier;
+					float const rightArmLength = adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::ArmLengthFraction * state.HumanNpcState->RightArmLengthMultiplier;
+					float const leftLegLength = adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::LegLengthFraction * state.HumanNpcState->LeftLegLengthMultiplier;
+					float const rightLegLength = adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::LegLengthFraction * state.HumanNpcState->RightLegLengthMultiplier;
 
 					if (state.HumanNpcState->CurrentFaceOrientation != 0.0f)
 					{
@@ -345,10 +345,10 @@ void Npcs::Render(RenderContext & renderContext)
 						// Front-back
 						//
 
-						float const halfHeadW = (adjustedStandardHumanHeight * LabParameters::HumanNpcGeometry::HeadWidthFraction) / 2.0f;
-						float const halfTorsoW = (adjustedStandardHumanHeight * LabParameters::HumanNpcGeometry::TorsoWidthFraction) / 2.0f;
-						float const halfArmW = (adjustedStandardHumanHeight * LabParameters::HumanNpcGeometry::ArmWidthFraction) / 2.0f;
-						float const halfLegW = (adjustedStandardHumanHeight * LabParameters::HumanNpcGeometry::LegWidthFraction) / 2.0f;
+						float const halfHeadW = (adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::HeadWidthFraction) / 2.0f;
+						float const halfTorsoW = (adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::TorsoWidthFraction) / 2.0f;
+						float const halfArmW = (adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::ArmWidthFraction) / 2.0f;
+						float const halfLegW = (adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::LegWidthFraction) / 2.0f;
 
 						// Head
 
@@ -491,10 +491,10 @@ void Npcs::Render(RenderContext & renderContext)
 						// Left-Right
 						//
 
-						float const halfHeadD = (adjustedStandardHumanHeight * LabParameters::HumanNpcGeometry::HeadDepthFraction) / 2.0f;
-						float const halfTorsoD = (adjustedStandardHumanHeight * LabParameters::HumanNpcGeometry::TorsoDepthFraction) / 2.0f;
-						float const halfArmD = (adjustedStandardHumanHeight * LabParameters::HumanNpcGeometry::ArmDepthFraction) / 2.0f;
-						float const halfLegD = (adjustedStandardHumanHeight * LabParameters::HumanNpcGeometry::LegDepthFraction) / 2.0f;
+						float const halfHeadD = (adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::HeadDepthFraction) / 2.0f;
+						float const halfTorsoD = (adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::TorsoDepthFraction) / 2.0f;
+						float const halfArmD = (adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::ArmDepthFraction) / 2.0f;
+						float const halfLegD = (adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::LegDepthFraction) / 2.0f;
 
 						// Note: angles are with vertical, regardless of L/R
 

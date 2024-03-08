@@ -5,6 +5,8 @@
 ***************************************************************************************/
 #include "RenderContext.h"
 
+#include "GameParameters.h"
+
 #include <cmath>
 
 RenderContext::RenderContext(
@@ -318,10 +320,10 @@ void RenderContext::UploadVertices(
     {
         vec2f const & vertexPosition = vertexPositions[v];
 
-        float const xLeft = vertexPosition.x - LabParameters::VertexRadius;
-        float const xRight = vertexPosition.x + LabParameters::VertexRadius;
-        float const yTop = vertexPosition.y + LabParameters::VertexRadius;
-        float const yBottom = vertexPosition.y - LabParameters::VertexRadius;
+        float const xLeft = vertexPosition.x - GameParameters::VertexRadius;
+        float const xRight = vertexPosition.x + GameParameters::VertexRadius;
+        float const yTop = vertexPosition.y + GameParameters::VertexRadius;
+        float const yBottom = vertexPosition.y - GameParameters::VertexRadius;
 
         // Left, bottom
         mVertexVertexBuffer.emplace_back(
@@ -380,7 +382,7 @@ void RenderContext::UploadEdge(
     rgbaColor const & edgeColor)
 {
     vec2f const edgeVector = edgeEndpointBPosition - edgeEndpointAPosition;
-    vec2f const edgeNormal = edgeVector.to_perpendicular().normalise() * LabParameters::EdgeThickness / 2.0f;
+    vec2f const edgeNormal = edgeVector.to_perpendicular().normalise() * GameParameters::EdgeThickness / 2.0f;
 
     vec2f const bottomLeft = edgeEndpointAPosition - edgeNormal;
     vec2f const bottomRight = edgeEndpointAPosition + edgeNormal;
@@ -455,7 +457,7 @@ void RenderContext::UploadSpring(
     rgbaColor const & springColor)
 {
     vec2f const springVector = endpointBPosition - endpointAPosition;
-    vec2f const springNormal = springVector.to_perpendicular().normalise() * LabParameters::SpringThickness / 2.0f;
+    vec2f const springNormal = springVector.to_perpendicular().normalise() * GameParameters::SpringThickness / 2.0f;
 
     vec2f const bottomLeft = endpointAPosition - springNormal;
     vec2f const bottomRight = endpointAPosition + springNormal;
@@ -529,10 +531,10 @@ void RenderContext::UploadParticle(
     rgbaColor const & particleColor,
     float alpha)
 {
-    float const xLeft = particlePosition.x - LabParameters::ParticleRadius;
-    float const xRight = particlePosition.x + LabParameters::ParticleRadius;
-    float const yTop = particlePosition.y + LabParameters::ParticleRadius;
-    float const yBottom = particlePosition.y - LabParameters::ParticleRadius;
+    float const xLeft = particlePosition.x - GameParameters::ParticleRadius;
+    float const xRight = particlePosition.x + GameParameters::ParticleRadius;
+    float const yTop = particlePosition.y + GameParameters::ParticleRadius;
+    float const yBottom = particlePosition.y - GameParameters::ParticleRadius;
 
     vec4f color = particleColor.toVec4f();
     color.w *= alpha;
@@ -680,7 +682,7 @@ void RenderContext::UploadParticleTrajectory(
     rgbaColor const & color)
 {
     vec2f const trajectoryVector = endPosition - startPosition;
-    vec2f const trajectoryNormal = trajectoryVector.to_perpendicular().normalise() * LabParameters::ParticleTrajectoryThickness / 2.0f;
+    vec2f const trajectoryNormal = trajectoryVector.to_perpendicular().normalise() * GameParameters::ParticleTrajectoryThickness / 2.0f;
 
     vec2f const bottomLeft = startPosition - trajectoryNormal;
     vec2f const bottomRight = startPosition + trajectoryNormal;

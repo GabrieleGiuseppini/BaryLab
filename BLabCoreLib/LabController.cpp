@@ -44,7 +44,7 @@ LabController::LabController(
     , mRenderContext(std::move(renderContext))
     , mGameEventDispatcher()
     // Simulation state
-    , mLabParameters()
+    , mGameParameters()
     , mModel()
     , mWorld()
     , mCurrentShipFilePath()
@@ -86,7 +86,7 @@ void LabController::Update()
         mModel->GetNpcs().Update(
             mCurrentSimulationTime,
             mModel->GetShip(),
-            mLabParameters);
+            mGameParameters);
 
         // Update state
         mSimulationControlImpulse = false;
@@ -95,7 +95,7 @@ void LabController::Update()
         mCurrentShipTranslationAccelerationIndicator *= 0.98f;
     }
 
-    mCurrentSimulationTime += LabParameters::SimulationTimeStepDuration;
+    mCurrentSimulationTime += GameParameters::SimulationTimeStepDuration;
 }
 
 void LabController::Render()
@@ -227,7 +227,7 @@ void LabController::Reset()
 
 void LabController::UpdateShipTransformations()
 {
-    vec2f const translation = mCurrentShipTranslationVelocity * LabParameters::SimulationTimeStepDuration;
+    vec2f const translation = mCurrentShipTranslationVelocity * GameParameters::SimulationTimeStepDuration;
 
     // Update ship
     auto & points = mModel->GetShip().GetPoints();
@@ -250,7 +250,7 @@ std::optional<ElementIndex> LabController::TryPickVertex(vec2f const & screenCoo
 
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
-    float constexpr SquareSearchRadius = LabParameters::VertexRadius * LabParameters::VertexRadius;
+    float constexpr SquareSearchRadius = GameParameters::VertexRadius * GameParameters::VertexRadius;
 
     float bestSquareDistance = std::numeric_limits<float>::max();
     ElementIndex bestPoint = NoneElementIndex;
@@ -397,7 +397,7 @@ bool LabController::TrySelectParticle(vec2f const & screenCoordinates)
 
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
-    float constexpr SquareSearchRadius = LabParameters::ParticleRadius * LabParameters::ParticleRadius;
+    float constexpr SquareSearchRadius = GameParameters::ParticleRadius * GameParameters::ParticleRadius;
 
     float bestSquareDistance = std::numeric_limits<float>::max();
     ElementIndex bestParticle = NoneElementIndex;
@@ -435,7 +435,7 @@ std::optional<ElementIndex> LabController::TryPickNpcParticle(vec2f const & scre
 
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
-    float constexpr SquareSearchRadius = LabParameters::ParticleRadius * LabParameters::ParticleRadius;
+    float constexpr SquareSearchRadius = GameParameters::ParticleRadius * GameParameters::ParticleRadius;
 
     float bestSquareDistance = std::numeric_limits<float>::max();
     ElementIndex bestParticle = NoneElementIndex;
@@ -698,7 +698,7 @@ void LabController::DoStepForVideo()
     ////    //
 
     ////    vec2f primaryPosition = vec2f(1.5f, -2.0f);
-    ////    vec2f secondaryPosition = primaryPosition + vec2f(1.0f, 0.0f) * LabParameters::HumanNpcGeometry::BodyLength * mLabParameters.HumanNpcBodyLengthAdjustment;
+    ////    vec2f secondaryPosition = primaryPosition + vec2f(1.0f, 0.0f) * GameParameters::HumanNpcGeometry::BodyLength * mLabParameters.HumanNpcBodyLengthAdjustment;
     ////    mModel->GetNpcs().Add(
     ////        Npcs::NpcType::Human,
     ////        primaryPosition,
@@ -862,7 +862,7 @@ void LabController::LoadShip(
         mWorld,
         mMaterialDatabase,
         mGameEventDispatcher,
-        mLabParameters,
+        mGameParameters,
         mIsGravityEnabled);
 
     if (addExperimentalNpc)
@@ -893,7 +893,7 @@ void LabController::LoadShip(
             std::nullopt, // Secondary position
             mCurrentSimulationTime,
             *ship,
-            mLabParameters);
+            mGameParameters);
 
         ////// TODOTEST: multiple balls
         ////for (int i = 0; i < 40; ++i)
@@ -918,7 +918,7 @@ void LabController::LoadShip(
         ////npcs->GetState(0).PrimaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords = baryCoords;
         ////npcs->GetParticles().SetVelocity(npcs->GetState(0).PrimaryParticleState.ParticleIndex, vec2f(-1.0f, 0.0f));
         ////// TODOTEST: trying now for inertial (no G and no friction)
-        //////npcs->GetParticles().SetVelocity(npcs->GetState(0).PrimaryParticleState.ParticleIndex, vec2f(-1.0f, (LabParameters::GravityMagnitude + 16.25f) * LabParameters::SimulationTimeStepDuration));
+        //////npcs->GetParticles().SetVelocity(npcs->GetState(0).PrimaryParticleState.ParticleIndex, vec2f(-1.0f, (GameParameters::GravityMagnitude + 16.25f) * GameParameters::SimulationTimeStepDuration));
 
         // Select particle
         assert(npcs->GetParticles().GetParticleCount() > 0);

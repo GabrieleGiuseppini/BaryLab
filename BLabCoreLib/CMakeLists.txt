@@ -25,6 +25,8 @@ set  (SOURCES
 	GameEventDispatcher.h
 	GameException.h
 	GameMath.h
+	GameParameters.cpp
+	GameParameters.h	
 	GameRandomEngine.h
 	GameTypes.cpp
 	GameTypes.h
@@ -35,8 +37,6 @@ set  (SOURCES
 	ImageSize.h
 	LabController.cpp
 	LabController.h
-	LabParameters.cpp
-	LabParameters.h	
 	Log.cpp
 	Log.h
 	MaterialDatabase.h

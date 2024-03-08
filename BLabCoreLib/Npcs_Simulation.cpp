@@ -16,7 +16,7 @@ namespace Physics {
 void Npcs::UpdateNpcs(
     float currentSimulationTime,
     Ship const & ship,
-    LabParameters const & labParameters)
+    GameParameters const & gameParameters)
 {
     LogNpcDebug("----------------------------------");
     LogNpcDebug("----------------------------------");
@@ -53,14 +53,14 @@ void Npcs::UpdateNpcs(
         CalculateNpcParticlePreliminaryForces(
             npcState,
             true,
-            labParameters);
+            gameParameters);
 
         if (npcState.DipoleState.has_value())
         {
             CalculateNpcParticlePreliminaryForces(
                 npcState,
                 false,
-                labParameters);
+                gameParameters);
         }
     }
 
@@ -78,7 +78,7 @@ void Npcs::UpdateNpcs(
             npcState,
             true,
             ship,
-            labParameters);
+            gameParameters);
 
         if (npcState.DipoleState.has_value())
         {
@@ -86,7 +86,7 @@ void Npcs::UpdateNpcs(
                 npcState,
                 false,
                 ship,
-                labParameters);
+                gameParameters);
         }
     }
 
@@ -108,7 +108,7 @@ void Npcs::UpdateNpcs(
                 currentSimulationTime,
                 npcState,
                 ship,
-                labParameters);
+                gameParameters);
         }
     }
 
@@ -125,7 +125,7 @@ void Npcs::UpdateNpcs(
             npcState,
             true,
             ship,
-            labParameters);
+            gameParameters);
 
         if (npcState.DipoleState.has_value())
         {
@@ -134,7 +134,7 @@ void Npcs::UpdateNpcs(
                 npcState,
                 false,
                 ship,
-                labParameters);
+                gameParameters);
         }
     }
 }
@@ -143,7 +143,7 @@ void Npcs::UpdateNpcParticle(
     StateType & npc,
     bool isPrimaryParticle,
     Ship const & ship,
-    LabParameters const & labParameters)
+    GameParameters const & gameParameters)
 {
     //
     // Here be dragons!
@@ -154,8 +154,8 @@ void Npcs::UpdateNpcParticle(
     LogNpcDebug("----------------------------------");
     LogNpcDebug("  ", isPrimaryParticle ? "Primary" : "Secondary");
 
-    float const particleMass = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).Mass * labParameters.MassAdjustment;
-    float const dt = LabParameters::SimulationTimeStepDuration;
+    float const particleMass = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).Mass * gameParameters.MassAdjustment;
+    float const dt = GameParameters::SimulationTimeStepDuration;
 
     vec2f const particleStartAbsolutePosition = mParticles.GetPosition(npcParticle.ParticleIndex);
 
@@ -178,7 +178,7 @@ void Npcs::UpdateNpcParticle(
             npc,
             isPrimaryParticle,
             particleMass,
-            labParameters);
+            gameParameters);
 
         physicsDeltaPos = mParticles.GetVelocity(npcParticle.ParticleIndex) * dt + (physicalForces / particleMass) * dt * dt;
     }
@@ -197,7 +197,7 @@ void Npcs::UpdateNpcParticle(
             particleStartAbsolutePosition,
             particleStartAbsolutePosition + physicsDeltaPos,
             mParticles,
-            labParameters);
+            gameParameters);
 
         LogNpcDebug("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
 
@@ -245,7 +245,7 @@ void Npcs::UpdateNpcParticle(
             ship.GetPoints());
 
         // Calculate mesh velocity for the whole loop as the pure displacement of the triangle containing this particle
-        vec2f const meshVelocity = (particleStartAbsolutePosition - trajectoryStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration;
+        vec2f const meshVelocity = (particleStartAbsolutePosition - trajectoryStartAbsolutePosition) / GameParameters::SimulationTimeStepDuration;
 
         // Machinery to detect 2- or 3-iteration paths that don't move particle (positional well,
         // aka gravity well)
@@ -371,7 +371,7 @@ void Npcs::UpdateNpcParticle(
                     true, // Check immediately whether we're directed towards the interior of the triangle
                     mParticles,
                     ship,
-                    labParameters);
+                    gameParameters);
 
                 switch (outcome.Type)
                 {
@@ -488,12 +488,12 @@ void Npcs::UpdateNpcParticle(
                                 if (std::abs(npcParticle.ConstrainedState->MeshRelativeVelocity.dot(edgeDir)) > 0.01f) // Magic number
                                 {
                                     // Kinetic friction
-                                    frictionCoefficient = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).KineticFriction * labParameters.KineticFrictionAdjustment;
+                                    frictionCoefficient = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).KineticFriction * gameParameters.KineticFrictionAdjustment;
                                 }
                                 else
                                 {
                                     // Static friction
-                                    frictionCoefficient = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).StaticFriction * labParameters.StaticFrictionAdjustment;
+                                    frictionCoefficient = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).StaticFriction * gameParameters.StaticFrictionAdjustment;
                                 }
 
                                 // Calculate friction (integrated) force magnitude (along edgeDir),
@@ -535,7 +535,7 @@ void Npcs::UpdateNpcParticle(
                                 vec2f const idealWalkDir = vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f);
                                 assert(idealWalkDir.length() == 1.0f);
 
-                                float const idealWalkMagnitude = CalculateActualHumanWalkingAbsoluteSpeed(*npc.HumanNpcState, labParameters) * remainingDt;
+                                float const idealWalkMagnitude = CalculateActualHumanWalkingAbsoluteSpeed(*npc.HumanNpcState, gameParameters) * remainingDt;
 
                                 vec2f walkDir; // Actual absolute direction of walk - along the edge
                                 if (idealWalkDir.dot(edgeDir) >= 0.0f)
@@ -557,7 +557,7 @@ void Npcs::UpdateNpcParticle(
                                 // to prevent walking on floors that are too steep
                                 float constexpr ResistanceSlopeStart = 0.50f; // Start slightly before expected 45-degree ramp
                                 float constexpr ResistanceSlopeEnd = 0.85f; // Max slope we're willing to climb
-                                float const x = walkDir.dot(-LabParameters::GravityDir); // TODO: perf: this is just y
+                                float const x = walkDir.dot(-GameParameters::GravityDir); // TODO: perf: this is just y
                                 if (x >= ResistanceSlopeStart)
                                 {
                                     float const x2 = (x - ResistanceSlopeStart) / (ResistanceSlopeEnd - ResistanceSlopeStart);
@@ -668,7 +668,7 @@ void Npcs::UpdateNpcParticle(
                                 remainingDt,
                                 mParticles,
                                 ship,
-                                labParameters);
+                                gameParameters);
 
                             LogNpcDebug("    Actual edge traveled in non-inertial step: ", edgeTraveledActual);
 
@@ -827,7 +827,7 @@ void Npcs::UpdateNpcParticle(
                     remainingDt,
                     mParticles,
                     ship,
-                    labParameters);
+                    gameParameters);
 
                 // Update total traveled
                 if (npc.HumanNpcState.has_value()
@@ -874,7 +874,7 @@ void Npcs::UpdateNpcParticle(
     {
         // Publish final velocities
 
-        vec2f const particleVelocity = (mParticles.GetPosition(npcParticle.ParticleIndex) - particleStartAbsolutePosition) / LabParameters::SimulationTimeStepDuration;
+        vec2f const particleVelocity = (mParticles.GetPosition(npcParticle.ParticleIndex) - particleStartAbsolutePosition) / GameParameters::SimulationTimeStepDuration;
 
         mGameEventDispatcher.OnCustomProbe("VelX", particleVelocity.x);
         mGameEventDispatcher.OnCustomProbe("VelY", particleVelocity.y);
@@ -884,7 +884,7 @@ void Npcs::UpdateNpcParticle(
 void Npcs::CalculateNpcParticlePreliminaryForces(
     StateType const & npc,
     bool isPrimaryParticle,
-    LabParameters const & labParameters)
+    GameParameters const & gameParameters)
 {
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
 
@@ -892,11 +892,11 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
     // Calculate world forces
     //
 
-    float const particleMass = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).Mass * labParameters.MassAdjustment;
+    float const particleMass = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).Mass * gameParameters.MassAdjustment;
 
     // 1. World forces - gravity
 
-    vec2f preliminaryForces = LabParameters::Gravity * labParameters.GravityAdjustment * mGravityGate * particleMass;
+    vec2f preliminaryForces = GameParameters::Gravity * gameParameters.GravityAdjustment * mGravityGate * particleMass;
 
     if (!npcParticle.ConstrainedState.has_value())
     {
@@ -921,17 +921,17 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
             // 2. World forces - buoyancy
 
             preliminaryForces.y +=
-                LabParameters::GravityMagnitude * 1000.0f
+                GameParameters::GravityMagnitude * 1000.0f
                 * mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).BuoyancyVolumeFill
-                * labParameters.BuoyancyAdjustment
+                * gameParameters.BuoyancyAdjustment
                 * uwCoefficient;
 
             // 3. World forces - water drag
 
             preliminaryForces +=
                 -mParticles.GetVelocity(npcParticle.ParticleIndex)
-                * LabParameters::WaterFrictionDragCoefficient
-                * labParameters.WaterFrictionDragCoefficientAdjustment;
+                * GameParameters::WaterFrictionDragCoefficient
+                * gameParameters.WaterFrictionDragCoefficientAdjustment;
         }
     }
 
@@ -941,7 +941,7 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
     {
         ElementIndex const otherParticleIndex = isPrimaryParticle ? npc.DipoleState->SecondaryParticleState.ParticleIndex : npc.PrimaryParticleState.ParticleIndex;
 
-        float const dt = LabParameters::SimulationTimeStepDuration;
+        float const dt = GameParameters::SimulationTimeStepDuration;
 
         vec2f const springDisplacement = mParticles.GetPosition(otherParticleIndex) - mParticles.GetPosition(npcParticle.ParticleIndex); // Towards other
         float const springDisplacementLength = springDisplacement.length();
@@ -952,8 +952,8 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
         //
 
         float const springStiffnessCoefficient =
-            labParameters.SpringReductionFraction
-            * npc.DipoleState->DipoleProperties.MassFactor * labParameters.MassAdjustment
+            gameParameters.SpringReductionFraction
+            * npc.DipoleState->DipoleProperties.MassFactor * gameParameters.MassAdjustment
             / (dt * dt);
 
         // Calculate spring force on this particle
@@ -969,8 +969,8 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
         //
 
         float const springDampingCoefficient =
-            labParameters.SpringDampingCoefficient
-            * npc.DipoleState->DipoleProperties.MassFactor * labParameters.MassAdjustment
+            gameParameters.SpringDampingCoefficient
+            * npc.DipoleState->DipoleProperties.MassFactor * gameParameters.MassAdjustment
             / dt;
 
         // Calculate damp force on this particle
@@ -998,7 +998,7 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
     StateType const & npc,
     bool isPrimaryParticle,
     float particleMass,
-    LabParameters const & labParameters) const
+    GameParameters const & gameParameters) const
 {
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
 
@@ -1026,7 +1026,7 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
 
         vec2f const secondaryPredictedPosition =
             mParticles.GetPosition(secondaryParticleIndex)
-            + mParticles.GetVelocity(secondaryParticleIndex) * LabParameters::SimulationTimeStepDuration;
+            + mParticles.GetVelocity(secondaryParticleIndex) * GameParameters::SimulationTimeStepDuration;
             ;
         vec2f const humanVector = secondaryPredictedPosition - mParticles.GetPosition(primaryParticleIndex);
 
@@ -1038,7 +1038,7 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
         // |-/
         // |/
         //
-        float const staticDisplacementAngleCW = (-LabParameters::GravityDir).angleCw(humanVector);
+        float const staticDisplacementAngleCW = (-GameParameters::GravityDir).angleCw(humanVector);
 
         // Calculate CW angle that head would rotate by (relative to feet) due to relative velocity alone;
         // positive when new position is CW wrt old
@@ -1050,7 +1050,7 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
         //
         vec2f const relativeVelocityDisplacement =
             (mParticles.GetVelocity(secondaryParticleIndex) - mParticles.GetVelocity(primaryParticleIndex))
-            * LabParameters::SimulationTimeStepDuration;
+            * GameParameters::SimulationTimeStepDuration;
         float const relativeVelocityAngleCW = humanVector.angleCw(humanVector + relativeVelocityDisplacement);
 
         //
@@ -1059,16 +1059,16 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
         //
 
         // Calculate angle that we want to enforce with this torque
-        float const stiffness = labParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient + std::min(npc.HumanNpcState->PanicLevel, 1.0f) * 0.0005f;
+        float const stiffness = gameParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient + std::min(npc.HumanNpcState->PanicLevel, 1.0f) * 0.0005f;
         float const totalTorqueAngleCW =
             staticDisplacementAngleCW * stiffness
-            + relativeVelocityAngleCW * labParameters.HumanNpcEquilibriumTorqueDampingCoefficient;
+            + relativeVelocityAngleCW * gameParameters.HumanNpcEquilibriumTorqueDampingCoefficient;
 
         // Calculate (linear) force that generates this rotation
         vec2f const torqueDisplacement = humanVector.rotate(totalTorqueAngleCW) - humanVector;
         vec2f const equilibriumTorqueForce =
             torqueDisplacement
-            * particleMass / (LabParameters::SimulationTimeStepDuration * LabParameters::SimulationTimeStepDuration)
+            * particleMass / (GameParameters::SimulationTimeStepDuration * GameParameters::SimulationTimeStepDuration)
             * mParticles.GetEquilibriumTorque(secondaryParticleIndex);
 
         definitiveForces += equilibriumTorqueForce;
@@ -1082,7 +1082,7 @@ void Npcs::UpdateNpcParticle_Free(
     vec2f const & startPosition,
     vec2f const & endPosition,
     NpcParticles & particles,
-    LabParameters const & labParameters) const
+    GameParameters const & gameParameters) const
 {
     assert(!particle.ConstrainedState.has_value());
 
@@ -1095,7 +1095,7 @@ void Npcs::UpdateNpcParticle_Free(
     // Use whole time quantum for velocity, as communicated start/end positions are those planned for whole dt
     particles.SetVelocity(
         particle.ParticleIndex,
-        (endPosition - startPosition) / LabParameters::SimulationTimeStepDuration * (1.0f - labParameters.GlobalDamping));
+        (endPosition - startPosition) / GameParameters::SimulationTimeStepDuration * (1.0f - gameParameters.GlobalDamping));
 }
 
 std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
@@ -1113,7 +1113,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
     float dt,
     NpcParticles & particles,
     Ship const & ship,
-    LabParameters const & labParameters) const
+    GameParameters const & gameParameters) const
 {
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
     assert(npcParticle.ConstrainedState.has_value());
@@ -1254,7 +1254,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
         false, // No need to check whether we are directed into _this_ triangle
         particles,
         ship,
-        labParameters);
+        gameParameters);
 
     switch (navigationOutcome.Type)
     {
@@ -1313,7 +1313,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
                     meshVelocity,
                     dt,
                     particles,
-                    labParameters);
+                    gameParameters);
 
                 // Terminate
                 return std::make_tuple(edgeTraveled, true);
@@ -1336,7 +1336,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
     float segmentDt,
     NpcParticles & particles,
     Ship const & ship,
-    LabParameters const & labParameters) const
+    GameParameters const & gameParameters) const
 {
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
     assert(npcParticle.ConstrainedState.has_value());
@@ -1380,7 +1380,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
 
             // Use whole time quantum for velocity, as particleStartAbsolutePosition is fixed at t0
             vec2f const totalAbsoluteTraveledVector = segmentTrajectoryEndAbsolutePosition - particleStartAbsolutePosition;
-            vec2f const absoluteVelocity = totalAbsoluteTraveledVector / LabParameters::SimulationTimeStepDuration;
+            vec2f const absoluteVelocity = totalAbsoluteTraveledVector / GameParameters::SimulationTimeStepDuration;
             particles.SetVelocity(npcParticle.ParticleIndex, absoluteVelocity);
             npcParticleConstrainedState.MeshRelativeVelocity = absoluteVelocity + meshVelocity;
 
@@ -1530,7 +1530,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                 meshVelocity,
                 segmentDt,
                 particles,
-                labParameters);
+                gameParameters);
 
             // Return (mesh-relative) distance traveled with this move
             return (segmentTrajectoryEndAbsolutePosition - segmentTrajectoryStartAbsolutePosition).length();
@@ -1564,7 +1564,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                     particleStartAbsolutePosition,
                     segmentTrajectoryEndAbsolutePosition,
                     particles,
-                    labParameters);
+                    gameParameters);
 
                 vec2f const totalTraveledVector = intersectionAbsolutePosition - particleStartAbsolutePosition; // We consider constrained only
                 return totalTraveledVector.length();
@@ -1620,7 +1620,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
     bool isInitialStateUnknown,
     NpcParticles & particles,
     Ship const & ship,
-    LabParameters const & labParameters) const
+    GameParameters const & gameParameters) const
 {
     //
     // Note: we don't move here
@@ -1722,7 +1722,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
                 particleStartAbsolutePosition,
                 trajectoryEndAbsolutePosition,
                 particles,
-                labParameters);
+                gameParameters);
 
             return NavigateVertexOutcome::MakeConvertedToFreeOutcome();
         }
@@ -1786,7 +1786,7 @@ void Npcs::BounceConstrainedNpcParticle(
     vec2f const meshVelocity,
     float dt,
     NpcParticles & particles,
-    LabParameters const & labParameters) const
+    GameParameters const & gameParameters) const
 {
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
     assert(npcParticle.ConstrainedState.has_value());
@@ -1802,12 +1802,12 @@ void Npcs::BounceConstrainedNpcParticle(
     vec2f const normalResponse =
         -normalVelocity
         * particles.GetPhysicalProperties(npcParticle.ParticleIndex).Elasticity
-        * labParameters.ElasticityAdjustment;
+        * gameParameters.ElasticityAdjustment;
 
     // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
     vec2f const tangentialResponse =
         tangentialVelocity
-        * std::max(0.0f, 1.0f - particles.GetPhysicalProperties(npcParticle.ParticleIndex).KineticFriction * labParameters.KineticFrictionAdjustment);
+        * std::max(0.0f, 1.0f - particles.GetPhysicalProperties(npcParticle.ParticleIndex).KineticFriction * gameParameters.KineticFrictionAdjustment);
 
     // Given that we've been working in *apparent* space (we've calc'd the collision response to *trajectory* which is apparent displacement),
     // we need to transform velocity to absolute particle velocity
@@ -1859,7 +1859,7 @@ void Npcs::UpdateNpcAnimation(
     StateType & npc,
     bool isPrimaryParticle,
     Ship const & ship,
-    LabParameters const & labParameters)
+    GameParameters const & gameParameters)
 {
     if (npc.Type == NpcType::Human && isPrimaryParticle) // Tke the primary as the only representative of a human
     {
@@ -1910,7 +1910,7 @@ void Npcs::UpdateNpcAnimation(
 
                     // Angle at which left arm is perpendicular to body and touching edge
                     float constexpr MaxAngle = 0.40489178628508342331207292900944f;
-                    //static_assert(MaxAngle == std::atan(LabParameters::HumanNpcGeometry::ArmLengthFraction / (1.0f - LabParameters::HumanNpcGeometry::HeadLengthFraction)));
+                    //static_assert(MaxAngle == std::atan(GameParameters::HumanNpcGeometry::ArmLengthFraction / (1.0f - GameParameters::HumanNpcGeometry::HeadLengthFraction)));
 
                     if (humanEdgeAngle <= Pi<float> / 2.0f)
                     {
@@ -1973,7 +1973,6 @@ void Npcs::UpdateNpcAnimation(
             {
                 // Just small arms angle
 
-                //float constexpr ArmsAngle = Pi<float> / 2.0f * 0.2f;
                 float constexpr ArmsAngle = StateType::HumanNpcStateType::InitialArmAngle;
 
                 targetRightArmAngle = ArmsAngle;
@@ -1993,11 +1992,11 @@ void Npcs::UpdateNpcAnimation(
                 // Calculate leg angle based on distance traveled
                 //
 
-                float const actualHalfStepLengthFraction = (LabParameters::HumanNpcGeometry::StepLengthFraction * std::sqrt(CalculateActualHumanWalkingAbsoluteSpeed(*npc.HumanNpcState, labParameters)) / 2.0f);
-                float const maxLegAngle = std::atan(actualHalfStepLengthFraction / LabParameters::HumanNpcGeometry::LegLengthFraction);
+                float const actualHalfStepLengthFraction = (GameParameters::HumanNpcGeometry::StepLengthFraction * std::sqrt(CalculateActualHumanWalkingAbsoluteSpeed(*npc.HumanNpcState, gameParameters)) / 2.0f);
+                float const maxLegAngle = std::atan(actualHalfStepLengthFraction / GameParameters::HumanNpcGeometry::LegLengthFraction);
 
-                float const adjustedStandardHumanHeight = LabParameters::HumanNpcGeometry::BodyLength * labParameters.HumanNpcBodyLengthAdjustment;
-                float const stepLength = LabParameters::HumanNpcGeometry::StepLengthFraction * adjustedStandardHumanHeight;
+                float const adjustedStandardHumanHeight = GameParameters::HumanNpcGeometry::BodyLength * gameParameters.HumanNpcBodyLengthAdjustment;
+                float const stepLength = GameParameters::HumanNpcGeometry::StepLengthFraction * adjustedStandardHumanHeight;
                 float const distance =
                     npc.HumanNpcState->TotalDistanceTraveledOnEdgeSinceStateTransition
                     + 0.3f * npc.HumanNpcState->TotalDistanceTraveledOffEdgeSinceStateTransition;
@@ -2070,8 +2069,8 @@ void Npcs::UpdateNpcAnimation(
                     //                                  edg X leg
                     //
 
-                    float const adjustedStandardLegLength = LabParameters::HumanNpcGeometry::LegLengthFraction * adjustedStandardHumanHeight;
-                    vec2f const crotchPosition = headPosition + actualBodyVector * (LabParameters::HumanNpcGeometry::HeadLengthFraction + LabParameters::HumanNpcGeometry::TorsoLengthFraction);
+                    float const adjustedStandardLegLength = GameParameters::HumanNpcGeometry::LegLengthFraction * adjustedStandardHumanHeight;
+                    vec2f const crotchPosition = headPosition + actualBodyVector * (GameParameters::HumanNpcGeometry::HeadLengthFraction + GameParameters::HumanNpcGeometry::TorsoLengthFraction);
 
                     // PERF: the below may be optimized: leg*2 is not needed and leg*1 is crotch => no dependency on legs
                     {
@@ -2214,7 +2213,7 @@ void Npcs::UpdateNpcAnimation(
                 // Arms: always pointing downward
 
                 float constexpr MaxAngleAroundPerp = Pi<float> / 2.0f * 0.7f;
-                float const armAngle = Pi<float> / 2.0f - (actualBodyDir.dot(LabParameters::GravityDir)) * MaxAngleAroundPerp;
+                float const armAngle = Pi<float> / 2.0f - (actualBodyDir.dot(GameParameters::GravityDir)) * MaxAngleAroundPerp;
                 targetRightArmAngle = armAngle;
                 targetLeftArmAngle = -targetRightArmAngle;
 

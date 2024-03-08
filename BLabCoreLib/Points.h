@@ -10,8 +10,8 @@
 #include "ElementContainer.h"
 #include "ElementIndexRangeIterator.h"
 #include "FixedSizeVector.h"
+#include "GameParameters.h"
 #include "GameTypes.h"
-#include "LabParameters.h"
 #include "Physics.h"
 #include "Vectors.h"
 
@@ -46,14 +46,14 @@ public:
         {}
     };
 
-    using ConnectedSpringsVector = FixedSizeVector<ConnectedSpring, LabParameters::MaxSpringsPerPoint>;
+    using ConnectedSpringsVector = FixedSizeVector<ConnectedSpring, GameParameters::MaxSpringsPerPoint>;
 
     /*
      * The metadata of all the triangles connected to a vertex.
      */
     struct ConnectedTrianglesVector
     {
-        FixedSizeVector<ElementIndex, LabParameters::MaxTrianglesPerPoint> ConnectedTriangles;
+        FixedSizeVector<ElementIndex, GameParameters::MaxTrianglesPerPoint> ConnectedTriangles;
         size_t OwnedConnectedTrianglesCount;
 
         ConnectedTrianglesVector()
