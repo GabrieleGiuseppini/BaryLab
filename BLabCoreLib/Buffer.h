@@ -1,6 +1,6 @@
 /***************************************************************************************
 * Original Author:      Gabriele Giuseppini
-* Created:              2020-05-20
+* Created:              2018-05-06
 * Copyright:            Gabriele Giuseppini  (https://github.com/GabrieleGiuseppini)
 ***************************************************************************************/
 #pragma once
@@ -11,13 +11,17 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
+#include <cstring>
 #include <functional>
 #include <memory>
 #include <stdexcept>
 
 /*
- * A fixed-size buffer which cannot grow more than the size that it is initially
+ * A fixed-size, mem-aligned buffer which cannot grow more than the size that it is initially
  * constructed with.
+ *
+ * The buffer is mem-aligned so that if TElement is float,
+ * then the buffer is aligned to the vectorization number of floats.
  */
 template <typename TElement>
 class Buffer final
@@ -36,17 +40,6 @@ public:
         , mSize(size)
         , mCurrentPopulatedSize(0)
     {
-    }
-
-    Buffer(
-        TElement const * data,
-        size_t size)
-        : mBuffer(make_unique_buffer_aligned_to_vectorization_word<TElement>(size))
-        , mSize(size)
-        , mCurrentPopulatedSize(0)
-    {
-        std::memcpy(mBuffer.get(), data, size);
-        mCurrentPopulatedSize = size;
     }
 
     Buffer(
@@ -76,6 +69,15 @@ public:
             mBuffer[i] = fillFunction(i);
     }
 
+    Buffer(
+        size_t size,
+        TElement fillValue)
+        : Buffer(size)
+    {
+        // Fill-in values
+        fill(fillValue);
+    }
+
     Buffer(Buffer && other) noexcept
         : mBuffer(std::move(other.mBuffer))
         , mSize(other.mSize)
@@ -83,6 +85,10 @@ public:
     {
     }
 
+    /*
+     * Gets the size of the buffer, including the extra room allocated to make the buffer aligned;
+     * greater than or equal the currently-populated size.
+     */
     size_t GetSize() const
     {
         return mSize;
@@ -118,13 +124,30 @@ public:
     /*
      * Fills the buffer with a value.
      */
-    void fill(TElement value)
+    inline void fill(TElement value)
     {
         TElement * restrict const ptr = mBuffer.get();
         for (size_t i = 0; i < mSize; ++i)
             ptr[i] = value;
 
         mCurrentPopulatedSize = mSize;
+    }
+
+    /*
+     * Fills the buffer with a value.
+     * This overload is when the caller has the buffer size at compile time;
+     * it's faster than the other overload.
+     */
+    template<size_t Size>
+    inline void fill(TElement value)
+    {
+        assert(mSize == Size);
+
+        TElement * restrict const ptr = mBuffer.get();
+        for (size_t i = 0; i < Size; ++i)
+            ptr[i] = value;
+
+        mCurrentPopulatedSize = Size;
     }
 
     /*

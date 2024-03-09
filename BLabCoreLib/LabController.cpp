@@ -333,8 +333,6 @@ void LabController::RotateShipBy(
 {
     assert(!!mModel);
 
-    assert(particleIndex < mModel->GetNpcs().GetParticles().GetParticleCount());
-
     //
     // Rotate ship
     //
@@ -921,7 +919,6 @@ void LabController::LoadShip(
         //////npcs->GetParticles().SetVelocity(npcs->GetState(0).PrimaryParticleState.ParticleIndex, vec2f(-1.0f, (GameParameters::GravityMagnitude + 16.25f) * GameParameters::SimulationTimeStepDuration));
 
         // Select particle
-        assert(npcs->GetParticles().GetParticleCount() > 0);
         npcs->SelectParticle(0, *ship);
     }
 

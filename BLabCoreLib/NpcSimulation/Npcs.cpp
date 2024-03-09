@@ -19,30 +19,15 @@ void Npcs::Add(
 	Ship const & ship,
 	GameParameters const & gameParameters)
 {
-	assert(mParticles.GetParticleCount() < GameParameters::MaxNpcs);
-
-	// Primary particle state
-
-	ElementIndex const primaryParticleIndex = mParticles.GetParticleCount();
-
-	StateType::NpcParticleStateType primaryParticleState = StateType::NpcParticleStateType(
-		primaryParticleIndex,
-		CalculateParticleConstrainedState(
-			primaryPosition,
-			ship));
-
-	// Add particles and eventual other states
-
-	std::optional<StateType::DipoleStateType> dipoleState;
-	std::optional<StateType::HumanNpcStateType> humanNpcState;
-
 	switch (npcType)
 	{
 		case NpcType::Furniture:
 		{
+			assert(mParticles.GetRemainingParticlesCount() >= 1);
+
 			auto const & material = mMaterialDatabase.GetNpcMaterial(NpcMaterial::KindType::Furniture);
 
-			mParticles.Add(
+			auto const particleIndex = mParticles.Add(
 				material.Mass,
 				material.StaticFriction,
 				material.KineticFriction,
@@ -51,18 +36,33 @@ void Npcs::Add(
 				primaryPosition,
 				material.RenderColor);
 
-			break;
+			StateType::NpcParticleStateType primaryParticleState = StateType::NpcParticleStateType(
+				particleIndex,
+				CalculateParticleConstrainedState(
+					primaryPosition,
+					ship));
+
+			mStateBuffer.emplace_back(
+				npcType,
+				primaryParticleState.ConstrainedState.has_value() ? StateType::RegimeType::Constrained : StateType::RegimeType::Free,
+				std::move(primaryParticleState),
+				std::nullopt,
+				std::nullopt);
+
+			return;
 		}
 
 		case NpcType::Human:
 		{
+			assert(mParticles.GetRemainingParticlesCount() >= 2);
+
 			float const bodyLength = GameParameters::HumanNpcGeometry::BodyLength * gameParameters.HumanNpcBodyLengthAdjustment;
 
 			// Feet (primary)
 
 			auto const & feetMaterial = mMaterialDatabase.GetNpcMaterial(NpcMaterial::KindType::HumanFeet);
 
-			mParticles.Add(
+			auto const primaryParticleIndex = mParticles.Add(
 				feetMaterial.Mass,
 				feetMaterial.StaticFriction,
 				feetMaterial.KineticFriction,
@@ -71,9 +71,13 @@ void Npcs::Add(
 				primaryPosition,
 				feetMaterial.RenderColor);
 
-			// Head (secondary)
+			StateType::NpcParticleStateType primaryParticleState = StateType::NpcParticleStateType(
+				primaryParticleIndex,
+				CalculateParticleConstrainedState(
+					primaryPosition,
+					ship));
 
-			ElementIndex const headParticleIndex = mParticles.GetParticleCount();
+			// Head (secondary)
 
 			auto const & headMaterial = mMaterialDatabase.GetNpcMaterial(NpcMaterial::KindType::HumanHead);
 
@@ -82,7 +86,7 @@ void Npcs::Add(
 				secondaryPosition = primaryPosition + vec2f(0.0f, 1.0f) * bodyLength;
 			}
 
-			mParticles.Add(
+			auto const secondaryParticleIndex = mParticles.Add(
 				headMaterial.Mass,
 				headMaterial.StaticFriction,
 				headMaterial.KineticFriction,
@@ -92,46 +96,42 @@ void Npcs::Add(
 				headMaterial.RenderColor);
 
 			StateType::NpcParticleStateType secondaryParticleState = StateType::NpcParticleStateType(
-				headParticleIndex,
+				secondaryParticleIndex,
 				CalculateParticleConstrainedState(
 					*secondaryPosition,
 					ship));
-
-			humanNpcState = InitializeHuman(
-				primaryParticleState,
-				secondaryParticleState,
-				currentSimulationTime,
-				ship);
 
 			float const massFactor =
 				(feetMaterial.Mass * headMaterial.Mass)
 				/ (feetMaterial.Mass + headMaterial.Mass);
 
-			dipoleState.emplace(
+			StateType::DipoleStateType dipoleState = StateType::DipoleStateType(
 				std::move(secondaryParticleState),
 				StateType::DipolePropertiesType(
 					bodyLength,
 					massFactor,
 					1.0f));
 
-			break;
+			StateType::HumanNpcStateType humanState = InitializeHuman(
+				primaryParticleState,
+				secondaryParticleState,
+				currentSimulationTime,
+				ship);
+
+			auto const regime = primaryParticleState.ConstrainedState.has_value()
+				? StateType::RegimeType::Constrained
+				: (dipoleState.SecondaryParticleState.ConstrainedState.has_value() ? StateType::RegimeType::Constrained : StateType::RegimeType::Free);
+
+			mStateBuffer.emplace_back(
+				npcType,
+				regime,
+				std::move(primaryParticleState),
+				std::move(dipoleState),
+				std::move(humanState));
+
+			return;
 		}
 	}
-
-	//
-	// Calculate regime
-	//
-
-	auto const regime = primaryParticleState.ConstrainedState.has_value()
-		? StateType::RegimeType::Constrained
-		: (dipoleState.has_value() && dipoleState->SecondaryParticleState.ConstrainedState.has_value()) ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
-
-	mStateBuffer.emplace_back(
-		npcType,
-		regime,
-		std::move(primaryParticleState),
-		std::move(dipoleState),
-		std::move(humanNpcState));
 }
 
 void Npcs::SetPanicLevelForAllHumans(float panicLevel)

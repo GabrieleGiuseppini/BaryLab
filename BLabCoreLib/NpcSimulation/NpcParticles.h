@@ -11,7 +11,7 @@
 #include "ElementIndexRangeIterator.h"
 #include "GameParameters.h"
 #include "GameTypes.h"
-#include "Physics.h"
+#include "SysSpecifics.h"
 #include "Vectors.h"
 
 #include <algorithm>
@@ -46,32 +46,39 @@ public:
         {}
     };
 
-    NpcParticles(ElementCount particleCount)
-        : ElementContainer(particleCount)
-        , mParticleCount(0)
+    NpcParticles(ElementCount maxParticleCount)
+        : ElementContainer(make_aligned_float_element_count(maxParticleCount))
+        , mMaxParticleCount(maxParticleCount)
         //////////////////////////////////
         // Buffers
         //////////////////////////////////
+        , mIsInUseBuffer(maxParticleCount, false)
         // Physics
-        , mPhysicalPropertiesBuffer(mBufferElementCount, particleCount, PhysicalProperties(0.0f, 0.0f, 0.0f, 0.0f, 0.0f))
-        , mPositionBuffer(mBufferElementCount, particleCount, vec2f::zero())
-        , mVelocityBuffer(mBufferElementCount, particleCount, vec2f::zero())
-        , mEquilibriumTorqueBuffer(mBufferElementCount, particleCount, 0.0f)
-        , mPreliminaryForcesBuffer(mBufferElementCount, particleCount, vec2f::zero())
-        , mExternalForcesBuffer(mBufferElementCount, particleCount, vec2f::zero())
+        , mPhysicalPropertiesBuffer(maxParticleCount, PhysicalProperties(0.0f, 0.0f, 0.0f, 0.0f, 0.0f))
+        , mPositionBuffer(maxParticleCount, vec2f::zero())
+        , mVelocityBuffer(maxParticleCount, vec2f::zero())
+        , mEquilibriumTorqueBuffer(maxParticleCount, 0.0f)
+        , mPreliminaryForcesBuffer(maxParticleCount, vec2f::zero())
+        , mExternalForcesBuffer(maxParticleCount, vec2f::zero())
         // Render
-        , mRenderColorBuffer(mBufferElementCount, particleCount, rgbaColor::zero())
+        , mRenderColorBuffer(maxParticleCount, rgbaColor::zero())
+        //////////////////////////////////
+        // Container
+        //////////////////////////////////
+        , mParticleInUseCount(0)
+        , mFreeParticleSearchStartIndex(0)
     {
     }
 
     NpcParticles(NpcParticles && other) = default;
 
-    ElementCount GetParticleCount() const
+    ElementCount GetRemainingParticlesCount() const
     {
-        return mParticleCount;
+        assert(mParticleInUseCount <= mMaxParticleCount);
+        return mMaxParticleCount - mParticleInUseCount;
     }
 
-    void Add(
+    ElementIndex Add(
         float mass,
         float staticFriction,
         float kineticFriction,
@@ -79,6 +86,9 @@ public:
         float buoyancyVolumeFill,
         vec2f const & position,
         rgbaColor const & color);
+
+    void Remove(
+        ElementIndex particleIndex);
 
     void Query(ElementIndex particleElementIndex) const;
 
@@ -211,11 +221,18 @@ public:
 
 private:
 
-    ElementCount mParticleCount;
+    ElementIndex FindFreeParticleIndex();
+
+private:
+
+    ElementCount const mMaxParticleCount;
 
     //////////////////////////////////////////////////////////
     // Buffers
     //////////////////////////////////////////////////////////
+
+    // In use: true when the particle is occupied
+    Buffer<bool> mIsInUseBuffer;
 
     //
     // Physics
@@ -233,6 +250,17 @@ private:
     //
 
     Buffer<rgbaColor> mRenderColorBuffer;
+
+    //////////////////////////////////////////////////////////
+    // Container
+    //////////////////////////////////////////////////////////
+
+    // Convenience counter
+    ElementCount mParticleInUseCount;
+
+    // The index at which to start searching for free particles
+    // (just an optimization over restarting from zero each time)
+    ElementIndex mFreeParticleSearchStartIndex;
 };
 
 }

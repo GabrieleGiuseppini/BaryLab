@@ -9,7 +9,7 @@
 
 namespace Physics {
 
-void NpcParticles::Add(
+ElementIndex NpcParticles::Add(
     float mass,
     float staticFriction,
     float kineticFriction,
@@ -18,22 +18,72 @@ void NpcParticles::Add(
     vec2f const & position,
     rgbaColor const & color)
 {
-    mPhysicalPropertiesBuffer.emplace_back(mass, staticFriction, kineticFriction, elasticity, buoyancyVolumeFill);
-    mPositionBuffer.emplace_back(position);
-    mVelocityBuffer.emplace_back(vec2f::zero());
-    mEquilibriumTorqueBuffer.emplace_back(0.0f);
-    mPreliminaryForcesBuffer.emplace_back(vec2f::zero());
-    mExternalForcesBuffer.emplace_back(vec2f::zero());
+    // Find first free particle
+    ElementIndex const p = FindFreeParticleIndex();
 
-    mRenderColorBuffer.emplace_back(color);
+    mIsInUseBuffer[p] = true;
 
-    ++mParticleCount;
+    mPhysicalPropertiesBuffer[p] = PhysicalProperties(mass, staticFriction, kineticFriction, elasticity, buoyancyVolumeFill);
+    mPositionBuffer[p] = position;
+    mVelocityBuffer[p] = vec2f::zero();
+    mEquilibriumTorqueBuffer[p] = 0.0f;
+    mPreliminaryForcesBuffer[p] = vec2f::zero();
+    mExternalForcesBuffer[p] = vec2f::zero();
+
+    mRenderColorBuffer[p] = color;
+
+    ++mParticleInUseCount;
+
+    return p;
+}
+
+void NpcParticles::Remove(
+    ElementIndex particleIndex)
+{
+    assert(mIsInUseBuffer[particleIndex]);
+
+    mIsInUseBuffer[particleIndex] = false;
+    mFreeParticleSearchStartIndex = std::min(mFreeParticleSearchStartIndex, particleIndex);
+
+    --mParticleInUseCount;
 }
 
 void NpcParticles::Query(ElementIndex particleElementIndex) const
 {
     LogMessage("ParticleIndex: ", particleElementIndex);
     LogMessage("P=", mPositionBuffer[particleElementIndex].toString(), " V=", mVelocityBuffer[particleElementIndex].toString());
+}
+
+ElementIndex NpcParticles::FindFreeParticleIndex()
+{
+    for (ElementIndex p = mFreeParticleSearchStartIndex; ; /*incremented in loop*/)
+    {
+        if (!mIsInUseBuffer[p])
+        {
+            // Found!
+
+            // Remember to start after this one next time
+            mFreeParticleSearchStartIndex = p + 1;
+            if (mFreeParticleSearchStartIndex >= mElementCount)
+                mFreeParticleSearchStartIndex = 0;
+
+            return p;
+        }
+
+        // Advance
+        ++p;
+        if (p >= mElementCount)
+            p = 0;
+
+        if (p == mFreeParticleSearchStartIndex)
+        {
+            // Went around
+            break;
+        }
+    }
+
+    // If we're here, no luck
+    throw std::runtime_error("Cannot find free NPC particle");
 }
 
 }
