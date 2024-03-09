@@ -5,8 +5,9 @@
 ***************************************************************************************/
 #pragma once
 
-#include <BLabCoreLib/LabController.h>
-#include <BLabCoreLib/Settings.h>
+#include <Game/LabController.h>
+
+#include <GameCore/Settings.h>
 
 enum class SLabSettings : size_t
 {

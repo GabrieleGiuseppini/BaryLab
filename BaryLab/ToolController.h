@@ -7,7 +7,7 @@
 
 #include "Tools.h"
 
-#include <BLabCoreLib/LabController.h>
+#include <Game/LabController.h>
 
 #include <wx/frame.h>
 

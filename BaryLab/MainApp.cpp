@@ -10,7 +10,7 @@
 
 #include "MainFrame.h"
 
-#include <BLabCoreLib/FloatingPoint.h>
+#include <GameCore/FloatingPoint.h>
 
 #include <wx/app.h>
 #include <wx/msgdlg.h>

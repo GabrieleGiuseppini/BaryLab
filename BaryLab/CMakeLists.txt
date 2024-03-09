@@ -65,14 +65,16 @@ add_executable (BaryLab ${BARY_LAB_SOURCES} ${UI_CONTROLS_SOURCES} ${RESOURCE_FI
 target_include_directories(BaryLab PRIVATE .)
 target_include_directories(BaryLab PRIVATE ${wxWidgets_INCLUDE_DIRS})
 target_compile_definitions(BaryLab PRIVATE "${wxWidgets_DEFINITIONS}")
-target_link_libraries (BaryLab
-	BLabCoreLib
-	${ZLIB_LIBRARY}
-	${JPEG_LIBRARY}
-	${PNG_LIBRARY}
-	${IL_LIBRARIES}
-	${ILU_LIBRARIES}
-	${ILUT_LIBRARIES}
+target_link_libraries (BaryLab PRIVATE
+	GameCoreLib
+	GameLib
+	GameOpenGLLib
+        ${ZLIB_LIBRARY}
+        ${JPEG_LIBRARY}
+        ${PNG_LIBRARY}
+        ${IL_LIBRARIES}
+        ${ILU_LIBRARIES}
+        ${ILUT_LIBRARIES}
 	${OPENGL_LIBRARIES}
 	${wxWidgets_LIBRARIES}
 	${ADDITIONAL_LIBRARIES})

@@ -5,7 +5,7 @@
 ***************************************************************************************/
 #pragma once
 
-#include <BLabCoreLib/LabController.h>
+#include <Game/LabController.h>
 
 #include <wx/image.h>
 #include <wx/window.h>

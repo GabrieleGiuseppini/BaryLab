@@ -7,7 +7,7 @@
 
 #include "UIControls/ScalarTimeSeriesProbeControl.h"
 
-#include <BLabCoreLib/IGameEventHandlers.h>
+#include <Game/IGameEventHandlers.h>
 
 #include <wx/sizer.h>
 #include <wx/stattext.h>

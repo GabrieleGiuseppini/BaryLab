@@ -7,7 +7,7 @@
 
 #include "ISliderCore.h"
 
-#include <BLabCoreLib/Utils.h>
+#include <GameCore/Utils.h>
 
 #include <wx/bitmap.h>
 #include <wx/slider.h>

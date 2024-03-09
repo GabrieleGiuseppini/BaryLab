@@ -9,8 +9,9 @@
 
 #include "UIControls/SliderControl.h"
 
-#include <BLabCoreLib/LabController.h>
-#include <BLabCoreLib/Settings.h>
+#include <Game/LabController.h>
+
+#include <GameCore/Settings.h>
 
 #include <wx/button.h>
 #include <wx/checkbox.h>

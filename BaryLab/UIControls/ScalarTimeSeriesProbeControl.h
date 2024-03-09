@@ -5,7 +5,7 @@
 ***************************************************************************************/
 #pragma once
 
-#include <BLabCoreLib/CircularList.h>
+#include <GameCore/CircularList.h>
 
 #include <wx/wx.h>
 
@@ -48,7 +48,7 @@ private:
     wxPen mGridPen;
 
     float mMaxValue;
-    float mMinValue;    
+    float mMinValue;
     float mGridValueSize;
 
     CircularList<float, 200> mSamples;

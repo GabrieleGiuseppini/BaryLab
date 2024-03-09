@@ -9,7 +9,7 @@
 
 #include "UIControls/SliderControl.h"
 
-#include <BLabCoreLib/Vectors.h>
+#include <GameCore/Vectors.h>
 
 #include <wx/bmpbuttn.h>
 #include <wx/event.h>

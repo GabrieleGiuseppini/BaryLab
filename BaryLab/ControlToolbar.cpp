@@ -9,7 +9,7 @@
 
 #include "UIControls/LinearSliderCore.h"
 
-#include <BLabCoreLib/ResourceLocator.h>
+#include <Game/ResourceLocator.h>
 
 #include <wx/bitmap.h>
 #include <wx/gbsizer.h>

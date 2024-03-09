@@ -7,11 +7,12 @@
 
 #include "StandardSystemPaths.h"
 
-#include <BLabCoreLib/BLabOpenGL.h>
-#include <BLabCoreLib/GameException.h>
-#include <BLabCoreLib/Log.h>
-#include <BLabCoreLib/Utils.h>
-#include <BLabCoreLib/Version.h>
+#include <GameOpenGL/GameOpenGL.h>
+
+#include <GameCore/GameException.h>
+#include <GameCore/Log.h>
+#include <GameCore/Utils.h>
+#include <GameCore/Version.h>
 
 #include <wx/intl.h>
 #include <wx/msgdlg.h>

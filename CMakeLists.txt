@@ -106,7 +106,7 @@ find_package(OpenGL REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DIN_BARYLAB")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /DBARYLAB_DEBUG")
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 
@@ -210,8 +210,10 @@ endif()
 # Sub-projects
 ####################################################
 
-add_subdirectory(BLabCoreLib)
 add_subdirectory(BaryLab)
+add_subdirectory(Game)
+add_subdirectory(GameCore)
+add_subdirectory(GameOpenGL)
 
 ####################################################
 # Visual Studio specifics

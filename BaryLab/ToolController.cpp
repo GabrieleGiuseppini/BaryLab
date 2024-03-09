@@ -7,7 +7,7 @@
 
 #include "WxHelpers.h"
 
-#include <BLabCoreLib/Vectors.h>
+#include <GameCore/Vectors.h>
 
 ToolController::ToolController(
     ToolType initialToolType,

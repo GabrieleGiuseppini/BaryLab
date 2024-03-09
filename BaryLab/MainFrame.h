@@ -13,7 +13,7 @@
 #include "SettingsManager.h"
 #include "ToolController.h"
 
-#include <BLabCoreLib/LabController.h>
+#include <Game/LabController.h>
 
 #include <wx/filedlg.h>
 #include <wx/frame.h>

@@ -5,7 +5,7 @@
 ***************************************************************************************/
 #include "StandardSystemPaths.h"
 
-#include <BLabCoreLib/Version.h>
+#include <GameCore/Version.h>
 
 #include <wx/stdpaths.h>
 

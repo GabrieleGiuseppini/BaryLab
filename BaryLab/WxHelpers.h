@@ -5,7 +5,7 @@
 ***************************************************************************************/
 #pragma once
 
-#include "BLabCoreLib/ImageData.h"
+#include "GameCore/ImageData.h"
 
 #include <wx/cursor.h>
 #include <wx/generic/statbmpg.h>

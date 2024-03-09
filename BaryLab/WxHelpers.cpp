@@ -5,8 +5,9 @@
 ***************************************************************************************/
 #include "WxHelpers.h"
 
-#include <BLabCoreLib/GameException.h>
-#include <BLabCoreLib/ResourceLocator.h>
+#include <Game/ResourceLocator.h>
+
+#include <GameCore/GameException.h>
 
 #include <wx/rawbmp.h>
 
