@@ -19,7 +19,7 @@ public:
     std::string Name;
     rgbaColor RenderColor;
 
-    SurfaceType Surface;
+    NpcSurfaceType NpcSurface;
 
 public:
 
@@ -30,10 +30,10 @@ public:
     StructuralMaterial(
         std::string name,
         rgbaColor const & renderColor,
-        SurfaceType surface)
+        NpcSurfaceType npcSurface)
         : Name(name)
         , RenderColor(renderColor)
-        , Surface(surface)
+        , NpcSurface(npcSurface)
     {}
 };
 
@@ -60,8 +60,6 @@ public:
     float Elasticity;
     float BuoyancyVolumeFill;
 
-    SurfaceType Surface;
-
 public:
 
     static NpcMaterial Create(picojson::object const & npcMaterialJson);
@@ -74,8 +72,7 @@ public:
         float staticFriction,
         float kineticFriction,
         float elasticity,
-        float buoyancyVolumeFill,
-        SurfaceType surface)
+        float buoyancyVolumeFill)
         : Name(name)
         , Kind(kind)
         , RenderColor(renderColor)
@@ -84,7 +81,6 @@ public:
         , KineticFriction(kineticFriction)
         , Elasticity(elasticity)
         , BuoyancyVolumeFill(buoyancyVolumeFill)
-        , Surface(surface)
     {}
 
 private:

@@ -165,13 +165,13 @@ public:
         mRenderContext->SetGridEnabled(value);
     }
 
-    NpcRenderMode GetNpcRenderMode() const
+    NpcRenderModeType GetNpcRenderMode() const
     {
         assert(mModel);
         return mModel->GetNpcs().GetNpcRenderMode();
     }
 
-    void SetNpcRenderMode(NpcRenderMode value)
+    void SetNpcRenderMode(NpcRenderModeType value)
     {
         assert(mModel);
         mModel->GetNpcs().SetNpcRenderMode(value);

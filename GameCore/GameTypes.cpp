@@ -8,12 +8,12 @@
 #include "GameException.h"
 #include "Utils.h"
 
-SurfaceType StrToSurfaceType(std::string const & str)
+NpcSurfaceType StrToNpcSurfaceType(std::string const & str)
 {
     if (Utils::CaseInsensitiveEquals(str, "Floor"))
-        return SurfaceType::Floor;
+        return NpcSurfaceType::Floor;
     else if (Utils::CaseInsensitiveEquals(str, "Open"))
-        return SurfaceType::Open;
+        return NpcSurfaceType::Open;
     else
-        throw GameException("Unrecognized SurfaceType \"" + str + "\"");
+        throw GameException("Unrecognized NpcSurfaceType \"" + str + "\"");
 }

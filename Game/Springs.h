@@ -72,7 +72,7 @@ public:
         , mEndpointOctantsBuffer(mBufferElementCount, mElementCount, EndpointOctants(0, 4))
         , mTrianglesBuffer(mBufferElementCount, mElementCount, TrianglesVector())
         // Properties
-        , mSurfaceTypeBuffer(mBufferElementCount, mElementCount, SurfaceType::Open)
+        , mNpcSurfaceTypeBuffer(mBufferElementCount, mElementCount, NpcSurfaceType::Open)
         // Render
         , mRenderColorBuffer(mBufferElementCount, mElementCount, rgbaColor::zero())
     {
@@ -85,7 +85,7 @@ public:
         ElementIndex pointBIndex,
         Octant pointAOctant,
         Octant pointBOctant,
-        SurfaceType surface,
+        NpcSurfaceType npcSurface,
         TrianglesVector const & triangles);
 
 public:
@@ -224,9 +224,9 @@ public:
     // Properties
     //
 
-    SurfaceType GetSurfaceType(ElementIndex springElementIndex) const
+    NpcSurfaceType GetNpcSurfaceType(ElementIndex springElementIndex) const
     {
-        return mSurfaceTypeBuffer[springElementIndex];
+        return mNpcSurfaceTypeBuffer[springElementIndex];
     }
 
     //
@@ -256,7 +256,7 @@ private:
     // Properties
     //
 
-    Buffer<SurfaceType> mSurfaceTypeBuffer;
+    Buffer<NpcSurfaceType> mNpcSurfaceTypeBuffer;
 
     //
     // Render

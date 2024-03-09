@@ -8,8 +8,7 @@
 	"static_friction": 0.07,
 	"kinetic_friction": 0.05,
 	"elasticity": 0.6,
-	"buoyancy_volume_fill": 0.05,
-	"surface": "Open"
+	"buoyancy_volume_fill": 0.05
     },
 
     {        
@@ -21,8 +20,7 @@
 	"static_friction": 0.1,
 	"kinetic_friction": 0.1,
 	"elasticity": 0.6,
-	"buoyancy_volume_fill": 0.05,
-	"surface": "Open"
+	"buoyancy_volume_fill": 0.05
     },
 
     {
@@ -34,8 +32,7 @@
 	"static_friction": 1.045,
 	"kinetic_friction": 1.0,
 	"elasticity": 0.6,
-	"buoyancy_volume_fill": 0.03,
-	"surface": "Open"
+	"buoyancy_volume_fill": 0.03
     }
 
 ]

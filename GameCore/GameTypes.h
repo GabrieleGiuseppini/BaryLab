@@ -33,6 +33,43 @@ using ElementCount = std::uint32_t;
 using ElementIndex = std::uint32_t;
 static constexpr ElementIndex NoneElementIndex = std::numeric_limits<ElementIndex>::max();
 
+/*
+ * NPC (global) identifiers.
+ *
+ * Comparable and ordered. Start from 0.
+ */
+using NpcId = std::uint32_t;
+static NpcId constexpr NoneNpcId = std::numeric_limits<NpcId>::max();
+
+/*
+ * Return type of picking an object.
+ */
+template<typename TObjectId>
+struct PickedObjectId
+{
+    PickedObjectId(
+        TObjectId objectId,
+        vec2f const & worldOffset)
+        : mObjectId(objectId)
+        , mWorldOffset(worldOffset)
+    {}
+
+    inline TObjectId GetObjectId() const noexcept
+    {
+        return mObjectId;
+    };
+
+    inline vec2f const & GetWorldOffset() const noexcept
+    {
+        return mWorldOffset;
+    }
+
+private:
+
+    TObjectId mObjectId;
+    vec2f mWorldOffset;
+};
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Geometry
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -111,16 +148,41 @@ struct ParticleTrajectory
     {}
 };
 
-enum class SurfaceType
+////////////////////////////////////////////////////////////////////////////////////////////////
+// NPC
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * Top level of NPC type hierarchy.
+ */
+enum class NpcKindType
+{
+    Furniture,
+    Human
+};
+
+/*
+ * Human NPC types (second level).
+ */
+enum class HumanNpcKindType
+{
+    Passenger,
+    Programmer
+};
+
+// Futurework: FurnitureNpcKind
+
+enum class NpcSurfaceType
 {
     Floor,
     Open
 };
 
-SurfaceType StrToSurfaceType(std::string const & str);
+NpcSurfaceType StrToNpcSurfaceType(std::string const & str);
 
-enum class NpcRenderMode
+enum class NpcRenderModeType
 {
     Physical,
     Limbs
 };
+

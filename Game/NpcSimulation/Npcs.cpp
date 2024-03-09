@@ -12,16 +12,16 @@
 namespace Physics {
 
 void Npcs::Add(
-	NpcType npcType,
+	NpcKindType npcKind,
 	vec2f primaryPosition,
 	std::optional<vec2f> secondaryPosition,
 	float currentSimulationTime,
 	Ship const & ship,
 	GameParameters const & gameParameters)
 {
-	switch (npcType)
+	switch (npcKind)
 	{
-		case NpcType::Furniture:
+		case NpcKindType::Furniture:
 		{
 			assert(mParticles.GetRemainingParticlesCount() >= 1);
 
@@ -43,7 +43,7 @@ void Npcs::Add(
 					ship));
 
 			mStateBuffer.emplace_back(
-				npcType,
+				npcKind,
 				primaryParticleState.ConstrainedState.has_value() ? StateType::RegimeType::Constrained : StateType::RegimeType::Free,
 				std::move(primaryParticleState),
 				std::nullopt,
@@ -52,7 +52,7 @@ void Npcs::Add(
 			return;
 		}
 
-		case NpcType::Human:
+		case NpcKindType::Human:
 		{
 			assert(mParticles.GetRemainingParticlesCount() >= 2);
 
@@ -123,7 +123,7 @@ void Npcs::Add(
 				: (dipoleState.SecondaryParticleState.ConstrainedState.has_value() ? StateType::RegimeType::Constrained : StateType::RegimeType::Free);
 
 			mStateBuffer.emplace_back(
-				npcType,
+				npcKind,
 				regime,
 				std::move(primaryParticleState),
 				std::move(dipoleState),
@@ -138,7 +138,7 @@ void Npcs::SetPanicLevelForAllHumans(float panicLevel)
 {
 	for (auto & npc : mStateBuffer)
 	{
-		if (npc.Type == NpcType::Human)
+		if (npc.Kind == NpcKindType::Human)
 		{
 			assert(npc.HumanNpcState.has_value());
 			npc.HumanNpcState->PanicLevel = panicLevel;
@@ -304,7 +304,7 @@ void Npcs::Render(RenderContext & renderContext)
 
 		switch (mNpcRenderMode)
 		{
-			case NpcRenderMode::Limbs:
+			case NpcRenderModeType::Limbs:
 			{
 				if (state.HumanNpcState.has_value())
 				{
@@ -628,7 +628,7 @@ void Npcs::Render(RenderContext & renderContext)
 				break;
 			}
 
-			case NpcRenderMode::Physical:
+			case NpcRenderModeType::Physical:
 			{
 				RenderParticle(state.PrimaryParticleState, renderContext);
 
@@ -643,7 +643,7 @@ void Npcs::Render(RenderContext & renderContext)
 	renderContext.UploadNpcHumanLimbsEnd();
 	renderContext.UploadParticlesEnd();
 
-	if (mNpcRenderMode == NpcRenderMode::Physical)
+	if (mNpcRenderMode == NpcRenderModeType::Physical)
 	{
 		//
 		// Springs

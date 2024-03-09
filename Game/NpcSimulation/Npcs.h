@@ -37,12 +37,6 @@ class Npcs final
 {
 public:
 
-	enum class NpcType
-	{
-		Furniture,
-		Human
-	};
-
 	struct StateType final
 	{
 		enum class RegimeType
@@ -365,7 +359,7 @@ public:
 			}
 		};
 
-		NpcType Type;
+		NpcKindType Kind;
 
 		RegimeType Regime;
 
@@ -375,12 +369,12 @@ public:
 		std::optional<HumanNpcStateType> HumanNpcState;
 
 		StateType(
-			NpcType type,
+			NpcKindType kind,
 			RegimeType regime,
 			NpcParticleStateType && primaryParticleState,
 			std::optional<DipoleStateType> && dipoleState,
 			std::optional<HumanNpcStateType> && humanNpcState)
-			: Type(type)
+			: Kind(kind)
 			, Regime(regime)
 			, PrimaryParticleState(std::move(primaryParticleState))
 			, DipoleState(std::move(dipoleState))
@@ -404,12 +398,12 @@ public:
 		, mParticles(GameParameters::MaxNpcs * GameParameters::MaxParticlesPerNpc)
 		// Parameters
 		, mGravityGate(isGravityEnabled ? 1.0f : 0.0f)
-		, mNpcRenderMode(NpcRenderMode::Limbs)
+		, mNpcRenderMode(NpcRenderModeType::Limbs)
 		, mCurrentHumanNpcBodyLengthAdjustment(gameParameters.HumanNpcBodyLengthAdjustment)
 	{}
 
 	void Add(
-		NpcType npcType,
+		NpcKindType npcKind,
 		vec2f primaryPosition,
 		std::optional<vec2f> secondaryPosition,
 		float currentSimulationTime,
@@ -485,12 +479,12 @@ public:
 		mGravityGate = isEnabled ? 1.0f : 0.0f;
 	}
 
-	NpcRenderMode GetNpcRenderMode() const
+	NpcRenderModeType GetNpcRenderMode() const
 	{
 		return mNpcRenderMode;
 	}
 
-	void SetNpcRenderMode(NpcRenderMode value)
+	void SetNpcRenderMode(NpcRenderModeType value)
 	{
 		mNpcRenderMode = value;
 	}
@@ -563,16 +557,16 @@ public:
 		// - The triangle is _not_ sealed, OR it _is_ sealed but crossing the edge would make the particle free
 		//
 
-		if (ship.GetTriangles().GetSubSpringSurfaceType(triangleElementIndex, edgeOrdinal) != SurfaceType::Floor)
+		if (ship.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, edgeOrdinal) != NpcSurfaceType::Floor)
 		{
 			// Not even a floor
 			return false;
 		}
 
 		bool const isSealedTriangle =
-			ship.GetTriangles().GetSubSpringSurfaceType(triangleElementIndex, 0) == SurfaceType::Floor
-			&& ship.GetTriangles().GetSubSpringSurfaceType(triangleElementIndex, 1) == SurfaceType::Floor
-			&& ship.GetTriangles().GetSubSpringSurfaceType(triangleElementIndex, 2) == SurfaceType::Floor;
+			ship.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, 0) == NpcSurfaceType::Floor
+			&& ship.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, 1) == NpcSurfaceType::Floor
+			&& ship.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, 2) == NpcSurfaceType::Floor;
 
 		if (!isSealedTriangle)
 		{
@@ -919,7 +913,7 @@ private:
 	//
 
 	float mGravityGate;
-	NpcRenderMode mNpcRenderMode;
+	NpcRenderModeType mNpcRenderMode;
 
 	// Cached from game parameters
 	float mCurrentHumanNpcBodyLengthAdjustment;

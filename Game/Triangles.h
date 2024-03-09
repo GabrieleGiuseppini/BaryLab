@@ -57,7 +57,7 @@ private:
         {}
     };
 
-    using SubSpringSurfaceTypes = std::array<SurfaceType, 3>;
+    using SubSpringNpcSurfaceTypes = std::array<NpcSurfaceType, 3>;
 
     /*
      * The opposite triangles of an edge, by edge ordinal.
@@ -89,7 +89,7 @@ public:
         , mEndpointsBuffer(mBufferElementCount, mElementCount, Endpoints(NoneElementIndex, NoneElementIndex, NoneElementIndex))
         , mSubSpringsBuffer(mBufferElementCount, mElementCount, SubSprings(NoneElementIndex, NoneElementIndex, NoneElementIndex))
         , mOppositeTrianglesBuffer(mBufferElementCount, mElementCount, { OppositeTriangleInfo(NoneElementIndex, -1), OppositeTriangleInfo(NoneElementIndex, -1), OppositeTriangleInfo(NoneElementIndex, -1) })
-        , mSubSpringSurfaceTypesBuffer(mBufferElementCount, mElementCount, {SurfaceType::Open, SurfaceType::Open, SurfaceType::Open})
+        , mSubSpringNpcSurfaceTypesBuffer(mBufferElementCount, mElementCount, { NpcSurfaceType::Open, NpcSurfaceType::Open, NpcSurfaceType::Open})
     {
     }
 
@@ -108,9 +108,9 @@ public:
         int subSpringBOppositeTriangleEdgeOrdinal,
         ElementIndex subSpringCOppositeTriangle,
         int subSpringCOppositeTriangleEdgeOrdinal,
-        SurfaceType subSpringASurfaceType,
-        SurfaceType subSpringBSurfaceType,
-        SurfaceType subSpringCSurfaceType);
+        NpcSurfaceType subSpringASurfaceType,
+        NpcSurfaceType subSpringBSurfaceType,
+        NpcSurfaceType subSpringCSurfaceType);
 
 public:
 
@@ -257,12 +257,12 @@ public:
 
     // Surface types
 
-    SurfaceType GetSubSpringSurfaceType(
+    NpcSurfaceType GetSubSpringNpcSurfaceType(
         ElementIndex triangleElementIndex,
         int springOrdinal) const
     {
         assert(springOrdinal >= 0 && springOrdinal < 3);
-        return mSubSpringSurfaceTypesBuffer[triangleElementIndex][springOrdinal];
+        return mSubSpringNpcSurfaceTypesBuffer[triangleElementIndex][springOrdinal];
     }
 
 private:
@@ -287,8 +287,8 @@ private:
     // Opposite triangles
     Buffer<OppositeTrianglesInfo> mOppositeTrianglesBuffer;
 
-    // Surface types
-    Buffer<SubSpringSurfaceTypes> mSubSpringSurfaceTypesBuffer;
+    // NPC Surface types
+    Buffer<SubSpringNpcSurfaceTypes> mSubSpringNpcSurfaceTypesBuffer;
 };
 
 }

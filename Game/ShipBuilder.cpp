@@ -408,9 +408,9 @@ Physics::Springs ShipBuilder::CreateSprings(
     for (ElementIndex e = 0; e < springInfos.size(); ++e)
     {
         // Determine surface type
-        SurfaceType const surface =
-            (pointInfos[springInfos[e].PointAIndex].Material.Surface == SurfaceType::Floor && pointInfos[springInfos[e].PointBIndex].Material.Surface == SurfaceType::Floor)
-            ? SurfaceType::Floor : SurfaceType::Open;
+        NpcSurfaceType const npcSurface =
+            (pointInfos[springInfos[e].PointAIndex].Material.NpcSurface == NpcSurfaceType::Floor && pointInfos[springInfos[e].PointBIndex].Material.NpcSurface == NpcSurfaceType::Floor)
+            ? NpcSurfaceType::Floor : NpcSurfaceType::Open;
 
         // Create spring
         springs.Add(
@@ -418,7 +418,7 @@ Physics::Springs ShipBuilder::CreateSprings(
             springInfos[e].PointBIndex,
             springInfos[e].PointAAngle,
             springInfos[e].PointBAngle,
-            surface,
+            npcSurface,
             springInfos[e].Triangles);
 
         // Add spring to its endpoints
@@ -509,9 +509,9 @@ Physics::Triangles ShipBuilder::CreateTriangles(
             subSpringsOppositeTriangle[1].second,
             subSpringsOppositeTriangle[2].first,
             subSpringsOppositeTriangle[2].second,
-            springs.GetSurfaceType(triangleInfos[t].Springs[0]),
-            springs.GetSurfaceType(triangleInfos[t].Springs[1]),
-            springs.GetSurfaceType(triangleInfos[t].Springs[2]));
+            springs.GetNpcSurfaceType(triangleInfos[t].Springs[0]),
+            springs.GetNpcSurfaceType(triangleInfos[t].Springs[1]),
+            springs.GetNpcSurfaceType(triangleInfos[t].Springs[2]));
 
         // Add triangle to its endpoints
         points.AddConnectedTriangle(triangleInfos[t].PointIndices[0], t, true); // Owner

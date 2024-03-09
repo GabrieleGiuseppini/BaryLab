@@ -99,7 +99,7 @@ void Npcs::UpdateNpcs(
     {
         auto & npcState = mStateBuffer[n];
 
-        if (npcState.Type == NpcType::Human)
+        if (npcState.Kind == NpcKindType::Human)
         {
             assert(npcState.DipoleState.has_value());
 
@@ -904,7 +904,7 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
         float constexpr BuoyancyInterfaceWidth = 0.4f;
 
         vec2f testParticlePosition = mParticles.GetPosition(npcParticle.ParticleIndex);
-        if (npc.Type == NpcType::Human && !isPrimaryParticle)
+        if (npc.Kind == NpcKindType::Human && !isPrimaryParticle)
         {
             // Head - use an offset
             assert(npc.DipoleState.has_value());
@@ -1860,7 +1860,7 @@ void Npcs::UpdateNpcAnimation(
     Ship const & ship,
     GameParameters const & gameParameters)
 {
-    if (npc.Type == NpcType::Human && isPrimaryParticle) // Tke the primary as the only representative of a human
+    if (npc.Kind == NpcKindType::Human && isPrimaryParticle) // Tke the primary as the only representative of a human
     {
         assert(npc.DipoleState.has_value());
         assert(npc.HumanNpcState.has_value());
@@ -2342,7 +2342,7 @@ Npcs::StateType Npcs::MaterializeNpcState(
 
     std::optional<StateType::HumanNpcStateType> humanNpcState;
 
-    if (state.Type == NpcType::Human)
+    if (state.Kind == NpcKindType::Human)
     {
         assert(dipoleState.has_value());
 
@@ -2360,7 +2360,7 @@ Npcs::StateType Npcs::MaterializeNpcState(
         : (dipoleState.has_value() && dipoleState->SecondaryParticleState.ConstrainedState.has_value()) ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
 
     return StateType(
-        state.Type,
+        state.Kind,
         regime,
         std::move(primaryParticleState),
         std::move(dipoleState),

@@ -16,13 +16,13 @@ StructuralMaterial StructuralMaterial::Create(
 
     try
     {
-        std::string const surfaceStr = Utils::GetMandatoryJsonMember<std::string>(structuralMaterialJson, "surface");
-        SurfaceType const surface = StrToSurfaceType(surfaceStr);
+        std::string const npcSurfaceStr = Utils::GetMandatoryJsonMember<std::string>(structuralMaterialJson, "npc_surface");
+        NpcSurfaceType const npcSurface = StrToNpcSurfaceType(npcSurfaceStr);
 
         return StructuralMaterial(
             name,
             renderColor,
-            surface);
+            npcSurface);
     }
     catch (GameException const & ex)
     {
@@ -45,9 +45,6 @@ NpcMaterial NpcMaterial::Create(picojson::object const & npcMaterialJson)
         float const elasticity = Utils::GetOptionalJsonMember<float>(npcMaterialJson, "elasticity", 0.0f);
         float const buoyancyVolumeFill = Utils::GetOptionalJsonMember<float>(npcMaterialJson, "buoyancy_volume_fill", 1.0f);
 
-        std::string const surfaceStr = Utils::GetMandatoryJsonMember<std::string>(npcMaterialJson, "surface");
-        SurfaceType const surface = StrToSurfaceType(surfaceStr);
-
         return NpcMaterial(
             name,
             kind,
@@ -56,8 +53,7 @@ NpcMaterial NpcMaterial::Create(picojson::object const & npcMaterialJson)
             staticFriction,
             kineticFriction,
             elasticity,
-            buoyancyVolumeFill,
-            surface);
+            buoyancyVolumeFill);
     }
     catch (GameException const & ex)
     {

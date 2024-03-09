@@ -24,9 +24,9 @@ void Triangles::Add(
     int subSpringBOppositeTriangleEdgeOrdinal,
     ElementIndex subSpringCOppositeTriangle,
     int subSpringCOppositeTriangleEdgeOrdinal,
-    SurfaceType subSpringASurfaceType,
-    SurfaceType subSpringBSurfaceType,
-    SurfaceType subSpringCSurfaceType)
+    NpcSurfaceType subSpringANpcSurfaceType,
+    NpcSurfaceType subSpringBNpcSurfaceType,
+    NpcSurfaceType subSpringCNpcSurfaceType)
 {
     mEndpointsBuffer.emplace_back(pointAIndex, pointBIndex, pointCIndex);
     mSubSpringsBuffer.emplace_back(subSpringAIndex, subSpringBIndex, subSpringCIndex);
@@ -34,7 +34,7 @@ void Triangles::Add(
         OppositeTriangleInfo(subSpringAOppositeTriangle, subSpringAOppositeTriangleEdgeOrdinal),
         OppositeTriangleInfo(subSpringBOppositeTriangle, subSpringBOppositeTriangleEdgeOrdinal),
         OppositeTriangleInfo(subSpringCOppositeTriangle, subSpringCOppositeTriangleEdgeOrdinal) });
-    mSubSpringSurfaceTypesBuffer.emplace_back(SubSpringSurfaceTypes({ subSpringASurfaceType, subSpringBSurfaceType, subSpringCSurfaceType }));
+    mSubSpringNpcSurfaceTypesBuffer.emplace_back(SubSpringNpcSurfaceTypes({ subSpringANpcSurfaceType, subSpringBNpcSurfaceType, subSpringCNpcSurfaceType }));
 }
 
 bool Triangles::ContainsPoint(

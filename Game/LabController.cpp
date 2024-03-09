@@ -183,9 +183,9 @@ void LabController::Render()
                 color = rgbaColor(227, 107, 107, 77);
             }
             else if (
-                springs.GetSurfaceType(triangles.GetSubSpringAIndex(t)) == SurfaceType::Floor
-                && springs.GetSurfaceType(triangles.GetSubSpringBIndex(t)) == SurfaceType::Floor
-                && springs.GetSurfaceType(triangles.GetSubSpringCIndex(t)) == SurfaceType::Floor)
+                springs.GetNpcSurfaceType(triangles.GetSubSpringAIndex(t)) == NpcSurfaceType::Floor
+                && springs.GetNpcSurfaceType(triangles.GetSubSpringBIndex(t)) == NpcSurfaceType::Floor
+                && springs.GetNpcSurfaceType(triangles.GetSubSpringCIndex(t)) == NpcSurfaceType::Floor)
             {
                 color = rgbaColor(35, 35, 35, 77);
             }
@@ -886,8 +886,8 @@ void LabController::LoadShip(
 
         npcs->Add(
             // TODOTEST
-            //Physics::Npcs::NpcType::Furniture,
-            Physics::Npcs::NpcType::Human,
+            //NpcKindType::Furniture,
+            NpcKindType::Human,
             position,
             std::nullopt, // Secondary position
             mCurrentSimulationTime,

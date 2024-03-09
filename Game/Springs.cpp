@@ -12,17 +12,17 @@ void Springs::Add(
     ElementIndex pointBIndex,
     Octant pointAOctant,
     Octant pointBOctant,
-    SurfaceType surface,
+    NpcSurfaceType npcSurface,
     TrianglesVector const & triangles)
 {
     mEndpointsBuffer.emplace_back(pointAIndex, pointBIndex);
     mEndpointOctantsBuffer.emplace_back(pointAOctant, pointBOctant);
     mTrianglesBuffer.emplace_back(triangles);
 
-    mSurfaceTypeBuffer.emplace_back(surface);
+    mNpcSurfaceTypeBuffer.emplace_back(npcSurface);
 
     mRenderColorBuffer.emplace_back(
-        surface == SurfaceType::Floor
+        npcSurface == NpcSurfaceType::Floor
         ? rgbaColor(0x0a, 0x0a, 0x0a, 0xff)
         : rgbaColor(0xba, 0xba, 0xba, 0xff));
 }
