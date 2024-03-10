@@ -150,6 +150,11 @@ MainFrame::MainFrame(wxApp * mainApp)
         mControlToolbar->Connect(ControlToolbar::ID_ROTATE_MESH_BY_POSITION, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnRotateMeshByPosition, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_ROTATE_MESH_BY_PARTICLE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnRotateMeshByParticle, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_SET_PARTICLE_GRAVITY, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSetParticleGravity, 0, this);
+
+        mControlToolbar->Connect(ControlToolbar::ID_ADD_HUMAN_NPC, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnAddHumanNpc, 0, this);
+        mControlToolbar->Connect(ControlToolbar::ID_MOVE_NPC, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnMoveNpc, 0, this);
+        mControlToolbar->Connect(ControlToolbar::ID_REMOVE_NPC, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnRemoveNpc, 0, this);
+
         mControlToolbar->Connect(ControlToolbar::ID_SIMULATION_CONTROL_PLAY, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSimulationControlPlay, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_SIMULATION_CONTROL_PAUSE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSimulationControlPause, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_SIMULATION_CONTROL_STEP, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSimulationControlStep, 0, this);
@@ -710,6 +715,24 @@ void MainFrame::OnSetParticleGravity(wxCommandEvent & event)
 {
     assert(!!mLabController);
     mLabController->SetGravityEnabled(event.GetInt() != 0);
+}
+
+void MainFrame::OnAddHumanNpc(wxCommandEvent & /*event*/)
+{
+    assert(!!mToolController);
+    mToolController->SetHumanNpcPlaceTool(HumanNpcKindType::Passenger); // Futurework
+}
+
+void MainFrame::OnMoveNpc(wxCommandEvent & /*event*/)
+{
+    assert(!!mToolController);
+    mToolController->SetTool(ToolType::MoveNpc);
+}
+
+void MainFrame::OnRemoveNpc(wxCommandEvent & /*event*/)
+{
+    assert(!!mToolController);
+    mToolController->SetTool(ToolType::RemoveNpc);
 }
 
 void MainFrame::OnSimulationControlPlay(wxCommandEvent & /*event*/)

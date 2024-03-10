@@ -5,6 +5,8 @@
 ***************************************************************************************/
 #pragma once
 
+#include "WxHelpers.h"
+
 #include <Game/LabController.h>
 
 #include <wx/image.h>
@@ -24,7 +26,11 @@ enum class ToolType
     RotateMeshByParticle = 3,
     SetParticleTrajectory = 4,
     SetOriginTriangle = 5,
-    SelectParticle = 6
+    SelectParticle = 6,
+
+    AddHumanNpc = 7,
+    MoveNpc = 8,
+    RemoveNpc = 9
 };
 
 struct InputState
@@ -666,3 +672,173 @@ private:
     wxCursor const mCursor;
 };
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class AddNpcToolBase : public Tool
+{
+    //
+    // State machine:
+    //  - Clean:
+    //      - ButtonDown: BeginPlaceNewHumanNpc; -> Error or -> Engaged
+    //  - Error:
+    //      - ButtonUp: -> Clean
+    //  - Engaged:
+    //      - MouseMove: Move;
+    //      - ButtonUp: Confirm; -> Clean
+    //      - Reset: Abort;
+    //
+
+public:
+
+    AddNpcToolBase(
+        ToolType toolType,
+        wxWindow * cursorWindow,
+        std::shared_ptr<LabController> labController)
+        : Tool(
+            toolType,
+            cursorWindow,
+            std::move(labController))
+        , mCurrentEngagementState(std::nullopt)
+        , mClosedCursor(WxHelpers::MakeCursor("move_npc_cursor_down", 11, 29))
+        , mOpenCursor(WxHelpers::MakeCursor("move_npc_cursor_up", 11, 29))
+        , mErrorCursor(WxHelpers::MakeCursor("move_npc_cursor_error", 11, 29))
+    {}
+
+public:
+
+    virtual void Initialize(InputState const & /*inputState*/) override
+    {
+        mCurrentEngagementState.reset();
+
+        // Set cursor
+        SetCurrentCursor();
+    }
+
+    virtual void Deinitialize(InputState const & /*inputState*/) override
+    {
+        if (mCurrentEngagementState.has_value()
+            && mCurrentEngagementState->Npc.has_value())
+        {
+            // Abort
+            mLabController->AbortNewNpc(mCurrentEngagementState->Npc->ObjectId);
+        }
+    }
+
+    virtual void SetCurrentCursor() override
+    {
+        if (mCurrentEngagementState.has_value())
+        {
+            if (mCurrentEngagementState->Npc.has_value())
+            {
+                mCursorWindow->SetCursor(mClosedCursor);
+            }
+            else
+            {
+                mCursorWindow->SetCursor(mErrorCursor);
+            }
+        }
+        else
+        {
+            mCursorWindow->SetCursor(mOpenCursor);
+        }
+    }
+
+    virtual void Update(InputState const & inputState) override
+    {
+        if (!mCurrentEngagementState.has_value())
+        {
+            // Clean
+
+            if (inputState.IsLeftMouseDown)
+            {
+                // -> Error or -> Engaged
+                mCurrentEngagementState.emplace(InternalBeginPlaceNewNpc(inputState.MousePosition));
+                SetCurrentCursor();
+            }
+        }
+        else if (!mCurrentEngagementState->Npc.has_value())
+        {
+            // Error
+
+            if (!inputState.IsLeftMouseDown)
+            {
+                // -> Clean
+                mCurrentEngagementState.reset();
+                SetCurrentCursor();
+            }
+        }
+        else
+        {
+            // Engaged
+
+            if (!inputState.IsLeftMouseDown)
+            {
+                // Confirm;
+                mLabController->CompleteNewNpc(mCurrentEngagementState->Npc->ObjectId);
+
+                // -> Clean
+                mCurrentEngagementState.reset();
+                SetCurrentCursor();
+            }
+            else
+            {
+                // Move;
+                mLabController->MoveNpcTo(
+                    mCurrentEngagementState->Npc->ObjectId,
+                    inputState.MousePosition,
+                    mCurrentEngagementState->Npc->WorldOffset);
+            }
+        }
+    }
+
+protected:
+
+    virtual std::optional<PickedObjectId<NpcId>> InternalBeginPlaceNewNpc(vec2f const & screenCoordinates) = 0;
+
+private:
+
+    // Our state
+
+    struct EngagementState
+    {
+        std::optional<PickedObjectId<NpcId>> Npc; // When not set, we're in error mode
+
+        explicit EngagementState(std::optional<PickedObjectId<NpcId>> npc)
+            : Npc(npc)
+        {}
+    };
+
+    std::optional<EngagementState> mCurrentEngagementState; // When set, indicates it's engaged
+
+    // The cursors
+    wxCursor const mClosedCursor;
+    wxCursor const mOpenCursor;
+    wxCursor const mErrorCursor;
+};
+
+class AddHumanNpcTool final : public AddNpcToolBase
+{
+public:
+
+    AddHumanNpcTool(
+        wxWindow * cursorWindow,
+        std::shared_ptr<LabController> labController);
+
+    void SetHumanNpcKind(HumanNpcKindType humanNpcKind)
+    {
+        mHumanNpcKind = humanNpcKind;
+    }
+
+protected:
+
+    std::optional<PickedObjectId<NpcId>> InternalBeginPlaceNewNpc(vec2f const & screenCoordinates) override
+    {
+        return mLabController->BeginPlaceNewHumanNpc(
+            mHumanNpcKind,
+            screenCoordinates);
+    }
+
+private:
+
+    HumanNpcKindType mHumanNpcKind;
+};

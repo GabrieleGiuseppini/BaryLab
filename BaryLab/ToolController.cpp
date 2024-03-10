@@ -46,16 +46,21 @@ ToolController::ToolController(
 
     mAllTools.emplace_back(
         std::make_unique<SetParticleTrajectoryTool>(
-        mCursorWindow,
-        mLabController));
+            mCursorWindow,
+            mLabController));
 
     mAllTools.emplace_back(
         std::make_unique<SetOriginTriangleTool>(
-        mCursorWindow,
-        mLabController));
+            mCursorWindow,
+            mLabController));
 
     mAllTools.emplace_back(
         std::make_unique<SelectParticleTool>(
+            mCursorWindow,
+            mLabController));
+
+    mAllTools.emplace_back(
+        std::make_unique<AddHumanNpcTool>(
             mCursorWindow,
             mLabController));
 

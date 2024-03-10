@@ -47,27 +47,15 @@ static NpcId constexpr NoneNpcId = std::numeric_limits<NpcId>::max();
 template<typename TObjectId>
 struct PickedObjectId
 {
+    TObjectId ObjectId;
+    vec2f WorldOffset;
+
     PickedObjectId(
         TObjectId objectId,
         vec2f const & worldOffset)
-        : mObjectId(objectId)
-        , mWorldOffset(worldOffset)
+        : ObjectId(objectId)
+        , WorldOffset(worldOffset)
     {}
-
-    inline TObjectId GetObjectId() const noexcept
-    {
-        return mObjectId;
-    };
-
-    inline vec2f const & GetWorldOffset() const noexcept
-    {
-        return mWorldOffset;
-    }
-
-private:
-
-    TObjectId mObjectId;
-    vec2f mWorldOffset;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -179,6 +167,16 @@ enum class NpcSurfaceType
 };
 
 NpcSurfaceType StrToNpcSurfaceType(std::string const & str);
+
+/*
+ * Types of hightlight for NPCs.
+ */
+
+enum class NpcHighlightType
+{
+    Error = 0,
+    None
+};
 
 enum class NpcRenderModeType
 {

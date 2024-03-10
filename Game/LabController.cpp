@@ -532,11 +532,6 @@ void LabController::SetShipVelocity(vec2f const & velocity)
     mCurrentShipTranslationAccelerationIndicator = 1.0f;
 }
 
-void LabController::SetNpcPanicLevelForAllHumans(float panicLevel)
-{
-    mModel->GetNpcs().SetPanicLevelForAllHumans(panicLevel);
-}
-
 void LabController::DoStepForVideo()
 {
     assert(mModel);
@@ -833,6 +828,70 @@ void LabController::DoStepForVideo()
     //////
 
     ////mCurrentVideoStep = 0;
+}
+
+////////////////////////////////////////////////
+
+std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewHumanNpc(HumanNpcKindType humanKind, vec2f const & screenCoordinates)
+{
+    vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
+
+    // TODOHERE
+    (void)humanKind;
+    return std::nullopt;
+}
+
+std::optional<PickedObjectId<NpcId>> LabController::ProbeNpc(vec2f const & screenCoordinates) const
+{
+    vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
+
+    // TODOHERE
+    return std::nullopt;
+}
+
+void LabController::MoveNpcTo(NpcId id, vec2f const & screenCoordinates, vec2f const & worldOffset)
+{
+    vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
+
+    // TODOHERE
+    (void)id;
+    (void)worldOffset;
+}
+
+void LabController::EndMoveNpc(NpcId id)
+{
+    // TODOHERE
+    (void)id;
+}
+
+void LabController::CompleteNewNpc(NpcId id)
+{
+    // TODOHERE
+    (void)id;
+}
+
+void LabController::AbortNewNpc(NpcId id)
+{
+    // TODOHERE
+    (void)id;
+}
+
+void LabController::RemoveNpc(NpcId id)
+{
+    // TODOHERE
+    (void)id;
+}
+
+void LabController::HighlightNpc(NpcId id, NpcHighlightType highlight)
+{
+    // TODOHERE
+    (void)id;
+    (void)highlight;
+}
+
+void LabController::SetNpcPanicLevelForAllHumans(float panicLevel)
+{
+    mModel->GetNpcs().SetPanicLevelForAllHumans(panicLevel);
 }
 
 ////////////////////////////////////////////////

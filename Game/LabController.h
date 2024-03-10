@@ -90,9 +90,22 @@ public:
 
     void SetShipVelocity(vec2f const & velocity);
 
-    void SetNpcPanicLevelForAllHumans(float panicLevel);
-
     void DoStepForVideo();
+
+    //
+    // NPC
+    //
+
+    std::optional<PickedObjectId<NpcId>> BeginPlaceNewHumanNpc(HumanNpcKindType humanKind, vec2f const & screenCoordinates);
+    std::optional<PickedObjectId<NpcId>> ProbeNpc(vec2f const & screenCoordinates) const;
+    void MoveNpcTo(NpcId id, vec2f const & screenCoordinates, vec2f const & worldOffset);
+    void EndMoveNpc(NpcId id);
+    void CompleteNewNpc(NpcId id);
+    void AbortNewNpc(NpcId id);
+    void RemoveNpc(NpcId id);
+    void HighlightNpc(NpcId id, NpcHighlightType highlight);
+
+    void SetNpcPanicLevelForAllHumans(float panicLevel);
 
     //
     // Render controls

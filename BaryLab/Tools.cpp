@@ -5,8 +5,6 @@
 ***************************************************************************************/
 #include "Tools.h"
 
-#include "WxHelpers.h"
-
 MoveParticleTool::MoveParticleTool(
     wxWindow * cursorWindow,
     std::shared_ptr<LabController> labController)
@@ -92,5 +90,15 @@ SelectParticleTool::SelectParticleTool(
         std::move(labController))
     , mIsLeftMouseDown(false)
     , mCursor(WxHelpers::MakeCursor("generic_cursor", 7, 8))
+{
+}
+
+AddHumanNpcTool::AddHumanNpcTool(
+    wxWindow * cursorWindow,
+    std::shared_ptr<LabController> labController)
+    : AddNpcToolBase(
+        ToolType::AddHumanNpc,
+        cursorWindow,
+        std::move(labController))
 {
 }

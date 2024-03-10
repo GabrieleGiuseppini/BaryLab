@@ -37,6 +37,13 @@ public:
         mCurrentTool->Initialize(mInputState);
     }
 
+    void SetHumanNpcPlaceTool(HumanNpcKindType humanNpcKind)
+    {
+        AddHumanNpcTool * tool = dynamic_cast<AddHumanNpcTool *>(mAllTools[static_cast<size_t>(ToolType::AddHumanNpc)].get());
+        tool->SetHumanNpcKind(humanNpcKind);
+        SetTool(ToolType::AddHumanNpc);
+    }
+
     void UnsetTool()
     {
         // Notify old tool

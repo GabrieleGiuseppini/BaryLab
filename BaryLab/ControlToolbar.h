@@ -30,6 +30,10 @@ public:
     static long const ID_ROTATE_MESH_BY_POSITION;
     static long const ID_ROTATE_MESH_BY_PARTICLE;
 
+    static long const ID_ADD_HUMAN_NPC;
+    static long const ID_MOVE_NPC;
+    static long const ID_REMOVE_NPC;
+
     static long const ID_SET_PARTICLE_GRAVITY;
 
     static long const ID_SIMULATION_CONTROL_PLAY;
@@ -148,6 +152,10 @@ private:
     wxBitmapToggleButton * mMoveVertexButton;
     wxBitmapToggleButton * mRotateMeshByPositionButton;
     wxBitmapToggleButton * mRotateMeshByParticleButton;
+
+    wxBitmapToggleButton * mAddHumanNpcButton;
+    wxBitmapToggleButton * mMoveNpcButton;
+    wxBitmapToggleButton * mRemoveNpcButton;
 
     wxBitmapToggleButton * mSetParticleGravityButton;
 

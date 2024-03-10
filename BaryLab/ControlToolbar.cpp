@@ -29,6 +29,10 @@ long const ControlToolbar::ID_MOVE_VERTEX = wxNewId();
 long const ControlToolbar::ID_ROTATE_MESH_BY_POSITION = wxNewId();
 long const ControlToolbar::ID_ROTATE_MESH_BY_PARTICLE = wxNewId();
 
+long const ControlToolbar::ID_ADD_HUMAN_NPC = wxNewId();
+long const ControlToolbar::ID_MOVE_NPC = wxNewId();
+long const ControlToolbar::ID_REMOVE_NPC = wxNewId();
+
 long const ControlToolbar::ID_SET_PARTICLE_GRAVITY = wxNewId();
 
 long const ControlToolbar::ID_SIMULATION_CONTROL_PLAY = wxNewId();
@@ -60,7 +64,31 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
     wxBoxSizer * vSizer = new wxBoxSizer(wxVERTICAL);
 
     {
-        wxGridSizer * gridSizer = new wxGridSizer(2, 2, 2);
+        wxGridSizer * gridSizer = new wxGridSizer(3, 2, 2);
+
+        // Select particle
+        {
+            mSelectParticleButton = new wxBitmapToggleButton(
+                this,
+                ID_SELECT_PARTICLE,
+                wxBitmap(
+                    (ResourceLocator::GetResourcesFolderPath() / "select_particle_icon.png").string(),
+                    wxBITMAP_TYPE_PNG),
+                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+
+            mSelectParticleButton->Bind(wxEVT_TOGGLEBUTTON,
+                [this](wxCommandEvent & /*event*/)
+                {
+                    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_SELECT_PARTICLE);
+                    ProcessEvent(evt);
+
+                    ReconciliateUIWithTool(ToolType::SelectParticle);
+                });
+
+            mSelectParticleButton->SetToolTip("Select a particle");
+
+            gridSizer->Add(mSelectParticleButton);
+        }
 
         // Move particle
         {
@@ -111,6 +139,8 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
             gridSizer->Add(mSetParticleTrajectoryButton);
         }
 
+        /////////////////
+
         // Set origin triangle
         {
             mSetOriginTriangleButton = new wxBitmapToggleButton(
@@ -133,30 +163,6 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
             mSetOriginTriangleButton->SetToolTip("Set a triangle as origin of the barycentric coordinates");
 
             gridSizer->Add(mSetOriginTriangleButton);
-        }
-
-        // Select particle
-        {
-            mSelectParticleButton = new wxBitmapToggleButton(
-                this,
-                ID_SELECT_PARTICLE,
-                wxBitmap(
-                    (ResourceLocator::GetResourcesFolderPath() / "select_particle_icon.png").string(),
-                    wxBITMAP_TYPE_PNG),
-                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-
-            mSelectParticleButton->Bind(wxEVT_TOGGLEBUTTON,
-                [this](wxCommandEvent & /*event*/)
-                {
-                    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_SELECT_PARTICLE);
-                    ProcessEvent(evt);
-
-                    ReconciliateUIWithTool(ToolType::SelectParticle);
-                });
-
-            mSelectParticleButton->SetToolTip("Select a particle");
-
-            gridSizer->Add(mSelectParticleButton);
         }
 
         // Move vertex
@@ -236,15 +242,6 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
             gridSizer->Add(mRotateMeshByParticleButton);
         }
 
-
-        vSizer->Add(gridSizer, 0, wxALIGN_CENTER | wxALL, 5);
-    }
-
-    vSizer->AddSpacer(10);
-
-    {
-        wxGridSizer * gridSizer = new wxGridSizer(2, 2, 2);
-
         // Set particle gravity
         {
             mSetParticleGravityButton = new wxBitmapToggleButton(
@@ -273,9 +270,90 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
 
     vSizer->AddSpacer(10);
 
+    // Tools
+    {
+        wxGridSizer * gridSizer = new wxGridSizer(3, 2, 2);
+
+        // Add Human NPC
+        {
+            mAddHumanNpcButton = new wxBitmapToggleButton(
+                this,
+                ID_ADD_HUMAN_NPC,
+                wxBitmap(
+                    (ResourceLocator::GetResourcesFolderPath() / "add_human_npc_icon.png").string(),
+                    wxBITMAP_TYPE_PNG),
+                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+
+            mAddHumanNpcButton->Bind(wxEVT_TOGGLEBUTTON,
+                [this](wxCommandEvent & /*event*/)
+                {
+                    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_ADD_HUMAN_NPC);
+                    ProcessEvent(evt);
+
+                    ReconciliateUIWithTool(ToolType::AddHumanNpc);
+                });
+
+            mAddHumanNpcButton->SetToolTip("Add a human NPC");
+
+            gridSizer->Add(mAddHumanNpcButton);
+        }
+
+        // Move NPC
+        {
+            mMoveNpcButton = new wxBitmapToggleButton(
+                this,
+                ID_MOVE_NPC,
+                wxBitmap(
+                    (ResourceLocator::GetResourcesFolderPath() / "move_npc_icon.png").string(),
+                    wxBITMAP_TYPE_PNG),
+                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+
+            mMoveNpcButton->Bind(wxEVT_TOGGLEBUTTON,
+                [this](wxCommandEvent & /*event*/)
+                {
+                    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_MOVE_NPC);
+                    ProcessEvent(evt);
+
+                    ReconciliateUIWithTool(ToolType::MoveNpc);
+                });
+
+            mMoveNpcButton->SetToolTip("Move an NPC");
+
+            gridSizer->Add(mMoveNpcButton);
+        }
+
+        // Remove NPC
+        {
+            mRemoveNpcButton = new wxBitmapToggleButton(
+                this,
+                ID_REMOVE_NPC,
+                wxBitmap(
+                    (ResourceLocator::GetResourcesFolderPath() / "remove_npc_icon.png").string(),
+                    wxBITMAP_TYPE_PNG),
+                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+
+            mRemoveNpcButton->Bind(wxEVT_TOGGLEBUTTON,
+                [this](wxCommandEvent & /*event*/)
+                {
+                    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_REMOVE_NPC);
+                    ProcessEvent(evt);
+
+                    ReconciliateUIWithTool(ToolType::RemoveNpc);
+                });
+
+            mRemoveNpcButton->SetToolTip("Remove an NPC");
+
+            gridSizer->Add(mRemoveNpcButton);
+        }
+
+        vSizer->Add(gridSizer, 0, wxALIGN_CENTER | wxALL, 5);
+    }
+
+    vSizer->AddSpacer(10);
+
     // Simulation control
     {
-        wxGridSizer * gridSizer = new wxGridSizer(2, 2, 2);
+        wxGridSizer * gridSizer = new wxGridSizer(3, 2, 2);
 
         // Play
         {
@@ -339,7 +417,7 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
 
     // Action
     {
-        wxGridSizer * gridSizer = new wxGridSizer(2, 2, 2);
+        wxGridSizer * gridSizer = new wxGridSizer(3, 2, 2);
 
         // Reset
         {
@@ -423,7 +501,7 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
 
     // View Control
     {
-        wxGridSizer * gridSizer = new wxGridSizer(2, 2, 2);
+        wxGridSizer * gridSizer = new wxGridSizer(1, 2, 2);
 
         // Grid
         {
@@ -623,6 +701,10 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mSetOriginTriangleButton->SetValue(false);
             mSelectParticleButton->SetValue(false);
 
+            mAddHumanNpcButton->SetValue(false);
+            mMoveNpcButton->SetValue(false);
+            mRemoveNpcButton->SetValue(false);
+
             break;
         }
 
@@ -635,6 +717,10 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mSetParticleTrajectoryButton->SetValue(false);
             mSetOriginTriangleButton->SetValue(false);
             mSelectParticleButton->SetValue(false);
+
+            mAddHumanNpcButton->SetValue(false);
+            mMoveNpcButton->SetValue(false);
+            mRemoveNpcButton->SetValue(false);
 
             break;
         }
@@ -649,6 +735,10 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mSetOriginTriangleButton->SetValue(false);
             mSelectParticleButton->SetValue(false);
 
+            mAddHumanNpcButton->SetValue(false);
+            mMoveNpcButton->SetValue(false);
+            mRemoveNpcButton->SetValue(false);
+
             break;
         }
 
@@ -661,6 +751,10 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mSetParticleTrajectoryButton->SetValue(false);
             mSetOriginTriangleButton->SetValue(false);
             mSelectParticleButton->SetValue(false);
+
+            mAddHumanNpcButton->SetValue(false);
+            mMoveNpcButton->SetValue(false);
+            mRemoveNpcButton->SetValue(false);
 
             break;
         }
@@ -675,6 +769,10 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mSetOriginTriangleButton->SetValue(false);
             mSelectParticleButton->SetValue(true);
 
+            mAddHumanNpcButton->SetValue(false);
+            mMoveNpcButton->SetValue(false);
+            mRemoveNpcButton->SetValue(false);
+
             break;
         }
 
@@ -687,6 +785,10 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mSetParticleTrajectoryButton->SetValue(true);
             mSetOriginTriangleButton->SetValue(false);
             mSelectParticleButton->SetValue(false);
+
+            mAddHumanNpcButton->SetValue(false);
+            mMoveNpcButton->SetValue(false);
+            mRemoveNpcButton->SetValue(false);
 
             break;
         }
@@ -701,8 +803,64 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mSetOriginTriangleButton->SetValue(true);
             mSelectParticleButton->SetValue(false);
 
+            mAddHumanNpcButton->SetValue(false);
+            mMoveNpcButton->SetValue(false);
+            mRemoveNpcButton->SetValue(false);
+
             break;
         }
+
+        case ToolType::AddHumanNpc:
+        {
+            mMoveParticleButton->SetValue(false);
+            mMoveVertexButton->SetValue(false);
+            mRotateMeshByPositionButton->SetValue(false);
+            mRotateMeshByParticleButton->SetValue(false);
+            mSetParticleTrajectoryButton->SetValue(false);
+            mSetOriginTriangleButton->SetValue(false);
+            mSelectParticleButton->SetValue(false);
+
+            mAddHumanNpcButton->SetValue(true);
+            mMoveNpcButton->SetValue(false);
+            mRemoveNpcButton->SetValue(false);
+
+            break;
+        }
+
+        case ToolType::MoveNpc:
+        {
+            mMoveParticleButton->SetValue(false);
+            mMoveVertexButton->SetValue(false);
+            mRotateMeshByPositionButton->SetValue(false);
+            mRotateMeshByParticleButton->SetValue(false);
+            mSetParticleTrajectoryButton->SetValue(false);
+            mSetOriginTriangleButton->SetValue(false);
+            mSelectParticleButton->SetValue(false);
+
+            mAddHumanNpcButton->SetValue(false);
+            mMoveNpcButton->SetValue(true);
+            mRemoveNpcButton->SetValue(false);
+
+            break;
+        }
+
+        case ToolType::RemoveNpc:
+        {
+            mMoveParticleButton->SetValue(false);
+            mMoveVertexButton->SetValue(false);
+            mRotateMeshByPositionButton->SetValue(false);
+            mRotateMeshByParticleButton->SetValue(false);
+            mSetParticleTrajectoryButton->SetValue(false);
+            mSetOriginTriangleButton->SetValue(false);
+            mSelectParticleButton->SetValue(false);
+
+            mAddHumanNpcButton->SetValue(false);
+            mMoveNpcButton->SetValue(false);
+            mRemoveNpcButton->SetValue(true);
+
+            break;
+        }
+
     }
 }
 
