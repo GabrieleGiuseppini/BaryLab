@@ -201,10 +201,10 @@ void Npcs::UpdateNpcParticle(
         LogNpcDebug("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
 
         // Update total distance traveled
-        if (npc.HumanNpcState.has_value()
+        if (npc.Kind == NpcKindType::Human
             && isPrimaryParticle) // Human is represented by primary particle
         {
-            npc.HumanNpcState->TotalDistanceTraveledOffEdgeSinceStateTransition += physicsDeltaPos.length();
+            npc.KindSpecificState.HumanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition += physicsDeltaPos.length();
         }
 
         // We're done
@@ -520,8 +520,8 @@ void Npcs::UpdateNpcParticle(
                             // The (signed) edge length that we plan to travel exclusively via walking
                             float edgeWalkedPlanned = 0.0f;
 
-                            if (npc.HumanNpcState.has_value()
-                                && npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking
+                            if (npc.Kind == NpcKindType::Human
+                                && npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking
                                 && isPrimaryParticle)
                             {
                                 //
@@ -531,10 +531,10 @@ void Npcs::UpdateNpcParticle(
                                 // - Never adds to physical so much as to cause resultant to be faster than walking speed
                                 //
 
-                                vec2f const idealWalkDir = vec2f(npc.HumanNpcState->CurrentFaceDirectionX, 0.0f);
+                                vec2f const idealWalkDir = vec2f(npc.KindSpecificState.HumanNpcState.CurrentFaceDirectionX, 0.0f);
                                 assert(idealWalkDir.length() == 1.0f);
 
-                                float const idealWalkMagnitude = CalculateActualHumanWalkingAbsoluteSpeed(*npc.HumanNpcState, gameParameters) * remainingDt;
+                                float const idealWalkMagnitude = CalculateActualHumanWalkingAbsoluteSpeed(npc.KindSpecificState.HumanNpcState, gameParameters) * remainingDt;
 
                                 vec2f walkDir; // Actual absolute direction of walk - along the edge
                                 if (idealWalkDir.dot(edgeDir) >= 0.0f)
@@ -565,9 +565,9 @@ void Npcs::UpdateNpcParticle(
                                     edgeWalkedPlanned *= gravityResistance;
                                 }
 
-                                if (npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
+                                if (npc.KindSpecificState.HumanNpcState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
                                 {
-                                    LogNpcDebug("        idealWalkMagnitude=", idealWalkMagnitude, " => edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.HumanNpcState->CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude, ")");
+                                    LogNpcDebug("        idealWalkMagnitude=", idealWalkMagnitude, " => edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.KindSpecificState.HumanNpcState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude, ")");
                                 }
                             }
 
@@ -747,11 +747,11 @@ void Npcs::UpdateNpcParticle(
                             assert(remainingDt == 0.0f || edgeDistanceTraveledTotal < *edgeDistanceToTravelMax);
 
                             // Update total human distance traveled
-                            if (npc.HumanNpcState.has_value()
+                            if (npc.Kind == NpcKindType::Human
                                 && isPrimaryParticle) // Human is represented by primary particle
                             {
                                 // Note: does not include eventual disance traveled after becoming free; fine because we will transition and wipe out total traveled
-                                npc.HumanNpcState->TotalDistanceTraveledOnEdgeSinceStateTransition += std::abs(edgeTraveledActual);
+                                npc.KindSpecificState.HumanNpcState.TotalDistanceTraveledOnEdgeSinceStateTransition += std::abs(edgeTraveledActual);
                             }
 
                             // Update total vector walked along edge
@@ -829,11 +829,11 @@ void Npcs::UpdateNpcParticle(
                     gameParameters);
 
                 // Update total traveled
-                if (npc.HumanNpcState.has_value()
+                if (npc.Kind == NpcKindType::Human
                     && isPrimaryParticle) // Human is represented by primary particle
                 {
                     // Note: does not include eventual disance traveled after becoming free; fine because we will transition and wipe out total traveled
-                    npc.HumanNpcState->TotalDistanceTraveledOffEdgeSinceStateTransition += std::abs(totalTraveled);
+                    npc.KindSpecificState.HumanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition += std::abs(totalTraveled);
                 }
 
                 if (npcParticle.ConstrainedState.has_value())
@@ -1007,10 +1007,10 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
     // Human Equlibrium Torque
     //
 
-    if (npc.HumanNpcState.has_value()
-        && (npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking
-            || npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium
-            || npc.HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Rising)
+    if (npc.Kind == NpcKindType::Human
+        && (npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking
+            || npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium
+            || npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Rising)
         && !isPrimaryParticle)
     {
         assert(npc.DipoleState.has_value());
@@ -1058,7 +1058,7 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
         //
 
         // Calculate angle that we want to enforce with this torque
-        float const stiffness = gameParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient + std::min(npc.HumanNpcState->PanicLevel, 1.0f) * 0.0005f;
+        float const stiffness = gameParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient + std::min(npc.KindSpecificState.HumanNpcState.PanicLevel, 1.0f) * 0.0005f;
         float const totalTorqueAngleCW =
             staticDisplacementAngleCW * stiffness
             + relativeVelocityAngleCW * gameParameters.HumanNpcEquilibriumTorqueDampingCoefficient;
@@ -1843,7 +1843,7 @@ void Npcs::OnImpact(
     LogNpcDebug("    OnImpact(", impactVector.length(), ", ", bounceEdgeNormal, ")");
 
     // Human state machine
-    if (npc.HumanNpcState.has_value())
+    if (npc.Kind == NpcKindType::Human)
     {
         OnHumanImpact(
             impactVector,
@@ -1863,36 +1863,37 @@ void Npcs::UpdateNpcAnimation(
     if (npc.Kind == NpcKindType::Human && isPrimaryParticle) // Tke the primary as the only representative of a human
     {
         assert(npc.DipoleState.has_value());
-        assert(npc.HumanNpcState.has_value());
+        auto & humanNpcState = npc.KindSpecificState.HumanNpcState;
+        using HumanNpcStateType = StateType::KindSpecificStateType::HumanNpcStateType;
 
         ElementIndex const primaryParticleIndex = npc.PrimaryParticleState.ParticleIndex;
         auto const & primaryContrainedState = npc.PrimaryParticleState.ConstrainedState;
         ElementIndex const secondaryParticleIndex = npc.DipoleState->SecondaryParticleState.ParticleIndex;
         auto const & secondaryConstrainedState = npc.DipoleState->SecondaryParticleState.ConstrainedState;
 
-        float targetRightArmAngle = npc.HumanNpcState->RightArmAngle;
+        float targetRightArmAngle = humanNpcState.RightArmAngle;
         float targetRightArmLengthMultiplier = 1.0f;
-        float targetLeftArmAngle = npc.HumanNpcState->LeftArmAngle;
+        float targetLeftArmAngle = humanNpcState.LeftArmAngle;
         float targetLeftArmLengthMultiplier = 1.0f;
 
-        float targetRightLegAngle = npc.HumanNpcState->RightLegAngle;
+        float targetRightLegAngle = humanNpcState.RightLegAngle;
         float targetRightLegLengthMultiplier = 1.0f;
-        float targetLeftLegAngle = npc.HumanNpcState->LeftLegAngle;
+        float targetLeftLegAngle = humanNpcState.LeftLegAngle;
         float targetLeftLegLengthMultiplier = 1.0f;
 
         float convergenceRate = 0.0f;
 
-        switch (npc.HumanNpcState->CurrentBehavior)
+        switch (humanNpcState.CurrentBehavior)
         {
-            case StateType::HumanNpcStateType::BehaviorType::Constrained_Rising:
+            case HumanNpcStateType::BehaviorType::Constrained_Rising:
             {
                 // Arms slightly open
-                targetRightArmAngle = StateType::HumanNpcStateType::InitialArmAngle;
-                targetLeftArmAngle = -StateType::HumanNpcStateType::InitialArmAngle;
+                targetRightArmAngle = HumanNpcStateType::InitialArmAngle;
+                targetLeftArmAngle = -HumanNpcStateType::InitialArmAngle;
 
                 // Legs slightly open
-                targetRightLegAngle = StateType::HumanNpcStateType::InitialLegAngle * 2.0f;
-                targetLeftLegAngle = -StateType::HumanNpcStateType::InitialLegAngle * 2.0f;
+                targetRightLegAngle = HumanNpcStateType::InitialLegAngle * 2.0f;
+                targetLeftLegAngle = -HumanNpcStateType::InitialLegAngle * 2.0f;
 
                 // Leg and arm that are against floor "help"
                 if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualEdgeOrdinal >= 0)
@@ -1927,7 +1928,7 @@ void Npcs::UpdateNpcAnimation(
                         }
                         else
                         {
-                            targetLeftArmAngle = -Pi<float> / 2.0f - (MaxAngle - humanEdgeAngle) / (MaxAngle - Pi<float> / 2.0f) * (StateType::HumanNpcStateType::InitialArmAngle - Pi<float> / 2.0f);
+                            targetLeftArmAngle = -Pi<float> / 2.0f - (MaxAngle - humanEdgeAngle) / (MaxAngle - Pi<float> / 2.0f) * (HumanNpcStateType::InitialArmAngle - Pi<float> / 2.0f);
                         }
 
                         // Right arm helps
@@ -1952,7 +1953,7 @@ void Npcs::UpdateNpcAnimation(
                         }
                         else
                         {
-                            targetRightArmAngle = StateType::HumanNpcStateType::InitialArmAngle + (humanEdgeAngle - Pi<float> / 2.0f) / (Pi<float> -MaxAngle - Pi<float> / 2.0f) * (Pi<float> / 2.0f - StateType::HumanNpcStateType::InitialArmAngle);
+                            targetRightArmAngle = HumanNpcStateType::InitialArmAngle + (humanEdgeAngle - Pi<float> / 2.0f) / (Pi<float> -MaxAngle - Pi<float> / 2.0f) * (Pi<float> / 2.0f - HumanNpcStateType::InitialArmAngle);
                         }
 
                         // Left arm helps
@@ -1968,11 +1969,11 @@ void Npcs::UpdateNpcAnimation(
                 break;
             }
 
-            case StateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
+            case HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
             {
                 // Just small arms angle
 
-                float constexpr ArmsAngle = StateType::HumanNpcStateType::InitialArmAngle;
+                float constexpr ArmsAngle = HumanNpcStateType::InitialArmAngle;
 
                 targetRightArmAngle = ArmsAngle;
                 targetLeftArmAngle = -ArmsAngle;
@@ -1985,20 +1986,20 @@ void Npcs::UpdateNpcAnimation(
                 break;
             }
 
-            case StateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
+            case HumanNpcStateType::BehaviorType::Constrained_Walking:
             {
                 //
                 // Calculate leg angle based on distance traveled
                 //
 
-                float const actualHalfStepLengthFraction = (GameParameters::HumanNpcGeometry::StepLengthFraction * std::sqrt(CalculateActualHumanWalkingAbsoluteSpeed(*npc.HumanNpcState, gameParameters)) / 2.0f);
+                float const actualHalfStepLengthFraction = (GameParameters::HumanNpcGeometry::StepLengthFraction * std::sqrt(CalculateActualHumanWalkingAbsoluteSpeed(humanNpcState, gameParameters)) / 2.0f);
                 float const maxLegAngle = std::atan(actualHalfStepLengthFraction / GameParameters::HumanNpcGeometry::LegLengthFraction);
 
                 float const adjustedStandardHumanHeight = GameParameters::HumanNpcGeometry::BodyLength * gameParameters.HumanNpcBodyLengthAdjustment;
                 float const stepLength = GameParameters::HumanNpcGeometry::StepLengthFraction * adjustedStandardHumanHeight;
                 float const distance =
-                    npc.HumanNpcState->TotalDistanceTraveledOnEdgeSinceStateTransition
-                    + 0.3f * npc.HumanNpcState->TotalDistanceTraveledOffEdgeSinceStateTransition;
+                    humanNpcState.TotalDistanceTraveledOnEdgeSinceStateTransition
+                    + 0.3f * humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition;
                 float const distanceInTwoSteps = std::fmod(distance + 3.0f * stepLength / 2.0f, stepLength * 2.0f);
                 LogNpcDebug("distanceInTwoSteps=", distanceInTwoSteps);
 
@@ -2008,21 +2009,21 @@ void Npcs::UpdateNpcAnimation(
                 targetLeftLegAngle = -legAngle;
 
                 // Arms depend on panic
-                if (npc.HumanNpcState->PanicLevel == 0.0f)
+                if (humanNpcState.PanicLevel == 0.0f)
                 {
                     targetRightArmAngle = targetLeftLegAngle * 1.4f;
                 }
                 else
                 {
-                    float const elapsed = currentSimulationTime - npc.HumanNpcState->CurrentStateTransitionSimulationTimestamp;
-                    float const halfPeriod = 1.0f - 0.6f * std::min(npc.HumanNpcState->PanicLevel, 4.0f) / 4.0f;
+                    float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
+                    float const halfPeriod = 1.0f - 0.6f * std::min(humanNpcState.PanicLevel, 4.0f) / 4.0f;
                     float const inPeriod = std::fmod(elapsed, halfPeriod * 2.0f);
 
                     float constexpr MaxAngle = Pi<float> / 2.0f;
                     float const angle = std::abs(halfPeriod - inPeriod) / halfPeriod * 2.0f * MaxAngle - MaxAngle;
 
                     // PanicMultiplier: p=0.0 => 1.0 p=2.0 => 0.4
-                    float const panicMultiplier = 0.4f + 0.6f * (1.0f - std::min(npc.HumanNpcState->PanicLevel, 2.0f) / 2.0f);
+                    float const panicMultiplier = 0.4f + 0.6f * (1.0f - std::min(humanNpcState.PanicLevel, 2.0f) / 2.0f);
                     targetRightArmAngle = Pi<float> -angle * panicMultiplier;
                 }
                 targetLeftArmAngle = -targetRightArmAngle;
@@ -2100,7 +2101,7 @@ void Npcs::UpdateNpcAnimation(
                 break;
             }
 
-            case StateType::HumanNpcStateType::BehaviorType::Constrained_Falling:
+            case HumanNpcStateType::BehaviorType::Constrained_Falling:
             {
                 // Both arms in direction of face, depending on head velocity in that direction
 
@@ -2117,11 +2118,11 @@ void Npcs::UpdateNpcAnimation(
                 float const avgVelocityAlongBodyPerp = (headVelocity + feetVelocity).dot(actualBodyDir.to_perpendicular());
                 float const targetDepth = LinearStep(0.0f, 3.0f, std::abs(avgVelocityAlongBodyPerp));
 
-                if (npc.HumanNpcState->CurrentFaceDirectionX >= 0.0f)
+                if (humanNpcState.CurrentFaceDirectionX >= 0.0f)
                 {
                     // We want to send arms to the right...
                     // ...but not against face direction
-                    if (npc.HumanNpcState->CurrentFaceDirectionX >= 0.0f)
+                    if (humanNpcState.CurrentFaceDirectionX >= 0.0f)
                     {
                         targetRightArmAngle = Pi<float> / 2.0f * targetDepth + 0.09f;
                         targetLeftArmAngle = targetRightArmAngle - 0.18f;
@@ -2136,7 +2137,7 @@ void Npcs::UpdateNpcAnimation(
                 {
                     // We want to send arms to the left...
                    // ...but not against face direction
-                    if (npc.HumanNpcState->CurrentFaceDirectionX <= 0.0f)
+                    if (humanNpcState.CurrentFaceDirectionX <= 0.0f)
                     {
                         targetLeftArmAngle = -Pi<float> / 2.0f * targetDepth - 0.09f;
                         targetRightArmAngle = targetLeftArmAngle + 0.18f;
@@ -2157,7 +2158,7 @@ void Npcs::UpdateNpcAnimation(
                 break;
             }
 
-            case StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
+            case HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
             {
                 // Check if both head and feet are on a floor
                 bool const isHeadOnEdge = primaryContrainedState.has_value() && IsOnFloorEdge(*primaryContrainedState, ship);
@@ -2166,8 +2167,8 @@ void Npcs::UpdateNpcAnimation(
                 {
                     // Arms: +/- PI or 0, depending on where they are now
 
-                    if (npc.HumanNpcState->RightArmAngle >= -Pi<float> / 2.0f
-                        && npc.HumanNpcState->RightArmAngle <= Pi<float> / 2.0f)
+                    if (humanNpcState.RightArmAngle >= -Pi<float> / 2.0f
+                        && humanNpcState.RightArmAngle <= Pi<float> / 2.0f)
                     {
                         targetRightArmAngle = 0.0f;
                     }
@@ -2176,8 +2177,8 @@ void Npcs::UpdateNpcAnimation(
                         targetRightArmAngle = Pi<float>;
                     }
 
-                    if (npc.HumanNpcState->LeftArmAngle >= -Pi<float> / 2.0f
-                        && npc.HumanNpcState->LeftArmAngle <= Pi<float> / 2.0f)
+                    if (humanNpcState.LeftArmAngle >= -Pi<float> / 2.0f
+                        && humanNpcState.LeftArmAngle <= Pi<float> / 2.0f)
                     {
                         targetLeftArmAngle = 0.0f;
                     }
@@ -2197,9 +2198,9 @@ void Npcs::UpdateNpcAnimation(
                 break;
             }
 
-            case StateType::HumanNpcStateType::BehaviorType::Constrained_Aerial:
-            case StateType::HumanNpcStateType::BehaviorType::Free_Aerial:
-            case StateType::HumanNpcStateType::BehaviorType::Free_InWater:
+            case HumanNpcStateType::BehaviorType::Constrained_Aerial:
+            case HumanNpcStateType::BehaviorType::Free_Aerial:
+            case HumanNpcStateType::BehaviorType::Free_InWater:
             {
                 //
                 // Rag doll
@@ -2216,11 +2217,11 @@ void Npcs::UpdateNpcAnimation(
                 targetRightArmAngle = armAngle;
                 targetLeftArmAngle = -targetRightArmAngle;
 
-                if (npc.HumanNpcState->CurrentBehavior != StateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut)
+                if (humanNpcState.CurrentBehavior != HumanNpcStateType::BehaviorType::Constrained_KnockedOut)
                 {
                     // Legs: when arms far from rest, tight; when arms close, at fixed angle
 
-                    float constexpr LegRestAngle = StateType::HumanNpcStateType::InitialLegAngle;
+                    float constexpr LegRestAngle = HumanNpcStateType::InitialLegAngle;
                     float const legAngle = LegRestAngle * (1.0f - (armAngle - (Pi<float> / 2.0f - MaxAngleAroundPerp)) / (MaxAngleAroundPerp * 2.0f));
 
                     // Legs inclined in direction opposite of relvel, by an amount proportional to relvel itself
@@ -2240,7 +2241,7 @@ void Npcs::UpdateNpcAnimation(
                 break;
             }
 
-            case StateType::HumanNpcStateType::BehaviorType::Free_Swimming:
+            case HumanNpcStateType::BehaviorType::Free_Swimming:
             {
                 //
                 // 1 period:
@@ -2254,12 +2255,12 @@ void Npcs::UpdateNpcAnimation(
                 float constexpr Period1 = 3.00f;
                 float constexpr Period2 = 1.00f;
 
-                float const panicAccelerator = 1.0f + std::min(npc.HumanNpcState->PanicLevel, 2.0f) / 2.0f * 4.0f;
+                float const panicAccelerator = 1.0f + std::min(humanNpcState.PanicLevel, 2.0f) / 2.0f * 4.0f;
 
                 float const arg =
                     Period1 / 2.0f // Start some-halfway-through to avoid sudden extreme angles
-                    + (currentSimulationTime - npc.HumanNpcState->CurrentStateTransitionSimulationTimestamp) * 2.6f * panicAccelerator
-                    + npc.HumanNpcState->TotalDistanceTraveledOffEdgeSinceStateTransition * 0.7f;
+                    + (currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp) * 2.6f * panicAccelerator
+                    + humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition * 0.7f;
 
                 float const inPeriod = fmod(arg, (Period1 + Period2));
                 float const y = (inPeriod < Period1)
@@ -2294,15 +2295,15 @@ void Npcs::UpdateNpcAnimation(
             }
         }
 
-        npc.HumanNpcState->RightArmAngle += (targetRightArmAngle - npc.HumanNpcState->RightArmAngle) * convergenceRate;
-        npc.HumanNpcState->RightArmLengthMultiplier += (targetRightArmLengthMultiplier - npc.HumanNpcState->RightArmLengthMultiplier) * convergenceRate;
-        npc.HumanNpcState->LeftArmAngle += (targetLeftArmAngle - npc.HumanNpcState->LeftArmAngle) * convergenceRate;
-        npc.HumanNpcState->LeftArmLengthMultiplier += (targetLeftArmLengthMultiplier - npc.HumanNpcState->LeftArmLengthMultiplier) * convergenceRate;
+        humanNpcState.RightArmAngle += (targetRightArmAngle - humanNpcState.RightArmAngle) * convergenceRate;
+        humanNpcState.RightArmLengthMultiplier += (targetRightArmLengthMultiplier - humanNpcState.RightArmLengthMultiplier) * convergenceRate;
+        humanNpcState.LeftArmAngle += (targetLeftArmAngle - humanNpcState.LeftArmAngle) * convergenceRate;
+        humanNpcState.LeftArmLengthMultiplier += (targetLeftArmLengthMultiplier - humanNpcState.LeftArmLengthMultiplier) * convergenceRate;
 
-        npc.HumanNpcState->RightLegAngle += (targetRightLegAngle - npc.HumanNpcState->RightLegAngle) * convergenceRate;
-        npc.HumanNpcState->RightLegLengthMultiplier += (targetRightLegLengthMultiplier - npc.HumanNpcState->RightLegLengthMultiplier) * convergenceRate;
-        npc.HumanNpcState->LeftLegAngle += (targetLeftLegAngle - npc.HumanNpcState->LeftLegAngle) * convergenceRate;
-        npc.HumanNpcState->LeftLegLengthMultiplier += (targetLeftLegLengthMultiplier - npc.HumanNpcState->LeftLegLengthMultiplier) * convergenceRate;
+        humanNpcState.RightLegAngle += (targetRightLegAngle - humanNpcState.RightLegAngle) * convergenceRate;
+        humanNpcState.RightLegLengthMultiplier += (targetRightLegLengthMultiplier - humanNpcState.RightLegLengthMultiplier) * convergenceRate;
+        humanNpcState.LeftLegAngle += (targetLeftLegAngle - humanNpcState.LeftLegAngle) * convergenceRate;
+        humanNpcState.LeftLegLengthMultiplier += (targetLeftLegLengthMultiplier - humanNpcState.LeftLegLengthMultiplier) * convergenceRate;
     }
 }
 
@@ -2338,33 +2339,49 @@ Npcs::StateType Npcs::MaterializeNpcState(
             state.DipoleState->DipoleProperties);
     }
 
-    // Human NPC state
-
-    std::optional<StateType::HumanNpcStateType> humanNpcState;
-
-    if (state.Kind == NpcKindType::Human)
-    {
-        assert(dipoleState.has_value());
-
-        humanNpcState = InitializeHuman(
-            primaryParticleState,
-            dipoleState->SecondaryParticleState,
-            currentSimulationTime,
-            ship);
-    }
-
     // Regime
 
     auto const regime = primaryParticleState.ConstrainedState.has_value()
         ? StateType::RegimeType::Constrained
         : (dipoleState.has_value() && dipoleState->SecondaryParticleState.ConstrainedState.has_value()) ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
 
-    return StateType(
-        state.Kind,
-        regime,
-        std::move(primaryParticleState),
-        std::move(dipoleState),
-        std::move(humanNpcState));
+    switch (state.Kind)
+    {
+        case NpcKindType::Furniture:
+        {
+            auto kindSpecificState = StateType::KindSpecificStateType(
+                StateType::KindSpecificStateType::FurnitureNpcStateType());
+
+            return StateType(
+                state.Kind,
+                regime,
+                std::move(primaryParticleState),
+                std::move(dipoleState),
+                std::move(kindSpecificState));
+        }
+
+        case NpcKindType::Human:
+        {
+            assert(dipoleState.has_value());
+
+            auto kindSpecificState = StateType::KindSpecificStateType(
+                InitializeHuman(
+                    primaryParticleState,
+                    dipoleState->SecondaryParticleState,
+                    currentSimulationTime,
+                    ship));
+
+            return StateType(
+                state.Kind,
+                regime,
+                std::move(primaryParticleState),
+                std::move(dipoleState),
+                std::move(kindSpecificState));
+        }
+    }
+
+    assert(false);
+    throw std::runtime_error("Unhandled NPC kind");
 }
 
 std::optional<Npcs::StateType::NpcParticleStateType::ConstrainedStateType> Npcs::CalculateParticleConstrainedState(

@@ -107,7 +107,7 @@ public:
 			{}
 		};
 
-		struct DipoleStateType
+		struct DipoleStateType final
 		{
 			NpcParticleStateType SecondaryParticleState; // e.g. head
 			DipolePropertiesType DipoleProperties;
@@ -120,244 +120,261 @@ public:
 			{}
 		};
 
-		struct HumanNpcStateType final
+		union KindSpecificStateType
 		{
-			enum class BehaviorType
+			struct FurnitureNpcStateType final
 			{
-				Constrained_Falling, // Clueless, does nothing; with feet on edge
-				Constrained_Aerial, // Clueless, does nothing; with feet in air
-				Constrained_KnockedOut, // Clueless, does nothing, not relevant where; waits until can rise
+			} FurnitureNpcState;
 
-				Constrained_Rising, // Tries to stand up (appliying torque)
-				Constrained_Equilibrium, // Stands up; continues to adjust alignment with torque
-				Constrained_Walking, // Walks; continues to adjust alignment with torque
-
-				Free_Aerial, // Does nothing
-				Free_InWater, // Does nothing, but waits to swim
-				Free_Swimming // Swims
-			};
-
-			BehaviorType CurrentBehavior;
-
-			union BehaviorStateType
+			struct HumanNpcStateType final
 			{
-				struct Constrained_FallingStateType
+				enum class BehaviorType
 				{
-					float ProgressToAerial;
-					float ProgressToKnockedOut;
+					Constrained_Falling, // Clueless, does nothing; with feet on edge
+					Constrained_Aerial, // Clueless, does nothing; with feet in air
+					Constrained_KnockedOut, // Clueless, does nothing, not relevant where; waits until can rise
 
-					void Reset()
-					{
-						ProgressToAerial = 0.0f;
-						ProgressToKnockedOut = 0.0f;
-					}
-				} Constrained_Falling;
+					Constrained_Rising, // Tries to stand up (appliying torque)
+					Constrained_Equilibrium, // Stands up; continues to adjust alignment with torque
+					Constrained_Walking, // Walks; continues to adjust alignment with torque
 
-				struct Constrained_AerialStateType
+					Free_Aerial, // Does nothing
+					Free_InWater, // Does nothing, but waits to swim
+					Free_Swimming // Swims
+				};
+
+				BehaviorType CurrentBehavior;
+
+				union BehaviorStateType
 				{
-					float ProgressToFalling;
-					float ProgressToKnockedOut;
-
-					void Reset()
+					struct Constrained_FallingStateType
 					{
-						ProgressToFalling = 0.0f;
-						ProgressToKnockedOut = 0.0f;
-					}
-				} Constrained_Aerial;
+						float ProgressToAerial;
+						float ProgressToKnockedOut;
 
-				struct Constrained_KnockedOutStateType
-				{
-					float ProgressToRising;
-					float ProgressToAerial;
+						void Reset()
+						{
+							ProgressToAerial = 0.0f;
+							ProgressToKnockedOut = 0.0f;
+						}
+					} Constrained_Falling;
 
-					void Reset()
+					struct Constrained_AerialStateType
 					{
-						ProgressToRising = 0.0f;
-						ProgressToAerial = 0.0f;
-					}
-				} Constrained_KnockedOut;
+						float ProgressToFalling;
+						float ProgressToKnockedOut;
 
-				struct Constrained_RisingStateType
-				{
-					float CurrentSoftTerminationDecision; // [0.0f, 1.0f]
+						void Reset()
+						{
+							ProgressToFalling = 0.0f;
+							ProgressToKnockedOut = 0.0f;
+						}
+					} Constrained_Aerial;
 
-					void Reset()
+					struct Constrained_KnockedOutStateType
 					{
-						CurrentSoftTerminationDecision = 0.0f;
-					}
-				} Constrained_Rising;
+						float ProgressToRising;
+						float ProgressToAerial;
 
-				struct Constrained_EquilibriumStateType
-				{
-					float ProgressToWalking;
+						void Reset()
+						{
+							ProgressToRising = 0.0f;
+							ProgressToAerial = 0.0f;
+						}
+					} Constrained_KnockedOut;
 
-					void Reset()
+					struct Constrained_RisingStateType
 					{
-						ProgressToWalking = 0.0f;
-					}
-				} Constrained_Equilibrium;
+						float CurrentSoftTerminationDecision; // [0.0f, 1.0f]
 
-				struct Constrained_WalkingStateType
-				{
-					float CurrentWalkMagnitude; // [0.0f, 1.0f]
+						void Reset()
+						{
+							CurrentSoftTerminationDecision = 0.0f;
+						}
+					} Constrained_Rising;
 
-					float CurrentFlipDecision; // [0.0f, 1.0f]
-					float TargetFlipDecision; // [0.0f, 1.0f]
-
-					void Reset()
+					struct Constrained_EquilibriumStateType
 					{
-						CurrentWalkMagnitude = 0.0f;
-						CurrentFlipDecision = 0.0f;
-						TargetFlipDecision = 0.0f;
-					}
-				} Constrained_Walking;
+						float ProgressToWalking;
 
-				struct Free_AerialStateType
-				{
-					void Reset()
+						void Reset()
+						{
+							ProgressToWalking = 0.0f;
+						}
+					} Constrained_Equilibrium;
+
+					struct Constrained_WalkingStateType
 					{
-					}
-				} Free_Aerial;
+						float CurrentWalkMagnitude; // [0.0f, 1.0f]
 
-				struct Free_InWaterType
-				{
-					float ProgressToSwimming;
+						float CurrentFlipDecision; // [0.0f, 1.0f]
+						float TargetFlipDecision; // [0.0f, 1.0f]
 
-					void Reset()
+						void Reset()
+						{
+							CurrentWalkMagnitude = 0.0f;
+							CurrentFlipDecision = 0.0f;
+							TargetFlipDecision = 0.0f;
+						}
+					} Constrained_Walking;
+
+					struct Free_AerialStateType
 					{
-						ProgressToSwimming = 0.0f;
-					}
-				} Free_InWater;
+						void Reset()
+						{
+						}
+					} Free_Aerial;
 
-				struct Free_SwimmingType
-				{
-					void Reset()
+					struct Free_InWaterType
 					{
-					}
-				} Free_Swimming;
+						float ProgressToSwimming;
 
-			} CurrentBehaviorState;
+						void Reset()
+						{
+							ProgressToSwimming = 0.0f;
+						}
+					} Free_InWater;
 
-			float CurrentStateTransitionSimulationTimestamp;
-			float TotalDistanceTraveledOnEdgeSinceStateTransition; // [0.0f, +INF] - when we're constrained on an edge (e.g. walking)
-			float TotalDistanceTraveledOffEdgeSinceStateTransition; // [0.0f, +INF] - when we're constrained off an edge or free
+					struct Free_SwimmingType
+					{
+						void Reset()
+						{
+						}
+					} Free_Swimming;
 
-			float CurrentEquilibriumSoftTerminationDecision; // Cross-state
+				} CurrentBehaviorState;
 
-			float CurrentFaceOrientation; // [-1.0f, 0.0f, 1.0f]
-			float CurrentFaceDirectionX; // [-1.0f, 0.0f, 1.0f]
+				float CurrentStateTransitionSimulationTimestamp;
+				float TotalDistanceTraveledOnEdgeSinceStateTransition; // [0.0f, +INF] - when we're constrained on an edge (e.g. walking)
+				float TotalDistanceTraveledOffEdgeSinceStateTransition; // [0.0f, +INF] - when we're constrained off an edge or free
 
-			float PanicLevel; // [0.0f ... +INF)
+				float CurrentEquilibriumSoftTerminationDecision; // Cross-state
 
-			// Animation
+				float CurrentFaceOrientation; // [-1.0f, 0.0f, 1.0f]
+				float CurrentFaceDirectionX; // [-1.0f, 0.0f, 1.0f]
 
-			// Angles are CCW relative to vertical, regardless of where the NPC is looking towards (L/R)
-			// (when we flip we pretend immediate mirroring of limbs from the point of view of the human,
-			// so angles are independent from direction, and animation is smoother)
+				float PanicLevel; // [0.0f ... +INF)
 
-			// "Left" and "Right" are relative to screen when the NPC is looking at us
-			// (so "right arm" is really its left arm)
-			float RightLegAngle;
-			float RightLegLengthMultiplier;
-			float LeftLegAngle;
-			float LeftLegLengthMultiplier;
-			float RightArmAngle;
-			float RightArmLengthMultiplier;
-			float LeftArmAngle;
-			float LeftArmLengthMultiplier;
-
-			static float constexpr InitialArmAngle = Pi<float> / 2.0f * 0.3f;
-			static float constexpr InitialLegAngle = 0.2f;
-
-			HumanNpcStateType(
-				BehaviorType initialBehavior,
-				float currentSimulationTime)
-				: CurrentEquilibriumSoftTerminationDecision(0.0f)
-				, CurrentFaceOrientation(1.0f)
-				, CurrentFaceDirectionX(0.0f)
-				, PanicLevel(0.0f)
 				// Animation
-				, RightLegAngle(InitialLegAngle)
-				, RightLegLengthMultiplier(1.0f)
-				, LeftLegAngle(-InitialLegAngle)
-				, LeftLegLengthMultiplier(1.0f)
-				, RightArmAngle(InitialArmAngle)
-				, RightArmLengthMultiplier(1.0f)
-				, LeftArmAngle(-InitialArmAngle)
-				, LeftArmLengthMultiplier(1.0f)
-			{
-				TransitionToState(initialBehavior, currentSimulationTime);
-			}
 
-			void TransitionToState(
-				BehaviorType behavior,
-				float currentSimulationTime)
-			{
-				CurrentBehavior = behavior;
+				// Angles are CCW relative to vertical, regardless of where the NPC is looking towards (L/R)
+				// (when we flip we pretend immediate mirroring of limbs from the point of view of the human,
+				// so angles are independent from direction, and animation is smoother)
 
-				switch (behavior)
+				// "Left" and "Right" are relative to screen when the NPC is looking at us
+				// (so "right arm" is really its left arm)
+				float RightLegAngle;
+				float RightLegLengthMultiplier;
+				float LeftLegAngle;
+				float LeftLegLengthMultiplier;
+				float RightArmAngle;
+				float RightArmLengthMultiplier;
+				float LeftArmAngle;
+				float LeftArmLengthMultiplier;
+
+				static float constexpr InitialArmAngle = Pi<float> / 2.0f * 0.3f;
+				static float constexpr InitialLegAngle = 0.2f;
+
+				HumanNpcStateType(
+					BehaviorType initialBehavior,
+					float currentSimulationTime)
+					: CurrentEquilibriumSoftTerminationDecision(0.0f)
+					, CurrentFaceOrientation(1.0f)
+					, CurrentFaceDirectionX(0.0f)
+					, PanicLevel(0.0f)
+					// Animation
+					, RightLegAngle(InitialLegAngle)
+					, RightLegLengthMultiplier(1.0f)
+					, LeftLegAngle(-InitialLegAngle)
+					, LeftLegLengthMultiplier(1.0f)
+					, RightArmAngle(InitialArmAngle)
+					, RightArmLengthMultiplier(1.0f)
+					, LeftArmAngle(-InitialArmAngle)
+					, LeftArmLengthMultiplier(1.0f)
 				{
-					case BehaviorType::Constrained_Aerial:
-					{
-						CurrentBehaviorState.Constrained_Aerial.Reset();
-						break;
-					}
-
-					case BehaviorType::Constrained_Equilibrium:
-					{
-						CurrentBehaviorState.Constrained_Equilibrium.Reset();
-						break;
-					}
-
-					case BehaviorType::Constrained_Falling:
-					{
-						CurrentBehaviorState.Constrained_Falling.Reset();
-						break;
-					}
-
-					case BehaviorType::Constrained_KnockedOut:
-					{
-						CurrentBehaviorState.Constrained_KnockedOut.Reset();
-						break;
-					}
-
-					case BehaviorType::Constrained_Rising:
-					{
-						CurrentBehaviorState.Constrained_Rising.Reset();
-						CurrentEquilibriumSoftTerminationDecision = 0.0f; // Start clean
-						break;
-					}
-
-					case BehaviorType::Constrained_Walking:
-					{
-						CurrentBehaviorState.Constrained_Walking.Reset();
-						break;
-					}
-
-					case BehaviorType::Free_Aerial:
-					{
-						CurrentBehaviorState.Free_Aerial.Reset();
-						break;
-					}
-
-					case BehaviorType::Free_InWater:
-					{
-						CurrentBehaviorState.Free_InWater.Reset();
-						break;
-					}
-
-					case BehaviorType::Free_Swimming:
-					{
-						CurrentBehaviorState.Free_Swimming.Reset();
-						break;
-					}
+					TransitionToState(initialBehavior, currentSimulationTime);
 				}
 
-				CurrentStateTransitionSimulationTimestamp = currentSimulationTime;
-				TotalDistanceTraveledOnEdgeSinceStateTransition = 0.0f;
-				TotalDistanceTraveledOffEdgeSinceStateTransition = 0.0f;
-			}
+				void TransitionToState(
+					BehaviorType behavior,
+					float currentSimulationTime)
+				{
+					CurrentBehavior = behavior;
+
+					switch (behavior)
+					{
+						case BehaviorType::Constrained_Aerial:
+						{
+							CurrentBehaviorState.Constrained_Aerial.Reset();
+							break;
+						}
+
+						case BehaviorType::Constrained_Equilibrium:
+						{
+							CurrentBehaviorState.Constrained_Equilibrium.Reset();
+							break;
+						}
+
+						case BehaviorType::Constrained_Falling:
+						{
+							CurrentBehaviorState.Constrained_Falling.Reset();
+							break;
+						}
+
+						case BehaviorType::Constrained_KnockedOut:
+						{
+							CurrentBehaviorState.Constrained_KnockedOut.Reset();
+							break;
+						}
+
+						case BehaviorType::Constrained_Rising:
+						{
+							CurrentBehaviorState.Constrained_Rising.Reset();
+							CurrentEquilibriumSoftTerminationDecision = 0.0f; // Start clean
+							break;
+						}
+
+						case BehaviorType::Constrained_Walking:
+						{
+							CurrentBehaviorState.Constrained_Walking.Reset();
+							break;
+						}
+
+						case BehaviorType::Free_Aerial:
+						{
+							CurrentBehaviorState.Free_Aerial.Reset();
+							break;
+						}
+
+						case BehaviorType::Free_InWater:
+						{
+							CurrentBehaviorState.Free_InWater.Reset();
+							break;
+						}
+
+						case BehaviorType::Free_Swimming:
+						{
+							CurrentBehaviorState.Free_Swimming.Reset();
+							break;
+						}
+					}
+
+					CurrentStateTransitionSimulationTimestamp = currentSimulationTime;
+					TotalDistanceTraveledOnEdgeSinceStateTransition = 0.0f;
+					TotalDistanceTraveledOffEdgeSinceStateTransition = 0.0f;
+				}
+			} HumanNpcState;
+
+			explicit KindSpecificStateType(FurnitureNpcStateType && furnitureState)
+				: FurnitureNpcState(std::move(furnitureState))
+			{}
+
+			explicit KindSpecificStateType(HumanNpcStateType && humanState)
+				: HumanNpcState(std::move(humanState))
+			{}
 		};
+
+		// Members
 
 		NpcKindType Kind;
 
@@ -366,19 +383,19 @@ public:
 		NpcParticleStateType PrimaryParticleState; // e.g. feet
 		std::optional<DipoleStateType> DipoleState;
 
-		std::optional<HumanNpcStateType> HumanNpcState;
+		KindSpecificStateType KindSpecificState;
 
 		StateType(
 			NpcKindType kind,
 			RegimeType regime,
 			NpcParticleStateType && primaryParticleState,
 			std::optional<DipoleStateType> && dipoleState,
-			std::optional<HumanNpcStateType> && humanNpcState)
+			KindSpecificStateType && kindSpecificState)
 			: Kind(kind)
 			, Regime(regime)
 			, PrimaryParticleState(std::move(primaryParticleState))
 			, DipoleState(std::move(dipoleState))
-			, HumanNpcState(std::move(humanNpcState))
+			, KindSpecificState(std::move(kindSpecificState))
 		{}
 	};
 
@@ -838,7 +855,7 @@ private:
 	// Human simulation
 	//
 
-	StateType::HumanNpcStateType InitializeHuman(
+	StateType::KindSpecificStateType::HumanNpcStateType InitializeHuman(
 		StateType::NpcParticleStateType const & primaryParticleState,
 		StateType::NpcParticleStateType const & secondaryParticleState,
 		float currentSimulationTime,
@@ -859,7 +876,7 @@ private:
 		GameParameters const & gameParameters);
 
 	void RunWalkingHumanStateMachine(
-		StateType::HumanNpcStateType & humanState,
+		StateType::KindSpecificStateType::HumanNpcStateType & humanState,
 		StateType::NpcParticleStateType const & primaryParticleState,
 		Ship const & ship,
 		GameParameters const & gameParameters);
@@ -873,7 +890,7 @@ private:
 	using DoImmediate = StrongTypedBool<struct _DoImmediate>;
 
 	void FlipHumanWalk(
-		StateType::HumanNpcStateType & humanState,
+		StateType::KindSpecificStateType::HumanNpcStateType & humanState,
 		DoImmediate doImmediate) const;
 
 	void TransitionHumanToFree(
@@ -881,7 +898,7 @@ private:
 		StateType & npc);
 
 	float CalculateActualHumanWalkingAbsoluteSpeed(
-		StateType::HumanNpcStateType & humanState,
+		StateType::KindSpecificStateType::HumanNpcStateType & humanState,
 		GameParameters const & gameParameters) const;
 
 private:

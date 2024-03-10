@@ -47,7 +47,7 @@ void Npcs::Add(
 				primaryParticleState.ConstrainedState.has_value() ? StateType::RegimeType::Constrained : StateType::RegimeType::Free,
 				std::move(primaryParticleState),
 				std::nullopt,
-				std::nullopt);
+				StateType::KindSpecificStateType(StateType::KindSpecificStateType::FurnitureNpcStateType()));
 
 			return;
 		}
@@ -112,7 +112,7 @@ void Npcs::Add(
 					massFactor,
 					1.0f));
 
-			StateType::HumanNpcStateType humanState = InitializeHuman(
+			StateType::KindSpecificStateType::HumanNpcStateType humanState = InitializeHuman(
 				primaryParticleState,
 				secondaryParticleState,
 				currentSimulationTime,
@@ -127,7 +127,7 @@ void Npcs::Add(
 				regime,
 				std::move(primaryParticleState),
 				std::move(dipoleState),
-				std::move(humanState));
+				StateType::KindSpecificStateType(std::move(humanState)));
 
 			return;
 		}
@@ -140,8 +140,7 @@ void Npcs::SetPanicLevelForAllHumans(float panicLevel)
 	{
 		if (npc.Kind == NpcKindType::Human)
 		{
-			assert(npc.HumanNpcState.has_value());
-			npc.HumanNpcState->PanicLevel = panicLevel;
+			npc.KindSpecificState.HumanNpcState.PanicLevel = panicLevel;
 		}
 	}
 }
@@ -149,19 +148,19 @@ void Npcs::SetPanicLevelForAllHumans(float panicLevel)
 void Npcs::FlipHumanWalk(int npcIndex)
 {
 	if (npcIndex < mStateBuffer.size()
-		&& mStateBuffer[npcIndex].HumanNpcState.has_value()
-		&& mStateBuffer[npcIndex].HumanNpcState->CurrentBehavior == StateType::HumanNpcStateType::BehaviorType::Constrained_Walking)
+		&& mStateBuffer[npcIndex].Kind == NpcKindType::Human
+		&& mStateBuffer[npcIndex].KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking)
 	{
-		FlipHumanWalk(*mStateBuffer[npcIndex].HumanNpcState, StrongTypedTrue<_DoImmediate>);
+		FlipHumanWalk(mStateBuffer[npcIndex].KindSpecificState.HumanNpcState, StrongTypedTrue<_DoImmediate>);
 	}
 }
 
 void Npcs::FlipHumanFrontBack(int npcIndex)
 {
 	if (npcIndex < mStateBuffer.size()
-		&& mStateBuffer[npcIndex].HumanNpcState.has_value())
+		&& mStateBuffer[npcIndex].Kind == NpcKindType::Human)
 	{
-		mStateBuffer[npcIndex].HumanNpcState->CurrentFaceOrientation *= -1.0f;
+		mStateBuffer[npcIndex].KindSpecificState.HumanNpcState.CurrentFaceOrientation *= -1.0f;
 	}
 }
 
@@ -306,9 +305,10 @@ void Npcs::Render(RenderContext & renderContext)
 		{
 			case NpcRenderModeType::Limbs:
 			{
-				if (state.HumanNpcState.has_value())
+				if (state.Kind == NpcKindType::Human)
 				{
 					assert(state.DipoleState.has_value());
+					auto const & humanNpcState = state.KindSpecificState.HumanNpcState;
 
 					// Note:
 					// - head, neck, shoulder, crotch, feet: based on current dipole length
@@ -325,21 +325,21 @@ void Npcs::Render(RenderContext & renderContext)
 					vec2f const shoulderPosition = neckPosition + actualBodyVector * GameParameters::HumanNpcGeometry::ArmDepthFraction / 2.0f;
 					vec2f const crotchPosition = headPosition + actualBodyVector * (GameParameters::HumanNpcGeometry::HeadLengthFraction + GameParameters::HumanNpcGeometry::TorsoLengthFraction);
 
-					float const cosLeftArmAngle = std::cos(state.HumanNpcState->LeftArmAngle);
-					float const sinLeftArmAngle = std::sin(state.HumanNpcState->LeftArmAngle);
-					float const cosRightArmAngle = std::cos(state.HumanNpcState->RightArmAngle);
-					float const sinRightArmAngle = std::sin(state.HumanNpcState->RightArmAngle);
-					float const cosLeftLegAngle = std::cos(state.HumanNpcState->LeftLegAngle);
-					float const sinLeftLegAngle = std::sin(state.HumanNpcState->LeftLegAngle);
-					float const cosRightLegAngle = std::cos(state.HumanNpcState->RightLegAngle);
-					float const sinRightLegAngle = std::sin(state.HumanNpcState->RightLegAngle);
+					float const cosLeftArmAngle = std::cos(humanNpcState.LeftArmAngle);
+					float const sinLeftArmAngle = std::sin(humanNpcState.LeftArmAngle);
+					float const cosRightArmAngle = std::cos(humanNpcState.RightArmAngle);
+					float const sinRightArmAngle = std::sin(humanNpcState.RightArmAngle);
+					float const cosLeftLegAngle = std::cos(humanNpcState.LeftLegAngle);
+					float const sinLeftLegAngle = std::sin(humanNpcState.LeftLegAngle);
+					float const cosRightLegAngle = std::cos(humanNpcState.RightLegAngle);
+					float const sinRightLegAngle = std::sin(humanNpcState.RightLegAngle);
 
-					float const leftArmLength = adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::ArmLengthFraction * state.HumanNpcState->LeftArmLengthMultiplier;
-					float const rightArmLength = adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::ArmLengthFraction * state.HumanNpcState->RightArmLengthMultiplier;
-					float const leftLegLength = adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::LegLengthFraction * state.HumanNpcState->LeftLegLengthMultiplier;
-					float const rightLegLength = adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::LegLengthFraction * state.HumanNpcState->RightLegLengthMultiplier;
+					float const leftArmLength = adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::ArmLengthFraction * humanNpcState.LeftArmLengthMultiplier;
+					float const rightArmLength = adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::ArmLengthFraction * humanNpcState.RightArmLengthMultiplier;
+					float const leftLegLength = adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::LegLengthFraction * humanNpcState.LeftLegLengthMultiplier;
+					float const rightLegLength = adjustedStandardHumanHeight * GameParameters::HumanNpcGeometry::LegLengthFraction * humanNpcState.RightLegLengthMultiplier;
 
-					if (state.HumanNpcState->CurrentFaceOrientation != 0.0f)
+					if (humanNpcState.CurrentFaceOrientation != 0.0f)
 					{
 						//
 						// Front-back
@@ -358,8 +358,8 @@ void Npcs::Render(RenderContext & renderContext)
 								headPosition + actualBodyHDir * halfHeadW,
 								neckPosition - actualBodyHDir * halfHeadW,
 								neckPosition + actualBodyHDir * halfHeadW),
-							state.HumanNpcState->CurrentFaceOrientation,
-							state.HumanNpcState->CurrentFaceDirectionX);
+							humanNpcState.CurrentFaceOrientation,
+							humanNpcState.CurrentFaceDirectionX);
 
 						// Arms and legs
 
@@ -369,7 +369,7 @@ void Npcs::Render(RenderContext & renderContext)
 						vec2f const leftLegJointPosition = crotchPosition - actualBodyHDir * (halfTorsoW - halfLegW);
 						vec2f const rightLegJointPosition = crotchPosition + actualBodyHDir * (halfTorsoW - halfLegW);
 
-						if (state.HumanNpcState->CurrentFaceOrientation > 0.0f)
+						if (humanNpcState.CurrentFaceOrientation > 0.0f)
 						{
 							// Front
 
@@ -382,8 +382,8 @@ void Npcs::Render(RenderContext & renderContext)
 									leftArmJointPosition + leftArmTraverseDir * halfArmW,
 									leftArmJointPosition + leftArmVector - leftArmTraverseDir * halfArmW,
 									leftArmJointPosition + leftArmVector + leftArmTraverseDir * halfArmW),
-								state.HumanNpcState->CurrentFaceOrientation,
-								state.HumanNpcState->CurrentFaceDirectionX);
+								humanNpcState.CurrentFaceOrientation,
+								humanNpcState.CurrentFaceDirectionX);
 
 							// Right arm (on right side of the screen)
 							vec2f const rightArmVector = actualBodyVDir.rotate(cosRightArmAngle, sinRightArmAngle) * rightArmLength;
@@ -394,8 +394,8 @@ void Npcs::Render(RenderContext & renderContext)
 									rightArmJointPosition + rightArmTraverseDir * halfArmW,
 									rightArmJointPosition + rightArmVector - rightArmTraverseDir * halfArmW,
 									rightArmJointPosition + rightArmVector + rightArmTraverseDir * halfArmW),
-								state.HumanNpcState->CurrentFaceOrientation,
-								state.HumanNpcState->CurrentFaceDirectionX);
+								humanNpcState.CurrentFaceOrientation,
+								humanNpcState.CurrentFaceDirectionX);
 
 							// Left leg (on left side of the screen)
 							vec2f const leftLegVector = actualBodyVDir.rotate(cosLeftLegAngle, sinLeftLegAngle) * leftLegLength;
@@ -406,8 +406,8 @@ void Npcs::Render(RenderContext & renderContext)
 									leftLegJointPosition + leftLegTraverseDir * halfLegW,
 									leftLegJointPosition + leftLegVector - leftLegTraverseDir * halfLegW,
 									leftLegJointPosition + leftLegVector + leftLegTraverseDir * halfLegW),
-								state.HumanNpcState->CurrentFaceOrientation,
-								state.HumanNpcState->CurrentFaceDirectionX);
+								humanNpcState.CurrentFaceOrientation,
+								humanNpcState.CurrentFaceDirectionX);
 
 							// Right leg (on right side of the screen)
 							vec2f const rightLegVector = actualBodyVDir.rotate(cosRightLegAngle, sinRightLegAngle) * rightLegLength;
@@ -418,8 +418,8 @@ void Npcs::Render(RenderContext & renderContext)
 									rightLegJointPosition + rightLegTraverseDir * halfLegW,
 									rightLegJointPosition + rightLegVector - rightLegTraverseDir * halfLegW,
 									rightLegJointPosition + rightLegVector + rightLegTraverseDir * halfLegW),
-								state.HumanNpcState->CurrentFaceOrientation,
-								state.HumanNpcState->CurrentFaceDirectionX);
+								humanNpcState.CurrentFaceOrientation,
+								humanNpcState.CurrentFaceDirectionX);
 						}
 						else
 						{
@@ -434,8 +434,8 @@ void Npcs::Render(RenderContext & renderContext)
 									rightArmJointPosition + leftArmTraverseDir * halfArmW,
 									rightArmJointPosition + leftArmVector - leftArmTraverseDir * halfArmW,
 									rightArmJointPosition + leftArmVector + leftArmTraverseDir * halfArmW),
-								state.HumanNpcState->CurrentFaceOrientation,
-								state.HumanNpcState->CurrentFaceDirectionX);
+								humanNpcState.CurrentFaceOrientation,
+								humanNpcState.CurrentFaceDirectionX);
 
 							// Right arm (on left side of the screen)
 							vec2f const rightArmVector = actualBodyVDir.rotate(cosRightArmAngle, -sinRightArmAngle) * rightArmLength;
@@ -446,8 +446,8 @@ void Npcs::Render(RenderContext & renderContext)
 									leftArmJointPosition + rightArmTraverseDir * halfArmW,
 									leftArmJointPosition + rightArmVector - rightArmTraverseDir * halfArmW,
 									leftArmJointPosition + rightArmVector + rightArmTraverseDir * halfArmW),
-								state.HumanNpcState->CurrentFaceOrientation,
-								state.HumanNpcState->CurrentFaceDirectionX);
+								humanNpcState.CurrentFaceOrientation,
+								humanNpcState.CurrentFaceDirectionX);
 
 							// Left leg (on right side of the screen)
 							vec2f const leftLegVector = actualBodyVDir.rotate(cosLeftLegAngle, -sinLeftLegAngle) * leftLegLength;
@@ -458,8 +458,8 @@ void Npcs::Render(RenderContext & renderContext)
 									rightLegJointPosition + leftLegTraverseDir * halfLegW,
 									rightLegJointPosition + leftLegVector - leftLegTraverseDir * halfLegW,
 									rightLegJointPosition + leftLegVector + leftLegTraverseDir * halfLegW),
-								state.HumanNpcState->CurrentFaceOrientation,
-								state.HumanNpcState->CurrentFaceDirectionX);
+								humanNpcState.CurrentFaceOrientation,
+								humanNpcState.CurrentFaceDirectionX);
 
 							// Right leg (on left side of the screen)
 							vec2f const rightLegVector = actualBodyVDir.rotate(cosRightLegAngle, -sinRightLegAngle) * rightLegLength;
@@ -470,8 +470,8 @@ void Npcs::Render(RenderContext & renderContext)
 									leftLegJointPosition + rightLegTraverseDir * halfLegW,
 									leftLegJointPosition + rightLegVector - rightLegTraverseDir * halfLegW,
 									leftLegJointPosition + rightLegVector + rightLegTraverseDir * halfLegW),
-								state.HumanNpcState->CurrentFaceOrientation,
-								state.HumanNpcState->CurrentFaceDirectionX);
+								humanNpcState.CurrentFaceOrientation,
+								humanNpcState.CurrentFaceDirectionX);
 						}
 
 						// Torso
@@ -482,8 +482,8 @@ void Npcs::Render(RenderContext & renderContext)
 								neckPosition + actualBodyHDir * halfTorsoW,
 								crotchPosition - actualBodyHDir * halfTorsoW,
 								crotchPosition + actualBodyHDir * halfTorsoW),
-							state.HumanNpcState->CurrentFaceOrientation,
-							state.HumanNpcState->CurrentFaceDirectionX);
+							humanNpcState.CurrentFaceOrientation,
+							humanNpcState.CurrentFaceDirectionX);
 					}
 					else
 					{
@@ -532,33 +532,33 @@ void Npcs::Render(RenderContext & renderContext)
 
 						// Arm and legs far
 
-						if (state.HumanNpcState->CurrentFaceDirectionX > 0.0f)
+						if (humanNpcState.CurrentFaceDirectionX > 0.0f)
 						{
 							// Left arm
 							renderContext.UploadNpcHumanLimb(
 								leftArmQuad,
-								state.HumanNpcState->CurrentFaceOrientation,
-								state.HumanNpcState->CurrentFaceDirectionX);
+								humanNpcState.CurrentFaceOrientation,
+								humanNpcState.CurrentFaceDirectionX);
 
 							// Left leg
 							renderContext.UploadNpcHumanLimb(
 								leftLegQuad,
-								state.HumanNpcState->CurrentFaceOrientation,
-								state.HumanNpcState->CurrentFaceDirectionX);
+								humanNpcState.CurrentFaceOrientation,
+								humanNpcState.CurrentFaceDirectionX);
 						}
 						else
 						{
 							// Right arm
 							renderContext.UploadNpcHumanLimb(
 								rightArmQuad,
-								state.HumanNpcState->CurrentFaceOrientation,
-								state.HumanNpcState->CurrentFaceDirectionX);
+								humanNpcState.CurrentFaceOrientation,
+								humanNpcState.CurrentFaceDirectionX);
 
 							// Right leg
 							renderContext.UploadNpcHumanLimb(
 								rightLegQuad,
-								state.HumanNpcState->CurrentFaceOrientation,
-								state.HumanNpcState->CurrentFaceDirectionX);
+								humanNpcState.CurrentFaceOrientation,
+								humanNpcState.CurrentFaceDirectionX);
 						}
 
 						// Head
@@ -569,8 +569,8 @@ void Npcs::Render(RenderContext & renderContext)
 								headPosition + actualBodyHDir * halfHeadD,
 								neckPosition - actualBodyHDir * halfHeadD,
 								neckPosition + actualBodyHDir * halfHeadD),
-							state.HumanNpcState->CurrentFaceOrientation,
-							state.HumanNpcState->CurrentFaceDirectionX);
+							humanNpcState.CurrentFaceOrientation,
+							humanNpcState.CurrentFaceDirectionX);
 
 						// Torso
 
@@ -580,38 +580,38 @@ void Npcs::Render(RenderContext & renderContext)
 								neckPosition + actualBodyHDir * halfTorsoD,
 								crotchPosition - actualBodyHDir * halfTorsoD,
 								crotchPosition + actualBodyHDir * halfTorsoD),
-							state.HumanNpcState->CurrentFaceOrientation,
-							state.HumanNpcState->CurrentFaceDirectionX);
+							humanNpcState.CurrentFaceOrientation,
+							humanNpcState.CurrentFaceDirectionX);
 
 						// Arms and legs near
 
-						if (state.HumanNpcState->CurrentFaceDirectionX > 0.0f)
+						if (humanNpcState.CurrentFaceDirectionX > 0.0f)
 						{
 							// Right arm
 							renderContext.UploadNpcHumanLimb(
 								rightArmQuad,
-								state.HumanNpcState->CurrentFaceOrientation,
-								state.HumanNpcState->CurrentFaceDirectionX);
+								humanNpcState.CurrentFaceOrientation,
+								humanNpcState.CurrentFaceDirectionX);
 
 							// Right leg
 							renderContext.UploadNpcHumanLimb(
 								rightLegQuad,
-								state.HumanNpcState->CurrentFaceOrientation,
-								state.HumanNpcState->CurrentFaceDirectionX);
+								humanNpcState.CurrentFaceOrientation,
+								humanNpcState.CurrentFaceDirectionX);
 						}
 						else
 						{
 							// Left arm
 							renderContext.UploadNpcHumanLimb(
 								leftArmQuad,
-								state.HumanNpcState->CurrentFaceOrientation,
-								state.HumanNpcState->CurrentFaceDirectionX);
+								humanNpcState.CurrentFaceOrientation,
+								humanNpcState.CurrentFaceDirectionX);
 
 							// Left leg
 							renderContext.UploadNpcHumanLimb(
 								leftLegQuad,
-								state.HumanNpcState->CurrentFaceOrientation,
-								state.HumanNpcState->CurrentFaceDirectionX);
+								humanNpcState.CurrentFaceOrientation,
+								humanNpcState.CurrentFaceDirectionX);
 						}
 					}
 				}
