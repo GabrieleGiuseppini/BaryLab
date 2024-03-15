@@ -66,3 +66,15 @@ struct IBLabEventHandler
         // Default-implemented
     }
 };
+
+struct INpcGameEventHandler
+{
+    virtual void OnNpcCountsUpdated(
+        unsigned int /*totalNpcCount*/,
+        unsigned int /*constrainedHumanNpcCount*/,
+        unsigned int /*freeHumanNpcCount*/,
+        unsigned int /*remainingNpcAllowanceCount*/)
+    {
+        // Default-implemented
+    }
+};

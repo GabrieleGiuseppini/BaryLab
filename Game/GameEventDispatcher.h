@@ -9,7 +9,7 @@
 
 #include <vector>
 
-class GameEventDispatcher final : public IBLabEventHandler
+class GameEventDispatcher final : public IBLabEventHandler, public INpcGameEventHandler
 {
 public:
 
@@ -88,6 +88,18 @@ public:
         }
     }
 
+    void OnNpcCountsUpdated(
+        unsigned int totalNpcCount,
+        unsigned int constrainedHumanNpcCount,
+        unsigned int freeHumanNpcCount,
+        unsigned int remainingNpcAllowanceCount) override
+    {
+        for (auto sink : mNpcSinks)
+        {
+            sink->OnNpcCountsUpdated(totalNpcCount, constrainedHumanNpcCount, freeHumanNpcCount, remainingNpcAllowanceCount);
+        }
+    }
+
 public:
 
     void RegisterBLabEventHandler(IBLabEventHandler * sink)
@@ -95,8 +107,14 @@ public:
         mBLabSinks.push_back(sink);
     }
 
+    void RegisterNpcEventHandler(INpcGameEventHandler * sink)
+    {
+        mNpcSinks.push_back(sink);
+    }
+
 private:
 
     // The registered sinks
     std::vector<IBLabEventHandler *> mBLabSinks;
+    std::vector<INpcGameEventHandler *> mNpcSinks;
 };

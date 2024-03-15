@@ -22,6 +22,8 @@ RenderContext::RenderContext(
     ////
     , mVertexVertexCount(0)
     , mIsGridEnabled(false)
+    ////
+    , mNpcRenderMode(NpcRenderModeType::Physical) // NpcRenderModeType::Limbs
 {
     GLuint tmpGLuint;
 
@@ -121,62 +123,62 @@ RenderContext::RenderContext(
     glBindVertexArray(0);
 
     //
-    // Springs
+    // NPC Quads
     //
 
     glGenVertexArrays(1, &tmpGLuint);
-    mSpringVAO = tmpGLuint;
-    glBindVertexArray(*mSpringVAO);
+    mNpcQuadVAO = tmpGLuint;
+    glBindVertexArray(*mNpcQuadVAO);
 
     glGenBuffers(1, &tmpGLuint);
-    mSpringVertexVBO = tmpGLuint;
-    glBindBuffer(GL_ARRAY_BUFFER, *mSpringVertexVBO);
+    mNpcQuadVertexVBO = tmpGLuint;
+    glBindBuffer(GL_ARRAY_BUFFER, *mNpcQuadVertexVBO);
 
-    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::SpringAttributeGroup1));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::SpringAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(SpringVertex), (void *)0);
-    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::SpringAttributeGroup2));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::SpringAttributeGroup2), 4, GL_FLOAT, GL_FALSE, sizeof(SpringVertex), (void *)(4 * sizeof(float)));
-    static_assert(sizeof(SpringVertex) == 8 * sizeof(float));
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup1));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(NpcQuadVertex), (void *)0);
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup2));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup2), 2, GL_FLOAT, GL_FALSE, sizeof(NpcQuadVertex), (void *)(4 * sizeof(float)));
+    static_assert(sizeof(NpcQuadVertex) == (6) * sizeof(float));
 
     glBindVertexArray(0);
 
     //
-    // Particles
+    // NPC Particles
     //
 
     glGenVertexArrays(1, &tmpGLuint);
-    mParticleVAO = tmpGLuint;
-    glBindVertexArray(*mParticleVAO);
+    mNpcParticleVAO = tmpGLuint;
+    glBindVertexArray(*mNpcParticleVAO);
 
     glGenBuffers(1, &tmpGLuint);
-    mParticleVertexVBO = tmpGLuint;
-    glBindBuffer(GL_ARRAY_BUFFER, *mParticleVertexVBO);
+    mNpcParticleVertexVBO = tmpGLuint;
+    glBindBuffer(GL_ARRAY_BUFFER, *mNpcParticleVertexVBO);
 
-    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleAttributeGroup1));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(ParticleVertex), (void *)0);
-    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleAttributeGroup2));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleAttributeGroup2), 4, GL_FLOAT, GL_FALSE, sizeof(ParticleVertex), (void *)(4 * sizeof(float)));
-    static_assert(sizeof(ParticleVertex) == (4 + 4) * sizeof(float));
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcParticleAttributeGroup1));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcParticleAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(NpcParticleVertex), (void *)0);
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcParticleAttributeGroup2));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcParticleAttributeGroup2), 4, GL_FLOAT, GL_FALSE, sizeof(NpcParticleVertex), (void *)(4 * sizeof(float)));
+    static_assert(sizeof(NpcParticleVertex) == (4 + 4) * sizeof(float));
 
     glBindVertexArray(0);
 
     //
-    // NPC Limbs
+    // NPC Springs
     //
 
     glGenVertexArrays(1, &tmpGLuint);
-    mNpcLimbVAO = tmpGLuint;
-    glBindVertexArray(*mNpcLimbVAO);
+    mNpcSpringVAO = tmpGLuint;
+    glBindVertexArray(*mNpcSpringVAO);
 
     glGenBuffers(1, &tmpGLuint);
-    mNpcLimbVertexVBO = tmpGLuint;
-    glBindBuffer(GL_ARRAY_BUFFER, *mNpcLimbVertexVBO);
+    mNpcSpringVertexVBO = tmpGLuint;
+    glBindBuffer(GL_ARRAY_BUFFER, *mNpcSpringVertexVBO);
 
-    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcLimbAttributeGroup1));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcLimbAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(NpcLimbVertex), (void *)0);
-    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcLimbAttributeGroup2));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcLimbAttributeGroup2), 2, GL_FLOAT, GL_FALSE, sizeof(NpcLimbVertex), (void *)(4 * sizeof(float)));
-    static_assert(sizeof(NpcLimbVertex) == (6) * sizeof(float));
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcSpringAttributeGroup1));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcSpringAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(NpcSpringVertex), (void *)0);
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcSpringAttributeGroup2));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcSpringAttributeGroup2), 4, GL_FLOAT, GL_FALSE, sizeof(NpcSpringVertex), (void *)(4 * sizeof(float)));
+    static_assert(sizeof(NpcSpringVertex) == 8 * sizeof(float));
 
     glBindVertexArray(0);
 
@@ -192,10 +194,10 @@ RenderContext::RenderContext(
     mParticleTrajectoryVertexVBO = tmpGLuint;
     glBindBuffer(GL_ARRAY_BUFFER, *mParticleTrajectoryVertexVBO);
 
-    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleAttributeGroup1));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(ParticleTrajectoryVertex), (void *)0);
-    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleAttributeGroup2));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleAttributeGroup2), 4, GL_FLOAT, GL_FALSE, sizeof(ParticleTrajectoryVertex), (void *)(4 * sizeof(float)));
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleTrajectoryAttributeGroup1));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleTrajectoryAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(ParticleTrajectoryVertex), (void *)0);
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleTrajectoryAttributeGroup2));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::ParticleTrajectoryAttributeGroup2), 4, GL_FLOAT, GL_FALSE, sizeof(ParticleTrajectoryVertex), (void *)(4 * sizeof(float)));
     static_assert(sizeof(ParticleTrajectoryVertex) == (4 + 4) * sizeof(float));
 
     glBindVertexArray(0);
@@ -443,16 +445,167 @@ void RenderContext::UploadEdgesEnd()
     }
 }
 
-void RenderContext::UploadSpringsStart()
+void RenderContext::UploadNpcQuadsStart()
 {
     //
     // Prepare buffer
     //
 
-    mSpringVertexBuffer.clear();
+    mNpcQuadVertexBuffer.clear();
 }
 
-void RenderContext::UploadSpring(
+void RenderContext::UploadNpcQuad(
+    Quadf const & quad,
+    float faceOrientation,
+    float faceDirectionX)
+{
+    float const backDepth = std::max(-faceOrientation, 0.0f);
+    float const orientationDepth = std::abs(faceDirectionX);
+
+    if (faceDirectionX == 0.0f)
+        faceDirectionX = 1.0f; // Front/Back are different textures altogether
+
+    // Left, bottom
+    mNpcQuadVertexBuffer.emplace_back(
+        quad.BottomLeft,
+        vec2f(-faceDirectionX, -1.0f),
+        backDepth,
+        orientationDepth);
+
+    // Left, top
+    mNpcQuadVertexBuffer.emplace_back(
+        quad.TopLeft,
+        vec2f(-faceDirectionX, 1.0f),
+        backDepth,
+        orientationDepth);
+
+    // Right, bottom
+    mNpcQuadVertexBuffer.emplace_back(
+        quad.BottomRight,
+        vec2f(faceDirectionX, -1.0f),
+        backDepth,
+        orientationDepth);
+
+    // Left, top
+    mNpcQuadVertexBuffer.emplace_back(
+        quad.TopLeft,
+        vec2f(-faceDirectionX, 1.0f),
+        backDepth,
+        orientationDepth);
+
+    // Right, bottom
+    mNpcQuadVertexBuffer.emplace_back(
+        quad.BottomRight,
+        vec2f(faceDirectionX, -1.0f),
+        backDepth,
+        orientationDepth);
+
+    // Right, top
+    mNpcQuadVertexBuffer.emplace_back(
+        quad.TopRight,
+        vec2f(faceDirectionX, 1.0f),
+        backDepth,
+        orientationDepth);
+}
+
+void RenderContext::UploadNpcQuadsEnd()
+{
+    //
+    // Upload buffer, if needed
+    //
+
+    if (!mNpcQuadVertexBuffer.empty())
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, *mNpcQuadVertexVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(NpcQuadVertex) * mNpcQuadVertexBuffer.size(), mNpcQuadVertexBuffer.data(), GL_STREAM_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+}
+
+void RenderContext::UploadNpcParticlesStart()
+{
+    //
+    // Prepare buffer
+    //
+
+    mNpcParticleVertexBuffer.clear();
+}
+
+void RenderContext::UploadNpcParticle(
+    vec2f const & particlePosition,
+    rgbaColor const & particleColor,
+    float alpha)
+{
+    float const xLeft = particlePosition.x - GameParameters::ParticleRadius;
+    float const xRight = particlePosition.x + GameParameters::ParticleRadius;
+    float const yTop = particlePosition.y + GameParameters::ParticleRadius;
+    float const yBottom = particlePosition.y - GameParameters::ParticleRadius;
+
+    vec4f color = particleColor.toVec4f();
+    color.w *= alpha;
+
+    // Left, bottom
+    mNpcParticleVertexBuffer.emplace_back(
+        vec2f(xLeft, yBottom),
+        vec2f(-1.0f, -1.0f),
+        color);
+
+    // Left, top
+    mNpcParticleVertexBuffer.emplace_back(
+        vec2f(xLeft, yTop),
+        vec2f(-1.0f, 1.0f),
+        color);
+
+    // Right, bottom
+    mNpcParticleVertexBuffer.emplace_back(
+        vec2f(xRight, yBottom),
+        vec2f(1.0f, -1.0f),
+        color);
+
+    // Left, top
+    mNpcParticleVertexBuffer.emplace_back(
+        vec2f(xLeft, yTop),
+        vec2f(-1.0f, 1.0f),
+        color);
+
+    // Right, bottom
+    mNpcParticleVertexBuffer.emplace_back(
+        vec2f(xRight, yBottom),
+        vec2f(1.0f, -1.0f),
+        color);
+
+    // Right, top
+    mNpcParticleVertexBuffer.emplace_back(
+        vec2f(xRight, yTop),
+        vec2f(1.0f, 1.0f),
+        color);
+}
+
+void RenderContext::UploadNpcParticlesEnd()
+{
+    //
+    // Upload buffer, if needed
+    //
+
+    if (!mNpcParticleVertexBuffer.empty())
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, *mNpcParticleVertexVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(NpcParticleVertex) * mNpcParticleVertexBuffer.size(), mNpcParticleVertexBuffer.data(), GL_STREAM_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+}
+
+
+void RenderContext::UploadNpcSpringsStart()
+{
+    //
+    // Prepare buffer
+    //
+
+    mNpcSpringVertexBuffer.clear();
+}
+
+void RenderContext::UploadNpcSpring(
     vec2f const & endpointAPosition,
     vec2f const & endpointBPosition,
     rgbaColor const & springColor)
@@ -468,202 +621,52 @@ void RenderContext::UploadSpring(
     vec4f const color = springColor.toVec4f();
 
     // Left, bottom
-    mSpringVertexBuffer.emplace_back(
+    mNpcSpringVertexBuffer.emplace_back(
         bottomLeft,
         vec2f(-1.0f, -1.0f),
         color);
 
     // Left, top
-    mSpringVertexBuffer.emplace_back(
+    mNpcSpringVertexBuffer.emplace_back(
         topLeft,
         vec2f(-1.0f, 1.0f),
         color);
 
     // Right, bottom
-    mSpringVertexBuffer.emplace_back(
+    mNpcSpringVertexBuffer.emplace_back(
         bottomRight,
         vec2f(1.0f, -1.0f),
         color);
 
     // Left, top
-    mSpringVertexBuffer.emplace_back(
+    mNpcSpringVertexBuffer.emplace_back(
         topLeft,
         vec2f(-1.0f, 1.0f),
         color);
 
     // Right, bottom
-    mSpringVertexBuffer.emplace_back(
+    mNpcSpringVertexBuffer.emplace_back(
         bottomRight,
         vec2f(1.0f, -1.0f),
         color);
 
     // Right, top
-    mSpringVertexBuffer.emplace_back(
+    mNpcSpringVertexBuffer.emplace_back(
         topRight,
         vec2f(1.0f, 1.0f),
         color);
 }
 
-void RenderContext::UploadSpringsEnd()
+void RenderContext::UploadNpcSpringsEnd()
 {
     //
     // Upload buffer, if needed
     //
 
-    if (!mSpringVertexBuffer.empty())
+    if (!mNpcSpringVertexBuffer.empty())
     {
-        glBindBuffer(GL_ARRAY_BUFFER, *mSpringVertexVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(SpringVertex) * mSpringVertexBuffer.size(), mSpringVertexBuffer.data(), GL_STREAM_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-    }
-}
-
-void RenderContext::UploadParticlesStart()
-{
-    //
-    // Prepare buffer
-    //
-
-    mParticleVertexBuffer.clear();
-}
-
-void RenderContext::UploadParticle(
-    vec2f const & particlePosition,
-    rgbaColor const & particleColor,
-    float alpha)
-{
-    float const xLeft = particlePosition.x - GameParameters::ParticleRadius;
-    float const xRight = particlePosition.x + GameParameters::ParticleRadius;
-    float const yTop = particlePosition.y + GameParameters::ParticleRadius;
-    float const yBottom = particlePosition.y - GameParameters::ParticleRadius;
-
-    vec4f color = particleColor.toVec4f();
-    color.w *= alpha;
-
-    // Left, bottom
-    mParticleVertexBuffer.emplace_back(
-        vec2f(xLeft, yBottom),
-        vec2f(-1.0f, -1.0f),
-        color);
-
-    // Left, top
-    mParticleVertexBuffer.emplace_back(
-        vec2f(xLeft, yTop),
-        vec2f(-1.0f, 1.0f),
-        color);
-
-    // Right, bottom
-    mParticleVertexBuffer.emplace_back(
-        vec2f(xRight, yBottom),
-        vec2f(1.0f, -1.0f),
-        color);
-
-    // Left, top
-    mParticleVertexBuffer.emplace_back(
-        vec2f(xLeft, yTop),
-        vec2f(-1.0f, 1.0f),
-        color);
-
-    // Right, bottom
-    mParticleVertexBuffer.emplace_back(
-        vec2f(xRight, yBottom),
-        vec2f(1.0f, -1.0f),
-        color);
-
-    // Right, top
-    mParticleVertexBuffer.emplace_back(
-        vec2f(xRight, yTop),
-        vec2f(1.0f, 1.0f),
-        color);
-}
-
-void RenderContext::UploadParticlesEnd()
-{
-    //
-    // Upload buffer, if needed
-    //
-
-    if (!mParticleVertexBuffer.empty())
-    {
-        glBindBuffer(GL_ARRAY_BUFFER, *mParticleVertexVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(ParticleVertex) * mParticleVertexBuffer.size(), mParticleVertexBuffer.data(), GL_STREAM_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-    }
-}
-
-void RenderContext::UploadNpcHumanLimbsStart()
-{
-    //
-    // Prepare buffer
-    //
-
-    mNpcLimbVertexBuffer.clear();
-}
-
-void RenderContext::UploadNpcHumanLimb(
-    Quadf const & quad,
-    float faceOrientation,
-    float faceDirectionX)
-{
-    float const backDepth = std::max(-faceOrientation, 0.0f);
-    float const orientationDepth = std::abs(faceDirectionX);
-
-    if (faceDirectionX == 0.0f)
-        faceDirectionX = 1.0f; // Front/Back are different textures altogether
-
-    // Left, bottom
-    mNpcLimbVertexBuffer.emplace_back(
-        quad.BottomLeft,
-        vec2f(-faceDirectionX, -1.0f),
-        backDepth,
-        orientationDepth);
-
-    // Left, top
-    mNpcLimbVertexBuffer.emplace_back(
-        quad.TopLeft,
-        vec2f(-faceDirectionX, 1.0f),
-        backDepth,
-        orientationDepth);
-
-    // Right, bottom
-    mNpcLimbVertexBuffer.emplace_back(
-        quad.BottomRight,
-        vec2f(faceDirectionX, -1.0f),
-        backDepth,
-        orientationDepth);
-
-    // Left, top
-    mNpcLimbVertexBuffer.emplace_back(
-        quad.TopLeft,
-        vec2f(-faceDirectionX, 1.0f),
-        backDepth,
-        orientationDepth);
-
-    // Right, bottom
-    mNpcLimbVertexBuffer.emplace_back(
-        quad.BottomRight,
-        vec2f(faceDirectionX, -1.0f),
-        backDepth,
-        orientationDepth);
-
-    // Right, top
-    mNpcLimbVertexBuffer.emplace_back(
-        quad.TopRight,
-        vec2f(faceDirectionX, 1.0f),
-        backDepth,
-        orientationDepth);
-}
-
-void RenderContext::UploadNpcHumanLimbsEnd()
-{
-    //
-    // Upload buffer, if needed
-    //
-
-    if (!mNpcLimbVertexBuffer.empty())
-    {
-        glBindBuffer(GL_ARRAY_BUFFER, *mNpcLimbVertexVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(NpcLimbVertex) * mNpcLimbVertexBuffer.size(), mNpcLimbVertexBuffer.data(), GL_STREAM_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, *mNpcSpringVertexVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(NpcSpringVertex) * mNpcSpringVertexBuffer.size(), mNpcSpringVertexBuffer.data(), GL_STREAM_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 }
@@ -981,17 +984,17 @@ void RenderContext::RenderEnd()
     glBindVertexArray(0);
 
     ////////////////////////////////////////////////////////////////
-    // Springs
+    // NPC Springs
     ////////////////////////////////////////////////////////////////
 
-    if (!mSpringVertexBuffer.empty())
+    if (!mNpcSpringVertexBuffer.empty())
     {
-        glBindVertexArray(*mSpringVAO);
+        glBindVertexArray(*mNpcSpringVAO);
 
-        mShaderManager->ActivateProgram<ShaderManager::ProgramType::Springs>();
+        mShaderManager->ActivateProgram<ShaderManager::ProgramType::NpcSprings>();
 
-        assert((mSpringVertexBuffer.size() % 6) == 0);
-        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mSpringVertexBuffer.size()));
+        assert((mNpcSpringVertexBuffer.size() % 6) == 0);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mNpcSpringVertexBuffer.size()));
 
         CheckOpenGLError();
 
@@ -1002,14 +1005,14 @@ void RenderContext::RenderEnd()
     // Particles
     ////////////////////////////////////////////////////////////////
 
-    if (!mParticleVertexBuffer.empty())
+    if (!mNpcParticleVertexBuffer.empty())
     {
-        glBindVertexArray(*mParticleVAO);
+        glBindVertexArray(*mNpcParticleVAO);
 
-        mShaderManager->ActivateProgram<ShaderManager::ProgramType::Particles>();
+        mShaderManager->ActivateProgram<ShaderManager::ProgramType::NpcParticles>();
 
-        assert((mParticleVertexBuffer.size() % 6) == 0);
-        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mParticleVertexBuffer.size()));
+        assert((mNpcParticleVertexBuffer.size() % 6) == 0);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mNpcParticleVertexBuffer.size()));
 
         CheckOpenGLError();
 
@@ -1017,17 +1020,17 @@ void RenderContext::RenderEnd()
     }
 
     ////////////////////////////////////////////////////////////////
-    // NPC Limbs
+    // NPC Quads
     ////////////////////////////////////////////////////////////////
 
-    if (!mNpcLimbVertexBuffer.empty())
+    if (!mNpcQuadVertexBuffer.empty())
     {
-        glBindVertexArray(*mNpcLimbVAO);
+        glBindVertexArray(*mNpcQuadVAO);
 
-        mShaderManager->ActivateProgram<ShaderManager::ProgramType::NpcLimbs>();
+        mShaderManager->ActivateProgram<ShaderManager::ProgramType::NpcQuads>();
 
-        assert((mNpcLimbVertexBuffer.size() % 6) == 0);
-        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mNpcLimbVertexBuffer.size()));
+        assert((mNpcQuadVertexBuffer.size() % 6) == 0);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mNpcQuadVertexBuffer.size()));
 
         CheckOpenGLError();
 
@@ -1118,12 +1121,16 @@ void RenderContext::OnViewModelUpdated()
     mShaderManager->SetProgramParameter<ShaderManager::ProgramType::Edges, ShaderManager::ProgramParameterType::OrthoMatrix>(
         orthoMatrix);
 
-    mShaderManager->ActivateProgram<ShaderManager::ProgramType::Particles>();
-    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::Particles, ShaderManager::ProgramParameterType::OrthoMatrix>(
+    mShaderManager->ActivateProgram<ShaderManager::ProgramType::NpcParticles>();
+    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::NpcParticles, ShaderManager::ProgramParameterType::OrthoMatrix>(
         orthoMatrix);
 
-    mShaderManager->ActivateProgram<ShaderManager::ProgramType::NpcLimbs>();
-    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::NpcLimbs, ShaderManager::ProgramParameterType::OrthoMatrix>(
+    mShaderManager->ActivateProgram<ShaderManager::ProgramType::NpcQuads>();
+    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::NpcQuads, ShaderManager::ProgramParameterType::OrthoMatrix>(
+        orthoMatrix);
+
+    mShaderManager->ActivateProgram<ShaderManager::ProgramType::NpcSprings>();
+    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::NpcSprings, ShaderManager::ProgramParameterType::OrthoMatrix>(
         orthoMatrix);
 
     mShaderManager->ActivateProgram<ShaderManager::ProgramType::Vertices>();
@@ -1132,10 +1139,6 @@ void RenderContext::OnViewModelUpdated()
 
     mShaderManager->ActivateProgram<ShaderManager::ProgramType::ParticleTrajectories>();
     mShaderManager->SetProgramParameter<ShaderManager::ProgramType::ParticleTrajectories, ShaderManager::ProgramParameterType::OrthoMatrix>(
-        orthoMatrix);
-
-    mShaderManager->ActivateProgram<ShaderManager::ProgramType::Springs>();
-    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::Springs, ShaderManager::ProgramParameterType::OrthoMatrix>(
         orthoMatrix);
 
     mShaderManager->ActivateProgram<ShaderManager::ProgramType::Triangles>();

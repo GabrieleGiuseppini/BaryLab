@@ -8,7 +8,6 @@
 #include "GameEventDispatcher.h"
 #include "GameParameters.h"
 #include "MaterialDatabase.h"
-#include "Model.h"
 #include "Physics.h"
 #include "RenderContext.h"
 #include "ShipDefinition.h"
@@ -37,7 +36,7 @@ public:
 
     void RegisterBLabEventHandler(IBLabEventHandler * handler)
     {
-        mGameEventDispatcher.RegisterBLabEventHandler(handler);
+        mGameEventHandler->RegisterBLabEventHandler(handler);
     }
 
     //
@@ -180,14 +179,14 @@ public:
 
     NpcRenderModeType GetNpcRenderMode() const
     {
-        assert(mModel);
-        return mModel->GetNpcs().GetNpcRenderMode();
+        assert(!!mRenderContext);
+        return mRenderContext->GetNpcRenderMode();
     }
 
     void SetNpcRenderMode(NpcRenderModeType value)
     {
-        assert(mModel);
-        mModel->GetNpcs().SetNpcRenderMode(value);
+        assert(!!mRenderContext);
+        mRenderContext->SetNpcRenderMode(value);
     }
 
     //
@@ -224,8 +223,8 @@ public:
     float GetMinGlobalDamping() const { return GameParameters::MinGlobalDamping; }
     float GetMaxGlobalDamping() const { return GameParameters::MaxGlobalDamping; }
 
-    float GetSeaLevel() const { return mWorld.GetOceanSurface().GetDepth(); }
-    void SetSeaLevel(float value) { mWorld.GetOceanSurface().SetDepth(value); }
+    float GetSeaLevel() const { return mWorld->GetOceanSurface().GetDepth(); }
+    void SetSeaLevel(float value) { mWorld->GetOceanSurface().SetDepth(value); }
     float GetMinSeaLevel() const { return Physics::OceanSurface::MinDepth; }
     float GetMaxSeaLevel() const { return Physics::OceanSurface::MaxDepth; }
 
@@ -270,12 +269,8 @@ private:
         MaterialDatabase && materialDatabase,
         std::unique_ptr<RenderContext> renderContext);
 
-    void LoadShip(
-        std::filesystem::path const & shipDefinitionFilepath,
-        bool addExperimentalNpc);
-
     void Reset(
-        std::unique_ptr<Model> newModel,
+        std::unique_ptr<Physics::Ship> ship,
         std::filesystem::path const & shipDefinitionFilepath);
 
     void UpdateShipTransformations();
@@ -284,15 +279,14 @@ private:
 
     MaterialDatabase mMaterialDatabase;
     std::unique_ptr<RenderContext> mRenderContext;
-    GameEventDispatcher mGameEventDispatcher;
+    std::shared_ptr<GameEventDispatcher> mGameEventHandler;
 
     //
     // Current state
     //
 
     GameParameters mGameParameters;
-    std::unique_ptr<Model> mModel;
-    Physics::World mWorld; // Dummy placeholder
+    std::unique_ptr<Physics::World> mWorld;
     std::optional<std::filesystem::path> mCurrentShipFilePath;
 
     float mCurrentSimulationTime;

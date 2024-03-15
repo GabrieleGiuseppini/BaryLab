@@ -6,8 +6,8 @@
 #define out varying
 
 // Inputs
-in vec4 inSpringAttributeGroup1; // Position, VertexSpacePosition
-in vec4 inSpringAttributeGroup2; // Color
+in vec4 inNpcSpringAttributeGroup1; // Position, VertexSpacePosition
+in vec4 inNpcSpringAttributeGroup2; // Color
 
 // Outputs        
 out vec2 vertexSpacePosition;
@@ -18,10 +18,10 @@ uniform mat4 paramOrthoMatrix;
 
 void main()
 {  
-    vertexSpacePosition = inSpringAttributeGroup1.zw;
-    springColor = inSpringAttributeGroup2;
+    vertexSpacePosition = inNpcSpringAttributeGroup1.zw;
+    springColor = inNpcSpringAttributeGroup2;
 
-    gl_Position = paramOrthoMatrix * vec4(inSpringAttributeGroup1.xy, -1.0, 1.0);
+    gl_Position = paramOrthoMatrix * vec4(inNpcSpringAttributeGroup1.xy, -1.0, 1.0);
 }
 
 ###FRAGMENT

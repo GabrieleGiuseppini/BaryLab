@@ -34,6 +34,14 @@ using ElementIndex = std::uint32_t;
 static constexpr ElementIndex NoneElementIndex = std::numeric_limits<ElementIndex>::max();
 
 /*
+ * Ship identifiers.
+ *
+ * Comparable and ordered. Start from 0.
+ */
+using ShipId = std::uint32_t;
+static ShipId constexpr NoneShip = std::numeric_limits<ShipId>::max();
+
+/*
  * NPC (global) identifiers.
  *
  * Comparable and ordered. Start from 0.
@@ -180,7 +188,7 @@ enum class NpcHighlightType
 
 enum class NpcRenderModeType
 {
-    Physical,
+    Physical, // Only in Barylab
     Limbs
 };
 

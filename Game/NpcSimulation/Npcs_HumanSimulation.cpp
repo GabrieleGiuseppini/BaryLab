@@ -12,33 +12,44 @@
 
 namespace Physics {
 
+namespace {
+
+	bool IsAtTarget(float currentValue, float targetValue)
+	{
+		return std::abs(targetValue - currentValue) < 0.01f;
+	}
+
+}
+
 Npcs::StateType::KindSpecificStateType::HumanNpcStateType Npcs::InitializeHuman(
-	StateType::NpcParticleStateType const & primaryParticleState,
-	StateType::NpcParticleStateType const & secondaryParticleState,
-	float currentSimulationTime,
-	Ship const & /*ship*/) const
+	StateType & npc,
+	float currentSimulationTime) const
 {
+	assert(npc.DipoleState.has_value());
+	auto const & primaryParticleState = npc.PrimaryParticleState;
+	auto const & secondaryParticleState = npc.DipoleState->SecondaryParticleState;
+
 	// Return state
 
 	if (!primaryParticleState.ConstrainedState.has_value()
 		&& !secondaryParticleState.ConstrainedState.has_value())
 	{
 		// Whole NPC is free
-		mGameEventDispatcher.OnHumanNpcBehaviorChanged("Free_Aerial");
+		mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Aerial");
 		return StateType::KindSpecificStateType::HumanNpcStateType(StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Aerial, currentSimulationTime);
 	}
 	else
 	{
 		// NPC is constrained
-		mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+		mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 		return StateType::KindSpecificStateType::HumanNpcStateType(StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
 	}
 }
 
 void Npcs::UpdateHuman(
-	float currentSimulationTime,
 	StateType & npc,
-	Ship const & ship,
+	float currentSimulationTime,
+	ShipMeshType const & shipMesh,
 	GameParameters const & gameParameters)
 {
 	assert(npc.DipoleState.has_value());
@@ -62,18 +73,18 @@ void Npcs::UpdateHuman(
 			if (isFree)
 			{
 				// Transition
-				TransitionHumanToFree(currentSimulationTime, npc);
+				TransitionHumanToFree(npc, currentSimulationTime);
 
 				break;
 			}
 
 			// Check conditions for falling/KO
 
-			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, ship);
-			bool const areFeetOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, ship);
+			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, shipMesh);
+			bool const areFeetOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, shipMesh);
 
 			vec2f const floorVector = (primaryParticleState.ConstrainedState.has_value() && primaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal >= 0)
-				? ship.GetTriangles().GetSubSpringVector(primaryParticleState.ConstrainedState->CurrentTriangle, primaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal, ship.GetPoints())
+				? shipMesh.ShipTriangles.GetSubSpringVector(primaryParticleState.ConstrainedState->CurrentTriangle, primaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal, shipMesh.ShipPoints)
 				: vec2f(1.0f, 0.0); // H arbitrarily
 			float const headVelocityAlongFloor = secondaryParticleState.GetApplicableVelocity(mParticles).dot(floorVector);
 			float const feetVelocityAlongFloor = primaryParticleState.GetApplicableVelocity(mParticles).dot(floorVector);
@@ -138,7 +149,7 @@ void Npcs::UpdateHuman(
 						: -1.0f;
 				}
 
-				mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Falling");
+				mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Falling");
 
 				break;
 			}
@@ -160,7 +171,7 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
 
-				mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+				mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 
 				break;
 			}
@@ -173,14 +184,14 @@ void Npcs::UpdateHuman(
 			if (isFree)
 			{
 				// Transition
-				TransitionHumanToFree(currentSimulationTime, npc);
+				TransitionHumanToFree(npc, currentSimulationTime);
 
 				break;
 			}
 
 			// Check conditions for knocked out
 
-			bool const areFootOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, ship);
+			bool const areFootOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, shipMesh);
 
 			float knockedOutTarget = 0.0f;
 			float constexpr MaxRelativeVelocityForKnockedOut = 1.2f;
@@ -207,14 +218,14 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
 
-				mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+				mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 
 				break;
 			}
 
 			// Check conditions for aerial
 
-			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, ship);
+			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, shipMesh);
 
 			if (!areFootOnFloor && !isHeadOnFloor)
 			{
@@ -235,7 +246,7 @@ void Npcs::UpdateHuman(
 
 					humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Aerial, currentSimulationTime);
 
-					mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Aerial");
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Aerial");
 
 					break;
 				}
@@ -256,14 +267,14 @@ void Npcs::UpdateHuman(
 			if (isFree)
 			{
 				// Transition
-				TransitionHumanToFree(currentSimulationTime, npc);
+				TransitionHumanToFree(npc, currentSimulationTime);
 
 				break;
 			}
 
 			// Check conditions for rising
 
-			bool const areFootOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, ship);
+			bool const areFootOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, shipMesh);
 
 			float risingTarget = 0.0f;
 			if (areFootOnFloor
@@ -288,14 +299,14 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Rising, currentSimulationTime);
 
-				mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Rising");
+				mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Rising");
 
 				break;
 			}
 
 			// Check conditions for aerial
 
-			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, ship);
+			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, shipMesh);
 
 			if (!areFootOnFloor && !isHeadOnFloor)
 			{
@@ -315,7 +326,7 @@ void Npcs::UpdateHuman(
 
 					humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Aerial, currentSimulationTime);
 
-					mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Aerial");
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Aerial");
 
 					break;
 				}
@@ -341,14 +352,14 @@ void Npcs::UpdateHuman(
 			if (isFree)
 			{
 				// Transition
-				TransitionHumanToFree(currentSimulationTime, npc);
+				TransitionHumanToFree(npc, currentSimulationTime);
 
 				break;
 			}
 
 			bool const isOnEdge =
 				primaryParticleState.ConstrainedState.has_value()
-				&& IsOnFloorEdge(*primaryParticleState.ConstrainedState, ship);
+				&& IsOnFloorEdge(*primaryParticleState.ConstrainedState, shipMesh);
 
 			if (humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_Equilibrium)
 			{
@@ -375,7 +386,7 @@ void Npcs::UpdateHuman(
 
 						// Keep torque
 
-						mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Walking");
+						mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Walking");
 
 						break;
 					}
@@ -490,7 +501,7 @@ void Npcs::UpdateHuman(
 					" primary's relative velocity mag: ", primaryParticleState.ConstrainedState.has_value() ? std::to_string(primaryParticleState.ConstrainedState->MeshRelativeVelocity.length()) : "N/A",
 					" (max=", MaxRelativeVelocityMagnitudeForEquilibrium, ")");
 
-				bool const areFootOnEdge = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, ship);
+				bool const areFootOnEdge = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, shipMesh);
 				if (areFootOnEdge)
 				{
 					// Falling
@@ -505,7 +516,7 @@ void Npcs::UpdateHuman(
 						? 1.0f
 						: -1.0f;
 
-					mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Falling");
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Falling");
 				}
 				else
 				{
@@ -513,7 +524,7 @@ void Npcs::UpdateHuman(
 
 					humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Aerial, currentSimulationTime);
 
-					mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Aerial");
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Aerial");
 				}
 
 				break;
@@ -537,7 +548,7 @@ void Npcs::UpdateHuman(
 
 					humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Equilibrium, currentSimulationTime);
 
-					mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_Equilibrium");
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Equilibrium");
 				}
 			}
 			else if (humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_Equilibrium)
@@ -554,7 +565,7 @@ void Npcs::UpdateHuman(
 					RunWalkingHumanStateMachine(
 						humanState,
 						primaryParticleState,
-						ship,
+						shipMesh,
 						gameParameters);
 				}
 
@@ -575,7 +586,7 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
 
-				mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+				mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 
 				break;
 			}
@@ -594,7 +605,7 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Free_InWater, currentSimulationTime);
 
-				mGameEventDispatcher.OnHumanNpcBehaviorChanged("Free_InWater");
+				mGameEventHandler->OnHumanNpcBehaviorChanged("Free_InWater");
 
 				break;
 			}
@@ -611,7 +622,7 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
 
-				mGameEventDispatcher.OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+				mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 
 				break;
 			}
@@ -630,7 +641,7 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Free_Aerial, currentSimulationTime);
 
-				mGameEventDispatcher.OnHumanNpcBehaviorChanged("Free_Aerial");
+				mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Aerial");
 
 				break;
 			}
@@ -661,7 +672,7 @@ void Npcs::UpdateHuman(
 					humanState.CurrentFaceOrientation = 1.0f; // TODO: random: back
 					humanState.CurrentFaceDirectionX = 0.0f;
 
-					mGameEventDispatcher.OnHumanNpcBehaviorChanged("Free_Swimming");
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Swimming");
 
 					break;
 				}
@@ -671,7 +682,7 @@ void Npcs::UpdateHuman(
 		}
 	}
 
-	mGameEventDispatcher.OnHumanNpcStateQuantityChanged(publishStateQuantity);
+	mGameEventHandler->OnHumanNpcStateQuantityChanged(publishStateQuantity);
 }
 
 bool Npcs::CheckAndMaintainHumanEquilibrium(
@@ -750,7 +761,7 @@ bool Npcs::CheckAndMaintainHumanEquilibrium(
 void Npcs::RunWalkingHumanStateMachine(
 	StateType::KindSpecificStateType::HumanNpcStateType & humanState,
 	StateType::NpcParticleStateType const & primaryParticleState,
-	Ship const & /*ship*/, // Will come useful when we'll *plan* the walk
+	ShipMeshType const & shipMesh, // Will come useful when we'll *plan* the walk
 	GameParameters const & gameParameters)
 {
 	assert(primaryParticleState.ConstrainedState.has_value());
@@ -805,10 +816,10 @@ void Npcs::RunWalkingHumanStateMachine(
 }
 
 void Npcs::OnHumanImpact(
-	vec2f const & /*impactVector*/,
-	vec2f const & bounceEdgeNormal,
 	StateType & npc,
-	bool /*isPrimaryParticle*/) const
+	bool /*isPrimaryParticle*/,
+	vec2f const & /*impactVector*/,
+	vec2f const & bounceEdgeNormal) const
 {
 	assert(npc.Kind == NpcKindType::Human);
 
@@ -863,8 +874,8 @@ void Npcs::FlipHumanWalk(
 }
 
 void Npcs::TransitionHumanToFree(
-	float currentSimulationTime,
-	StateType & npc)
+	StateType & npc,
+	float currentSimulationTime)
 {
 	assert(npc.Kind == NpcKindType::Human);
 
@@ -877,12 +888,12 @@ void Npcs::TransitionHumanToFree(
 		&& mParentWorld.GetOceanSurface().GetDepth(feetPosition) > 0.0f)
 	{
 		npc.KindSpecificState.HumanNpcState.TransitionToState(StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_InWater, currentSimulationTime);
-		mGameEventDispatcher.OnHumanNpcBehaviorChanged("Free_InWater");
+		mGameEventHandler->OnHumanNpcBehaviorChanged("Free_InWater");
 	}
 	else
 	{
 		npc.KindSpecificState.HumanNpcState.TransitionToState(StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Aerial, currentSimulationTime);
-		mGameEventDispatcher.OnHumanNpcBehaviorChanged("Free_Aerial");
+		mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Aerial");
 	}
 }
 

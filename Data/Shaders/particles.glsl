@@ -6,8 +6,8 @@
 #define out varying
 
 // Inputs
-in vec4 inParticleAttributeGroup1; // Position, VertexSpacePosition
-in vec4 inParticleAttributeGroup2; // Color
+in vec4 inNpcParticleAttributeGroup1; // Position, VertexSpacePosition
+in vec4 inNpcParticleAttributeGroup2; // Color
 
 // Outputs        
 out vec2 vertexSpacePosition;
@@ -18,10 +18,10 @@ uniform mat4 paramOrthoMatrix;
 
 void main()
 {  
-    vertexSpacePosition = inParticleAttributeGroup1.zw;
-    particleColor = inParticleAttributeGroup2;
+    vertexSpacePosition = inNpcParticleAttributeGroup1.zw;
+    particleColor = inNpcParticleAttributeGroup2;
 
-    gl_Position = paramOrthoMatrix * vec4(inParticleAttributeGroup1.xy, -1.0, 1.0);
+    gl_Position = paramOrthoMatrix * vec4(inNpcParticleAttributeGroup1.xy, -1.0, 1.0);
 }
 
 ###FRAGMENT

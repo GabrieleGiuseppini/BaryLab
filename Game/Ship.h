@@ -16,14 +16,20 @@ class Ship
 public:
 
     Ship(
+        ShipId id,
         Points && points,
         Springs && springs,
         Triangles && triangles)
-        : mPoints(std::move(points))
+        : mId(id)
+        , mPoints(std::move(points))
         , mSprings(std::move(springs))
         , mTriangles(std::move(triangles))
     {}
 
+    ShipId GetId() const
+    {
+        return mId;
+    }
 
     Points const & GetPoints() const
     {
@@ -57,6 +63,7 @@ public:
 
 private:
 
+    ShipId const mId;
     Points mPoints;
     Springs mSprings;
     Triangles mTriangles;

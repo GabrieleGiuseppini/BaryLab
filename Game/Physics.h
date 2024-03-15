@@ -18,5 +18,5 @@ namespace Physics
 #include "OceanSurface.h"
 #include "Triangles.h"
 #include "Ship.h"
-#include "World.h"
 #include "NpcSimulation/Npcs.h"
+#include "World.h"

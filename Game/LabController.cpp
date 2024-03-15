@@ -43,10 +43,9 @@ LabController::LabController(
     std::unique_ptr<RenderContext> renderContext)
     : mMaterialDatabase(std::move(materialDatabase))
     , mRenderContext(std::move(renderContext))
-    , mGameEventDispatcher()
+    , mGameEventHandler(std::make_shared<GameEventDispatcher>())
     // Simulation state
     , mGameParameters()
-    , mModel()
     , mWorld()
     , mCurrentShipFilePath()
     , mCurrentSimulationTime(0.0f)
@@ -72,21 +71,40 @@ void LabController::SetSimulationControlPulse()
 
 void LabController::LoadShip(std::filesystem::path const & shipDefinitionFilepath)
 {
-    LoadShip(shipDefinitionFilepath, true);
+    // Load ship definition
+    auto shipDefinition = ShipDefinition::Load(shipDefinitionFilepath);
+
+    // Make ship
+
+    std::unique_ptr<Physics::Ship> ship = ShipBuilder::BuildShip(
+        std::move(shipDefinition),
+        mMaterialDatabase);
+
+    if (ship->GetTriangles().GetElementCount() < 1)
+    {
+        throw GameException("Ship must contain at least one triangle");
+    }
+
+    //
+    // No errors, so we may continue
+    //
+
+    Reset(
+        std::move(ship),
+        shipDefinitionFilepath);
 }
 
 void LabController::Update()
 {
-    assert(mModel);
+    assert(mWorld);
 
     if (mSimulationControlState == SimulationControlStateType::Play
         || mSimulationControlImpulse)
     {
         UpdateShipTransformations();
 
-        mModel->GetNpcs().Update(
+        mWorld->Update(
             mCurrentSimulationTime,
-            mModel->GetShip(),
             mGameParameters);
 
         // Update state
@@ -105,13 +123,13 @@ void LabController::Render()
 
     mRenderContext->RenderStart();
 
-    mRenderContext->UploadSeaLevel(mWorld.GetOceanSurface().GetDepth());
-
-    if (mModel)
+    if (mWorld)
     {
-        auto const & points = mModel->GetShip().GetPoints();
-        auto const & springs = mModel->GetShip().GetSprings();
-        auto const & triangles = mModel->GetShip().GetTriangles();
+        mRenderContext->UploadSeaLevel(mWorld->GetOceanSurface().GetDepth());
+
+        auto const & points = mWorld->GetShip().GetPoints();
+        auto const & springs = mWorld->GetShip().GetSprings();
+        auto const & triangles = mWorld->GetShip().GetTriangles();
 
         //
         // Vertices
@@ -132,7 +150,7 @@ void LabController::Render()
         for (auto t : triangles)
         {
             rgbaColor color = springs.GetRenderColor(triangles.GetSubSpringAIndex(t));
-            if (mModel->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringAIndex(t), mModel->GetShip()))
+            if (mWorld->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringAIndex(t)))
             {
                 color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
             }
@@ -142,7 +160,7 @@ void LabController::Render()
                 color);
 
             color = springs.GetRenderColor(triangles.GetSubSpringBIndex(t));
-            if (mModel->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringBIndex(t), mModel->GetShip()))
+            if (mWorld->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringBIndex(t)))
             {
                 color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
             }
@@ -152,7 +170,7 @@ void LabController::Render()
                 color);
 
             color = springs.GetRenderColor(triangles.GetSubSpringCIndex(t));
-            if (mModel->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringCIndex(t), mModel->GetShip()))
+            if (mWorld->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringCIndex(t)))
             {
                 color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
             }
@@ -174,11 +192,11 @@ void LabController::Render()
         {
             std::optional<rgbaColor> color;
 
-            if (mModel->GetNpcs().IsTriangleConstrainingCurrentlySelectedParticle(t))
+            if (mWorld->GetNpcs().IsTriangleConstrainingCurrentlySelectedParticle(t))
             {
                 color = rgbaColor(107, 227, 107, 77);
             }
-            else if (t == mModel->GetNpcs().GetCurrentOriginTriangle())
+            else if (t == mWorld->GetNpcs().GetCurrentOriginTriangle())
             {
                 color = rgbaColor(227, 107, 107, 77);
             }
@@ -206,7 +224,7 @@ void LabController::Render()
         // Npcs
         //
 
-        mModel->GetNpcs().Render(*mRenderContext);
+        mWorld->GetNpcs().Upload(*mRenderContext);
 
         //
         // Ship velocity
@@ -231,7 +249,7 @@ void LabController::UpdateShipTransformations()
     vec2f const translation = mCurrentShipTranslationVelocity * GameParameters::SimulationTimeStepDuration;
 
     // Update ship
-    auto & points = mModel->GetShip().GetPoints();
+    auto & points = mWorld->GetShip().GetPoints();
     for (auto p : points)
     {
         points.SetPosition(p, points.GetPosition(p) + translation);
@@ -243,7 +261,7 @@ void LabController::UpdateShipTransformations()
 
 std::optional<ElementIndex> LabController::TryPickVertex(vec2f const & screenCoordinates) const
 {
-    assert(!!mModel);
+    assert(!!mWorld);
 
     //
     // Find closest vertex within the radius
@@ -256,7 +274,7 @@ std::optional<ElementIndex> LabController::TryPickVertex(vec2f const & screenCoo
     float bestSquareDistance = std::numeric_limits<float>::max();
     ElementIndex bestPoint = NoneElementIndex;
 
-    auto const & points = mModel->GetShip().GetPoints();
+    auto const & points = mWorld->GetShip().GetPoints();
     for (auto p : points)
     {
         float const squareDistance = (points.GetPosition(p) - worldCoordinates).squareLength();
@@ -278,22 +296,22 @@ void LabController::MoveVertexBy(
     ElementIndex pointIndex,
     vec2f const & screenOffset)
 {
-    assert(!!mModel);
+    assert(!!mWorld);
 
     vec2f const worldOffset = ScreenOffsetToWorldOffset(screenOffset);
 
-    mModel->GetShip().GetPoints().SetPosition(
+    mWorld->GetShip().GetPoints().SetPosition(
         pointIndex,
-        mModel->GetShip().GetPoints().GetPosition(pointIndex) + worldOffset);
+        mWorld->GetShip().GetPoints().GetPosition(pointIndex) + worldOffset);
 
-    mModel->GetNpcs().OnPointMoved(mCurrentSimulationTime, mModel->GetShip());
+    mWorld->GetNpcs().OnPointMoved(mCurrentSimulationTime);
 }
 
 void LabController::RotateShipBy(
     vec2f const & centerScreenCoordinates,
     float screenStride)
 {
-    assert(!!mModel);
+    assert(!!mWorld);
 
     vec2f const worldCenter = ScreenToWorld(centerScreenCoordinates);
     float const worldAngle = ScreenOffsetToWorldOffset(screenStride) * 0.05f;
@@ -305,7 +323,7 @@ void LabController::RotateShipBy(
     // Rotate ship
     //
 
-    auto & points = mModel->GetShip().GetPoints();
+    auto & points = mWorld->GetShip().GetPoints();
     for (auto p : points)
     {
         vec2f const centeredPos = points.GetPosition(p) - worldCenter;
@@ -324,27 +342,26 @@ void LabController::RotateShipBy(
     ////mModel->GetNpcs().RotateParticlesWithShip(
     ////    worldCenter,
     ////    cosAngle,
-    ////    sinAngle,
-    ////    mModel->GetShip());
+    ////    sinAngle);
 }
 
 void LabController::RotateShipBy(
     ElementIndex particleIndex,
     float screenStride)
 {
-    assert(!!mModel);
+    assert(!!mWorld);
 
     //
     // Rotate ship
     //
 
-    vec2f const worldCenter = mModel->GetNpcs().GetParticles().GetPosition(particleIndex);
+    vec2f const worldCenter = mWorld->GetNpcs().GetParticles().GetPosition(particleIndex);
     float const worldAngle = ScreenOffsetToWorldOffset(screenStride) * 0.05f;
 
     float const cosAngle = std::cos(worldAngle);
     float const sinAngle = std::sin(worldAngle);
 
-    auto & points = mModel->GetShip().GetPoints();
+    auto & points = mWorld->GetShip().GetPoints();
     for (auto p : points)
     {
         vec2f const centeredPos = points.GetPosition(p) - worldCenter;
@@ -363,32 +380,31 @@ void LabController::RotateShipBy(
     ////mModel->GetNpcs().RotateParticlesWithShip(
     ////    worldCenter,
     ////    cosAngle,
-    ////    sinAngle,
-    ////    mModel->GetShip());
+    ////    sinAngle);
 }
 
 bool LabController::TrySelectOriginTriangle(vec2f const & screenCoordinates)
 {
-    assert(!!mModel);
+    assert(!!mWorld);
 
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
-    ElementIndex const t = mModel->GetShip().GetTriangles().FindContaining(worldCoordinates, mModel->GetShip().GetPoints());
+    ElementIndex const t = mWorld->GetShip().GetTriangles().FindContaining(worldCoordinates, mWorld->GetShip().GetPoints());
     if (t != NoneElementIndex)
     {
-        mModel->GetNpcs().SelectOriginTriangle(t);
+        mWorld->GetNpcs().SelectOriginTriangle(t);
         return true;
     }
     else
     {
-        mModel->GetNpcs().ResetOriginTriangle();
+        mWorld->GetNpcs().ResetOriginTriangle();
         return false;
     }
 }
 
 bool LabController::TrySelectParticle(vec2f const & screenCoordinates)
 {
-    assert(!!mModel);
+    assert(!!mWorld);
 
     //
     // Find closest particle within the radius
@@ -401,7 +417,7 @@ bool LabController::TrySelectParticle(vec2f const & screenCoordinates)
     float bestSquareDistance = std::numeric_limits<float>::max();
     ElementIndex bestParticle = NoneElementIndex;
 
-    auto const & particles = mModel->GetNpcs().GetParticles();
+    auto const & particles = mWorld->GetNpcs().GetParticles();
     for (auto p : particles)
     {
         float const squareDistance = (particles.GetPosition(p) - worldCoordinates).squareLength();
@@ -415,7 +431,7 @@ bool LabController::TrySelectParticle(vec2f const & screenCoordinates)
 
     if (bestParticle != NoneElementIndex)
     {
-        mModel->GetNpcs().SelectParticle(bestParticle, mModel->GetShip());
+        mWorld->GetNpcs().SelectParticle(bestParticle);
         return true;
     }
     else
@@ -426,7 +442,7 @@ bool LabController::TrySelectParticle(vec2f const & screenCoordinates)
 
 std::optional<ElementIndex> LabController::TryPickNpcParticle(vec2f const & screenCoordinates) const
 {
-    assert(!!mModel);
+    assert(!!mWorld);
 
     //
     // Find closest particle within the radius
@@ -439,7 +455,7 @@ std::optional<ElementIndex> LabController::TryPickNpcParticle(vec2f const & scre
     float bestSquareDistance = std::numeric_limits<float>::max();
     ElementIndex bestParticle = NoneElementIndex;
 
-    auto const & particles = mModel->GetNpcs().GetParticles();
+    auto const & particles = mWorld->GetNpcs().GetParticles();
     for (auto p : particles)
     {
         float const squareDistance = (particles.GetPosition(p) - worldCoordinates).squareLength();
@@ -464,24 +480,23 @@ void LabController::MoveNpcParticleBy(
 {
     (void)inertialStride;
 
-    assert(!!mModel);
+    assert(!!mWorld);
 
     vec2f const worldOffset = ScreenOffsetToWorldOffset(screenOffset);
 
-    mModel->GetNpcs().MoveParticleBy(
+    mWorld->GetNpcs().MoveParticleBy(
         npcParticleIndex,
         worldOffset,
-        mCurrentSimulationTime,
-        mModel->GetShip());
+        mCurrentSimulationTime);
 }
 
 void LabController::NotifyNpcParticleTrajectory(
     ElementIndex npcParticleIndex,
     vec2f const & targetScreenCoordinates)
 {
-    assert(!!mModel);
+    assert(!!mWorld);
 
-    mModel->GetNpcs().NotifyParticleTrajectory(
+    mWorld->GetNpcs().NotifyParticleTrajectory(
         npcParticleIndex,
         ScreenToWorld(targetScreenCoordinates));
 }
@@ -490,19 +505,19 @@ void LabController::SetNpcParticleTrajectory(
     ElementIndex npcParticleIndex,
     vec2f const & targetScreenCoordinates)
 {
-    mModel->GetNpcs().SetParticleTrajectory(
+    mWorld->GetNpcs().SetParticleTrajectory(
         npcParticleIndex,
         ScreenToWorld(targetScreenCoordinates));
 }
 
 void LabController::QueryNearestNpcParticleAt(vec2f const & screenCoordinates) const
 {
-    assert(!!mModel);
+    assert(!!mWorld);
 
     auto const nearestNpcParticle = TryPickNpcParticle(screenCoordinates);
     if (nearestNpcParticle.has_value())
     {
-        mModel->GetNpcs().GetParticles().Query(*nearestNpcParticle);
+        mWorld->GetNpcs().GetParticles().Query(*nearestNpcParticle);
     }
 }
 
@@ -515,9 +530,9 @@ void LabController::SetGravityEnabled(bool isEnabled)
 {
     mIsGravityEnabled = isEnabled;
 
-    if (mModel)
+    if (mWorld)
     {
-        mModel->GetNpcs().SetGravityEnabled(isEnabled);
+        mWorld->GetNpcs().SetGravityEnabled(isEnabled);
     }
 }
 
@@ -534,9 +549,9 @@ void LabController::SetShipVelocity(vec2f const & velocity)
 
 void LabController::DoStepForVideo()
 {
-    assert(mModel);
+    assert(mWorld);
 
-    mModel->GetNpcs().FlipHumanWalk(0);
+    mWorld->GetNpcs().FlipHumanWalk(0);
     //mModel->GetNpcs().FlipHumanFrontBack(0);
 
     ////// TODOTEST
@@ -832,13 +847,18 @@ void LabController::DoStepForVideo()
 
 ////////////////////////////////////////////////
 
-std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewHumanNpc(HumanNpcKindType humanKind, vec2f const & screenCoordinates)
+std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewHumanNpc(
+    HumanNpcKindType humanKind,
+    vec2f const & screenCoordinates)
 {
+    assert(!!mWorld);
+
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
-    // TODOHERE
-    (void)humanKind;
-    return std::nullopt;
+    return mWorld->GetNpcs().BeginPlaceNewHumanNpc(
+        humanKind,
+        worldCoordinates,
+        mCurrentSimulationTime);
 }
 
 std::optional<PickedObjectId<NpcId>> LabController::ProbeNpc(vec2f const & screenCoordinates) const
@@ -849,7 +869,10 @@ std::optional<PickedObjectId<NpcId>> LabController::ProbeNpc(vec2f const & scree
     return std::nullopt;
 }
 
-void LabController::MoveNpcTo(NpcId id, vec2f const & screenCoordinates, vec2f const & worldOffset)
+void LabController::MoveNpcTo(
+    NpcId id,
+    vec2f const & screenCoordinates,
+    vec2f const & worldOffset)
 {
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
@@ -882,7 +905,9 @@ void LabController::RemoveNpc(NpcId id)
     (void)id;
 }
 
-void LabController::HighlightNpc(NpcId id, NpcHighlightType highlight)
+void LabController::HighlightNpc(
+    NpcId id,
+    NpcHighlightType highlight)
 {
     // TODOHERE
     (void)id;
@@ -891,122 +916,29 @@ void LabController::HighlightNpc(NpcId id, NpcHighlightType highlight)
 
 void LabController::SetNpcPanicLevelForAllHumans(float panicLevel)
 {
-    mModel->GetNpcs().SetPanicLevelForAllHumans(panicLevel);
+    assert(!!mWorld);
+    mWorld->GetNpcs().SetPanicLevelForAllHumans(panicLevel);
 }
 
 ////////////////////////////////////////////////
 
-void LabController::LoadShip(
-    std::filesystem::path const & shipDefinitionFilepath,
-    bool addExperimentalNpc)
-{
-    // Load ship definition
-    auto shipDefinition = ShipDefinition::Load(shipDefinitionFilepath);
-
-    // Make ship
-
-    std::unique_ptr<Physics::Ship> ship = ShipBuilder::BuildShip(
-        std::move(shipDefinition),
-        mMaterialDatabase);
-
-    if (ship->GetTriangles().GetElementCount() < 1)
-    {
-        throw GameException("Ship must contain at least one triangle");
-    }
-
-    // Create NPCs
-
-    std::unique_ptr<Physics::Npcs> npcs = std::make_unique<Physics::Npcs>(
-        mWorld,
-        mMaterialDatabase,
-        mGameEventDispatcher,
-        mGameParameters,
-        mIsGravityEnabled);
-
-    if (addExperimentalNpc)
-    {
-        // TODO: for small ship, in the middle
-        //vec2f const position = vec2f(0.5f, 0.0f);
-        // TODO: for small ship, on the floor, left triangle
-        vec2f const position = vec2f(-0.5f, -2.0f);
-        // TODO: for small ship, on the floor, right triangle
-        //vec2f const position = vec2f(0.5f, -2.0f);
-        // TODO: for large ship, on floor
-        //vec2f const position = vec2f(5.5f, -6.0f);
-
-        // TODO: for repro of traj acceleration w/human
-        //vec2f const position = vec2f(-0.634f, -2.0f);
-
-        ////// TODO: for repro of traj acceleration w/ball
-        ////ElementIndex const triangleIndex = 46;
-        ////float const TODO = 0.99435f;
-        ////bcoords3f const baryCoords = bcoords3f(TODO, 0.0f, 1.0f - TODO);
-        ////vec2f const position = ship->GetTriangles().FromBarycentricCoordinates(baryCoords, triangleIndex, ship->GetPoints());
-
-        npcs->Add(
-            // TODOTEST
-            //NpcKindType::Furniture,
-            NpcKindType::Human,
-            position,
-            std::nullopt, // Secondary position
-            mCurrentSimulationTime,
-            *ship,
-            mGameParameters);
-
-        ////// TODOTEST: multiple balls
-        ////for (int i = 0; i < 40; ++i)
-        ////{
-        ////    vec2f const p = vec2f(
-        ////        GameRandomEngine::GetInstance().GenerateUniformReal(-9.0f, 8.0f),
-        ////        GameRandomEngine::GetInstance().GenerateUniformReal(-5.0f, 5.0f));
-
-        ////    npcs->Add(
-        ////        Npcs::NpcType::Furniture,
-        ////        p,
-        ////        std::nullopt, // Secondary position
-        ////        mCurrentSimulationTime,
-        ////        mStructuralMaterialDatabase,
-        ////        *ship,
-        ////        mLabParameters);
-        ////}
-
-        ////// TODO: for repro w/ball, part II
-        ////assert(npcs->GetState(0).PrimaryParticleState.ConstrainedState.has_value());
-        ////assert(npcs->GetState(0).PrimaryParticleState.ConstrainedState->CurrentTriangle == triangleIndex);
-        ////npcs->GetState(0).PrimaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords = baryCoords;
-        ////npcs->GetParticles().SetVelocity(npcs->GetState(0).PrimaryParticleState.ParticleIndex, vec2f(-1.0f, 0.0f));
-        ////// TODOTEST: trying now for inertial (no G and no friction)
-        //////npcs->GetParticles().SetVelocity(npcs->GetState(0).PrimaryParticleState.ParticleIndex, vec2f(-1.0f, (GameParameters::GravityMagnitude + 16.25f) * GameParameters::SimulationTimeStepDuration));
-
-        // Select particle
-        npcs->SelectParticle(0, *ship);
-    }
-
-    // Create a new model
-    std::unique_ptr<Model> newModel = std::make_unique<Model>(
-        std::move(ship),
-        std::move(npcs),
-        mGameEventDispatcher);
-
-    //
-    // No errors, so we may continue
-    //
-
-    Reset(
-        std::move(newModel),
-        shipDefinitionFilepath);
-}
-
 void LabController::Reset(
-    std::unique_ptr<Model> newModel,
+    std::unique_ptr<Physics::Ship> ship,
     std::filesystem::path const & shipDefinitionFilepath)
 {
     //
-    // Take object in
+    // Make new world
     //
 
-    mModel.reset();
-    mModel = std::move(newModel);
+    mWorld.reset();
+    mWorld = std::make_unique<Physics::World>(
+        mMaterialDatabase,
+        mGameEventHandler,
+        mGameParameters,
+        mIsGravityEnabled);
+
+    mWorld->AddShip(std::move(ship));
+
     mCurrentShipFilePath = shipDefinitionFilepath;
 
     //
@@ -1020,7 +952,7 @@ void LabController::Reset(
     //
 
     {
-        AABB const objectAABB = mModel->GetShip().GetPoints().GetAABB();
+        AABB const objectAABB = mWorld->GetShip().GetPoints().GetAABB();
 
         vec2f const objectSize = objectAABB.GetSize();
 
@@ -1042,6 +974,6 @@ void LabController::Reset(
     // Publish reset
     //
 
-    mGameEventDispatcher.OnBLabReset();
+    mGameEventHandler->OnBLabReset();
 }
 

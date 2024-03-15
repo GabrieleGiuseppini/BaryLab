@@ -30,10 +30,10 @@ public:
         Background = 0,
         Vertices = 1,
         Edges = 2,
-        Particles = 3,
-        NpcLimbs = 4,
-        ParticleTrajectories = 5,
-        Springs = 6,
+        NpcQuads = 3,
+        NpcParticles = 4,
+        NpcSprings = 5,
+        ParticleTrajectories = 6,
         Triangles = 7,
         ShipVelocity = 8,
         Grid = 9,
@@ -58,17 +58,17 @@ public:
         EdgeAttributeGroup1 = 0,
         EdgeAttributeGroup2 = 1,
 
-        ParticleAttributeGroup1 = 0,
-        ParticleAttributeGroup2 = 1,
+        NpcParticleAttributeGroup1 = 0,
+        NpcParticleAttributeGroup2 = 1,
 
-        NpcLimbAttributeGroup1 = 0,
-        NpcLimbAttributeGroup2 = 1,
+        NpcQuadAttributeGroup1 = 0,
+        NpcQuadAttributeGroup2 = 1,
+
+        NpcSpringAttributeGroup1 = 0,
+        NpcSpringAttributeGroup2 = 1,
 
         ParticleTrajectoryAttributeGroup1 = 0,
         ParticleTrajectoryAttributeGroup2 = 1,
-
-        SpringAttributeGroup1 = 0,
-        SpringAttributeGroup2 = 1,
 
         TriangleAttributeGroup1 = 0,
         TriangleAttributeGroup2 = 1,

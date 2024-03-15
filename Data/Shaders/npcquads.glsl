@@ -6,8 +6,8 @@
 #define out varying
 
 // Inputs
-in vec4 inNpcLimbAttributeGroup1; // Position, VertexSpacePosition
-in vec2 inNpcLimbAttributeGroup2; // BackDepth, OrientationDepth
+in vec4 inNpcQuadAttributeGroup1; // Position, VertexSpacePosition
+in vec2 inNpcQuadAttributeGroup2; // BackDepth, OrientationDepth
 
 // Outputs        
 out vec2 vertexSpacePosition;
@@ -19,11 +19,11 @@ uniform mat4 paramOrthoMatrix;
 
 void main()
 {
-    vertexSpacePosition = inNpcLimbAttributeGroup1.zw;
-    vertexBackDepth = inNpcLimbAttributeGroup2.x;
-    vertexOrientationDepth = inNpcLimbAttributeGroup2.y;
+    vertexSpacePosition = inNpcQuadAttributeGroup1.zw;
+    vertexBackDepth = inNpcQuadAttributeGroup2.x;
+    vertexOrientationDepth = inNpcQuadAttributeGroup2.y;
 
-    gl_Position = paramOrthoMatrix * vec4(inNpcLimbAttributeGroup1.xy, -1.0, 1.0);
+    gl_Position = paramOrthoMatrix * vec4(inNpcQuadAttributeGroup1.xy, -1.0, 1.0);
 }
 
 ###FRAGMENT

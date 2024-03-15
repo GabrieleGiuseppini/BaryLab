@@ -17,6 +17,9 @@
 #include <optional>
 #include <vector>
 
+class RenderContext;
+using ShipRenderContext = RenderContext;
+
 class RenderContext
 {
 public:
@@ -24,6 +27,22 @@ public:
     RenderContext(
         int canvasWidth,
         int canvasHeight);
+
+    ShipRenderContext & GetShipRenderContext(ShipId)
+    {
+        // Placeholder
+        return *this;
+    }
+
+    NpcRenderModeType GetNpcRenderMode() const
+    {
+        return mNpcRenderMode;
+    }
+
+    void SetNpcRenderMode(NpcRenderModeType value)
+    {
+        mNpcRenderMode = value;
+    }
 
     ////////////////////////////////////////////////////////////////
     // View properties
@@ -160,23 +179,32 @@ public:
 
     void UploadEdgesEnd();
 
-    void UploadParticlesStart();
+    void UploadNpcQuadsStart();
 
-    void UploadParticle(
-        vec2f const & particlePosition,
-        rgbaColor const & particleColor,
-        float alpha);
-
-    void UploadParticlesEnd();
-
-    void UploadNpcHumanLimbsStart();
-
-    void UploadNpcHumanLimb(
+    void UploadNpcQuad(
         Quadf const & quad,
         float faceOrientation,
         float faceDirectionX);
 
-    void UploadNpcHumanLimbsEnd();
+    void UploadNpcQuadsEnd();
+
+    void UploadNpcParticlesStart();
+
+    void UploadNpcParticle(
+        vec2f const & particlePosition,
+        rgbaColor const & particleColor,
+        float alpha);
+
+    void UploadNpcParticlesEnd();
+
+    void UploadNpcSpringsStart();
+
+    void UploadNpcSpring(
+        vec2f const & endpointAPosition,
+        vec2f const & endpointBPosition,
+        rgbaColor const & springColor);
+
+    void UploadNpcSpringsEnd();
 
     void UploadParticleTrajectoriesStart();
 
@@ -186,15 +214,6 @@ public:
         rgbaColor const & color);
 
     void UploadParticleTrajectoriesEnd();
-
-    void UploadSpringsStart();
-
-    void UploadSpring(
-        vec2f const & endpointAPosition,
-        vec2f const & endpointBPosition,
-        rgbaColor const & springColor);
-
-    void UploadSpringsEnd();
 
     void UploadTrianglesStart();
 
@@ -318,77 +337,19 @@ private:
     BLabOpenGLVBO mEdgeVertexVBO;
 
     ////////////////////////////////////////////////////////////////
-    // Springs
+    // NPC Quads
     ////////////////////////////////////////////////////////////////
 
 #pragma pack(push)
 
-    struct SpringVertex
-    {
-        vec2f Position;
-        vec2f VertexSpacePosition;
-        vec4f Color;
-
-        SpringVertex(
-            vec2f const & position,
-            vec2f const & vertexSpacePosition,
-            vec4f const & color)
-            : Position(position)
-            , VertexSpacePosition(vertexSpacePosition)
-            , Color(color)
-        {}
-    };
-
-#pragma pack(pop)
-
-    BLabOpenGLVAO mSpringVAO;
-
-    std::vector<EdgeVertex> mSpringVertexBuffer;
-    BLabOpenGLVBO mSpringVertexVBO;
-
-    ////////////////////////////////////////////////////////////////
-    // Particles
-    ////////////////////////////////////////////////////////////////
-
-#pragma pack(push)
-
-    struct ParticleVertex
-    {
-        vec2f Position;
-        vec2f VertexSpacePosition;
-        vec4f Color;
-
-        ParticleVertex(
-            vec2f const & position,
-            vec2f const & vertexSpacePosition,
-            vec4f const & color)
-            : Position(position)
-            , VertexSpacePosition(vertexSpacePosition)
-            , Color(color)
-        {}
-    };
-
-#pragma pack(pop)
-
-    BLabOpenGLVAO mParticleVAO;
-
-    std::vector<ParticleVertex> mParticleVertexBuffer;
-    BLabOpenGLVBO mParticleVertexVBO;
-
-    ////////////////////////////////////////////////////////////////
-    // NPC Limbs
-    ////////////////////////////////////////////////////////////////
-
-#pragma pack(push)
-
-    struct NpcLimbVertex
+    struct NpcQuadVertex
     {
         vec2f Position;
         vec2f VertexSpacePosition;
         float BackDepth;
         float OrientationDepth;
 
-        NpcLimbVertex(
+        NpcQuadVertex(
             vec2f const & position,
             vec2f vertexSpacePosition,
             float backDepth,
@@ -402,10 +363,68 @@ private:
 
 #pragma pack(pop)
 
-    BLabOpenGLVAO mNpcLimbVAO;
+    BLabOpenGLVAO mNpcQuadVAO;
 
-    std::vector<NpcLimbVertex> mNpcLimbVertexBuffer;
-    BLabOpenGLVBO mNpcLimbVertexVBO;
+    std::vector<NpcQuadVertex> mNpcQuadVertexBuffer;
+    BLabOpenGLVBO mNpcQuadVertexVBO;
+
+    ////////////////////////////////////////////////////////////////
+    // NPC Particles
+    ////////////////////////////////////////////////////////////////
+
+#pragma pack(push)
+
+    struct NpcParticleVertex
+    {
+        vec2f Position;
+        vec2f VertexSpacePosition;
+        vec4f Color;
+
+        NpcParticleVertex(
+            vec2f const & position,
+            vec2f const & vertexSpacePosition,
+            vec4f const & color)
+            : Position(position)
+            , VertexSpacePosition(vertexSpacePosition)
+            , Color(color)
+        {}
+    };
+
+#pragma pack(pop)
+
+    BLabOpenGLVAO mNpcParticleVAO;
+
+    std::vector<NpcParticleVertex> mNpcParticleVertexBuffer;
+    BLabOpenGLVBO mNpcParticleVertexVBO;
+
+    ////////////////////////////////////////////////////////////////
+    // NPC Springs
+    ////////////////////////////////////////////////////////////////
+
+#pragma pack(push)
+
+    struct NpcSpringVertex
+    {
+        vec2f Position;
+        vec2f VertexSpacePosition;
+        vec4f Color;
+
+        NpcSpringVertex(
+            vec2f const & position,
+            vec2f const & vertexSpacePosition,
+            vec4f const & color)
+            : Position(position)
+            , VertexSpacePosition(vertexSpacePosition)
+            , Color(color)
+        {}
+    };
+
+#pragma pack(pop)
+
+    BLabOpenGLVAO mNpcSpringVAO;
+
+    std::vector<NpcSpringVertex> mNpcSpringVertexBuffer;
+    BLabOpenGLVBO mNpcSpringVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // Particle trajectory
@@ -514,4 +533,10 @@ private:
     BLabOpenGLVAO mGridVAO;
     BLabOpenGLVBO mGridVBO;
     bool mIsGridEnabled;
+
+    ////////////////////////////////////////////////////////////////
+    // Render parameters
+    ////////////////////////////////////////////////////////////////
+
+    NpcRenderModeType mNpcRenderMode;
 };
