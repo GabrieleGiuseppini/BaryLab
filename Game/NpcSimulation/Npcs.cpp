@@ -271,10 +271,6 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 		StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::BeingPlaced,
 		currentSimulationTime);
 
-	StateType::RegimeType const initialRegime = primaryParticleState.ConstrainedState.has_value()
-		? StateType::RegimeType::Constrained
-		: (dipoleState.SecondaryParticleState.ConstrainedState.has_value() ? StateType::RegimeType::Constrained : StateType::RegimeType::Free);
-
 	//
 	// Store NPC
 	//
@@ -289,7 +285,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 		npcId,
 		NpcKindType::Human,
 		shipId,
-		initialRegime,
+		StateType::RegimeType::BeingPlaced,
 		std::move(primaryParticleState),
 		std::move(dipoleState),
 		StateType::KindSpecificStateType(std::move(humanState)));
@@ -380,9 +376,7 @@ void Npcs::MoveParticleBy(
 				if (state->PrimaryParticleState.ParticleIndex == particleIndex
 					|| (state->DipoleState.has_value() && state->DipoleState->SecondaryParticleState.ParticleIndex == particleIndex))
 				{
-					// TODOHERE
-					//state = MaterializeNpcState(n, currentSimulationTime, ship);
-					(void)currentSimulationTime;
+					ResetNpcStateToWorld(*state, currentSimulationTime, ship->ShipMesh);
 
 					//
 					// Select particle
@@ -491,9 +485,7 @@ void Npcs::OnPointMoved(float currentSimulationTime)
 				auto & state = mStateBuffer[n];
 				assert(state.has_value());
 
-				// TODOHERE
-				//mStateBuffer[n] = MaterializeNpcState(n, currentSimulationTime, ship);
-				(void)currentSimulationTime;
+				ResetNpcStateToWorld(*state, currentSimulationTime, ship->ShipMesh);
 			}
 		}
 	}

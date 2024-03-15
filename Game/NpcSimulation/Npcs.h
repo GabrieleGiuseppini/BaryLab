@@ -46,6 +46,7 @@ private:
 	{
 		enum class RegimeType
 		{
+			BeingPlaced,
 			Constrained,
 			Free
 		};
@@ -133,7 +134,7 @@ private:
 
 			struct HumanNpcStateType final
 			{
-				HumanNpcKindType const Kind;
+				HumanNpcKindType Kind;
 
 				enum class BehaviorType
 				{
@@ -670,15 +671,16 @@ private:
 	// Simulation
 	//
 
-	// TODO
-	StateType MaterializeNpcState(
-		ElementIndex npcIndex,
+	void ResetNpcStateToWorld(
+		StateType & npc,
 		float currentSimulationTime,
-		Ship const & ship) const;
-
-	std::optional<StateType::NpcParticleStateType::ConstrainedStateType> CalculateParticleConstrainedState(
-		vec2f const & position,
 		ShipMeshType const & shipMesh) const;
+
+	static std::optional<StateType::NpcParticleStateType::ConstrainedStateType> CalculateParticleConstrainedState(
+		vec2f const & position,
+		ShipMeshType const & shipMesh);
+
+	static StateType::RegimeType CalculateRegime(StateType const & npc);
 
 	// TODO: are these used?
 	// Head->Feet
@@ -929,10 +931,9 @@ private:
 	// Human simulation
 	//
 
-	// TODO: needed? May be when we confirm placement
-	StateType::KindSpecificStateType::HumanNpcStateType InitializeHuman(
+	static StateType::KindSpecificStateType::HumanNpcStateType CalculateInitialHumanState(
 		StateType & npc,
-		float currentSimulationTime) const;
+		float currentSimulationTime);
 
 	void UpdateHuman(
 		StateType & npc,

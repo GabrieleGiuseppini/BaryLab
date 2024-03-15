@@ -1045,7 +1045,7 @@ void RenderContext::RenderEnd()
     {
         glBindVertexArray(*mParticleTrajectoryVAO);
 
-        mShaderManager->ActivateProgram<ShaderManager::ProgramType::ParticleTrajectories>();
+        mShaderManager->ActivateProgram<ShaderManager::ProgramType::NpcParticleTrajectories>();
 
         assert((mParticleTrajectoryVertexBuffer.size() % 6) == 0);
         glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mParticleTrajectoryVertexBuffer.size()));
@@ -1137,8 +1137,8 @@ void RenderContext::OnViewModelUpdated()
     mShaderManager->SetProgramParameter<ShaderManager::ProgramType::Vertices, ShaderManager::ProgramParameterType::OrthoMatrix>(
         orthoMatrix);
 
-    mShaderManager->ActivateProgram<ShaderManager::ProgramType::ParticleTrajectories>();
-    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::ParticleTrajectories, ShaderManager::ProgramParameterType::OrthoMatrix>(
+    mShaderManager->ActivateProgram<ShaderManager::ProgramType::NpcParticleTrajectories>();
+    mShaderManager->SetProgramParameter<ShaderManager::ProgramType::NpcParticleTrajectories, ShaderManager::ProgramParameterType::OrthoMatrix>(
         orthoMatrix);
 
     mShaderManager->ActivateProgram<ShaderManager::ProgramType::Triangles>();

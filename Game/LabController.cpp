@@ -50,6 +50,7 @@ LabController::LabController(
     , mCurrentShipFilePath()
     , mCurrentSimulationTime(0.0f)
     , mIsGravityEnabled(true)
+    , mOceanDepth(-7.0f)
     , mCurrentShipTranslationVelocity(vec2f::zero())
     , mCurrentShipTranslationAccelerationIndicator(0.0f)
     , mCurrentVideoStep(0)
@@ -935,7 +936,8 @@ void LabController::Reset(
         mMaterialDatabase,
         mGameEventHandler,
         mGameParameters,
-        mIsGravityEnabled);
+        mIsGravityEnabled,
+        mOceanDepth);
 
     mWorld->AddShip(std::move(ship));
 

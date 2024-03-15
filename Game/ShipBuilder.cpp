@@ -173,6 +173,7 @@ std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
         triangles.GetElementCount(), " triangles.");
 
     auto ship = std::make_unique<Physics::Ship>(
+        0, // First and only ship in BaryLab :-(
         std::move(points),
         std::move(springs),
         std::move(triangles));

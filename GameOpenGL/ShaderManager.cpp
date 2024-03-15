@@ -470,12 +470,12 @@ ShaderManager::ProgramType ShaderManager::ShaderFilenameToProgramType(std::strin
         return ProgramType::Grid;
     else if (Utils::CaseInsensitiveEquals(str, "NpcParticles"))
         return ProgramType::NpcParticles;
+    else if (Utils::CaseInsensitiveEquals(str, "NpcParticleTrajectories"))
+        return ProgramType::NpcParticleTrajectories;
     else if (Utils::CaseInsensitiveEquals(str, "NpcQuads"))
         return ProgramType::NpcQuads;
     else if (Utils::CaseInsensitiveEquals(str, "NpcSprings"))
         return ProgramType::NpcSprings;
-    else if (Utils::CaseInsensitiveEquals(str, "ParticleTrajectories"))
-        return ProgramType::ParticleTrajectories;
     else if (Utils::CaseInsensitiveEquals(str, "ShipVelocity"))
         return ProgramType::ShipVelocity;
     else if (Utils::CaseInsensitiveEquals(str, "Triangles"))
@@ -498,12 +498,12 @@ std::string ShaderManager::ProgramTypeToStr(ProgramType program)
             return "Grid";
         case ProgramType::NpcParticles:
             return "NpcParticles";
+        case ProgramType::NpcParticleTrajectories:
+            return "NpcParticleTrajectories";
         case ProgramType::NpcQuads:
             return "NpcQuads";
         case ProgramType::NpcSprings:
             return "NpcSprings";
-        case ProgramType::ParticleTrajectories:
-            return "ParticleTrajectories";
         case ProgramType::ShipVelocity:
             return "ShipVelocity";
         case ProgramType::Triangles:

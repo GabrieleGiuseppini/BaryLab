@@ -1903,6 +1903,12 @@ void Npcs::UpdateNpcAnimation(
 
         switch (humanNpcState.CurrentBehavior)
         {
+            case HumanNpcStateType::BehaviorType::BeingPlaced:
+            {
+                // TODOHERE
+                break;
+            }
+
             case HumanNpcStateType::BehaviorType::Constrained_Rising:
             {
                 // Arms slightly open
@@ -2325,86 +2331,56 @@ void Npcs::UpdateNpcAnimation(
     }
 }
 
-Npcs::StateType Npcs::MaterializeNpcState(
-    ElementIndex npcIndex,
+void Npcs::ResetNpcStateToWorld(
+    StateType & npc,
     float currentSimulationTime,
-    Ship const & ship) const
+    ShipMeshType const & shipMesh) const
 {
-    auto const & state = mStateBuffer[npcIndex];
-
     // Primary particle
 
-    StateType::NpcParticleStateType primaryParticleState = StateType::NpcParticleStateType(
-        state.PrimaryParticleState.ParticleIndex,
-        CalculateParticleConstrainedState(
-            mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
-            ship));
+    npc.PrimaryParticleState.ConstrainedState = CalculateParticleConstrainedState(
+        mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex),
+        shipMesh);
 
     // Secondary particle
 
-    std::optional<StateType::DipoleStateType> dipoleState;
-
-    if (state.DipoleState.has_value())
+    if (npc.DipoleState.has_value())
     {
-        StateType::NpcParticleStateType secondaryParticleState = StateType::NpcParticleStateType(
-            state.DipoleState->SecondaryParticleState.ParticleIndex,
-            CalculateParticleConstrainedState(
-                mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
-                ship));
-
-        dipoleState.emplace(
-            std::move(secondaryParticleState),
-            state.DipoleState->DipoleProperties);
+        npc.DipoleState->SecondaryParticleState.ConstrainedState = CalculateParticleConstrainedState(
+            mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex),
+            shipMesh);
     }
 
     // Regime
 
-    auto const regime = primaryParticleState.ConstrainedState.has_value()
-        ? StateType::RegimeType::Constrained
-        : (dipoleState.has_value() && dipoleState->SecondaryParticleState.ConstrainedState.has_value()) ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
+    npc.CurrentRegime = CalculateRegime(npc);
 
-    switch (state.Kind)
+    // Kind specific
+
+    switch (npc.Kind)
     {
         case NpcKindType::Furniture:
         {
-            auto kindSpecificState = StateType::KindSpecificStateType(
-                StateType::KindSpecificStateType::FurnitureNpcStateType());
+            npc.KindSpecificState.FurnitureNpcState = StateType::KindSpecificStateType::FurnitureNpcStateType();
 
-            return StateType(
-                state.Kind,
-                regime,
-                std::move(primaryParticleState),
-                std::move(dipoleState),
-                std::move(kindSpecificState));
+            break;
         }
 
         case NpcKindType::Human:
         {
-            assert(dipoleState.has_value());
+            npc.KindSpecificState.HumanNpcState = CalculateInitialHumanState(npc, currentSimulationTime);
 
-            auto kindSpecificState = StateType::KindSpecificStateType(
-                InitializeHuman(
-                    primaryParticleState,
-                    dipoleState->SecondaryParticleState,
-                    currentSimulationTime,
-                    ship));
-
-            return StateType(
-                state.Kind,
-                regime,
-                std::move(primaryParticleState),
-                std::move(dipoleState),
-                std::move(kindSpecificState));
+#ifdef IN_BARYLAB
+            // TODO: if currentlySelectedNpcId matches: publish change
+            //mGameEventHandler->OnHumanNpcBehaviorChanged(...)
+#endif
         }
     }
-
-    assert(false);
-    throw std::runtime_error("Unhandled NPC kind");
 }
 
 std::optional<Npcs::StateType::NpcParticleStateType::ConstrainedStateType> Npcs::CalculateParticleConstrainedState(
     vec2f const & position,
-    ShipMeshType const & shipMesh) const
+    ShipMeshType const & shipMesh)
 {
     std::optional<StateType::NpcParticleStateType::ConstrainedStateType> constrainedState;
 
@@ -2424,6 +2400,15 @@ std::optional<Npcs::StateType::NpcParticleStateType::ConstrainedStateType> Npcs:
     }
 
     return std::nullopt;
+}
+
+Npcs::StateType::RegimeType Npcs::CalculateRegime(StateType const & npc)
+{
+    // Constrained if at least one is constrained;
+    // conversely: Free only if both are free
+    return npc.PrimaryParticleState.ConstrainedState.has_value()
+        ? StateType::RegimeType::Constrained
+        : (npc.DipoleState.has_value() && npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value()) ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
 }
 
 }

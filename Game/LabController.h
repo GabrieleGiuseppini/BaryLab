@@ -223,8 +223,8 @@ public:
     float GetMinGlobalDamping() const { return GameParameters::MinGlobalDamping; }
     float GetMaxGlobalDamping() const { return GameParameters::MaxGlobalDamping; }
 
-    float GetSeaLevel() const { return mWorld->GetOceanSurface().GetDepth(); }
-    void SetSeaLevel(float value) { mWorld->GetOceanSurface().SetDepth(value); }
+    float GetSeaLevel() const { return mOceanDepth; }
+    void SetSeaLevel(float value) { mOceanDepth = value; if (mWorld) mWorld->GetOceanSurface().SetDepth(value); }
     float GetMinSeaLevel() const { return Physics::OceanSurface::MinDepth; }
     float GetMaxSeaLevel() const { return Physics::OceanSurface::MaxDepth; }
 
@@ -292,6 +292,7 @@ private:
     float mCurrentSimulationTime;
 
     bool mIsGravityEnabled;
+    float mOceanDepth;
     vec2f mCurrentShipTranslationVelocity;
     float mCurrentShipTranslationAccelerationIndicator;
 

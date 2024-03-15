@@ -33,7 +33,7 @@ public:
         NpcQuads = 3,
         NpcParticles = 4,
         NpcSprings = 5,
-        ParticleTrajectories = 6,
+        NpcParticleTrajectories = 6,
         Triangles = 7,
         ShipVelocity = 8,
         Grid = 9,

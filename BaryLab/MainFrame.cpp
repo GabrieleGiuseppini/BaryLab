@@ -900,7 +900,7 @@ void MainFrame::FinishInitialization()
     mLabController->RegisterBLabEventHandler(mProbeToolbar);
 
     //
-    // Load initial object
+    // Load initial ship
     //
 
     mLabController->LoadShip(ResourceLocator::GetDefaultMeshDefinitionFilePath());

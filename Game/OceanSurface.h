@@ -15,8 +15,8 @@ class OceanSurface
 {
 public:
 
-	OceanSurface()
-		: mDepth(-7.0f)
+	OceanSurface(float depth)
+		: mDepth(depth)
 	{}
 
 	static float constexpr MinDepth = -100.0f;

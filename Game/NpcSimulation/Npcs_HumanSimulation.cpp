@@ -21,9 +21,9 @@ namespace {
 
 }
 
-Npcs::StateType::KindSpecificStateType::HumanNpcStateType Npcs::InitializeHuman(
+Npcs::StateType::KindSpecificStateType::HumanNpcStateType Npcs::CalculateInitialHumanState(
 	StateType & npc,
-	float currentSimulationTime) const
+	float currentSimulationTime)
 {
 	assert(npc.DipoleState.has_value());
 	auto const & primaryParticleState = npc.PrimaryParticleState;
@@ -35,14 +35,18 @@ Npcs::StateType::KindSpecificStateType::HumanNpcStateType Npcs::InitializeHuman(
 		&& !secondaryParticleState.ConstrainedState.has_value())
 	{
 		// Whole NPC is free
-		mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Aerial");
-		return StateType::KindSpecificStateType::HumanNpcStateType(StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Aerial, currentSimulationTime);
+		return StateType::KindSpecificStateType::HumanNpcStateType(
+			npc.KindSpecificState.HumanNpcState.Kind,
+			StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Aerial,
+			currentSimulationTime);
 	}
 	else
 	{
 		// NPC is constrained
-		mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
-		return StateType::KindSpecificStateType::HumanNpcStateType(StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
+		return StateType::KindSpecificStateType::HumanNpcStateType(
+			npc.KindSpecificState.HumanNpcState.Kind,
+			StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut,
+			currentSimulationTime);
 	}
 }
 
@@ -68,6 +72,12 @@ void Npcs::UpdateHuman(
 
 	switch (humanState.CurrentBehavior)
 	{
+		case HumanNpcStateType::BehaviorType::BeingPlaced:
+		{
+			// Nop
+			break;
+		}
+
 		case HumanNpcStateType::BehaviorType::Constrained_Aerial:
 		{
 			if (isFree)
@@ -761,7 +771,7 @@ bool Npcs::CheckAndMaintainHumanEquilibrium(
 void Npcs::RunWalkingHumanStateMachine(
 	StateType::KindSpecificStateType::HumanNpcStateType & humanState,
 	StateType::NpcParticleStateType const & primaryParticleState,
-	ShipMeshType const & shipMesh, // Will come useful when we'll *plan* the walk
+	ShipMeshType const & /*shipMesh*/, // Will come useful when we'll *plan* the walk
 	GameParameters const & gameParameters)
 {
 	assert(primaryParticleState.ConstrainedState.has_value());

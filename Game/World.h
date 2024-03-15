@@ -25,10 +25,11 @@ public:
 		MaterialDatabase const & materialDatabase,
 		std::shared_ptr<GameEventDispatcher> gameEventHandler,
 		GameParameters const & gameParameters,
-		bool isGravityEnabled)
+		bool isGravityEnabled,
+		float oceanDepth)
 		: mGameEventHandler(std::move(gameEventHandler))
 		, mAllShips()
-		, mOceanSurface()
+		, mOceanSurface(oceanDepth)
 		, mNpcs()
 	{
 		mNpcs = std::make_unique<Physics::Npcs>(
