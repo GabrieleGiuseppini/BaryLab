@@ -882,11 +882,14 @@ void LabController::MoveNpcTo(
     vec2f const & screenCoordinates,
     vec2f const & worldOffset)
 {
+    assert(!!mWorld);
+
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
-    // TODOHERE
-    (void)id;
-    (void)worldOffset;
+    mWorld->GetNpcs().MoveNpcTo(
+        id,
+        worldCoordinates,
+        worldOffset);
 }
 
 void LabController::EndMoveNpc(NpcId id)

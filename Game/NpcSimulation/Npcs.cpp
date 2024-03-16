@@ -214,7 +214,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 	}
 
 	//
-	// Add NPC onto topmost ship
+	// Create NPC
 	//
 
 	// Feet (primary)
@@ -227,7 +227,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 		feetMaterial.KineticFriction,
 		feetMaterial.Elasticity,
 		feetMaterial.BuoyancyVolumeFill,
-		worldCoordinates,
+		worldCoordinates - vec2f(0.0f, 1.0f) * GameParameters::HumanNpcGeometry::BodyLength * mCurrentHumanNpcBodyLengthAdjustment,
 		feetMaterial.RenderColor);
 
 	StateType::NpcParticleStateType primaryParticleState = StateType::NpcParticleStateType(
@@ -244,7 +244,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 		headMaterial.KineticFriction,
 		headMaterial.Elasticity,
 		headMaterial.BuoyancyVolumeFill,
-		worldCoordinates + vec2f(0.0f, 1.0f) * GameParameters::HumanNpcGeometry::BodyLength * mCurrentHumanNpcBodyLengthAdjustment,
+		worldCoordinates,
 		headMaterial.RenderColor);
 
 	StateType::NpcParticleStateType secondaryParticleState = StateType::NpcParticleStateType(
@@ -271,6 +271,10 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 		StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::BeingPlaced,
 		currentSimulationTime);
 
+	// Frontal
+	humanState.CurrentFaceOrientation = 1.0f;
+	humanState.CurrentFaceDirectionX = 0.0f;
+
 	//
 	// Store NPC
 	//
@@ -296,6 +300,60 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 	OnNpcCreated(npcId);
 
 	return PickedObjectId<NpcId>(npcId, vec2f::zero());
+}
+
+void Npcs::MoveNpcTo(
+	NpcId id,
+	vec2f const & position,
+	vec2f const & offset)
+{
+	assert(mStateBuffer[id].has_value());
+	assert(mStateBuffer[id]->CurrentRegime == StateType::RegimeType::BeingPlaced);
+
+	vec2f const newPosition = position - offset;
+
+	switch (mStateBuffer[id]->Kind)
+	{
+		case NpcKindType::Furniture:
+		{
+			// Act on primary particle
+
+			auto const particleIndex = mStateBuffer[id]->PrimaryParticleState.ParticleIndex;
+			vec2f const oldPosition = mParticles.GetPosition(particleIndex);
+			mParticles.SetPosition(particleIndex, newPosition);
+			mParticles.SetVelocity(particleIndex, (newPosition - oldPosition) / GameParameters::SimulationTimeStepDuration);
+
+			if (mStateBuffer[id]->PrimaryParticleState.ConstrainedState.has_value())
+			{
+				// TODO
+				mStateBuffer[id]->PrimaryParticleState.ConstrainedState->MeshRelativeVelocity = vec2f::zero();
+			}
+
+			break;
+		}
+
+		case NpcKindType::Human:
+		{
+			// Act on secondary particle
+
+			assert(mStateBuffer[id]->DipoleState.has_value());
+
+			auto const particleIndex = mStateBuffer[id]->DipoleState->SecondaryParticleState.ParticleIndex;
+			vec2f const oldPosition = mParticles.GetPosition(particleIndex);
+			mParticles.SetPosition(particleIndex, newPosition);
+			mParticles.SetVelocity(particleIndex, (newPosition - oldPosition) / GameParameters::SimulationTimeStepDuration);
+
+			if (mStateBuffer[id]->DipoleState->SecondaryParticleState.ConstrainedState.has_value())
+			{
+				// TODO
+				mStateBuffer[id]->DipoleState->SecondaryParticleState.ConstrainedState->MeshRelativeVelocity = vec2f::zero();
+			}
+
+			mStateBuffer[id]->KindSpecificState.HumanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition += (newPosition - oldPosition).length();
+
+			break;
+		}
+	}
 }
 
 void Npcs::SetPanicLevelForAllHumans(float panicLevel)

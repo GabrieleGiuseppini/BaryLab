@@ -12,6 +12,85 @@
 
 namespace Physics {
 
+void Npcs::ResetNpcStateToWorld(
+    StateType & npc,
+    float currentSimulationTime,
+    ShipMeshType const & shipMesh) const
+{
+    // Primary particle
+
+    npc.PrimaryParticleState.ConstrainedState = CalculateParticleConstrainedState(
+        mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex),
+        shipMesh);
+
+    // Secondary particle
+
+    if (npc.DipoleState.has_value())
+    {
+        npc.DipoleState->SecondaryParticleState.ConstrainedState = CalculateParticleConstrainedState(
+            mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex),
+            shipMesh);
+    }
+
+    // Regime
+
+    npc.CurrentRegime = CalculateRegime(npc);
+
+    // Kind specific
+
+    switch (npc.Kind)
+    {
+        case NpcKindType::Furniture:
+        {
+            npc.KindSpecificState.FurnitureNpcState = StateType::KindSpecificStateType::FurnitureNpcStateType();
+
+            break;
+        }
+
+        case NpcKindType::Human:
+        {
+            npc.KindSpecificState.HumanNpcState = CalculateInitialHumanState(npc, currentSimulationTime);
+
+            break;
+        }
+    }
+
+    Publish();
+}
+
+std::optional<Npcs::StateType::NpcParticleStateType::ConstrainedStateType> Npcs::CalculateParticleConstrainedState(
+    vec2f const & position,
+    ShipMeshType const & shipMesh)
+{
+    std::optional<StateType::NpcParticleStateType::ConstrainedStateType> constrainedState;
+
+    ElementIndex const triangleIndex = shipMesh.ShipTriangles.FindContaining(position, shipMesh.ShipPoints);
+    if (triangleIndex != NoneElementIndex && !shipMesh.ShipTriangles.IsDeleted(triangleIndex))
+    {
+        bcoords3f const barycentricCoords = shipMesh.ShipTriangles.ToBarycentricCoordinatesFromWithinTriangle(
+            position,
+            triangleIndex,
+            shipMesh.ShipPoints);
+
+        assert(barycentricCoords.is_on_edge_or_internal());
+
+        return Npcs::StateType::NpcParticleStateType::ConstrainedStateType(
+            triangleIndex,
+            barycentricCoords);
+    }
+
+    return std::nullopt;
+}
+
+Npcs::StateType::RegimeType Npcs::CalculateRegime(StateType const & npc)
+{
+    // Constrained if at least one is constrained;
+    // conversely: Free only if both are free
+    return npc.PrimaryParticleState.ConstrainedState.has_value()
+        ? StateType::RegimeType::Constrained
+        : (npc.DipoleState.has_value() && npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value()) ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
+}
+
 void Npcs::UpdateNpcs(
     float currentSimulationTime,
     GameParameters const & gameParameters)
@@ -66,7 +145,7 @@ void Npcs::UpdateNpcs(
     }
 
     //
-    // 4. Update state
+    // 4. Update physical state
     //
 
     for (auto & npcState : mStateBuffer)
@@ -78,7 +157,7 @@ void Npcs::UpdateNpcs(
             assert(mShips[npcState->CurrentShipId].has_value());
             auto const & shipMesh = mShips[npcState->CurrentShipId]->ShipMesh;
 
-            UpdateNpcParticle(
+            UpdateNpcParticlePhysics(
                 *npcState,
                 true,
                 shipMesh,
@@ -86,7 +165,7 @@ void Npcs::UpdateNpcs(
 
             if (npcState->DipoleState.has_value())
             {
-                UpdateNpcParticle(
+                UpdateNpcParticlePhysics(
                     *npcState,
                     false,
                     shipMesh,
@@ -152,7 +231,7 @@ void Npcs::UpdateNpcs(
     }
 }
 
-void Npcs::UpdateNpcParticle(
+void Npcs::UpdateNpcParticlePhysics(
     StateType & npc,
     bool isPrimaryParticle,
     ShipMeshType const & shipMesh,
@@ -198,7 +277,16 @@ void Npcs::UpdateNpcParticle(
         physicsDeltaPos = mParticles.GetVelocity(npcParticle.ParticleIndex) * dt + (physicalForces / particleMass) * dt * dt;
     }
 
-    if (!npcParticle.ConstrainedState.has_value())
+    if (npc.CurrentRegime == StateType::RegimeType::BeingPlaced
+        && ((npc.Kind == NpcKindType::Human && !isPrimaryParticle) || (npc.Kind != NpcKindType::Human)))
+    {
+        //
+        // Particle is being placed
+        //
+
+        LogNpcDebug("    Being placed");
+    }
+    else if (!npcParticle.ConstrainedState.has_value())
     {
         //
         // Particle is free
@@ -2329,85 +2417,6 @@ void Npcs::UpdateNpcAnimation(
         humanNpcState.LeftLegAngle += (targetLeftLegAngle - humanNpcState.LeftLegAngle) * convergenceRate;
         humanNpcState.LeftLegLengthMultiplier += (targetLeftLegLengthMultiplier - humanNpcState.LeftLegLengthMultiplier) * convergenceRate;
     }
-}
-
-void Npcs::ResetNpcStateToWorld(
-    StateType & npc,
-    float currentSimulationTime,
-    ShipMeshType const & shipMesh) const
-{
-    // Primary particle
-
-    npc.PrimaryParticleState.ConstrainedState = CalculateParticleConstrainedState(
-        mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex),
-        shipMesh);
-
-    // Secondary particle
-
-    if (npc.DipoleState.has_value())
-    {
-        npc.DipoleState->SecondaryParticleState.ConstrainedState = CalculateParticleConstrainedState(
-            mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex),
-            shipMesh);
-    }
-
-    // Regime
-
-    npc.CurrentRegime = CalculateRegime(npc);
-
-    // Kind specific
-
-    switch (npc.Kind)
-    {
-        case NpcKindType::Furniture:
-        {
-            npc.KindSpecificState.FurnitureNpcState = StateType::KindSpecificStateType::FurnitureNpcStateType();
-
-            break;
-        }
-
-        case NpcKindType::Human:
-        {
-            npc.KindSpecificState.HumanNpcState = CalculateInitialHumanState(npc, currentSimulationTime);
-
-            break;
-        }
-    }
-
-    Publish();
-}
-
-std::optional<Npcs::StateType::NpcParticleStateType::ConstrainedStateType> Npcs::CalculateParticleConstrainedState(
-    vec2f const & position,
-    ShipMeshType const & shipMesh)
-{
-    std::optional<StateType::NpcParticleStateType::ConstrainedStateType> constrainedState;
-
-    ElementIndex const triangleIndex = shipMesh.ShipTriangles.FindContaining(position, shipMesh.ShipPoints);
-    if (triangleIndex != NoneElementIndex && !shipMesh.ShipTriangles.IsDeleted(triangleIndex))
-    {
-        bcoords3f const barycentricCoords = shipMesh.ShipTriangles.ToBarycentricCoordinatesFromWithinTriangle(
-            position,
-            triangleIndex,
-            shipMesh.ShipPoints);
-
-        assert(barycentricCoords.is_on_edge_or_internal());
-
-        return Npcs::StateType::NpcParticleStateType::ConstrainedStateType(
-            triangleIndex,
-            barycentricCoords);
-    }
-
-    return std::nullopt;
-}
-
-Npcs::StateType::RegimeType Npcs::CalculateRegime(StateType const & npc)
-{
-    // Constrained if at least one is constrained;
-    // conversely: Free only if both are free
-    return npc.PrimaryParticleState.ConstrainedState.has_value()
-        ? StateType::RegimeType::Constrained
-        : (npc.DipoleState.has_value() && npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value()) ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
 }
 
 }

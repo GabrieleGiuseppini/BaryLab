@@ -520,6 +520,15 @@ public:
 		vec2f const & worldCoordinates,
 		float currentSimulationTime);
 
+	// TODO: other interaction APIs here
+
+	void MoveNpcTo(
+		NpcId id,
+		vec2f const & position,
+		vec2f const & offset);
+
+	// TODO: other interaction APIs here
+
 	void SetPanicLevelForAllHumans(float panicLevel);
 
 public:
@@ -675,7 +684,7 @@ private:
 		float currentSimulationTime,
 		GameParameters const & gameParameters);
 
-	void UpdateNpcParticle(
+	void UpdateNpcParticlePhysics(
 		StateType & npc,
 		bool isPrimaryParticle,
 		ShipMeshType const & shipMesh,
