@@ -575,8 +575,9 @@ NpcId Npcs::GetNewNpcId()
 	}
 
 	// No luck, add new entry
+	NpcId const newNpcId = static_cast<NpcId>(mStateBuffer.size());
 	mStateBuffer.emplace_back(std::nullopt);
-	return static_cast<NpcId>(mStateBuffer.size());
+	return newNpcId;
 }
 
 ShipId Npcs::FindTopmostShipId() const
@@ -1000,7 +1001,7 @@ void Npcs::RenderNpc(
 	}
 }
 
-void Npcs::Publish()
+void Npcs::Publish() const
 {
 #ifdef IN_BARYLAB
 	std::optional<ConstrainedRegimeParticleProbe> constrainedRegimeParticleProbe;
@@ -1064,6 +1065,37 @@ void Npcs::Publish()
 	mGameEventHandler->OnSubjectParticleConstrainedRegimeUpdated(constrainedRegimeParticleProbe);
 	mGameEventHandler->OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged);
 	mGameEventHandler->OnSubjectParticlePhysicsUpdated(physicsParticleProbe);
+
+	if (mCurrentlySelectedNpc.has_value()
+		&& mStateBuffer[*mCurrentlySelectedNpc].has_value())
+	{
+		if (mStateBuffer[*mCurrentlySelectedNpc]->Kind == NpcKindType::Human)
+		{
+			switch (mStateBuffer[*mCurrentlySelectedNpc]->KindSpecificState.HumanNpcState.CurrentBehavior)
+			{
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+
+					break;
+				}
+
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Aerial:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Aerial");
+
+					break;
+				}
+
+				default:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("?");
+
+					break;
+				}
+			}
+		}
+	}
 #endif
 }
 

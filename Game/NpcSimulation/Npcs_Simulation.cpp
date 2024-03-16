@@ -2370,12 +2370,11 @@ void Npcs::ResetNpcStateToWorld(
         {
             npc.KindSpecificState.HumanNpcState = CalculateInitialHumanState(npc, currentSimulationTime);
 
-#ifdef IN_BARYLAB
-            // TODO: if currentlySelectedNpcId matches: publish change
-            //mGameEventHandler->OnHumanNpcBehaviorChanged(...)
-#endif
+            break;
         }
     }
+
+    Publish();
 }
 
 std::optional<Npcs::StateType::NpcParticleStateType::ConstrainedStateType> Npcs::CalculateParticleConstrainedState(

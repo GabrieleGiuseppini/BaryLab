@@ -856,10 +856,17 @@ std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewHumanNpc(
 
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
-    return mWorld->GetNpcs().BeginPlaceNewHumanNpc(
+    auto const pickedObjectId = mWorld->GetNpcs().BeginPlaceNewHumanNpc(
         humanKind,
         worldCoordinates,
         mCurrentSimulationTime);
+
+    if (pickedObjectId.has_value())
+    {
+        mWorld->GetNpcs().SelectNpc(pickedObjectId->ObjectId);
+    }
+
+    return pickedObjectId;
 }
 
 std::optional<PickedObjectId<NpcId>> LabController::ProbeNpc(vec2f const & screenCoordinates) const

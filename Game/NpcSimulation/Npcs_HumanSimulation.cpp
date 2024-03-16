@@ -548,7 +548,7 @@ void Npcs::UpdateHuman(
 			{
 				// Check if reached alignment (note: here so that we may keep torque as we'll be transitioning to Equilibrium)
 
-				float const alignment = CalculateVerticalAlignment(primaryParticleState.ParticleIndex, secondaryParticleState.ParticleIndex, mParticles);
+				float const alignment = CalculateDipoleVerticalAlignment(primaryParticleState.ParticleIndex, secondaryParticleState.ParticleIndex, mParticles);
 
 				publishStateQuantity = std::make_tuple("Alignment", std::to_string(alignment));
 

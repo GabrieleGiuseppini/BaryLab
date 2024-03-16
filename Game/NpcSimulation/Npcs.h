@@ -415,7 +415,6 @@ private:
 		ShipId CurrentShipId;
 
 		// The current regime.
-		// TODO: see if needed.
 		RegimeType CurrentRegime;
 
 		// The state of the first (mandatory) particle (e.g. the feet of a human).
@@ -554,37 +553,10 @@ public:
 
 	void OnPointMoved(float currentSimulationTime);
 
-	// TODO: how many of these are really needed?
-
-	////inline element_index_range_iterator begin() const noexcept
-	////{
-	////	return element_index_range_iterator(0u);
-	////}
-
-	////inline element_index_range_iterator end() const noexcept
-	////{
-	////	return element_index_range_iterator(static_cast<ElementCount>(mStateBuffer.size()));
-	////}
-
-	////StateType const & GetState(ElementIndex npcIndex) const
-	////{
-	////	return mStateBuffer[npcIndex];
-	////}
-
-	////StateType & GetState(ElementIndex npcIndex)
-	////{
-	////	return mStateBuffer[npcIndex];
-	////}
-
 	NpcParticles const & GetParticles() const
 	{
 		return mParticles;
 	}
-
-	////NpcParticles & GetParticles()
-	////{
-	////	return mParticles;
-	////}
 
 	bool IsGravityEnabled() const
 	{
@@ -599,6 +571,23 @@ public:
 	//
 	// Probing
 	//
+
+	void SelectNpc(NpcId npcId)
+	{
+		mCurrentlySelectedNpc = npcId;
+		Publish();
+	}
+
+	std::optional<NpcId> GetCurrentlySelectedNpc() const
+	{
+		return mCurrentlySelectedNpc;
+	}
+
+	void DeselectNpc()
+	{
+		mCurrentlySelectedNpc.reset();
+		Publish();
+	}
 
 	void SelectParticle(ElementIndex particleIndex)
 	{
@@ -663,7 +652,7 @@ private:
 		StateType const & npc,
 		ShipRenderContext & shipRenderContext);
 
-	void Publish();
+	void Publish() const;
 
 private:
 
@@ -681,23 +670,6 @@ private:
 		ShipMeshType const & shipMesh);
 
 	static StateType::RegimeType CalculateRegime(StateType const & npc);
-
-	// TODO: are these used?
-	// Head->Feet
-	static vec2f CalculateHumanVector(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)
-	{
-		return particles.GetPosition(primaryParticleIndex) - particles.GetPosition(secondaryParticleIndex);
-	}
-
-	static float CalculateVerticalAlignment(vec2f const & humanVector)
-	{
-		return humanVector.normalise().dot(GameParameters::GravityDir);
-	}
-
-	static float CalculateVerticalAlignment(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)
-	{
-		return CalculateVerticalAlignment(CalculateHumanVector(primaryParticleIndex, secondaryParticleIndex, particles));
-	}
 
 	void UpdateNpcs(
 		float currentSimulationTime,
@@ -927,6 +899,21 @@ private:
 		return false;
 	}
 
+	static vec2f CalculateDipoleVector(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)
+	{
+		return particles.GetPosition(primaryParticleIndex) - particles.GetPosition(secondaryParticleIndex);
+	}
+
+	static float CalculateVerticalAlignment(vec2f const & vector)
+	{
+		return vector.normalise().dot(GameParameters::GravityDir);
+	}
+
+	static float CalculateDipoleVerticalAlignment(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)
+	{
+		return CalculateVerticalAlignment(CalculateDipoleVector(primaryParticleIndex, secondaryParticleIndex, particles));
+	}
+
 	//
 	// Human simulation
 	//
@@ -1024,7 +1011,7 @@ private:
 	// Probing
 	//
 
-	// TODO: need to be NPC-based (and eventuall primary/secondary)
+	std::optional<NpcId> mCurrentlySelectedNpc;
 	std::optional<ElementIndex> mCurrentlySelectedParticle;
 	std::optional<ElementIndex> mCurrentOriginTriangle;
 
