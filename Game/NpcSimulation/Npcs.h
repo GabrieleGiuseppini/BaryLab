@@ -532,9 +532,13 @@ public:
 		vec2f const & position,
 		vec2f const & offset);
 
-	void EndMoveNpc(NpcId id);
+	void EndMoveNpc(
+		NpcId id,
+		float currentSimulationTime);
 
-	void CompleteNewNpc(NpcId id);
+	void CompleteNewNpc(
+		NpcId id,
+		float currentSimulationTime);
 
 	// TODO: other interaction APIs here
 
@@ -662,9 +666,7 @@ private:
 
 	ShipId FindTopmostShipId() const;
 
-	void OnNpcCreated(NpcId id);
-
-	void OnNpcDestroyed(NpcId id);
+	void PublishNpcStats();
 
 	void RenderNpc(
 		StateType const & npc,
@@ -680,12 +682,18 @@ private:
 
 	void ResetNpcStateToWorld(
 		StateType & npc,
+		float currentSimulationTime) const;
+
+	void ResetNpcStateToWorld(
+		StateType & npc,
 		float currentSimulationTime,
-		ShipMeshType const & shipMesh) const;
+		ShipMeshType const & shipMesh,
+		std::optional<ElementIndex> primaryParticleTriangleIndex) const;
 
 	static std::optional<StateType::NpcParticleStateType::ConstrainedStateType> CalculateParticleConstrainedState(
 		vec2f const & position,
-		ShipMeshType const & shipMesh);
+		ShipMeshType const & shipMesh,
+		std::optional<ElementIndex> triangleIndex);
 
 	static StateType::RegimeType CalculateRegime(StateType const & npc);
 

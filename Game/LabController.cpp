@@ -897,14 +897,14 @@ void LabController::EndMoveNpc(NpcId id)
 {
     assert(!!mWorld);
 
-    mWorld->GetNpcs().EndMoveNpc(id);
+    mWorld->GetNpcs().EndMoveNpc(id, mCurrentSimulationTime);
 }
 
 void LabController::CompleteNewNpc(NpcId id)
 {
     assert(!!mWorld);
 
-    mWorld->GetNpcs().CompleteNewNpc(id);
+    mWorld->GetNpcs().CompleteNewNpc(id, mCurrentSimulationTime);
 }
 
 void LabController::AbortNewNpc(NpcId id)

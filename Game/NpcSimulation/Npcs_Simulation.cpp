@@ -14,14 +14,62 @@ namespace Physics {
 
 void Npcs::ResetNpcStateToWorld(
     StateType & npc,
+    float currentSimulationTime) const
+{
+    //
+    // Find topmost ship that contains the NPC
+    //
+
+    // Take the position of the primary particle as representative of the NPC
+    auto const & position = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
+
+    assert(mShips.size() > 0);
+
+    for (size_t iShip = 0; ;)
+    {
+        if (mShips[iShip].has_value())
+        {
+            auto & shipMesh = mShips[iShip]->ShipMesh;
+            ElementIndex const t = shipMesh.ShipTriangles.FindContaining(position, shipMesh.ShipPoints);
+            if (t != NoneElementIndex && !shipMesh.ShipTriangles.IsDeleted(t))
+            {
+                // Found a ship!
+
+                ResetNpcStateToWorld(
+                    npc,
+                    currentSimulationTime,
+                    shipMesh,
+                    t);
+
+                return;
+            }
+        }
+
+        if (iShip == 0)
+            break;
+        --iShip;
+    }
+
+    // No luck, pick topmost ship
+    ResetNpcStateToWorld(
+        npc,
+        currentSimulationTime,
+        mShips[FindTopmostShipId()]->ShipMesh,
+        std::nullopt);
+}
+
+void Npcs::ResetNpcStateToWorld(
+    StateType & npc,
     float currentSimulationTime,
-    ShipMeshType const & shipMesh) const
+    ShipMeshType const & shipMesh,
+    std::optional<ElementIndex> primaryParticleTriangleIndex) const
 {
     // Primary particle
 
     npc.PrimaryParticleState.ConstrainedState = CalculateParticleConstrainedState(
         mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex),
-        shipMesh);
+        shipMesh,
+        primaryParticleTriangleIndex);
 
     // Secondary particle
 
@@ -29,7 +77,8 @@ void Npcs::ResetNpcStateToWorld(
     {
         npc.DipoleState->SecondaryParticleState.ConstrainedState = CalculateParticleConstrainedState(
             mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex),
-            shipMesh);
+            shipMesh,
+            std::nullopt);
     }
 
     // Regime
@@ -60,22 +109,29 @@ void Npcs::ResetNpcStateToWorld(
 
 std::optional<Npcs::StateType::NpcParticleStateType::ConstrainedStateType> Npcs::CalculateParticleConstrainedState(
     vec2f const & position,
-    ShipMeshType const & shipMesh)
+    ShipMeshType const & shipMesh,
+    std::optional<ElementIndex> triangleIndex)
 {
     std::optional<StateType::NpcParticleStateType::ConstrainedStateType> constrainedState;
 
-    ElementIndex const triangleIndex = shipMesh.ShipTriangles.FindContaining(position, shipMesh.ShipPoints);
-    if (triangleIndex != NoneElementIndex && !shipMesh.ShipTriangles.IsDeleted(triangleIndex))
+    if (!triangleIndex.has_value())
+    {
+        triangleIndex = shipMesh.ShipTriangles.FindContaining(position, shipMesh.ShipPoints);
+    }
+
+    assert(triangleIndex.has_value());
+
+    if (triangleIndex != NoneElementIndex && !shipMesh.ShipTriangles.IsDeleted(*triangleIndex))
     {
         bcoords3f const barycentricCoords = shipMesh.ShipTriangles.ToBarycentricCoordinatesFromWithinTriangle(
             position,
-            triangleIndex,
+            *triangleIndex,
             shipMesh.ShipPoints);
 
         assert(barycentricCoords.is_on_edge_or_internal());
 
         return Npcs::StateType::NpcParticleStateType::ConstrainedStateType(
-            triangleIndex,
+            *triangleIndex,
             barycentricCoords);
     }
 
@@ -124,7 +180,8 @@ void Npcs::UpdateNpcs(
 
                 npcState->DipoleState->SecondaryParticleState.ConstrainedState = CalculateParticleConstrainedState(
                     mParticles.GetPosition(npcState->DipoleState->SecondaryParticleState.ParticleIndex),
-                    mShips[npcState->CurrentShipId]->ShipMesh);
+                    mShips[npcState->CurrentShipId]->ShipMesh,
+                    std::nullopt);
             }
 
             // Preliminary Forces

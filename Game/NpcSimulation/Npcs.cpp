@@ -182,15 +182,25 @@ void Npcs::OnShipRemoved(ShipId shipId)
 
 	for (auto const npcId : mShips[s]->Npcs)
 	{
-		OnNpcDestroyed(npcId);
+		assert(mStateBuffer[npcId].has_value());
+
+		if (mStateBuffer[npcId]->CurrentRegime == StateType::RegimeType::Constrained)
+		{
+			assert(mConstrainedRegimeHumanNpcCount > 0);
+			--mConstrainedRegimeHumanNpcCount;
+		}
+		else if (mStateBuffer[npcId]->CurrentRegime == StateType::RegimeType::Free)
+		{
+			assert(mFreeRegimeHumanNpcCount > 0);
+			--mFreeRegimeHumanNpcCount;
+		}
+
+		--mNpcCount;
+
 		mStateBuffer[npcId].reset();
 	}
 
-	mGameEventHandler->OnNpcCountsUpdated(
-		mNpcCount,
-		mConstrainedRegimeHumanNpcCount,
-		mFreeRegimeHumanNpcCount,
-		GameParameters::MaxNpcs - mNpcCount);
+	PublishNpcStats();
 
 	//
 	// Destroy NPC ship
@@ -297,7 +307,13 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 	assert(mShips[shipId].has_value());
 	mShips[shipId]->Npcs.push_back(npcId);
 
-	OnNpcCreated(npcId);
+	//
+	// Update stats
+	//
+
+	++mNpcCount;
+
+	PublishNpcStats();
 
 	return PickedObjectId<NpcId>(npcId, vec2f::zero());
 }
@@ -312,21 +328,25 @@ void Npcs::MoveNpcTo(
 
 	vec2f const newPosition = position - offset;
 
+	float constexpr InertialVelocityFactor = 0.5f; // Magic number for how much velocity we impart
+
 	switch (mStateBuffer[id]->Kind)
 	{
 		case NpcKindType::Furniture:
 		{
-			// Act on primary particle
+			// Move primary particle
 
 			auto const particleIndex = mStateBuffer[id]->PrimaryParticleState.ParticleIndex;
 			vec2f const oldPosition = mParticles.GetPosition(particleIndex);
 			mParticles.SetPosition(particleIndex, newPosition);
-			mParticles.SetVelocity(particleIndex, (newPosition - oldPosition) / GameParameters::SimulationTimeStepDuration);
+			vec2f const absoluteVelocity = (newPosition - oldPosition) / GameParameters::SimulationTimeStepDuration * InertialVelocityFactor;
+			mParticles.SetVelocity(particleIndex, absoluteVelocity);
 
 			if (mStateBuffer[id]->PrimaryParticleState.ConstrainedState.has_value())
 			{
-				// TODO
-				mStateBuffer[id]->PrimaryParticleState.ConstrainedState->MeshRelativeVelocity = vec2f::zero();
+				// We can only assume here, and we assume the ship is still and since the user doesn't move with the ship,
+				// all this velocity is also relative to mesh
+				mStateBuffer[id]->PrimaryParticleState.ConstrainedState->MeshRelativeVelocity = absoluteVelocity;
 			}
 
 			break;
@@ -334,19 +354,21 @@ void Npcs::MoveNpcTo(
 
 		case NpcKindType::Human:
 		{
-			// Act on secondary particle
+			// Move secondary particle
 
 			assert(mStateBuffer[id]->DipoleState.has_value());
 
 			auto const particleIndex = mStateBuffer[id]->DipoleState->SecondaryParticleState.ParticleIndex;
 			vec2f const oldPosition = mParticles.GetPosition(particleIndex);
 			mParticles.SetPosition(particleIndex, newPosition);
-			mParticles.SetVelocity(particleIndex, (newPosition - oldPosition) / GameParameters::SimulationTimeStepDuration);
+			vec2f const absoluteVelocity = (newPosition - oldPosition) / GameParameters::SimulationTimeStepDuration * InertialVelocityFactor;
+			mParticles.SetVelocity(particleIndex, absoluteVelocity);
 
 			if (mStateBuffer[id]->DipoleState->SecondaryParticleState.ConstrainedState.has_value())
 			{
-				// TODO
-				mStateBuffer[id]->DipoleState->SecondaryParticleState.ConstrainedState->MeshRelativeVelocity = vec2f::zero();
+				// We can only assume here, and we assume the ship is still and since the user doesn't move with the ship,
+				// all this velocity is also relative to mesh
+				mStateBuffer[id]->DipoleState->SecondaryParticleState.ConstrainedState->MeshRelativeVelocity = absoluteVelocity;
 			}
 
 			break;
@@ -354,14 +376,36 @@ void Npcs::MoveNpcTo(
 	}
 }
 
-void Npcs::EndMoveNpc(NpcId id)
+void Npcs::EndMoveNpc(
+	NpcId id,
+	float currentSimulationTime)
 {
-	// TODOHERE
+	assert(mStateBuffer[id].has_value());
+
+	auto & npc = *mStateBuffer[id];
+
+	ResetNpcStateToWorld(
+		npc,
+		currentSimulationTime);
+
+	// Update stats
+	if (npc.CurrentRegime == StateType::RegimeType::Constrained)
+	{
+		++mConstrainedRegimeHumanNpcCount;
+	}
+	else if (npc.CurrentRegime == StateType::RegimeType::Free)
+	{
+		++mFreeRegimeHumanNpcCount;
+	}
+
+	PublishNpcStats();
 }
 
-void Npcs::CompleteNewNpc(NpcId id)
+void Npcs::CompleteNewNpc(
+	NpcId id,
+	float currentSimulationTime)
 {
-	EndMoveNpc(id);
+	EndMoveNpc(id, currentSimulationTime);
 }
 
 void Npcs::SetPanicLevelForAllHumans(float panicLevel)
@@ -430,35 +474,29 @@ void Npcs::MoveParticleBy(
 	// Re-initialize state of NPC that contains this particle
 	//
 
-	for (auto const & ship : mShips)
+	for (auto & state : mStateBuffer)
 	{
-		if (ship.has_value())
+		if (state.has_value())
 		{
-			for (auto const n : ship->Npcs)
+			if (state->PrimaryParticleState.ParticleIndex == particleIndex
+				|| (state->DipoleState.has_value() && state->DipoleState->SecondaryParticleState.ParticleIndex == particleIndex))
 			{
-				auto & state = mStateBuffer[n];
-				assert(state.has_value());
+				ResetNpcStateToWorld(*state, currentSimulationTime);
 
-				if (state->PrimaryParticleState.ParticleIndex == particleIndex
-					|| (state->DipoleState.has_value() && state->DipoleState->SecondaryParticleState.ParticleIndex == particleIndex))
-				{
-					ResetNpcStateToWorld(*state, currentSimulationTime, ship->ShipMesh);
+				//
+				// Select particle
+				//
 
-					//
-					// Select particle
-					//
+				SelectParticle(particleIndex);
 
-					SelectParticle(particleIndex);
+				//
+				// Reset trajectories
+				//
 
-					//
-					// Reset trajectories
-					//
+				mCurrentParticleTrajectory.reset();
+				mCurrentParticleTrajectoryNotification.reset();
 
-					mCurrentParticleTrajectory.reset();
-					mCurrentParticleTrajectoryNotification.reset();
-
-					break;
-				}
+				break;
 			}
 		}
 	}
@@ -542,17 +580,11 @@ void Npcs::OnPointMoved(float currentSimulationTime)
 	// Recalculate state of all NPCs
 	//
 
-	for (auto const & ship : mShips)
+	for (auto & state : mStateBuffer)
 	{
-		if (ship.has_value())
+		if (state.has_value())
 		{
-			for (auto const n : ship->Npcs)
-			{
-				auto & state = mStateBuffer[n];
-				assert(state.has_value());
-
-				ResetNpcStateToWorld(*state, currentSimulationTime, ship->ShipMesh);
-			}
+			ResetNpcStateToWorld(*state, currentSimulationTime);
 		}
 	}
 }
@@ -669,56 +701,8 @@ ShipId Npcs::FindTopmostShipId() const
 	return 0;
 }
 
-void Npcs::OnNpcCreated(NpcId id)
+void Npcs::PublishNpcStats()
 {
-	assert(mStateBuffer[id].has_value());
-	auto const & state = *mStateBuffer[id];
-
-	//
-	// Update stats
-	//
-
-	if (state.CurrentRegime == StateType::RegimeType::Constrained)
-	{
-		++mConstrainedRegimeHumanNpcCount;
-	}
-	else if (state.CurrentRegime == StateType::RegimeType::Free)
-	{
-		++mFreeRegimeHumanNpcCount;
-	}
-
-	++mNpcCount;
-
-	mGameEventHandler->OnNpcCountsUpdated(
-		mNpcCount,
-		mConstrainedRegimeHumanNpcCount,
-		mFreeRegimeHumanNpcCount,
-		GameParameters::MaxNpcs - mNpcCount);
-}
-
-void Npcs::OnNpcDestroyed(NpcId id)
-{
-	// We are invoked _before_ actual destruction happens
-	assert(mStateBuffer[id].has_value());
-	auto const & state = *mStateBuffer[id];
-
-	//
-	// Update stats
-	//
-
-	if (state.CurrentRegime == StateType::RegimeType::Constrained)
-	{
-		assert(mConstrainedRegimeHumanNpcCount > 0);
-		--mConstrainedRegimeHumanNpcCount;
-	}
-	else if (state.CurrentRegime == StateType::RegimeType::Free)
-	{
-		assert(mFreeRegimeHumanNpcCount > 0);
-		--mFreeRegimeHumanNpcCount;
-	}
-
-	--mNpcCount;
-
 	mGameEventHandler->OnNpcCountsUpdated(
 		mNpcCount,
 		mConstrainedRegimeHumanNpcCount,
@@ -1139,24 +1123,63 @@ void Npcs::Publish() const
 		{
 			switch (mStateBuffer[*mCurrentlySelectedNpc]->KindSpecificState.HumanNpcState.CurrentBehavior)
 			{
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::BeingPlaced:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("BeingPlaced");
+					break;
+				}
+
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Aerial:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Aerial");
+					break;
+				}
+
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Equilibrium");
+					break;
+				}
+
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Falling:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Falling");
+					break;
+				}
+
 				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
 				{
 					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+					break;
+				}
 
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Rising:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Rising");
+					break;
+				}
+
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Walking");
 					break;
 				}
 
 				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Aerial:
 				{
 					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Aerial");
-
 					break;
 				}
 
-				default:
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_InWater:
 				{
-					mGameEventHandler->OnHumanNpcBehaviorChanged("?");
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_InWater");
+					break;
+				}
 
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Swimming:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Swimming");
 					break;
 				}
 			}
