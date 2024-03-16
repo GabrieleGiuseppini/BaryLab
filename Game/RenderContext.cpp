@@ -23,7 +23,7 @@ RenderContext::RenderContext(
     , mVertexVertexCount(0)
     , mIsGridEnabled(false)
     ////
-    , mNpcRenderMode(NpcRenderModeType::Physical) // NpcRenderModeType::Limbs
+    , mNpcRenderMode(NpcRenderModeType::Limbs)
 {
     GLuint tmpGLuint;
 

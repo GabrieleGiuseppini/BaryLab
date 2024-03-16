@@ -349,8 +349,6 @@ void Npcs::MoveNpcTo(
 				mStateBuffer[id]->DipoleState->SecondaryParticleState.ConstrainedState->MeshRelativeVelocity = vec2f::zero();
 			}
 
-			mStateBuffer[id]->KindSpecificState.HumanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition += (newPosition - oldPosition).length();
-
 			break;
 		}
 	}

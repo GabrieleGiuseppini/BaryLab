@@ -1966,7 +1966,7 @@ void Npcs::UpdateNpcAnimation(
     ShipMeshType const & shipMesh,
     GameParameters const & gameParameters)
 {
-    if (npc.Kind == NpcKindType::Human && isPrimaryParticle) // Tke the primary as the only representative of a human
+    if (npc.Kind == NpcKindType::Human && isPrimaryParticle) // Take the primary as the only representative of a human
     {
         assert(npc.DipoleState.has_value());
         auto & humanNpcState = npc.KindSpecificState.HumanNpcState;
@@ -1993,7 +1993,20 @@ void Npcs::UpdateNpcAnimation(
         {
             case HumanNpcStateType::BehaviorType::BeingPlaced:
             {
-                // TODOHERE
+                float const arg =
+                    (currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp) * 1.0f
+                    + humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition * 0.2f;
+
+                float const yArms = std::sin(arg * Pi<float> * 2.0f);
+                targetRightArmAngle = Pi<float> / 2.0f + Pi<float> / 2.0f * 0.8f * yArms;
+                targetLeftArmAngle = -targetRightArmAngle;
+
+                float const yLegs = std::sin(arg * Pi<float> * 2.0f + npc.RandomNormalizedUniformSeed * Pi<float> * 2.0f);
+                targetRightLegAngle = (1.0f + yLegs) / 2.0f * Pi<float> / 2.0f * 0.45f;
+                targetLeftLegAngle = -targetRightLegAngle;
+
+                convergenceRate = 0.3f;
+
                 break;
             }
 

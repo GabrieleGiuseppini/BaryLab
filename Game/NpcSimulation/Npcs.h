@@ -13,6 +13,7 @@
 
 #include <GameCore/BarycentricCoords.h>
 #include <GameCore/ElementIndexRangeIterator.h>
+#include <GameCore/GameRandomEngine.h>
 #include <GameCore/GameTypes.h>
 #include <GameCore/Log.h>
 #include <GameCore/StrongTypeDef.h>
@@ -426,6 +427,9 @@ private:
 		// The additional state specific to the type of this NPC.
 		KindSpecificStateType KindSpecificState;
 
+		// Randomness specific to this NPC
+		float RandomNormalizedUniformSeed;
+
 		StateType(
 			NpcId id,
 			NpcKindType kind,
@@ -441,6 +445,7 @@ private:
 			, PrimaryParticleState(std::move(primaryParticleState))
 			, DipoleState(std::move(dipoleState))
 			, KindSpecificState(std::move(kindSpecificState))
+			, RandomNormalizedUniformSeed(GameRandomEngine::GetInstance().GenerateNormalizedUniformReal())
 		{}
 	};
 
