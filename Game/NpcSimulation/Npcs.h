@@ -532,6 +532,10 @@ public:
 		vec2f const & position,
 		vec2f const & offset);
 
+	void EndMoveNpc(NpcId id);
+
+	void CompleteNewNpc(NpcId id);
+
 	// TODO: other interaction APIs here
 
 	void SetPanicLevelForAllHumans(float panicLevel);

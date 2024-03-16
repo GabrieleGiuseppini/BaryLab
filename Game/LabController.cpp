@@ -895,14 +895,16 @@ void LabController::MoveNpcTo(
 
 void LabController::EndMoveNpc(NpcId id)
 {
-    // TODOHERE
-    (void)id;
+    assert(!!mWorld);
+
+    mWorld->GetNpcs().EndMoveNpc(id);
 }
 
 void LabController::CompleteNewNpc(NpcId id)
 {
-    // TODOHERE
-    (void)id;
+    assert(!!mWorld);
+
+    mWorld->GetNpcs().CompleteNewNpc(id);
 }
 
 void LabController::AbortNewNpc(NpcId id)

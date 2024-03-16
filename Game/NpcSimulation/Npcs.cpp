@@ -354,6 +354,16 @@ void Npcs::MoveNpcTo(
 	}
 }
 
+void Npcs::EndMoveNpc(NpcId id)
+{
+	// TODOHERE
+}
+
+void Npcs::CompleteNewNpc(NpcId id)
+{
+	EndMoveNpc(id);
+}
+
 void Npcs::SetPanicLevelForAllHumans(float panicLevel)
 {
 	for (auto & npc : mStateBuffer)
