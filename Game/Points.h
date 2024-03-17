@@ -154,6 +154,12 @@ public:
         mPositionBuffer[pointElementIndex] = value;
     }
 
+    PlaneId GetPlaneId(ElementIndex /*pointElementIndex*/) const
+    {
+        // Placeholder
+        return 0;
+    }
+
     auto const & GetConnectedSprings(ElementIndex pointElementIndex) const
     {
         return mConnectedSpringsBuffer[pointElementIndex];

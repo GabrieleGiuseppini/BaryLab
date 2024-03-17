@@ -17,44 +17,36 @@ void Npcs::ResetNpcStateToWorld(
     float currentSimulationTime) const
 {
     //
-    // Find topmost ship that contains the NPC
+    // Find topmost triangle -among all ships - which contains this NPC
     //
 
     // Take the position of the primary particle as representative of the NPC
     auto const & position = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
 
-    assert(mShips.size() > 0);
-
-    for (size_t iShip = 0; ;)
+    auto const topmostTriangle = FindTopmostContainingTriangle(position);
+    if (topmostTriangle.has_value())
     {
-        if (mShips[iShip].has_value())
-        {
-            auto & shipMesh = mShips[iShip]->ShipMesh;
-            ElementIndex const t = shipMesh.ShipTriangles.FindContaining(position, shipMesh.ShipPoints);
-            if (t != NoneElementIndex && !shipMesh.ShipTriangles.IsDeleted(t))
-            {
-                // Found a ship!
+        // Primary is in a triangle!
 
-                ResetNpcStateToWorld(
-                    npc,
-                    currentSimulationTime,
-                    shipMesh,
-                    t);
+        assert(mShips[topmostTriangle->GetShipId()].has_value());
 
-                return;
-            }
-        }
+        ResetNpcStateToWorld(
+            npc,
+            currentSimulationTime,
+            mShips[topmostTriangle->GetShipId()]->ShipMesh,
+            topmostTriangle->GetLocalObjectId());
 
-        if (iShip == 0)
-            break;
-        --iShip;
+        return;
     }
 
-    // No luck, pick topmost ship
+    // No luck; means we're free, and pick topmost ship for that
+
+    assert(mShips[GetTopmostShipId()].has_value());
+
     ResetNpcStateToWorld(
         npc,
         currentSimulationTime,
-        mShips[FindTopmostShipId()]->ShipMesh,
+        mShips[GetTopmostShipId()]->ShipMesh,
         std::nullopt);
 }
 
@@ -116,7 +108,7 @@ std::optional<Npcs::StateType::NpcParticleStateType::ConstrainedStateType> Npcs:
 
     if (!triangleIndex.has_value())
     {
-        triangleIndex = shipMesh.ShipTriangles.FindContaining(position, shipMesh.ShipPoints);
+        triangleIndex = FindTriangleContaining(position, shipMesh);
     }
 
     assert(triangleIndex.has_value());

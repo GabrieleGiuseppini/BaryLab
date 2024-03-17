@@ -577,6 +577,7 @@ void MainFrame::OnResetMenuItemSelected(wxCommandEvent & /*event*/)
     mLabController->Reset();
 
     mControlToolbar->ReconcialiteUI(
+        mLabController->GetSimulationControlState(),
         mLabController->IsGravityEnabled(),
         mLabController->IsViewGridEnabled());
 }
@@ -910,6 +911,7 @@ void MainFrame::FinishInitialization()
     //
 
     mControlToolbar->ReconcialiteUI(
+        mLabController->GetSimulationControlState(),
         mLabController->IsGravityEnabled(),
         mLabController->IsViewGridEnabled());
 }

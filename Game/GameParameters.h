@@ -82,6 +82,8 @@ struct GameParameters
 
     // Misc
 
+    float ToolSearchRadius;
+
     static float constexpr VertexRadius = 0.05f;
     static float constexpr EdgeThickness = 0.03f;
     static float constexpr SpringThickness = 0.06f;

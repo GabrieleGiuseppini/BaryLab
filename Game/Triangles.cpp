@@ -5,6 +5,7 @@
 ***************************************************************************************/
 #include "Physics.h"
 
+#include <GameCore/GameGeometry.h>
 #include <GameCore/GameMath.h>
 
 #include <cassert>
@@ -37,27 +38,17 @@ void Triangles::Add(
     mSubSpringNpcSurfaceTypesBuffer.emplace_back(SubSpringNpcSurfaceTypes({ subSpringANpcSurfaceType, subSpringBNpcSurfaceType, subSpringCNpcSurfaceType }));
 }
 
-bool Triangles::ContainsPoint(
-    vec2f const & position,
-    ElementIndex triangleElementIndex,
-    Points const & points) const
-{
-    vec2f const aPosition = points.GetPosition(GetPointAIndex(triangleElementIndex));
-    vec2f const bPosition = points.GetPosition(GetPointBIndex(triangleElementIndex));
-    vec2f const cPosition = points.GetPosition(GetPointCIndex(triangleElementIndex));
-
-    return (position - aPosition).cross(bPosition - aPosition) >= 0.0f
-        && (position - bPosition).cross(cPosition - bPosition) >= 0.0f
-        && (position - cPosition).cross(aPosition - cPosition) >= 0.0f;
-}
-
 ElementIndex Triangles::FindContaining(
     vec2f const & position,
     Points const & points) const
 {
     for (auto const t : *this)
     {
-        if (ContainsPoint(position, t, points))
+        vec2f const aPosition = points.GetPosition(GetPointAIndex(t));
+        vec2f const bPosition = points.GetPosition(GetPointBIndex(t));
+        vec2f const cPosition = points.GetPosition(GetPointCIndex(t));
+
+        if (IsPointInTriangle(position, aPosition, bPosition, cPosition))
         {
             return t;
         }
@@ -120,7 +111,11 @@ bcoords3f Triangles::ToBarycentricCoordinatesFromWithinTriangle(
     ElementIndex triangleElementIndex,
     Points const & points) const
 {
-    assert(ContainsPoint(position, triangleElementIndex, points));
+    assert(IsPointInTriangle(
+        position,
+        points.GetPosition(GetPointAIndex(triangleElementIndex)),
+        points.GetPosition(GetPointBIndex(triangleElementIndex)),
+        points.GetPosition(GetPointCIndex(triangleElementIndex))));
 
     vec2f abBaryCoords = InternalToBarycentricCoordinates(
         position,

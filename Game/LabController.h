@@ -43,6 +43,8 @@ public:
     // Lab
     //
 
+    SimulationControlStateType GetSimulationControlState() const;
+
     void SetSimulationControlState(SimulationControlStateType state);
 
     void SetSimulationControlPulse();
@@ -96,7 +98,7 @@ public:
     //
 
     std::optional<PickedObjectId<NpcId>> BeginPlaceNewHumanNpc(HumanNpcKindType humanKind, vec2f const & screenCoordinates);
-    std::optional<PickedObjectId<NpcId>> ProbeNpc(vec2f const & screenCoordinates) const;
+    std::optional<PickedObjectId<NpcId>> ProbeNpcAt(vec2f const & screenCoordinates) const;
     void MoveNpcTo(NpcId id, vec2f const & screenCoordinates, vec2f const & worldOffset);
     void EndMoveNpc(NpcId id);
     void CompleteNewNpc(NpcId id);

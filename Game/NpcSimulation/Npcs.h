@@ -525,6 +525,10 @@ public:
 		vec2f const & worldCoordinates,
 		float currentSimulationTime);
 
+	std::optional<PickedObjectId<NpcId>> ProbeNpcAt(
+		vec2f const & position,
+		GameParameters const & gameParameters) const;
+
 	// TODO: other interaction APIs here
 
 	void MoveNpcTo(
@@ -664,7 +668,13 @@ private:
 
 	NpcId GetNewNpcId();
 
-	ShipId FindTopmostShipId() const;
+	ShipId GetTopmostShipId() const;
+
+	std::optional<ElementId> FindTopmostContainingTriangle(vec2f const & position) const;
+
+	static ElementIndex FindTriangleContaining(
+		vec2f const & position,
+		ShipMeshType const & shipMesh);
 
 	void PublishNpcStats();
 

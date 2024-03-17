@@ -6,6 +6,7 @@
 #include "Physics.h"
 
 #include <GameCore/Colors.h>
+#include <GameCore/GameGeometry.h>
 
 #include <cassert>
 
@@ -293,7 +294,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 
 	// This NPC begins its journey on the topmost ship, just
 	// to make sure it's at the nearest Z
-	ShipId const shipId = FindTopmostShipId();
+	ShipId const shipId = GetTopmostShipId();
 
 	mStateBuffer[npcId].emplace(
 		npcId,
@@ -316,6 +317,97 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 	PublishNpcStats();
 
 	return PickedObjectId<NpcId>(npcId, vec2f::zero());
+}
+
+std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
+	vec2f const & position,
+	GameParameters const & gameParameters) const
+{
+	// TODOHERE
+	(void)position;
+	(void)gameParameters;
+	return std::nullopt;
+
+	//////
+	////// Determine ship and plane of this position
+	//////
+
+	////ShipId shipId;
+	////PlaneId planeId;
+
+	////// Find topmost triangle containing this position
+	////auto const topmostTriangle = FindTopmostContainingTriangle(position);
+	////if (topmostTriangle)
+	////{
+	////	shipId = topmostTriangle->GetShipId();
+
+	////	size_t const s = static_cast<size_t>(shipId);
+	////	assert(s < mNpcShipsByShipId.size());
+	////	assert(mNpcShipsByShipId[s].has_value());
+	////	planeId = mNpcShipsByShipId[s]->ShipRef.GetPoints().GetPlaneId(mNpcShipsByShipId[s]->ShipRef.GetTriangles().GetPointAIndex(topmostTriangle->GetLocalObjectId()));
+	////}
+	////else
+	////{
+	////	shipId = GetTopmostShipId();
+
+	////	size_t const s = static_cast<size_t>(shipId);
+	////	assert(s < mNpcShipsByShipId.size());
+	////	assert(mNpcShipsByShipId[s].has_value());
+	////	planeId = mNpcShipsByShipId[s]->ShipRef.GetMaxPlaneId();
+	////}
+
+	//////
+	////// Search on this ship and plane only
+	//////
+
+	////float const squareSearchRadius = gameParameters.ToolSearchRadius * gameParameters.ToolSearchRadius;
+
+	////size_t const s = static_cast<size_t>(shipId);
+	////assert(s < mNpcShipsByShipId.size());
+	////assert(mNpcShipsByShipId[s].has_value());
+
+	////NpcId nearestNpc = NoneNpcId;
+	////float nearestNpcSquareDistance = std::numeric_limits<float>::max();
+	////vec2f nearestNpcPosition = vec2f::zero();
+	////for (NpcState const & npcState : mNpcShipsByShipId[s]->NpcStates)
+	////{
+	////	// Get plane of this NPC
+	////	PlaneId candidateNpcPlane;
+	////	if (npcState.TriangleIndex)
+	////	{
+	////		candidateNpcPlane = mNpcShipsByShipId[s]->ShipRef.GetPoints().GetPlaneId(mNpcShipsByShipId[s]->ShipRef.GetTriangles().GetPointAIndex(*(npcState.TriangleIndex)));
+	////	}
+	////	else
+	////	{
+	////		candidateNpcPlane = mNpcShipsByShipId[s]->ShipRef.GetMaxPlaneId();
+	////	}
+
+	////	if (candidateNpcPlane == planeId)
+	////	{
+	////		// Calculate distance of primary particle from search point
+	////		vec2f const candidateNpcPosition = mParticles.GetPosition(npcState.PrimaryParticleIndex);
+	////		float const squareDistance = (candidateNpcPosition - position).squareLength();
+	////		if (squareDistance < squareSearchRadius && squareDistance < nearestNpcSquareDistance)
+	////		{
+	////			nearestNpc = npcState.Id;
+	////			nearestNpcSquareDistance = squareDistance;
+	////			nearestNpcPosition = candidateNpcPosition;
+	////		}
+	////	}
+	////}
+
+	////if (nearestNpc != NoneNpcId)
+	////{
+	////	LogMessage("Npcs: PickNpc: id=", nearestNpc);
+
+	////	return PickedObjectId<NpcId>(
+	////		nearestNpc,
+	////		position - nearestNpcPosition);
+	////}
+	////else
+	////{
+	////	return std::nullopt;
+	////}
 }
 
 void Npcs::MoveNpcTo(
@@ -678,7 +770,7 @@ NpcId Npcs::GetNewNpcId()
 	return newNpcId;
 }
 
-ShipId Npcs::FindTopmostShipId() const
+ShipId Npcs::GetTopmostShipId() const
 {
 	assert(mShips.size() > 0);
 
@@ -699,6 +791,71 @@ ShipId Npcs::FindTopmostShipId() const
 
 	assert(false);
 	return 0;
+}
+
+std::optional<ElementId> Npcs::FindTopmostContainingTriangle(vec2f const & position) const
+{
+	// Visit all ships in reverse ship ID order (i.e. from topmost to bottommost)
+	assert(mShips.size() > 0);
+	for (size_t s = mShips.size() - 1; ;)
+	{
+		if (mShips[s].has_value())
+		{
+			// Find the triangle in this ship containing this position and having the highest plane ID
+
+			auto const & shipMesh = mShips[s]->ShipMesh;
+
+			// TODO: this might be optimized
+
+			std::optional<ElementIndex> bestTriangleIndex;
+			PlaneId bestPlaneId = std::numeric_limits<PlaneId>::lowest();
+			for (auto const triangleIndex : shipMesh.ShipTriangles)
+			{
+				vec2f const aPosition = shipMesh.ShipPoints.GetPosition(shipMesh.ShipTriangles.GetPointAIndex(triangleIndex));
+				vec2f const bPosition = shipMesh.ShipPoints.GetPosition(shipMesh.ShipTriangles.GetPointBIndex(triangleIndex));
+				vec2f const cPosition = shipMesh.ShipPoints.GetPosition(shipMesh.ShipTriangles.GetPointCIndex(triangleIndex));
+
+				if (IsPointInTriangle(position, aPosition, bPosition, cPosition)
+					&& (!bestTriangleIndex || shipMesh.ShipPoints.GetPlaneId(shipMesh.ShipTriangles.GetPointAIndex(triangleIndex)) > bestPlaneId))
+				{
+					bestTriangleIndex = triangleIndex;
+					bestPlaneId = shipMesh.ShipPoints.GetPlaneId(shipMesh.ShipTriangles.GetPointAIndex(triangleIndex));
+				}
+			}
+
+			if (bestTriangleIndex)
+			{
+				// Found a triangle on this ship
+				return ElementId(static_cast<ShipId>(s), *bestTriangleIndex);
+			}
+		}
+
+		if (s == 0)
+			break;
+		--s;
+	}
+
+	// No triangle found
+	return std::nullopt;
+}
+
+ElementIndex Npcs::FindTriangleContaining(
+	vec2f const & position,
+	ShipMeshType const & shipMesh)
+{
+	for (auto const triangleIndex : shipMesh.ShipTriangles)
+	{
+		vec2f const aPosition = shipMesh.ShipPoints.GetPosition(shipMesh.ShipTriangles.GetPointAIndex(triangleIndex));
+		vec2f const bPosition = shipMesh.ShipPoints.GetPosition(shipMesh.ShipTriangles.GetPointBIndex(triangleIndex));
+		vec2f const cPosition = shipMesh.ShipPoints.GetPosition(shipMesh.ShipTriangles.GetPointCIndex(triangleIndex));
+
+		if (IsPointInTriangle(position, aPosition, bPosition, cPosition))
+		{
+			return triangleIndex;
+		}
+	}
+
+	return NoneElementIndex;
 }
 
 void Npcs::PublishNpcStats()

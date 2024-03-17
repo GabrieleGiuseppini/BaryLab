@@ -42,12 +42,83 @@ using ShipId = std::uint32_t;
 static ShipId constexpr NoneShip = std::numeric_limits<ShipId>::max();
 
 /*
+ * Plane (depth) identifiers.
+ *
+ * Comparable and ordered. Start from 0.
+ */
+using PlaneId = std::uint32_t;
+static PlaneId constexpr NonePlaneId = std::numeric_limits<PlaneId>::max();
+
+/*
  * NPC (global) identifiers.
  *
  * Comparable and ordered. Start from 0.
  */
 using NpcId = std::uint32_t;
 static NpcId constexpr NoneNpcId = std::numeric_limits<NpcId>::max();
+
+/*
+ * Object ID's, identifying objects of ships across ships.
+ *
+ * An ObjectId is unique only in the context in which it's used; for example,
+ * a gadget might have the same object ID as a switch. That's where the type tag
+ * comes from.
+ *
+ * Not comparable, not ordered.
+ */
+template<typename TLocalObjectId, typename TTypeTag>
+struct ObjectId
+{
+    using LocalObjectId = TLocalObjectId;
+
+    ObjectId(
+        ShipId shipId,
+        LocalObjectId localObjectId)
+        : mShipId(shipId)
+        , mLocalObjectId(localObjectId)
+    {}
+
+    inline ShipId GetShipId() const noexcept
+    {
+        return mShipId;
+    };
+
+    inline LocalObjectId GetLocalObjectId() const noexcept
+    {
+        return mLocalObjectId;
+    }
+
+    ObjectId & operator=(ObjectId const & other) = default;
+
+    inline bool operator==(ObjectId const & other) const
+    {
+        return this->mShipId == other.mShipId
+            && this->mLocalObjectId == other.mLocalObjectId;
+    }
+
+    inline bool operator<(ObjectId const & other) const
+    {
+        return this->mShipId < other.mShipId
+            || (this->mShipId == other.mShipId && this->mLocalObjectId < other.mLocalObjectId);
+    }
+
+    std::string ToString() const
+    {
+        std::stringstream ss;
+
+        ss << static_cast<int>(mShipId) << ":" << static_cast<int>(mLocalObjectId);
+
+        return ss.str();
+    }
+
+private:
+
+    ShipId mShipId;
+    LocalObjectId mLocalObjectId;
+};
+
+// Generic ID for generic elements (points, springs, etc.)
+using ElementId = ObjectId<ElementIndex, struct ElementTypeTag>;
 
 /*
  * Return type of picking an object.

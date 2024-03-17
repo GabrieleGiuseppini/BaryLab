@@ -154,11 +154,6 @@ public:
             || (GetPointCIndex(triangleElementIndex) == point1Index && GetPointAIndex(triangleElementIndex) == point2Index);
     }
 
-    bool ContainsPoint(
-        vec2f const & position,
-        ElementIndex triangleElementIndex,
-        Points const & points) const;
-
     ElementIndex FindContaining(
         vec2f const & position,
         Points const & points) const;

@@ -61,6 +61,11 @@ LabController::LabController(
 {
 }
 
+SimulationControlStateType LabController::GetSimulationControlState() const
+{
+    return mSimulationControlState;
+}
+
 void LabController::SetSimulationControlState(SimulationControlStateType state)
 {
     mSimulationControlState = state;
@@ -870,12 +875,15 @@ std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewHumanNpc(
     return pickedObjectId;
 }
 
-std::optional<PickedObjectId<NpcId>> LabController::ProbeNpc(vec2f const & screenCoordinates) const
+std::optional<PickedObjectId<NpcId>> LabController::ProbeNpcAt(vec2f const & screenCoordinates) const
 {
+    assert(!!mWorld);
+
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
-    // TODOHERE
-    return std::nullopt;
+    return mWorld->GetNpcs().ProbeNpcAt(
+        worldCoordinates,
+        mGameParameters);
 }
 
 void LabController::MoveNpcTo(
@@ -909,12 +917,16 @@ void LabController::CompleteNewNpc(NpcId id)
 
 void LabController::AbortNewNpc(NpcId id)
 {
+    assert(!!mWorld);
+
     // TODOHERE
     (void)id;
 }
 
 void LabController::RemoveNpc(NpcId id)
 {
+    assert(!!mWorld);
+
     // TODOHERE
     (void)id;
 }
@@ -923,6 +935,8 @@ void LabController::HighlightNpc(
     NpcId id,
     NpcHighlightType highlight)
 {
+    assert(!!mWorld);
+
     // TODOHERE
     (void)id;
     (void)highlight;

@@ -680,9 +680,28 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
 }
 
 void ControlToolbar::ReconcialiteUI(
+    SimulationControlStateType simulationControlState,
     bool isGravityEnabled,
     bool isViewGridEnabled)
 {
+    switch (simulationControlState)
+    {
+        case SimulationControlStateType::Paused:
+        {
+            mSimulationControlPauseButton->SetValue(true);
+            mSimulationControlPauseButton->SetFocus();
+            mSimulationControlPlayButton->SetValue(false);
+            break;
+        }
+
+        case SimulationControlStateType::Play:
+        {
+            mSimulationControlPauseButton->SetValue(false);
+            mSimulationControlPlayButton->SetValue(true);
+            break;
+        }
+    }
+
     mSetParticleGravityButton->SetValue(isGravityEnabled);
     mViewControlGridButton->SetValue(isViewGridEnabled);
 }

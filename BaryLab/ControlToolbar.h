@@ -125,6 +125,7 @@ public:
     virtual ~ControlToolbar() = default;
 
     void ReconcialiteUI(
+        SimulationControlStateType simulationControlState,
         bool isGravityEnabled,
         bool isViewGridEnabled);
 

@@ -19,6 +19,7 @@ set  (SOURCES
 	GameChronometer.h
 	GameDebug.h
 	GameException.h
+	GameGeometry.h
 	GameMath.h
 	GameRandomEngine.h
 	GameTypes.cpp
