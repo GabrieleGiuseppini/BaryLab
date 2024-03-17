@@ -60,14 +60,16 @@ void Npcs::Upload(RenderContext & renderContext)
 					shipRenderContext.UploadNpcParticle(
 						mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
 						mParticles.GetRenderColor(state.PrimaryParticleState.ParticleIndex),
-						1.0f);
+						1.0f,
+						state.Highlight);
 
 					if (state.DipoleState.has_value())
 					{
 						shipRenderContext.UploadNpcParticle(
 							mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
 							mParticles.GetRenderColor(state.DipoleState->SecondaryParticleState.ParticleIndex),
-							1.0f);
+							1.0f,
+							state.Highlight);
 
 						renderContext.UploadNpcSpring(
 							mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
@@ -323,91 +325,155 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 	vec2f const & position,
 	GameParameters const & gameParameters) const
 {
+	float const squareSearchRadius = gameParameters.ToolSearchRadius * gameParameters.ToolSearchRadius;
+
+	NpcId nearestNpc = NoneNpcId;
+	float nearestNpcSquareDistance = std::numeric_limits<float>::max();
+	vec2f nearestNpcPosition = vec2f::zero();
+
+	//
+	// Determine ship and plane of this position - if any
+	//
+
+	// Find topmost triangle containing this position
+	auto const topmostTriangle = FindTopmostTriangleContaining(position);
+	if (topmostTriangle)
+	{
+		//
+		// Probing in a triangle...
+		// ...search on this triangle's plane only
+		//
+
+		assert(topmostTriangle->GetShipId() < mShips.size());
+		assert(mShips[topmostTriangle->GetShipId()].has_value());
+		auto const & ship = *mShips[topmostTriangle->GetShipId()];
+
+		ElementIndex const trianglePointIndex = ship.ShipMesh.ShipTriangles.GetPointAIndex(topmostTriangle->GetLocalObjectId());
+		PlaneId const planeId = ship.ShipMesh.ShipPoints.GetPlaneId(trianglePointIndex);
+
+		for (auto const n : ship.Npcs)
+		{
+			assert(mStateBuffer[n].has_value());
+			auto const & state = *mStateBuffer[n];
+
+			// Choose which particle to use as representative of this NPC
+			ElementIndex candidateParticle = NoneElementIndex;
+			std::optional<StateType::NpcParticleStateType::ConstrainedStateType> const * candidateNpcConstrainedState = nullptr;
+			switch (state.Kind)
+			{
+				case NpcKindType::Furniture:
+				{
+					candidateParticle = state.PrimaryParticleState.ParticleIndex;
+					candidateNpcConstrainedState = &(state.PrimaryParticleState.ConstrainedState);
+					break;
+				}
+
+				case NpcKindType::Human:
+				{
+					// Head
+					assert(state.DipoleState.has_value());
+					candidateParticle = state.DipoleState->SecondaryParticleState.ParticleIndex;
+					candidateNpcConstrainedState = &(state.DipoleState->SecondaryParticleState.ConstrainedState);
+					break;
+				}
+			}
+
+			assert(candidateParticle != NoneElementIndex);
+			assert(candidateNpcConstrainedState != nullptr);
+
+			// Get plane of this NPC
+			PlaneId candidateNpcPlane;
+			if (candidateNpcConstrainedState->has_value())
+			{
+				assert(mShips[state.CurrentShipId].has_value());
+				candidateNpcPlane = mShips[state.CurrentShipId]->ShipMesh.ShipPoints.GetPlaneId(
+					mShips[state.CurrentShipId]->ShipMesh.ShipTriangles.GetPointAIndex(candidateNpcConstrainedState->value().CurrentTriangle));
+			}
+			else
+			{
+				candidateNpcPlane = NonePlaneId;
+			}
+
+			// Calculate distance of primary particle from search point
+			vec2f const candidateNpcPosition = mParticles.GetPosition(candidateParticle);
+			float const squareDistance = (candidateNpcPosition - position).squareLength();
+			if (squareDistance < squareSearchRadius && squareDistance < nearestNpcSquareDistance
+				&& (candidateNpcPlane == NonePlaneId || candidateNpcPlane == planeId))
+			{
+				nearestNpc = state.Id;
+				nearestNpcSquareDistance = squareDistance;
+				nearestNpcPosition = candidateNpcPosition;
+			}
+		}
+	}
+	else
+	{
+		//
+		// Probing in free space...
+		// ...find nearest NPC, regardless of ship (and of plane)
+		//
+
+		for (auto const & state : mStateBuffer)
+		{
+			if (state.has_value())
+			{
+				// Choose which particle to use as representative of this NPC
+				ElementIndex candidateParticle = NoneElementIndex;
+				switch (state->Kind)
+				{
+					case NpcKindType::Furniture:
+					{
+						candidateParticle = state->PrimaryParticleState.ParticleIndex;
+						break;
+					}
+
+					case NpcKindType::Human:
+					{
+						// Head
+						assert(state->DipoleState.has_value());
+						candidateParticle = state->DipoleState->SecondaryParticleState.ParticleIndex;
+						break;
+					}
+				}
+
+				assert(candidateParticle != NoneElementIndex);
+
+				vec2f const candidateNpcPosition = mParticles.GetPosition(candidateParticle);
+				float const squareDistance = (candidateNpcPosition - position).squareLength();
+				if (squareDistance < squareSearchRadius && squareDistance < nearestNpcSquareDistance)
+				{
+					nearestNpc = state->Id;
+					nearestNpcSquareDistance = squareDistance;
+					nearestNpcPosition = candidateNpcPosition;
+				}
+			}
+		}
+	}
+
+	if (nearestNpc != NoneNpcId)
+	{
+		LogMessage("Npcs: PickNpc: id=", nearestNpc);
+
+		return PickedObjectId<NpcId>(
+			nearestNpc,
+			position - nearestNpcPosition);
+	}
+	else
+	{
+		return std::nullopt;
+	}
+}
+
+void Npcs::BeginMoveNpc(
+	NpcId id,
+	float currentSimulationTime)
+{
 	// TODOHERE
-	(void)position;
-	(void)gameParameters;
-	return std::nullopt;
-
-	//////
-	////// Determine ship and plane of this position
-	//////
-
-	////ShipId shipId;
-	////PlaneId planeId;
-
-	////// Find topmost triangle containing this position
-	////auto const topmostTriangle = FindTopmostContainingTriangle(position);
-	////if (topmostTriangle)
-	////{
-	////	shipId = topmostTriangle->GetShipId();
-
-	////	size_t const s = static_cast<size_t>(shipId);
-	////	assert(s < mNpcShipsByShipId.size());
-	////	assert(mNpcShipsByShipId[s].has_value());
-	////	planeId = mNpcShipsByShipId[s]->ShipRef.GetPoints().GetPlaneId(mNpcShipsByShipId[s]->ShipRef.GetTriangles().GetPointAIndex(topmostTriangle->GetLocalObjectId()));
-	////}
-	////else
-	////{
-	////	shipId = GetTopmostShipId();
-
-	////	size_t const s = static_cast<size_t>(shipId);
-	////	assert(s < mNpcShipsByShipId.size());
-	////	assert(mNpcShipsByShipId[s].has_value());
-	////	planeId = mNpcShipsByShipId[s]->ShipRef.GetMaxPlaneId();
-	////}
-
-	//////
-	////// Search on this ship and plane only
-	//////
-
-	////float const squareSearchRadius = gameParameters.ToolSearchRadius * gameParameters.ToolSearchRadius;
-
-	////size_t const s = static_cast<size_t>(shipId);
-	////assert(s < mNpcShipsByShipId.size());
-	////assert(mNpcShipsByShipId[s].has_value());
-
-	////NpcId nearestNpc = NoneNpcId;
-	////float nearestNpcSquareDistance = std::numeric_limits<float>::max();
-	////vec2f nearestNpcPosition = vec2f::zero();
-	////for (NpcState const & npcState : mNpcShipsByShipId[s]->NpcStates)
-	////{
-	////	// Get plane of this NPC
-	////	PlaneId candidateNpcPlane;
-	////	if (npcState.TriangleIndex)
-	////	{
-	////		candidateNpcPlane = mNpcShipsByShipId[s]->ShipRef.GetPoints().GetPlaneId(mNpcShipsByShipId[s]->ShipRef.GetTriangles().GetPointAIndex(*(npcState.TriangleIndex)));
-	////	}
-	////	else
-	////	{
-	////		candidateNpcPlane = mNpcShipsByShipId[s]->ShipRef.GetMaxPlaneId();
-	////	}
-
-	////	if (candidateNpcPlane == planeId)
-	////	{
-	////		// Calculate distance of primary particle from search point
-	////		vec2f const candidateNpcPosition = mParticles.GetPosition(npcState.PrimaryParticleIndex);
-	////		float const squareDistance = (candidateNpcPosition - position).squareLength();
-	////		if (squareDistance < squareSearchRadius && squareDistance < nearestNpcSquareDistance)
-	////		{
-	////			nearestNpc = npcState.Id;
-	////			nearestNpcSquareDistance = squareDistance;
-	////			nearestNpcPosition = candidateNpcPosition;
-	////		}
-	////	}
-	////}
-
-	////if (nearestNpc != NoneNpcId)
-	////{
-	////	LogMessage("Npcs: PickNpc: id=", nearestNpc);
-
-	////	return PickedObjectId<NpcId>(
-	////		nearestNpc,
-	////		position - nearestNpcPosition);
-	////}
-	////else
-	////{
-	////	return std::nullopt;
-	////}
+	// - Move to topmost ship (via MoveNpcToShip)
+	// - Set to BeingPlaced (X2)
+	// - Maintain stats & publish
+	(void)id;
+	(void)currentSimulationTime;
 }
 
 void Npcs::MoveNpcTo(
@@ -498,6 +564,14 @@ void Npcs::CompleteNewNpc(
 	float currentSimulationTime)
 {
 	EndMoveNpc(id, currentSimulationTime);
+}
+
+void Npcs::HighlightNpc(
+	NpcId id,
+	NpcHighlightType highlight)
+{
+	assert(mStateBuffer[id].has_value());
+	mStateBuffer[id]->Highlight = highlight;
 }
 
 void Npcs::SetPanicLevelForAllHumans(float panicLevel)
@@ -929,7 +1003,8 @@ void Npcs::RenderNpc(
 						neckPosition - actualBodyHDir * halfHeadW,
 						neckPosition + actualBodyHDir * halfHeadW),
 					humanNpcState.CurrentFaceOrientation,
-					humanNpcState.CurrentFaceDirectionX);
+					humanNpcState.CurrentFaceDirectionX,
+					npc.Highlight);
 
 				// Arms and legs
 
@@ -953,7 +1028,8 @@ void Npcs::RenderNpc(
 							leftArmJointPosition + leftArmVector - leftArmTraverseDir * halfArmW,
 							leftArmJointPosition + leftArmVector + leftArmTraverseDir * halfArmW),
 						humanNpcState.CurrentFaceOrientation,
-						humanNpcState.CurrentFaceDirectionX);
+						humanNpcState.CurrentFaceDirectionX,
+						npc.Highlight);
 
 					// Right arm (on right side of the screen)
 					vec2f const rightArmVector = actualBodyVDir.rotate(cosRightArmAngle, sinRightArmAngle) * rightArmLength;
@@ -965,7 +1041,8 @@ void Npcs::RenderNpc(
 							rightArmJointPosition + rightArmVector - rightArmTraverseDir * halfArmW,
 							rightArmJointPosition + rightArmVector + rightArmTraverseDir * halfArmW),
 						humanNpcState.CurrentFaceOrientation,
-						humanNpcState.CurrentFaceDirectionX);
+						humanNpcState.CurrentFaceDirectionX,
+						npc.Highlight);
 
 					// Left leg (on left side of the screen)
 					vec2f const leftLegVector = actualBodyVDir.rotate(cosLeftLegAngle, sinLeftLegAngle) * leftLegLength;
@@ -977,7 +1054,8 @@ void Npcs::RenderNpc(
 							leftLegJointPosition + leftLegVector - leftLegTraverseDir * halfLegW,
 							leftLegJointPosition + leftLegVector + leftLegTraverseDir * halfLegW),
 						humanNpcState.CurrentFaceOrientation,
-						humanNpcState.CurrentFaceDirectionX);
+						humanNpcState.CurrentFaceDirectionX,
+						npc.Highlight);
 
 					// Right leg (on right side of the screen)
 					vec2f const rightLegVector = actualBodyVDir.rotate(cosRightLegAngle, sinRightLegAngle) * rightLegLength;
@@ -989,7 +1067,8 @@ void Npcs::RenderNpc(
 							rightLegJointPosition + rightLegVector - rightLegTraverseDir * halfLegW,
 							rightLegJointPosition + rightLegVector + rightLegTraverseDir * halfLegW),
 						humanNpcState.CurrentFaceOrientation,
-						humanNpcState.CurrentFaceDirectionX);
+						humanNpcState.CurrentFaceDirectionX,
+						npc.Highlight);
 				}
 				else
 				{
@@ -1005,7 +1084,8 @@ void Npcs::RenderNpc(
 							rightArmJointPosition + leftArmVector - leftArmTraverseDir * halfArmW,
 							rightArmJointPosition + leftArmVector + leftArmTraverseDir * halfArmW),
 						humanNpcState.CurrentFaceOrientation,
-						humanNpcState.CurrentFaceDirectionX);
+						humanNpcState.CurrentFaceDirectionX,
+						npc.Highlight);
 
 					// Right arm (on left side of the screen)
 					vec2f const rightArmVector = actualBodyVDir.rotate(cosRightArmAngle, -sinRightArmAngle) * rightArmLength;
@@ -1017,7 +1097,8 @@ void Npcs::RenderNpc(
 							leftArmJointPosition + rightArmVector - rightArmTraverseDir * halfArmW,
 							leftArmJointPosition + rightArmVector + rightArmTraverseDir * halfArmW),
 						humanNpcState.CurrentFaceOrientation,
-						humanNpcState.CurrentFaceDirectionX);
+						humanNpcState.CurrentFaceDirectionX,
+						npc.Highlight);
 
 					// Left leg (on right side of the screen)
 					vec2f const leftLegVector = actualBodyVDir.rotate(cosLeftLegAngle, -sinLeftLegAngle) * leftLegLength;
@@ -1029,7 +1110,8 @@ void Npcs::RenderNpc(
 							rightLegJointPosition + leftLegVector - leftLegTraverseDir * halfLegW,
 							rightLegJointPosition + leftLegVector + leftLegTraverseDir * halfLegW),
 						humanNpcState.CurrentFaceOrientation,
-						humanNpcState.CurrentFaceDirectionX);
+						humanNpcState.CurrentFaceDirectionX,
+						npc.Highlight);
 
 					// Right leg (on left side of the screen)
 					vec2f const rightLegVector = actualBodyVDir.rotate(cosRightLegAngle, -sinRightLegAngle) * rightLegLength;
@@ -1041,7 +1123,8 @@ void Npcs::RenderNpc(
 							leftLegJointPosition + rightLegVector - rightLegTraverseDir * halfLegW,
 							leftLegJointPosition + rightLegVector + rightLegTraverseDir * halfLegW),
 						humanNpcState.CurrentFaceOrientation,
-						humanNpcState.CurrentFaceDirectionX);
+						humanNpcState.CurrentFaceDirectionX,
+						npc.Highlight);
 				}
 
 				// Torso
@@ -1053,7 +1136,8 @@ void Npcs::RenderNpc(
 						crotchPosition - actualBodyHDir * halfTorsoW,
 						crotchPosition + actualBodyHDir * halfTorsoW),
 					humanNpcState.CurrentFaceOrientation,
-					humanNpcState.CurrentFaceDirectionX);
+					humanNpcState.CurrentFaceDirectionX,
+					npc.Highlight);
 			}
 			else
 			{
@@ -1108,13 +1192,15 @@ void Npcs::RenderNpc(
 					shipRenderContext.UploadNpcQuad(
 						leftArmQuad,
 						humanNpcState.CurrentFaceOrientation,
-						humanNpcState.CurrentFaceDirectionX);
+						humanNpcState.CurrentFaceDirectionX,
+						npc.Highlight);
 
 					// Left leg
 					shipRenderContext.UploadNpcQuad(
 						leftLegQuad,
 						humanNpcState.CurrentFaceOrientation,
-						humanNpcState.CurrentFaceDirectionX);
+						humanNpcState.CurrentFaceDirectionX,
+						npc.Highlight);
 				}
 				else
 				{
@@ -1122,13 +1208,15 @@ void Npcs::RenderNpc(
 					shipRenderContext.UploadNpcQuad(
 						rightArmQuad,
 						humanNpcState.CurrentFaceOrientation,
-						humanNpcState.CurrentFaceDirectionX);
+						humanNpcState.CurrentFaceDirectionX,
+						npc.Highlight);
 
 					// Right leg
 					shipRenderContext.UploadNpcQuad(
 						rightLegQuad,
 						humanNpcState.CurrentFaceOrientation,
-						humanNpcState.CurrentFaceDirectionX);
+						humanNpcState.CurrentFaceDirectionX,
+						npc.Highlight);
 				}
 
 				// Head
@@ -1140,7 +1228,8 @@ void Npcs::RenderNpc(
 						neckPosition - actualBodyHDir * halfHeadD,
 						neckPosition + actualBodyHDir * halfHeadD),
 					humanNpcState.CurrentFaceOrientation,
-					humanNpcState.CurrentFaceDirectionX);
+					humanNpcState.CurrentFaceDirectionX,
+					npc.Highlight);
 
 				// Torso
 
@@ -1151,7 +1240,8 @@ void Npcs::RenderNpc(
 						crotchPosition - actualBodyHDir * halfTorsoD,
 						crotchPosition + actualBodyHDir * halfTorsoD),
 					humanNpcState.CurrentFaceOrientation,
-					humanNpcState.CurrentFaceDirectionX);
+					humanNpcState.CurrentFaceDirectionX,
+					npc.Highlight);
 
 				// Arms and legs near
 
@@ -1161,13 +1251,15 @@ void Npcs::RenderNpc(
 					shipRenderContext.UploadNpcQuad(
 						rightArmQuad,
 						humanNpcState.CurrentFaceOrientation,
-						humanNpcState.CurrentFaceDirectionX);
+						humanNpcState.CurrentFaceDirectionX,
+						npc.Highlight);
 
 					// Right leg
 					shipRenderContext.UploadNpcQuad(
 						rightLegQuad,
 						humanNpcState.CurrentFaceOrientation,
-						humanNpcState.CurrentFaceDirectionX);
+						humanNpcState.CurrentFaceDirectionX,
+						npc.Highlight);
 				}
 				else
 				{
@@ -1175,13 +1267,15 @@ void Npcs::RenderNpc(
 					shipRenderContext.UploadNpcQuad(
 						leftArmQuad,
 						humanNpcState.CurrentFaceOrientation,
-						humanNpcState.CurrentFaceDirectionX);
+						humanNpcState.CurrentFaceDirectionX,
+						npc.Highlight);
 
 					// Left leg
 					shipRenderContext.UploadNpcQuad(
 						leftLegQuad,
 						humanNpcState.CurrentFaceOrientation,
-						humanNpcState.CurrentFaceDirectionX);
+						humanNpcState.CurrentFaceDirectionX,
+						npc.Highlight);
 				}
 			}
 
@@ -1193,14 +1287,16 @@ void Npcs::RenderNpc(
 			shipRenderContext.UploadNpcParticle(
 				mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex),
 				mParticles.GetRenderColor(npc.PrimaryParticleState.ParticleIndex),
-				1.0f);
+				1.0f,
+				npc.Highlight);
 
 			if (npc.DipoleState.has_value())
 			{
 				shipRenderContext.UploadNpcParticle(
 					mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex),
 					mParticles.GetRenderColor(npc.DipoleState->SecondaryParticleState.ParticleIndex),
-					1.0f);
+					1.0f,
+					npc.Highlight);
 			}
 
 			break;

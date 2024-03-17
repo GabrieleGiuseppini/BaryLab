@@ -842,3 +842,146 @@ private:
 
     HumanNpcKindType mHumanNpcKind;
 };
+
+class MoveNpcTool final : public Tool
+{
+    //
+    // State machine:
+    //
+    //  - Hovering (MouseUp): if we have Npc that's a candidate - and it's highlighted
+    //  - Moving (MouseDown): if we have Npc we're moving it - and it's not highlighted
+    //
+
+public:
+
+    MoveNpcTool(
+        wxWindow * cursorWindow,
+        std::shared_ptr<LabController> labController);
+
+public:
+
+    virtual void Initialize(InputState const & inputState) override
+    {
+        mNpc.reset();
+        mIsMouseDown = inputState.IsLeftMouseDown;
+
+        // Set cursor
+        SetCurrentCursor();
+    }
+
+    virtual void Deinitialize(InputState const & /*inputState*/) override
+    {
+        if (mNpc.has_value() && !mIsMouseDown)
+        {
+            mLabController->HighlightNpc(mNpc->ObjectId, NpcHighlightType::None);
+        }
+    }
+
+    virtual void SetCurrentCursor() override
+    {
+        if (mIsMouseDown)
+        {
+            mCursorWindow->SetCursor(mClosedCursor);
+        }
+        else
+        {
+            mCursorWindow->SetCursor(mOpenCursor);
+        }
+    }
+
+    virtual void Update(InputState const & inputState) override
+    {
+        if (inputState.IsLeftMouseDown)
+        {
+            if (!mIsMouseDown)
+            {
+                // Clicked
+
+                // If we have an NPC, it becomes the one we're moving
+                if (mNpc.has_value())
+                {
+                    mLabController->BeginMoveNpc(mNpc->ObjectId);
+
+                    // Now that it's moving, un-highlight it
+                    mLabController->HighlightNpc(
+                        mNpc->ObjectId,
+                        NpcHighlightType::None);
+                }
+
+                mIsMouseDown = true;
+                SetCurrentCursor();
+            }
+            else
+            {
+                // Moved while keeping down
+
+                if (mNpc.has_value())
+                {
+                    mLabController->MoveNpcTo(
+                        mNpc->ObjectId,
+                        inputState.MousePosition,
+                        mNpc->WorldOffset);
+                }
+            }
+        }
+        else
+        {
+            if (mIsMouseDown)
+            {
+                // Released
+
+                // If we have an NPC, we've stopped moving it
+                if (mNpc.has_value())
+                {
+                    mLabController->EndMoveNpc(mNpc->ObjectId);
+                }
+
+                mIsMouseDown = false;
+                SetCurrentCursor();
+            }
+
+            // Probe at new position
+            auto const probeOutcome = mLabController->ProbeNpcAt(inputState.MousePosition);
+            if (probeOutcome)
+            {
+                if (mNpc.has_value() && mNpc->ObjectId != probeOutcome->ObjectId)
+                {
+                    mLabController->HighlightNpc(
+                        mNpc->ObjectId,
+                        NpcHighlightType::None);
+                }
+
+                if (!mNpc.has_value() || mNpc->ObjectId != probeOutcome->ObjectId)
+                {
+                    mNpc = probeOutcome;
+
+                    mLabController->HighlightNpc(
+                        mNpc->ObjectId,
+                        NpcHighlightType::Candidate);
+                }
+            }
+            else
+            {
+                if (mNpc.has_value())
+                {
+                    mLabController->HighlightNpc(
+                        mNpc->ObjectId,
+                        NpcHighlightType::None);
+
+                    mNpc.reset();
+                }
+            }
+        }
+    }
+
+private:
+
+    // Our state
+    std::optional<PickedObjectId<NpcId>> mNpc;
+    bool mIsMouseDown;
+
+    // The cursors
+    wxCursor const mClosedCursor;
+    wxCursor const mOpenCursor;
+};
+

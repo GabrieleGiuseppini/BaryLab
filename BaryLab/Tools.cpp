@@ -102,3 +102,15 @@ AddHumanNpcTool::AddHumanNpcTool(
         std::move(labController))
 {
 }
+
+MoveNpcTool::MoveNpcTool(
+    wxWindow * cursorWindow,
+    std::shared_ptr<LabController> labController)
+    : Tool(
+        ToolType::MoveNpc,
+        cursorWindow,
+        std::move(labController))
+    , mClosedCursor(WxHelpers::MakeCursor("move_npc_cursor_down", 11, 29))
+    , mOpenCursor(WxHelpers::MakeCursor("move_npc_cursor_up", 11, 29))
+{
+}

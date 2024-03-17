@@ -17,7 +17,7 @@ void Npcs::ResetNpcStateToWorld(
     float currentSimulationTime) const
 {
     //
-    // Find topmost triangle -among all ships - which contains this NPC
+    // Find topmost triangle - among all ships - which contains this NPC
     //
 
     // Take the position of the primary particle as representative of the NPC

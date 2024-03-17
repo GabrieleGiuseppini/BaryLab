@@ -184,7 +184,8 @@ public:
     void UploadNpcQuad(
         Quadf const & quad,
         float faceOrientation,
-        float faceDirectionX);
+        float faceDirectionX,
+        NpcHighlightType highlight);
 
     void UploadNpcQuadsEnd();
 
@@ -193,7 +194,8 @@ public:
     void UploadNpcParticle(
         vec2f const & particlePosition,
         rgbaColor const & particleColor,
-        float alpha);
+        float alpha,
+        NpcHighlightType highlight);
 
     void UploadNpcParticlesEnd();
 

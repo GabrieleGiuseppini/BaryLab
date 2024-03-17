@@ -886,6 +886,15 @@ std::optional<PickedObjectId<NpcId>> LabController::ProbeNpcAt(vec2f const & scr
         mGameParameters);
 }
 
+void LabController::BeginMoveNpc(NpcId id)
+{
+    assert(!!mWorld);
+
+    mWorld->GetNpcs().BeginMoveNpc(
+        id,
+        mCurrentSimulationTime);
+}
+
 void LabController::MoveNpcTo(
     NpcId id,
     vec2f const & screenCoordinates,
@@ -937,9 +946,9 @@ void LabController::HighlightNpc(
 {
     assert(!!mWorld);
 
-    // TODOHERE
-    (void)id;
-    (void)highlight;
+    mWorld->GetNpcs().HighlightNpc(
+        id,
+        highlight);
 }
 
 void LabController::SetNpcPanicLevelForAllHumans(float panicLevel)

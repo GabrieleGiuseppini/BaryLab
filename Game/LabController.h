@@ -99,6 +99,7 @@ public:
 
     std::optional<PickedObjectId<NpcId>> BeginPlaceNewHumanNpc(HumanNpcKindType humanKind, vec2f const & screenCoordinates);
     std::optional<PickedObjectId<NpcId>> ProbeNpcAt(vec2f const & screenCoordinates) const;
+    void BeginMoveNpc(NpcId id);
     void MoveNpcTo(NpcId id, vec2f const & screenCoordinates, vec2f const & worldOffset);
     void EndMoveNpc(NpcId id);
     void CompleteNewNpc(NpcId id);

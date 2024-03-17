@@ -118,7 +118,7 @@ private:
 };
 
 // Generic ID for generic elements (points, springs, etc.)
-using ElementId = ObjectId<ElementIndex, struct ElementTypeTag>;
+using ElementId = ObjectId<ElementIndex, struct _ElementIdTag>;
 
 /*
  * Return type of picking an object.
@@ -253,8 +253,8 @@ NpcSurfaceType StrToNpcSurfaceType(std::string const & str);
 
 enum class NpcHighlightType
 {
-    Error = 0,
-    None
+    None,
+    Candidate
 };
 
 enum class NpcRenderModeType

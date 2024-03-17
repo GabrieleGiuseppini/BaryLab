@@ -427,7 +427,10 @@ private:
 		// The additional state specific to the type of this NPC.
 		KindSpecificStateType KindSpecificState;
 
-		// Randomness specific to this NPC
+		// The current highlight state of this NPC.
+		NpcHighlightType Highlight;
+
+		// Randomness specific to this NPC.
 		float RandomNormalizedUniformSeed;
 
 		StateType(
@@ -445,6 +448,7 @@ private:
 			, PrimaryParticleState(std::move(primaryParticleState))
 			, DipoleState(std::move(dipoleState))
 			, KindSpecificState(std::move(kindSpecificState))
+			, Highlight(NpcHighlightType::None)
 			, RandomNormalizedUniformSeed(GameRandomEngine::GetInstance().GenerateNormalizedUniformReal())
 		{}
 	};
@@ -529,7 +533,9 @@ public:
 		vec2f const & position,
 		GameParameters const & gameParameters) const;
 
-	// TODO: other interaction APIs here
+	void BeginMoveNpc(
+		NpcId id,
+		float currentSimulationTime);
 
 	void MoveNpcTo(
 		NpcId id,
@@ -545,6 +551,10 @@ public:
 		float currentSimulationTime);
 
 	// TODO: other interaction APIs here
+
+	void HighlightNpc(
+		NpcId id,
+		NpcHighlightType highlight);
 
 	void SetPanicLevelForAllHumans(float panicLevel);
 

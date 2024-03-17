@@ -64,6 +64,11 @@ ToolController::ToolController(
             mCursorWindow,
             mLabController));
 
+    mAllTools.emplace_back(
+        std::make_unique<MoveNpcTool>(
+            mCursorWindow,
+            mLabController));
+
     // Prepare own cursor(s)
     mPanCursor = WxHelpers::MakeCursor("pan_cursor", 15, 15);
 
