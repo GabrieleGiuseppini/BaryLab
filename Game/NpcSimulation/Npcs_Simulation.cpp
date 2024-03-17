@@ -23,7 +23,7 @@ void Npcs::ResetNpcStateToWorld(
     // Take the position of the primary particle as representative of the NPC
     auto const & position = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
 
-    auto const topmostTriangle = FindTopmostContainingTriangle(position);
+    auto const topmostTriangle = FindTopmostTriangleContaining(position);
     if (topmostTriangle.has_value())
     {
         // Primary is in a triangle!

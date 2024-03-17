@@ -670,7 +670,7 @@ private:
 
 	ShipId GetTopmostShipId() const;
 
-	std::optional<ElementId> FindTopmostContainingTriangle(vec2f const & position) const;
+	std::optional<ElementId> FindTopmostTriangleContaining(vec2f const & position) const;
 
 	static ElementIndex FindTriangleContaining(
 		vec2f const & position,

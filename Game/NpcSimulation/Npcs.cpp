@@ -793,7 +793,7 @@ ShipId Npcs::GetTopmostShipId() const
 	return 0;
 }
 
-std::optional<ElementId> Npcs::FindTopmostContainingTriangle(vec2f const & position) const
+std::optional<ElementId> Npcs::FindTopmostTriangleContaining(vec2f const & position) const
 {
 	// Visit all ships in reverse ship ID order (i.e. from topmost to bottommost)
 	assert(mShips.size() > 0);
