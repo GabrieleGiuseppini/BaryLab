@@ -562,10 +562,14 @@ ShaderManager::VertexAttributeType ShaderManager::StrToVertexAttributeType(std::
         return VertexAttributeType::NpcParticleAttributeGroup1;
     else if (Utils::CaseInsensitiveEquals(str, "NpcParticleAttributeGroup2"))
         return VertexAttributeType::NpcParticleAttributeGroup2;
+    else if (Utils::CaseInsensitiveEquals(str, "NpcParticleAttributeGroup3"))
+        return VertexAttributeType::NpcParticleAttributeGroup3;
     else if (Utils::CaseInsensitiveEquals(str, "NpcQuadAttributeGroup1"))
         return VertexAttributeType::NpcQuadAttributeGroup1;
     else if (Utils::CaseInsensitiveEquals(str, "NpcQuadAttributeGroup2"))
         return VertexAttributeType::NpcQuadAttributeGroup2;
+    else if (Utils::CaseInsensitiveEquals(str, "NpcQuadAttributeGroup3"))
+        return VertexAttributeType::NpcQuadAttributeGroup3;
     else if (Utils::CaseInsensitiveEquals(str, "NpcSpringAttributeGroup1"))
         return VertexAttributeType::NpcSpringAttributeGroup1;
     else if (Utils::CaseInsensitiveEquals(str, "NpcSpringAttributeGroup2"))

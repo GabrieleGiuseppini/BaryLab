@@ -8,11 +8,13 @@
 // Inputs
 in vec4 inNpcQuadAttributeGroup1; // Position, VertexSpacePosition
 in vec2 inNpcQuadAttributeGroup2; // BackDepth, OrientationDepth
+in vec4 inNpcQuadAttributeGroup3; // OverlayColor
 
 // Outputs        
 out vec2 vertexSpacePosition;
 out float vertexBackDepth;
 out float vertexOrientationDepth;
+out vec4 vertexOverlayColor;
 
 // Params
 uniform mat4 paramOrthoMatrix;
@@ -22,6 +24,7 @@ void main()
     vertexSpacePosition = inNpcQuadAttributeGroup1.zw;
     vertexBackDepth = inNpcQuadAttributeGroup2.x;
     vertexOrientationDepth = inNpcQuadAttributeGroup2.y;
+    vertexOverlayColor = inNpcQuadAttributeGroup3;
 
     gl_Position = paramOrthoMatrix * vec4(inNpcQuadAttributeGroup1.xy, -1.0, 1.0);
 }
@@ -36,6 +39,7 @@ void main()
 in vec2 vertexSpacePosition; // [(-1.0, -1.0), (1.0, 1.0)]
 in float vertexBackDepth;
 in float vertexOrientationDepth;
+in vec4 vertexOverlayColor;
 
 void main()
 {
@@ -55,6 +59,11 @@ void main()
     vec4 c = vec4(
         mix(cInner, cBorder, borderAlpha) * oppositeDirShade,
         alpha);
+
+    c = mix(
+        c,
+        vec4(vertexOverlayColor.rgb, c.a),
+        vertexOverlayColor.a);
 
     gl_FragColor = c;
 } 

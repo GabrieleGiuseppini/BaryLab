@@ -256,6 +256,29 @@ private:
     bool mIsGridDirty;
     void OnGridUpdated();
 
+    ////////////////////////////////////////////////////////////////
+    // Helpers
+    ////////////////////////////////////////////////////////////////
+
+    vec4f NpcHighlightToOverlayColor(NpcHighlightType highlight)
+    {
+        switch (highlight)
+        {
+            case NpcHighlightType::None:
+            {
+                return vec4f::zero();
+            }
+
+            case NpcHighlightType::Candidate:
+            {
+                return vec4f(0.840f, 0.798f, 0.00f, 0.7f);
+            }
+        }
+
+        assert(false);
+        return vec4f::zero();
+    }
+
 private:
 
     ////////////////////////////////////////////////////////////////
@@ -350,16 +373,19 @@ private:
         vec2f VertexSpacePosition;
         float BackDepth;
         float OrientationDepth;
+        vec4f OverlayColor;
 
         NpcQuadVertex(
             vec2f const & position,
             vec2f vertexSpacePosition,
             float backDepth,
-            float orientationDepth)
+            float orientationDepth,
+            vec4f overlayColor)
             : Position(position)
             , VertexSpacePosition(vertexSpacePosition)
             , BackDepth(backDepth)
             , OrientationDepth(orientationDepth)
+            , OverlayColor(overlayColor)
         {}
     };
 
@@ -381,14 +407,17 @@ private:
         vec2f Position;
         vec2f VertexSpacePosition;
         vec4f Color;
+        vec4f OverlayColor;
 
         NpcParticleVertex(
             vec2f const & position,
             vec2f const & vertexSpacePosition,
-            vec4f const & color)
+            vec4f const & color,
+            vec4f overlayColor)
             : Position(position)
             , VertexSpacePosition(vertexSpacePosition)
             , Color(color)
+            , OverlayColor(overlayColor)
         {}
     };
 

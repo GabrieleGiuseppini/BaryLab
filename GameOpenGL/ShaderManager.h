@@ -60,9 +60,11 @@ public:
 
         NpcParticleAttributeGroup1 = 0,
         NpcParticleAttributeGroup2 = 1,
+        NpcParticleAttributeGroup3 = 2,
 
         NpcQuadAttributeGroup1 = 0,
         NpcQuadAttributeGroup2 = 1,
+        NpcQuadAttributeGroup3 = 2,
 
         NpcSpringAttributeGroup1 = 0,
         NpcSpringAttributeGroup2 = 1,

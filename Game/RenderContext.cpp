@@ -138,7 +138,9 @@ RenderContext::RenderContext(
     glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(NpcQuadVertex), (void *)0);
     glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup2));
     glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup2), 2, GL_FLOAT, GL_FALSE, sizeof(NpcQuadVertex), (void *)(4 * sizeof(float)));
-    static_assert(sizeof(NpcQuadVertex) == (6) * sizeof(float));
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup3));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup3), 4, GL_FLOAT, GL_FALSE, sizeof(NpcQuadVertex), (void *)((4 + 2) * sizeof(float)));
+    static_assert(sizeof(NpcQuadVertex) == (4 + 2 + 4) * sizeof(float));
 
     glBindVertexArray(0);
 
@@ -157,8 +159,10 @@ RenderContext::RenderContext(
     glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcParticleAttributeGroup1));
     glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcParticleAttributeGroup1), 4, GL_FLOAT, GL_FALSE, sizeof(NpcParticleVertex), (void *)0);
     glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcParticleAttributeGroup2));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcParticleAttributeGroup2), 4, GL_FLOAT, GL_FALSE, sizeof(NpcParticleVertex), (void *)(4 * sizeof(float)));
-    static_assert(sizeof(NpcParticleVertex) == (4 + 4) * sizeof(float));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcParticleAttributeGroup2), 2, GL_FLOAT, GL_FALSE, sizeof(NpcParticleVertex), (void *)(4 * sizeof(float)));
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcParticleAttributeGroup3));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcParticleAttributeGroup3), 4, GL_FLOAT, GL_FALSE, sizeof(NpcParticleVertex), (void *)((4 + 2) * sizeof(float)));
+    static_assert(sizeof(NpcParticleVertex) == (4 + 4 + 4) * sizeof(float));
 
     glBindVertexArray(0);
 
@@ -457,7 +461,8 @@ void RenderContext::UploadNpcQuadsStart()
 void RenderContext::UploadNpcQuad(
     Quadf const & quad,
     float faceOrientation,
-    float faceDirectionX)
+    float faceDirectionX,
+    NpcHighlightType highlight)
 {
     float const backDepth = std::max(-faceOrientation, 0.0f);
     float const orientationDepth = std::abs(faceDirectionX);
@@ -465,47 +470,55 @@ void RenderContext::UploadNpcQuad(
     if (faceDirectionX == 0.0f)
         faceDirectionX = 1.0f; // Front/Back are different textures altogether
 
+    vec4f const overlayColor = NpcHighlightToOverlayColor(highlight);
+
     // Left, bottom
     mNpcQuadVertexBuffer.emplace_back(
         quad.BottomLeft,
         vec2f(-faceDirectionX, -1.0f),
         backDepth,
-        orientationDepth);
+        orientationDepth,
+        overlayColor);
 
     // Left, top
     mNpcQuadVertexBuffer.emplace_back(
         quad.TopLeft,
         vec2f(-faceDirectionX, 1.0f),
         backDepth,
-        orientationDepth);
+        orientationDepth,
+        overlayColor);
 
     // Right, bottom
     mNpcQuadVertexBuffer.emplace_back(
         quad.BottomRight,
         vec2f(faceDirectionX, -1.0f),
         backDepth,
-        orientationDepth);
+        orientationDepth,
+        overlayColor);
 
     // Left, top
     mNpcQuadVertexBuffer.emplace_back(
         quad.TopLeft,
         vec2f(-faceDirectionX, 1.0f),
         backDepth,
-        orientationDepth);
+        orientationDepth,
+        overlayColor);
 
     // Right, bottom
     mNpcQuadVertexBuffer.emplace_back(
         quad.BottomRight,
         vec2f(faceDirectionX, -1.0f),
         backDepth,
-        orientationDepth);
+        orientationDepth,
+        overlayColor);
 
     // Right, top
     mNpcQuadVertexBuffer.emplace_back(
         quad.TopRight,
         vec2f(faceDirectionX, 1.0f),
         backDepth,
-        orientationDepth);
+        orientationDepth,
+        overlayColor);
 }
 
 void RenderContext::UploadNpcQuadsEnd()
@@ -534,7 +547,8 @@ void RenderContext::UploadNpcParticlesStart()
 void RenderContext::UploadNpcParticle(
     vec2f const & particlePosition,
     rgbaColor const & particleColor,
-    float alpha)
+    float alpha,
+    NpcHighlightType highlight)
 {
     float const xLeft = particlePosition.x - GameParameters::ParticleRadius;
     float const xRight = particlePosition.x + GameParameters::ParticleRadius;
@@ -544,41 +558,49 @@ void RenderContext::UploadNpcParticle(
     vec4f color = particleColor.toVec4f();
     color.w *= alpha;
 
+    vec4f const overlayColor = NpcHighlightToOverlayColor(highlight);
+
     // Left, bottom
     mNpcParticleVertexBuffer.emplace_back(
         vec2f(xLeft, yBottom),
         vec2f(-1.0f, -1.0f),
-        color);
+        color,
+        overlayColor);
 
     // Left, top
     mNpcParticleVertexBuffer.emplace_back(
         vec2f(xLeft, yTop),
         vec2f(-1.0f, 1.0f),
-        color);
+        color,
+        overlayColor);
 
     // Right, bottom
     mNpcParticleVertexBuffer.emplace_back(
         vec2f(xRight, yBottom),
         vec2f(1.0f, -1.0f),
-        color);
+        color,
+        overlayColor);
 
     // Left, top
     mNpcParticleVertexBuffer.emplace_back(
         vec2f(xLeft, yTop),
         vec2f(-1.0f, 1.0f),
-        color);
+        color,
+        overlayColor);
 
     // Right, bottom
     mNpcParticleVertexBuffer.emplace_back(
         vec2f(xRight, yBottom),
         vec2f(1.0f, -1.0f),
-        color);
+        color,
+        overlayColor);
 
     // Right, top
     mNpcParticleVertexBuffer.emplace_back(
         vec2f(xRight, yTop),
         vec2f(1.0f, 1.0f),
-        color);
+        color,
+        overlayColor);
 }
 
 void RenderContext::UploadNpcParticlesEnd()
@@ -1002,7 +1024,7 @@ void RenderContext::RenderEnd()
     }
 
     ////////////////////////////////////////////////////////////////
-    // Particles
+    // NPC Particles
     ////////////////////////////////////////////////////////////////
 
     if (!mNpcParticleVertexBuffer.empty())
