@@ -38,7 +38,7 @@ void Npcs::Update(
 	Publish();
 }
 
-void Npcs::Upload(RenderContext & renderContext)
+void Npcs::RenderUpload(RenderContext & renderContext)
 {
 #ifdef IN_BARYLAB
 	if (renderContext.GetNpcRenderMode() == NpcRenderModeType::Physical)

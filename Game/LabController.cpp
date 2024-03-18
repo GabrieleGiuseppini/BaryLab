@@ -231,7 +231,7 @@ void LabController::Render()
         // Npcs
         //
 
-        mWorld->GetNpcs().Upload(*mRenderContext);
+        mWorld->GetNpcs().RenderUpload(*mRenderContext);
 
         //
         // Ship velocity

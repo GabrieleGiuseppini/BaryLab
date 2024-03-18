@@ -516,7 +516,7 @@ public:
 		float currentSimulationTime,
 		GameParameters const & gameParameters);
 
-	void Upload(RenderContext & renderContext);
+	void RenderUpload(RenderContext & renderContext);
 
 	///////////////////////////////
 
