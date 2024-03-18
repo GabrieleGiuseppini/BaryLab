@@ -60,10 +60,12 @@ void main()
         mix(cInner, cBorder, borderAlpha) * oppositeDirShade,
         alpha);
 
-    c = mix(
-        c,
-        vec4(vertexOverlayColor.rgb, c.a),
-        vertexOverlayColor.a);
+    c = vec4(
+        mix(
+            c.rgb,
+            vec3(1.) - (vec3(1.) - c.rgb) * (vec3(1.) - vertexOverlayColor.rgb),
+            vertexOverlayColor.a),
+        c.a);
 
     gl_FragColor = c;
 } 
