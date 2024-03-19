@@ -60,14 +60,7 @@ void main()
         mix(cInner, cBorder, borderAlpha) * oppositeDirShade,
         alpha);
 
-    /*
-    c = vec4(
-        mix(
-            c.rgb,
-            vec3(1.) - (vec3(1.) - c.rgb) * (vec3(1.) - vertexOverlayColor.rgb),
-            vertexOverlayColor.a),
-        c.a);
-    */
+    // Luminosity blend
     float l = (c.r + c.g + c.b) / 3.0;
     c = vec4(
         mix(
@@ -75,7 +68,6 @@ void main()
             l * vertexOverlayColor.rgb,
             vertexOverlayColor.a),
         c.a);
-
 
     gl_FragColor = c;
 } 
