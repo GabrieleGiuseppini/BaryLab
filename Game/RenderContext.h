@@ -271,7 +271,7 @@ private:
 
             case NpcHighlightType::Candidate:
             {
-                return vec4f(0.430f, 0.408f, 0.00f, 1.0f);
+                return vec4f(0.969f, 1.00f, 0.0800f, 1.0f);
             }
         }
 
