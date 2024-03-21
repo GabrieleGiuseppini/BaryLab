@@ -31,6 +31,12 @@ public:
         return mId;
     }
 
+    PlaneId GetMaxPlaneId() const
+    {
+        // Placeholder
+        return 0;
+    }
+
     Points const & GetPoints() const
     {
         return mPoints;

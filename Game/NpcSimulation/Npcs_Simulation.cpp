@@ -14,7 +14,7 @@ namespace Physics {
 
 void Npcs::ResetNpcStateToWorld(
     StateType & npc,
-    float currentSimulationTime) const
+    float currentSimulationTime)
 {
     //
     // Find topmost triangle - among all ships - which contains this NPC
@@ -39,25 +39,25 @@ void Npcs::ResetNpcStateToWorld(
             currentSimulationTime,
             mShips[topmostTriangle->GetShipId()]->ShipMesh,
             topmostTriangle->GetLocalObjectId());
-
-        return;
     }
+    else
+    {
+        // No luck; means we're free, and pick topmost ship for that
 
-    // No luck; means we're free, and pick topmost ship for that
+        auto const topmostShipId = GetTopmostShipId();
 
-    auto const topmostShipId = GetTopmostShipId();
+        assert(mShips[topmostShipId].has_value());
 
-    assert(mShips[topmostShipId].has_value());
+        TransferNpcToShip(
+            npc,
+            topmostShipId);
 
-    TransferNpcToShip(
-        npc,
-        topmostShipId);
-
-    ResetNpcStateToWorld(
-        npc,
-        currentSimulationTime,
-        mShips[GetTopmostShipId()]->ShipMesh,
-        std::nullopt);
+        ResetNpcStateToWorld(
+            npc,
+            currentSimulationTime,
+            mShips[GetTopmostShipId()]->ShipMesh,
+            std::nullopt);
+    }
 }
 
 void Npcs::ResetNpcStateToWorld(
@@ -66,6 +66,20 @@ void Npcs::ResetNpcStateToWorld(
     Ship const & shipMesh,
     std::optional<ElementIndex> primaryParticleTriangleIndex) const
 {
+    // Plane ID
+
+    if (primaryParticleTriangleIndex.has_value())
+    {
+        // Use the plane ID of this triangle
+        ElementIndex const trianglePointIndex = shipMesh.GetTriangles().GetPointAIndex(*primaryParticleTriangleIndex);
+        npc.CurrentPlaneId = shipMesh.GetPoints().GetPlaneId(trianglePointIndex);
+    }
+    else
+    {
+        // Primary is free, hence this NPC is on the topmost plane ID of its current ship
+        npc.CurrentPlaneId = std::nullopt;
+    }
+
     // Primary particle
 
     npc.PrimaryParticleState.ConstrainedState = CalculateParticleConstrainedState(

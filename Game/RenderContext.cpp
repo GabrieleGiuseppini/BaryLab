@@ -459,6 +459,7 @@ void RenderContext::UploadNpcQuadsStart()
 }
 
 void RenderContext::UploadNpcQuad(
+    PlaneId /*planeId*/,
     Quadf const & quad,
     float faceOrientation,
     float faceDirectionX,
@@ -545,6 +546,7 @@ void RenderContext::UploadNpcParticlesStart()
 }
 
 void RenderContext::UploadNpcParticle(
+    PlaneId /*planeId*/,
     vec2f const & particlePosition,
     rgbaColor const & particleColor,
     float alpha,
@@ -628,6 +630,7 @@ void RenderContext::UploadNpcSpringsStart()
 }
 
 void RenderContext::UploadNpcSpring(
+    PlaneId /*planeId*/,
     vec2f const & endpointAPosition,
     vec2f const & endpointBPosition,
     rgbaColor const & springColor)

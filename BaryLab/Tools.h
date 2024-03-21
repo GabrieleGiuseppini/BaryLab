@@ -902,6 +902,8 @@ public:
                 {
                     mLabController->BeginMoveNpc(mNpc->ObjectId);
 
+                    LogMessage("TODOTEST: BeginMoveNpc:offset=", mNpc->WorldOffset);
+
                     // Now that it's moving, un-highlight it
                     mLabController->HighlightNpc(
                         mNpc->ObjectId,
@@ -921,6 +923,8 @@ public:
                         mNpc->ObjectId,
                         inputState.MousePosition,
                         mNpc->WorldOffset);
+
+                    LogMessage("TODOTEST: MoveNpcTo:offset=", mNpc->WorldOffset);
                 }
             }
         }
@@ -953,10 +957,8 @@ public:
 
                 if (!mNpc.has_value() || mNpc->ObjectId != probeOutcome->ObjectId)
                 {
-                    mNpc = probeOutcome;
-
                     mLabController->HighlightNpc(
-                        mNpc->ObjectId,
+                        probeOutcome->ObjectId,
                         NpcHighlightType::Candidate);
                 }
             }
@@ -967,10 +969,10 @@ public:
                     mLabController->HighlightNpc(
                         mNpc->ObjectId,
                         NpcHighlightType::None);
-
-                    mNpc.reset();
                 }
             }
+
+            mNpc = probeOutcome; // Always update so to pick latest offset
         }
     }
 

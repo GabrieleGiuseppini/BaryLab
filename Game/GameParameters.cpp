@@ -17,7 +17,7 @@ GameParameters::GameParameters()
 	, WaterFrictionDragCoefficientAdjustment(1.0f)
 	, BuoyancyAdjustment(1.0f)
 	// Misc
-	, ToolSearchRadius(0.6f)
+	, ToolSearchRadius(0.3f)
 	// NPC
 	, HumanNpcEquilibriumTorqueStiffnessCoefficient(0.0032f)
 	, HumanNpcEquilibriumTorqueDampingCoefficient(0.055f)

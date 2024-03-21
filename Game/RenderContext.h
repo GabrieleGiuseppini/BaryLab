@@ -182,6 +182,7 @@ public:
     void UploadNpcQuadsStart();
 
     void UploadNpcQuad(
+        PlaneId planeId,
         Quadf const & quad,
         float faceOrientation,
         float faceDirectionX,
@@ -192,6 +193,7 @@ public:
     void UploadNpcParticlesStart();
 
     void UploadNpcParticle(
+        PlaneId planeId,
         vec2f const & particlePosition,
         rgbaColor const & particleColor,
         float alpha,
@@ -202,6 +204,7 @@ public:
     void UploadNpcSpringsStart();
 
     void UploadNpcSpring(
+        PlaneId planeId,
         vec2f const & endpointAPosition,
         vec2f const & endpointBPosition,
         rgbaColor const & springColor);

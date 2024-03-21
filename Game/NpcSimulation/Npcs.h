@@ -27,7 +27,9 @@ template<typename... TArgs>
 void LogNpcDebug(TArgs&&... args)
 {
 #ifdef BARYLAB_DEBUG
-	LogDebug(std::forward<TArgs>(args)...);
+	// TODOTEST
+	//LogDebug(std::forward<TArgs>(args)...);
+	Logger::Instance.LogToNothing(std::forward<TArgs>(args)...);
 #else
 	Logger::Instance.LogToNothing(std::forward<TArgs>(args)...);
 #endif
@@ -415,6 +417,10 @@ private:
 		// course of their lives.
 		ShipId CurrentShipId;
 
+		// The current plane ID. When not set, it stands-in for the topmost
+		// plane ID in the current ship.
+		std::optional<PlaneId> CurrentPlaneId;
+
 		// The current regime.
 		RegimeType CurrentRegime;
 
@@ -437,6 +443,7 @@ private:
 			NpcId id,
 			NpcKindType kind,
 			ShipId initialShipId,
+			std::optional<PlaneId> initialPlaneId,
 			RegimeType initialRegime,
 			NpcParticleStateType && primaryParticleState,
 			std::optional<DipoleStateType> && dipoleState,
@@ -444,6 +451,7 @@ private:
 			: Id(id)
 			, Kind(kind)
 			, CurrentShipId(initialShipId)
+			, CurrentPlaneId(std::move(initialPlaneId))
 			, CurrentRegime(initialRegime)
 			, PrimaryParticleState(std::move(primaryParticleState))
 			, DipoleState(std::move(dipoleState))
@@ -686,7 +694,7 @@ private:
 
 	void ResetNpcStateToWorld(
 		StateType & npc,
-		float currentSimulationTime) const;
+		float currentSimulationTime);
 
 	void ResetNpcStateToWorld(
 		StateType & npc,
