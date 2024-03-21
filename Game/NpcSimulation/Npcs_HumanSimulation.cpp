@@ -53,7 +53,7 @@ Npcs::StateType::KindSpecificStateType::HumanNpcStateType Npcs::CalculateInitial
 void Npcs::UpdateHuman(
 	StateType & npc,
 	float currentSimulationTime,
-	ShipMeshType const & shipMesh,
+	Ship const & shipMesh,
 	GameParameters const & gameParameters)
 {
 	assert(npc.DipoleState.has_value());
@@ -94,7 +94,7 @@ void Npcs::UpdateHuman(
 			bool const areFeetOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, shipMesh);
 
 			vec2f const floorVector = (primaryParticleState.ConstrainedState.has_value() && primaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal >= 0)
-				? shipMesh.ShipTriangles.GetSubSpringVector(primaryParticleState.ConstrainedState->CurrentTriangle, primaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal, shipMesh.ShipPoints)
+				? shipMesh.GetTriangles().GetSubSpringVector(primaryParticleState.ConstrainedState->CurrentTriangle, primaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal, shipMesh.GetPoints())
 				: vec2f(1.0f, 0.0); // H arbitrarily
 			float const headVelocityAlongFloor = secondaryParticleState.GetApplicableVelocity(mParticles).dot(floorVector);
 			float const feetVelocityAlongFloor = primaryParticleState.GetApplicableVelocity(mParticles).dot(floorVector);
@@ -819,7 +819,7 @@ bool Npcs::CheckAndMaintainHumanEquilibrium(
 void Npcs::RunWalkingHumanStateMachine(
 	StateType::KindSpecificStateType::HumanNpcStateType & humanState,
 	StateType::NpcParticleStateType const & primaryParticleState,
-	ShipMeshType const & /*shipMesh*/, // Will come useful when we'll *plan* the walk
+	Ship const & /*shipMesh*/, // Will come useful when we'll *plan* the walk
 	GameParameters const & gameParameters)
 {
 	assert(primaryParticleState.ConstrainedState.has_value());

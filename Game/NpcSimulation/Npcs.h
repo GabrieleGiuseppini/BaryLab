@@ -454,36 +454,16 @@ private:
 	};
 
 	//
-	// The ship attributes that we carry as mesh.
-	//
-
-	struct ShipMeshType final
-	{
-		Points const & ShipPoints;
-		Springs const & ShipSprings;
-		Triangles const & ShipTriangles;
-
-		ShipMeshType(
-			Points const & shipPoints,
-			Springs const & shipSprings,
-			Triangles const & shipTriangles)
-			: ShipPoints(shipPoints)
-			, ShipSprings(shipSprings)
-			, ShipTriangles(shipTriangles)
-		{}
-	};
-
-	//
 	// The information heading the list of NPCs in a ship.
 	//
 
 	struct ShipNpcsType final
 	{
-		ShipMeshType ShipMesh;
+		Ship const & ShipMesh;
 		std::vector<NpcId> Npcs;
 
-		ShipNpcsType(ShipMeshType && shipMesh)
-			: ShipMesh(std::move(shipMesh))
+		ShipNpcsType(Ship const & shipMesh)
+			: ShipMesh(shipMesh)
 			, Npcs()
 		{}
 	};
@@ -585,7 +565,7 @@ public:
 		vec2f const & centerPos,
 		float cosAngle,
 		float sinAngle,
-		ShipMeshType const & shipMesh);
+		Ship const & shipMesh);
 
 	void OnPointMoved(float currentSimulationTime);
 
@@ -684,15 +664,19 @@ private:
 
 	static ElementIndex FindTriangleContaining(
 		vec2f const & position,
-		ShipMeshType const & shipMesh);
+		Ship const & shipMesh);
 
-	void PublishNpcStats();
+	void TransferNpcToShip(
+		StateType & npc,
+		ShipId newShip);
 
 	void RenderNpc(
 		StateType const & npc,
 		ShipRenderContext & shipRenderContext);
 
 	void Publish() const;
+
+	void PublishNpcStats();
 
 private:
 
@@ -707,12 +691,12 @@ private:
 	void ResetNpcStateToWorld(
 		StateType & npc,
 		float currentSimulationTime,
-		ShipMeshType const & shipMesh,
+		Ship const & shipMesh,
 		std::optional<ElementIndex> primaryParticleTriangleIndex) const;
 
 	static std::optional<StateType::NpcParticleStateType::ConstrainedStateType> CalculateParticleConstrainedState(
 		vec2f const & position,
-		ShipMeshType const & shipMesh,
+		Ship const & shipMesh,
 		std::optional<ElementIndex> triangleIndex);
 
 	static StateType::RegimeType CalculateRegime(StateType const & npc);
@@ -724,7 +708,7 @@ private:
 	void UpdateNpcParticlePhysics(
 		StateType & npc,
 		bool isPrimaryParticle,
-		ShipMeshType const & shipMesh,
+		Ship const & shipMesh,
 		GameParameters const & gameParameters);
 
 	void CalculateNpcParticlePreliminaryForces(
@@ -759,7 +743,7 @@ private:
 		float edgeTraveledPlanned,
 		vec2f const meshVelocity,
 		float dt,
-		ShipMeshType const & shipMesh,
+		Ship const & shipMesh,
 		NpcParticles & particles,
 		GameParameters const & gameParameters) const;
 
@@ -772,7 +756,7 @@ private:
 		bcoords3f segmentTrajectoryEndBarycentricCoords,
 		vec2f const meshVelocity,
 		float segmentDt,
-		ShipMeshType const & shipMesh,
+		Ship const & shipMesh,
 		NpcParticles & particles,
 		GameParameters const & gameParameters) const;
 
@@ -823,7 +807,7 @@ private:
 		vec2f const & trajectoryEndAbsolutePosition,
 		bcoords3f trajectoryEndBarycentricCoords,
 		bool isInitialStateUnknown,
-		ShipMeshType const & shipMesh,
+		Ship const & shipMesh,
 		NpcParticles & particles,
 		GameParameters const & gameParameters) const;
 
@@ -848,13 +832,13 @@ private:
 		StateType & npc,
 		bool isPrimaryParticle,
 		float currentSimulationTime,
-		ShipMeshType const & shipMesh,
+		Ship const & shipMesh,
 		GameParameters const & gameParameters);
 
 	static bool IsEdgeFloorToParticle(
 		ElementIndex triangleElementIndex,
 		int edgeOrdinal,
-		ShipMeshType const & shipMesh)
+		Ship const & shipMesh)
 	{
 		//
 		// An edge is a floor for a given (constrained) particle if:
@@ -862,24 +846,24 @@ private:
 		// - The triangle is _not_ sealed, OR it _is_ sealed but crossing the edge would make the particle free
 		//
 
-		if (shipMesh.ShipTriangles.GetSubSpringNpcSurfaceType(triangleElementIndex, edgeOrdinal) != NpcSurfaceType::Floor)
+		if (shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, edgeOrdinal) != NpcSurfaceType::Floor)
 		{
 			// Not even a floor
 			return false;
 		}
 
 		bool const isSealedTriangle =
-			shipMesh.ShipTriangles.GetSubSpringNpcSurfaceType(triangleElementIndex, 0) == NpcSurfaceType::Floor
-			&& shipMesh.ShipTriangles.GetSubSpringNpcSurfaceType(triangleElementIndex, 1) == NpcSurfaceType::Floor
-			&& shipMesh.ShipTriangles.GetSubSpringNpcSurfaceType(triangleElementIndex, 2) == NpcSurfaceType::Floor;
+			shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, 0) == NpcSurfaceType::Floor
+			&& shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, 1) == NpcSurfaceType::Floor
+			&& shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, 2) == NpcSurfaceType::Floor;
 
 		if (!isSealedTriangle)
 		{
 			return true;
 		}
 
-		auto const & oppositeTriangleInfo = shipMesh.ShipTriangles.GetOppositeTriangle(triangleElementIndex, edgeOrdinal);
-		if (oppositeTriangleInfo.TriangleElementIndex == NoneElementIndex || shipMesh.ShipTriangles.IsDeleted(oppositeTriangleInfo.TriangleElementIndex))
+		auto const & oppositeTriangleInfo = shipMesh.GetTriangles().GetOppositeTriangle(triangleElementIndex, edgeOrdinal);
+		if (oppositeTriangleInfo.TriangleElementIndex == NoneElementIndex || shipMesh.GetTriangles().IsDeleted(oppositeTriangleInfo.TriangleElementIndex))
 		{
 			// Crossing this floor makes the particle free
 			return true;
@@ -893,11 +877,11 @@ private:
 		vec2f const & secondaryParticlePosition,
 		ElementIndex triangleElementIndex,
 		int edgeOrdinal,
-		ShipMeshType const & shipMesh)
+		Ship const & shipMesh)
 	{
-		ElementIndex const springElementIndex = shipMesh.ShipTriangles.GetSubSprings(triangleElementIndex).SpringIndices[edgeOrdinal];
-		vec2f const aPos = shipMesh.ShipSprings.GetEndpointAPosition(springElementIndex, shipMesh.ShipPoints);
-		vec2f const bPos = shipMesh.ShipSprings.GetEndpointBPosition(springElementIndex, shipMesh.ShipPoints);
+		ElementIndex const springElementIndex = shipMesh.GetTriangles().GetSubSprings(triangleElementIndex).SpringIndices[edgeOrdinal];
+		vec2f const aPos = shipMesh.GetSprings().GetEndpointAPosition(springElementIndex, shipMesh.GetPoints());
+		vec2f const bPos = shipMesh.GetSprings().GetEndpointBPosition(springElementIndex, shipMesh.GetPoints());
 		vec2f const & p1Pos = primaryParticlePosition;
 		vec2f const & p2Pos = secondaryParticlePosition;
 
@@ -910,7 +894,7 @@ private:
 
 	static bool IsOnFloorEdge(
 		Npcs::StateType::NpcParticleStateType::ConstrainedStateType const & constrainedState,
-		ShipMeshType const & shipMesh)
+		Ship const & shipMesh)
 	{
 		auto const & baryCoords = constrainedState.CurrentTriangleBarycentricCoords;
 		auto const & triangleIndex = constrainedState.CurrentTriangle;
@@ -971,7 +955,7 @@ private:
 	void UpdateHuman(
 		StateType & npc,
 		float currentSimulationTime,
-		ShipMeshType const & shipMesh,
+		Ship const & shipMesh,
 		GameParameters const & gameParameters);
 
 	bool CheckAndMaintainHumanEquilibrium(
@@ -985,7 +969,7 @@ private:
 	void RunWalkingHumanStateMachine(
 		StateType::KindSpecificStateType::HumanNpcStateType & humanState,
 		StateType::NpcParticleStateType const & primaryParticleState,
-		ShipMeshType const & shipMesh,
+		Ship const & shipMesh,
 		GameParameters const & gameParameters);
 
 	void OnHumanImpact(

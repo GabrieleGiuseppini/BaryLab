@@ -164,11 +164,7 @@ void Npcs::OnShipAdded(Ship const & ship)
 	assert(!mShips[s].has_value());
 
 	// Initialize NPC Ship
-	mShips[s].emplace(
-		ShipMeshType(
-			ship.GetPoints(),
-			ship.GetSprings(),
-			ship.GetTriangles()));
+	mShips[s].emplace(ship);
 }
 
 void Npcs::OnShipRemoved(ShipId shipId)
@@ -348,8 +344,8 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 		assert(mShips[topmostTriangle->GetShipId()].has_value());
 		auto const & ship = *mShips[topmostTriangle->GetShipId()];
 
-		ElementIndex const trianglePointIndex = ship.ShipMesh.ShipTriangles.GetPointAIndex(topmostTriangle->GetLocalObjectId());
-		PlaneId const planeId = ship.ShipMesh.ShipPoints.GetPlaneId(trianglePointIndex);
+		ElementIndex const trianglePointIndex = ship.ShipMesh.GetTriangles().GetPointAIndex(topmostTriangle->GetLocalObjectId());
+		PlaneId const planeId = ship.ShipMesh.GetPoints().GetPlaneId(trianglePointIndex);
 
 		for (auto const n : ship.Npcs)
 		{
@@ -386,8 +382,8 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 			if (candidateNpcConstrainedState->has_value())
 			{
 				assert(mShips[state.CurrentShipId].has_value());
-				candidateNpcPlane = mShips[state.CurrentShipId]->ShipMesh.ShipPoints.GetPlaneId(
-					mShips[state.CurrentShipId]->ShipMesh.ShipTriangles.GetPointAIndex(candidateNpcConstrainedState->value().CurrentTriangle));
+				candidateNpcPlane = mShips[state.CurrentShipId]->ShipMesh.GetPoints().GetPlaneId(
+					mShips[state.CurrentShipId]->ShipMesh.GetTriangles().GetPointAIndex(candidateNpcConstrainedState->value().CurrentTriangle));
 			}
 			else
 			{
@@ -712,7 +708,7 @@ void Npcs::RotateParticleWithShip(
 	vec2f const & centerPos,
 	float cosAngle,
 	float sinAngle,
-	ShipMeshType const & shipMesh)
+	Ship const & shipMesh)
 {
 	vec2f newPosition;
 
@@ -720,10 +716,10 @@ void Npcs::RotateParticleWithShip(
 	{
 		// Simply set position from current bary coords
 
-		newPosition = shipMesh.ShipTriangles.FromBarycentricCoordinates(
+		newPosition = shipMesh.GetTriangles().FromBarycentricCoordinates(
 			npcParticleState.ConstrainedState->CurrentTriangleBarycentricCoords,
 			npcParticleState.ConstrainedState->CurrentTriangle,
-			shipMesh.ShipPoints);
+			shipMesh.GetPoints());
 	}
 	else
 	{
@@ -802,7 +798,7 @@ bool Npcs::IsSpringHostingCurrentlySelectedParticle(ElementIndex springIndex) co
 					{
 						if (state->PrimaryParticleState.ConstrainedState.has_value()
 							&& state->PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal >= 0
-							&& springIndex == ship->ShipMesh.ShipTriangles.GetSubSprings(state->PrimaryParticleState.ConstrainedState->CurrentTriangle).SpringIndices[state->PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal])
+							&& springIndex == ship->ShipMesh.GetTriangles().GetSubSprings(state->PrimaryParticleState.ConstrainedState->CurrentTriangle).SpringIndices[state->PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal])
 						{
 							return true;
 						}
@@ -810,7 +806,7 @@ bool Npcs::IsSpringHostingCurrentlySelectedParticle(ElementIndex springIndex) co
 						if (state->DipoleState.has_value()
 							&& state->DipoleState->SecondaryParticleState.ConstrainedState.has_value()
 							&& state->DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal >= 0
-							&& springIndex == ship->ShipMesh.ShipTriangles.GetSubSprings(state->DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangle).SpringIndices[state->DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal])
+							&& springIndex == ship->ShipMesh.GetTriangles().GetSubSprings(state->DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangle).SpringIndices[state->DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal])
 						{
 							return true;
 						}
@@ -883,17 +879,17 @@ std::optional<ElementId> Npcs::FindTopmostTriangleContaining(vec2f const & posit
 
 			std::optional<ElementIndex> bestTriangleIndex;
 			PlaneId bestPlaneId = std::numeric_limits<PlaneId>::lowest();
-			for (auto const triangleIndex : shipMesh.ShipTriangles)
+			for (auto const triangleIndex : shipMesh.GetTriangles())
 			{
-				vec2f const aPosition = shipMesh.ShipPoints.GetPosition(shipMesh.ShipTriangles.GetPointAIndex(triangleIndex));
-				vec2f const bPosition = shipMesh.ShipPoints.GetPosition(shipMesh.ShipTriangles.GetPointBIndex(triangleIndex));
-				vec2f const cPosition = shipMesh.ShipPoints.GetPosition(shipMesh.ShipTriangles.GetPointCIndex(triangleIndex));
+				vec2f const aPosition = shipMesh.GetPoints().GetPosition(shipMesh.GetTriangles().GetPointAIndex(triangleIndex));
+				vec2f const bPosition = shipMesh.GetPoints().GetPosition(shipMesh.GetTriangles().GetPointBIndex(triangleIndex));
+				vec2f const cPosition = shipMesh.GetPoints().GetPosition(shipMesh.GetTriangles().GetPointCIndex(triangleIndex));
 
 				if (IsPointInTriangle(position, aPosition, bPosition, cPosition)
-					&& (!bestTriangleIndex || shipMesh.ShipPoints.GetPlaneId(shipMesh.ShipTriangles.GetPointAIndex(triangleIndex)) > bestPlaneId))
+					&& (!bestTriangleIndex || shipMesh.GetPoints().GetPlaneId(shipMesh.GetTriangles().GetPointAIndex(triangleIndex)) > bestPlaneId))
 				{
 					bestTriangleIndex = triangleIndex;
-					bestPlaneId = shipMesh.ShipPoints.GetPlaneId(shipMesh.ShipTriangles.GetPointAIndex(triangleIndex));
+					bestPlaneId = shipMesh.GetPoints().GetPlaneId(shipMesh.GetTriangles().GetPointAIndex(triangleIndex));
 				}
 			}
 
@@ -915,13 +911,13 @@ std::optional<ElementId> Npcs::FindTopmostTriangleContaining(vec2f const & posit
 
 ElementIndex Npcs::FindTriangleContaining(
 	vec2f const & position,
-	ShipMeshType const & shipMesh)
+	Ship const & shipMesh)
 {
-	for (auto const triangleIndex : shipMesh.ShipTriangles)
+	for (auto const triangleIndex : shipMesh.GetTriangles())
 	{
-		vec2f const aPosition = shipMesh.ShipPoints.GetPosition(shipMesh.ShipTriangles.GetPointAIndex(triangleIndex));
-		vec2f const bPosition = shipMesh.ShipPoints.GetPosition(shipMesh.ShipTriangles.GetPointBIndex(triangleIndex));
-		vec2f const cPosition = shipMesh.ShipPoints.GetPosition(shipMesh.ShipTriangles.GetPointCIndex(triangleIndex));
+		vec2f const aPosition = shipMesh.GetPoints().GetPosition(shipMesh.GetTriangles().GetPointAIndex(triangleIndex));
+		vec2f const bPosition = shipMesh.GetPoints().GetPosition(shipMesh.GetTriangles().GetPointBIndex(triangleIndex));
+		vec2f const cPosition = shipMesh.GetPoints().GetPosition(shipMesh.GetTriangles().GetPointCIndex(triangleIndex));
 
 		if (IsPointInTriangle(position, aPosition, bPosition, cPosition))
 		{
@@ -932,13 +928,39 @@ ElementIndex Npcs::FindTriangleContaining(
 	return NoneElementIndex;
 }
 
-void Npcs::PublishNpcStats()
+void Npcs::TransferNpcToShip(
+	StateType & npc,
+	ShipId newShip)
 {
-	mGameEventHandler->OnNpcCountsUpdated(
-		mNpcCount,
-		mConstrainedRegimeHumanNpcCount,
-		mFreeRegimeHumanNpcCount,
-		GameParameters::MaxNpcs - mNpcCount);
+	if (npc.CurrentShipId == newShip)
+	{
+		return;
+	}
+
+	//
+	// Maintain indices
+	//
+
+	assert(mShips[npc.CurrentShipId].has_value());
+
+	auto it = std::find(
+		mShips[npc.CurrentShipId]->Npcs.begin(),
+		mShips[npc.CurrentShipId]->Npcs.end(),
+		npc.Id);
+
+	assert(it != mShips[npc.CurrentShipId]->Npcs.end());
+
+	mShips[npc.CurrentShipId]->Npcs.erase(it);
+
+	assert(mShips[newShip].has_value());
+
+	mShips[newShip]->Npcs.push_back(newShip);
+
+	//
+	// Set ShipId in npc
+	//
+
+	npc.CurrentShipId = newShip;
 }
 
 void Npcs::RenderNpc(
@@ -1332,10 +1354,10 @@ void Npcs::Publish() const
 
 						if (mCurrentOriginTriangle.has_value())
 						{
-							subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = shipMesh.ShipTriangles.ToBarycentricCoordinates(
+							subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = shipMesh.GetTriangles().ToBarycentricCoordinates(
 								mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
 								*mCurrentOriginTriangle,
-								shipMesh.ShipPoints);
+								shipMesh.GetPoints());
 						}
 					}
 
@@ -1352,10 +1374,10 @@ void Npcs::Publish() const
 
 						if (mCurrentOriginTriangle.has_value())
 						{
-							subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = shipMesh.ShipTriangles.ToBarycentricCoordinates(
+							subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = shipMesh.GetTriangles().ToBarycentricCoordinates(
 								mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
 								*mCurrentOriginTriangle,
-								shipMesh.ShipPoints);
+								shipMesh.GetPoints());
 						}
 					}
 
@@ -1439,6 +1461,15 @@ void Npcs::Publish() const
 		}
 	}
 #endif
+}
+
+void Npcs::PublishNpcStats()
+{
+	mGameEventHandler->OnNpcCountsUpdated(
+		mNpcCount,
+		mConstrainedRegimeHumanNpcCount,
+		mFreeRegimeHumanNpcCount,
+		GameParameters::MaxNpcs - mNpcCount);
 }
 
 }
