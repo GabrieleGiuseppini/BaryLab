@@ -21,6 +21,7 @@
 class ProbeToolbar final
     : public wxPanel
     , public IBLabEventHandler
+    , public INpcGameEventHandler
 {
 public:
 
@@ -51,6 +52,10 @@ public:
     void OnCustomProbe(
         std::string const & name,
         float value) override;
+
+    void OnHumanNpcCountsUpdated(
+        unsigned int insideShipCount,
+        unsigned int outsideShipCount) override;
 
 private:
 
@@ -83,6 +88,9 @@ private:
     wxTextCtrl * mHumanBehaviorTextCtrl;
     wxStaticText * mHumanStateQuantityNameLabel;
     wxTextCtrl * mHumanStateQuantityTextCtrl;
+
+    wxTextCtrl * mHumanNpcInsideShipCountTextCtrl;
+    wxTextCtrl * mHumanNpcOutsideShipCountTextCtrl;
 
     std::unordered_map<std::string, std::unique_ptr<ScalarTimeSeriesProbeControl>> mCustomProbes;
 

@@ -902,8 +902,6 @@ public:
                 {
                     mLabController->BeginMoveNpc(mNpc->ObjectId);
 
-                    LogMessage("TODOTEST: BeginMoveNpc:offset=", mNpc->WorldOffset);
-
                     // Now that it's moving, un-highlight it
                     mLabController->HighlightNpc(
                         mNpc->ObjectId,
@@ -923,8 +921,6 @@ public:
                         mNpc->ObjectId,
                         inputState.MousePosition,
                         mNpc->WorldOffset);
-
-                    LogMessage("TODOTEST: MoveNpcTo:offset=", mNpc->WorldOffset);
                 }
             }
         }
@@ -980,6 +976,133 @@ private:
 
     // Our state
     std::optional<PickedObjectId<NpcId>> mNpc;
+    bool mIsMouseDown;
+
+    // The cursors
+    wxCursor const mClosedCursor;
+    wxCursor const mOpenCursor;
+};
+
+class RemoveNpcTool final : public Tool
+{
+    //
+    // State machine:
+    //
+    //  - Hovering (MouseUp): if we have Npc that's a candidate - and it's highlighted
+    //  - Moving (MouseDown): if we have Npc we're removing it - and it's not highlighted
+    //
+
+public:
+
+    RemoveNpcTool(
+        wxWindow * cursorWindow,
+        std::shared_ptr<LabController> labController);
+
+public:
+
+    virtual void Initialize(InputState const & inputState) override
+    {
+        mNpc.reset();
+        mIsMouseDown = inputState.IsLeftMouseDown;
+
+        // Set cursor
+        SetCurrentCursor();
+    }
+
+    virtual void Deinitialize(InputState const & /*inputState*/) override
+    {
+        if (mNpc.has_value() && !mIsMouseDown)
+        {
+            mLabController->HighlightNpc(*mNpc, NpcHighlightType::None);
+        }
+    }
+
+    virtual void SetCurrentCursor() override
+    {
+        if (mIsMouseDown)
+        {
+            mCursorWindow->SetCursor(mClosedCursor);
+        }
+        else
+        {
+            mCursorWindow->SetCursor(mOpenCursor);
+        }
+    }
+
+    virtual void Update(InputState const & inputState) override
+    {
+        if (inputState.IsLeftMouseDown)
+        {
+            if (!mIsMouseDown)
+            {
+                // Clicked
+
+                // If we have an NPC, it becomes the one we're removing
+                if (mNpc.has_value())
+                {
+                    mLabController->RemoveNpc(*mNpc);
+
+                    mNpc = std::nullopt;
+                }
+
+                mIsMouseDown = true;
+                SetCurrentCursor();
+            }
+            else
+            {
+                // Moved while keeping down
+
+                // Nop
+            }
+        }
+        else
+        {
+            if (mIsMouseDown)
+            {
+                // Released
+
+                mIsMouseDown = false;
+                SetCurrentCursor();
+            }
+
+            // Probe at new position
+            auto const probeOutcome = mLabController->ProbeNpcAt(inputState.MousePosition);
+            if (probeOutcome)
+            {
+                if (mNpc.has_value() && *mNpc != probeOutcome->ObjectId)
+                {
+                    mLabController->HighlightNpc(
+                        *mNpc,
+                        NpcHighlightType::None);
+                }
+
+                if (!mNpc.has_value() || *mNpc != probeOutcome->ObjectId)
+                {
+                    mLabController->HighlightNpc(
+                        probeOutcome->ObjectId,
+                        NpcHighlightType::Candidate);
+
+                    mNpc = probeOutcome->ObjectId;
+                }
+            }
+            else
+            {
+                if (mNpc.has_value())
+                {
+                    mLabController->HighlightNpc(
+                        *mNpc,
+                        NpcHighlightType::None);
+
+                    mNpc = std::nullopt;
+                }
+            }
+        }
+    }
+
+private:
+
+    // Our state
+    std::optional<NpcId> mNpc;
     bool mIsMouseDown;
 
     // The cursors

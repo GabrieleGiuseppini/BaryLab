@@ -298,6 +298,57 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
 
         hSizer->AddSpacer(HMargin);
 
+        // Human counts
+        {
+            wxGridBagSizer * gridSizer = new wxGridBagSizer(0, 0);
+
+            // Inside
+            {
+                auto label = new wxStaticText(this, wxID_ANY, _("Humans Inside:"));
+                gridSizer->Add(
+                    label,
+                    wxGBPosition(0, 0),
+                    wxGBSpan(1, 1),
+                    wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
+                    0);
+
+                mHumanNpcInsideShipCountTextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth2, -1), wxTE_RIGHT | wxTE_READONLY);
+                gridSizer->Add(
+                    mHumanNpcInsideShipCountTextCtrl,
+                    wxGBPosition(0, 1),
+                    wxGBSpan(1, 1),
+                    wxEXPAND,
+                    0);
+            }
+
+            // Outside
+            {
+                auto label = new wxStaticText(this, wxID_ANY, _("Humans Outside:"));
+                gridSizer->Add(
+                    label,
+                    wxGBPosition(1, 0),
+                    wxGBSpan(1, 1),
+                    wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
+                    0);
+
+                mHumanNpcOutsideShipCountTextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth2, -1), wxTE_RIGHT | wxTE_READONLY);
+                gridSizer->Add(
+                    mHumanNpcOutsideShipCountTextCtrl,
+                    wxGBPosition(1, 1),
+                    wxGBSpan(1, 1),
+                    wxEXPAND,
+                    0);
+            }
+
+            hSizer->Add(
+                gridSizer,
+                0,
+                0,
+                0);
+        }
+
+        hSizer->AddSpacer(HMargin);
+
         // Custom probes
         {
             mProbesSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -499,4 +550,13 @@ void ProbeToolbar::OnCustomProbe(
     }
 
     probe->RegisterSample(value);
+}
+
+void ProbeToolbar::OnHumanNpcCountsUpdated(
+    unsigned int insideShipCount,
+    unsigned int outsideShipCount)
+{
+    mHumanNpcInsideShipCountTextCtrl->SetValue(std::to_string(insideShipCount));
+    mHumanNpcOutsideShipCountTextCtrl->SetValue(std::to_string(outsideShipCount));
+
 }

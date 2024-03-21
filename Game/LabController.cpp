@@ -924,20 +924,28 @@ void LabController::CompleteNewNpc(NpcId id)
     mWorld->GetNpcs().CompleteNewNpc(id, mCurrentSimulationTime);
 }
 
-void LabController::AbortNewNpc(NpcId id)
-{
-    assert(!!mWorld);
-
-    // TODOHERE
-    (void)id;
-}
-
 void LabController::RemoveNpc(NpcId id)
 {
     assert(!!mWorld);
 
-    // TODOHERE
-    (void)id;
+    mWorld->GetNpcs().RemoveNpc(id);
+
+    if (id == mWorld->GetNpcs().GetCurrentlySelectedNpc())
+    {
+        mWorld->GetNpcs().DeselectNpc();
+    }
+}
+
+void LabController::AbortNewNpc(NpcId id)
+{
+    assert(!!mWorld);
+
+    mWorld->GetNpcs().AbortNewNpc(id);
+
+    if (id == mWorld->GetNpcs().GetCurrentlySelectedNpc())
+    {
+        mWorld->GetNpcs().DeselectNpc();
+    }
 }
 
 void LabController::HighlightNpc(

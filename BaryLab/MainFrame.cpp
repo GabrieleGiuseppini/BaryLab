@@ -899,6 +899,7 @@ void MainFrame::FinishInitialization()
     //
 
     mLabController->RegisterBLabEventHandler(mProbeToolbar);
+    mLabController->RegisterNpcGameEventHandler(mProbeToolbar);
 
     //
     // Load initial ship

@@ -27,9 +27,7 @@ template<typename... TArgs>
 void LogNpcDebug(TArgs&&... args)
 {
 #ifdef BARYLAB_DEBUG
-	// TODOTEST
-	//LogDebug(std::forward<TArgs>(args)...);
-	Logger::Instance.LogToNothing(std::forward<TArgs>(args)...);
+	LogDebug(std::forward<TArgs>(args)...);
 #else
 	Logger::Instance.LogToNothing(std::forward<TArgs>(args)...);
 #endif
@@ -538,7 +536,9 @@ public:
 		NpcId id,
 		float currentSimulationTime);
 
-	// TODO: other interaction APIs here
+	void RemoveNpc(NpcId id);
+
+	void AbortNewNpc(NpcId id);
 
 	void HighlightNpc(
 		NpcId id,
@@ -684,7 +684,7 @@ private:
 
 	void Publish() const;
 
-	void PublishNpcStats();
+	void PublishHumanNpcStats();
 
 private:
 

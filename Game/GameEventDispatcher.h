@@ -88,15 +88,13 @@ public:
         }
     }
 
-    void OnNpcCountsUpdated(
-        unsigned int totalNpcCount,
-        unsigned int constrainedHumanNpcCount,
-        unsigned int freeHumanNpcCount,
-        unsigned int remainingNpcAllowanceCount) override
+    void OnHumanNpcCountsUpdated(
+        unsigned int insideShipCount,
+        unsigned int outsideShipCount) override
     {
         for (auto sink : mNpcSinks)
         {
-            sink->OnNpcCountsUpdated(totalNpcCount, constrainedHumanNpcCount, freeHumanNpcCount, remainingNpcAllowanceCount);
+            sink->OnHumanNpcCountsUpdated(insideShipCount, outsideShipCount);
         }
     }
 
@@ -107,7 +105,7 @@ public:
         mBLabSinks.push_back(sink);
     }
 
-    void RegisterNpcEventHandler(INpcGameEventHandler * sink)
+    void RegisterNpcGameEventHandler(INpcGameEventHandler * sink)
     {
         mNpcSinks.push_back(sink);
     }

@@ -186,19 +186,26 @@ void Npcs::OnShipRemoved(ShipId shipId)
 	// Handle destruction of all NPCs of this NPC ship
 	//
 
+	bool doPublishHumanNpcStats = false;
+
 	for (auto const npcId : mShips[s]->Npcs)
 	{
 		assert(mStateBuffer[npcId].has_value());
 
-		if (mStateBuffer[npcId]->CurrentRegime == StateType::RegimeType::Constrained)
+		if (mStateBuffer[npcId]->Kind == NpcKindType::Human)
 		{
-			assert(mConstrainedRegimeHumanNpcCount > 0);
-			--mConstrainedRegimeHumanNpcCount;
-		}
-		else if (mStateBuffer[npcId]->CurrentRegime == StateType::RegimeType::Free)
-		{
-			assert(mFreeRegimeHumanNpcCount > 0);
-			--mFreeRegimeHumanNpcCount;
+			if (mStateBuffer[npcId]->CurrentRegime == StateType::RegimeType::Constrained)
+			{
+				assert(mConstrainedRegimeHumanNpcCount > 0);
+				--mConstrainedRegimeHumanNpcCount;
+				doPublishHumanNpcStats = true;
+			}
+			else if (mStateBuffer[npcId]->CurrentRegime == StateType::RegimeType::Free)
+			{
+				assert(mFreeRegimeHumanNpcCount > 0);
+				--mFreeRegimeHumanNpcCount;
+				doPublishHumanNpcStats = true;
+			}
 		}
 
 		--mNpcCount;
@@ -206,7 +213,10 @@ void Npcs::OnShipRemoved(ShipId shipId)
 		mStateBuffer[npcId].reset();
 	}
 
-	PublishNpcStats();
+	if (doPublishHumanNpcStats)
+	{
+		PublishHumanNpcStats();
+	}
 
 	//
 	// Destroy NPC ship
@@ -319,8 +329,6 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 	//
 
 	++mNpcCount;
-
-	PublishNpcStats();
 
 	return PickedObjectId<NpcId>(npcId, vec2f::zero());
 }
@@ -456,10 +464,6 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 
 	if (nearestNpc != NoneNpcId)
 	{
-		LogMessage("Npcs: PickNpc: id=", nearestNpc);
-
-		LogMessage("TODOTEST: Probe: mouse=", position, " real=", nearestNpcPosition, " offset=", (position - nearestNpcPosition));
-
 		return PickedObjectId<NpcId>(
 			nearestNpc,
 			position - nearestNpcPosition);
@@ -502,17 +506,20 @@ void Npcs::BeginMoveNpc(
 	// Maintain stats
 	//
 
-	if (oldRegime == StateType::RegimeType::Constrained)
+	if (npc.Kind == NpcKindType::Human)
 	{
-		assert(mConstrainedRegimeHumanNpcCount > 0);
-		--mConstrainedRegimeHumanNpcCount;
-		PublishNpcStats();
-	}
-	else if (oldRegime == StateType::RegimeType::Free)
-	{
-		assert(mFreeRegimeHumanNpcCount > 0);
-		--mFreeRegimeHumanNpcCount;
-		PublishNpcStats();
+		if (oldRegime == StateType::RegimeType::Constrained)
+		{
+			assert(mConstrainedRegimeHumanNpcCount > 0);
+			--mConstrainedRegimeHumanNpcCount;
+			PublishHumanNpcStats();
+		}
+		else if (oldRegime == StateType::RegimeType::Free)
+		{
+			assert(mFreeRegimeHumanNpcCount > 0);
+			--mFreeRegimeHumanNpcCount;
+			PublishHumanNpcStats();
+		}
 	}
 }
 
@@ -525,8 +532,6 @@ void Npcs::MoveNpcTo(
 	assert(mStateBuffer[id]->CurrentRegime == StateType::RegimeType::BeingPlaced);
 
 	vec2f const newPosition = position - offset;
-
-	LogMessage("TODOTEST: MoveNpcTo: newReal=", newPosition, " ( mouse=", position, " - offset=", offset, ")");
 
 	float constexpr InertialVelocityFactor = 0.5f; // Magic number for how much velocity we impart
 
@@ -584,20 +589,25 @@ void Npcs::EndMoveNpc(
 
 	auto & npc = *mStateBuffer[id];
 
+	assert(npc.CurrentRegime == StateType::RegimeType::BeingPlaced);
+
 	ResetNpcStateToWorld(
 		npc,
 		currentSimulationTime);
 
 	// Update stats
-	if (npc.CurrentRegime == StateType::RegimeType::Constrained)
+	if (npc.Kind == NpcKindType::Human)
 	{
-		++mConstrainedRegimeHumanNpcCount;
-		PublishNpcStats();
-	}
-	else if (npc.CurrentRegime == StateType::RegimeType::Free)
-	{
-		++mFreeRegimeHumanNpcCount;
-		PublishNpcStats();
+		if (npc.CurrentRegime == StateType::RegimeType::Constrained)
+		{
+			++mConstrainedRegimeHumanNpcCount;
+			PublishHumanNpcStats();
+		}
+		else if (npc.CurrentRegime == StateType::RegimeType::Free)
+		{
+			++mFreeRegimeHumanNpcCount;
+			PublishHumanNpcStats();
+		}
 	}
 }
 
@@ -606,6 +616,59 @@ void Npcs::CompleteNewNpc(
 	float currentSimulationTime)
 {
 	EndMoveNpc(id, currentSimulationTime);
+}
+
+void Npcs::RemoveNpc(NpcId id)
+{
+	assert(mStateBuffer[id].has_value());
+
+	//
+	// Maintain stats
+	//
+
+	if (mStateBuffer[id]->Kind == NpcKindType::Human)
+	{
+		if (mStateBuffer[id]->CurrentRegime == StateType::RegimeType::Constrained)
+		{
+			assert(mConstrainedRegimeHumanNpcCount > 0);
+			--mConstrainedRegimeHumanNpcCount;
+			PublishHumanNpcStats();
+		}
+		else if (mStateBuffer[id]->CurrentRegime == StateType::RegimeType::Free)
+		{
+			assert(mFreeRegimeHumanNpcCount > 0);
+			--mFreeRegimeHumanNpcCount;
+			PublishHumanNpcStats();
+		}
+	}
+
+	--mNpcCount;
+
+	//
+	// Update ship indices
+	//
+
+	assert(mShips[mStateBuffer[id]->CurrentShipId].has_value());
+
+	auto it = std::find(
+		mShips[mStateBuffer[id]->CurrentShipId]->Npcs.begin(),
+		mShips[mStateBuffer[id]->CurrentShipId]->Npcs.end(),
+		id);
+
+	assert(it != mShips[mStateBuffer[id]->CurrentShipId]->Npcs.end());
+
+	mShips[mStateBuffer[id]->CurrentShipId]->Npcs.erase(it);
+
+	//
+	// Get rid of NPC
+	//
+
+	mStateBuffer[id].reset();
+}
+
+void Npcs::AbortNewNpc(NpcId id)
+{
+	RemoveNpc(id);
 }
 
 void Npcs::HighlightNpc(
@@ -1537,13 +1600,11 @@ void Npcs::Publish() const
 #endif
 }
 
-void Npcs::PublishNpcStats()
+void Npcs::PublishHumanNpcStats()
 {
-	mGameEventHandler->OnNpcCountsUpdated(
-		mNpcCount,
+	mGameEventHandler->OnHumanNpcCountsUpdated(
 		mConstrainedRegimeHumanNpcCount,
-		mFreeRegimeHumanNpcCount,
-		GameParameters::MaxNpcs - mNpcCount);
+		mFreeRegimeHumanNpcCount);
 }
 
 }

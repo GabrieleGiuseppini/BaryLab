@@ -100,6 +100,7 @@ AddHumanNpcTool::AddHumanNpcTool(
         ToolType::AddHumanNpc,
         cursorWindow,
         std::move(labController))
+    , mHumanNpcKind(HumanNpcKindType::Passenger) // Will be given one when needed
 {
 }
 
@@ -110,7 +111,23 @@ MoveNpcTool::MoveNpcTool(
         ToolType::MoveNpc,
         cursorWindow,
         std::move(labController))
+    , mNpc()
+    , mIsMouseDown(false) // Will use actual mouse state at Init()
     , mClosedCursor(WxHelpers::MakeCursor("move_npc_cursor_down", 11, 29))
     , mOpenCursor(WxHelpers::MakeCursor("move_npc_cursor_up", 11, 29))
+{
+}
+
+RemoveNpcTool::RemoveNpcTool(
+    wxWindow * cursorWindow,
+    std::shared_ptr<LabController> labController)
+    : Tool(
+        ToolType::RemoveNpc,
+        cursorWindow,
+        std::move(labController))
+    , mNpc()
+    , mIsMouseDown(false) // Will use actual mouse state at Init()
+    , mClosedCursor(WxHelpers::MakeCursor("remove_npc_cursor_down", 20, 29))
+    , mOpenCursor(WxHelpers::MakeCursor("remove_npc_cursor_up", 20, 29))
 {
 }

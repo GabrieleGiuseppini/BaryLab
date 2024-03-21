@@ -39,6 +39,11 @@ public:
         mGameEventHandler->RegisterBLabEventHandler(handler);
     }
 
+    void RegisterNpcGameEventHandler(INpcGameEventHandler * handler)
+    {
+        mGameEventHandler->RegisterNpcGameEventHandler(handler);
+    }
+
     //
     // Lab
     //
@@ -103,8 +108,8 @@ public:
     void MoveNpcTo(NpcId id, vec2f const & screenCoordinates, vec2f const & worldOffset);
     void EndMoveNpc(NpcId id);
     void CompleteNewNpc(NpcId id);
-    void AbortNewNpc(NpcId id);
     void RemoveNpc(NpcId id);
+    void AbortNewNpc(NpcId id);
     void HighlightNpc(NpcId id, NpcHighlightType highlight);
 
     void SetNpcPanicLevelForAllHumans(float panicLevel);
