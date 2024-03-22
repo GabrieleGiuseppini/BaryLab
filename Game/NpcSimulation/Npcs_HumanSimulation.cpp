@@ -899,21 +899,23 @@ void Npcs::OnHumanImpact(
 {
 	assert(npc.Kind == NpcKindType::Human);
 
-	switch (npc.KindSpecificState.HumanNpcState.CurrentBehavior)
+	auto & humanState = npc.KindSpecificState.HumanNpcState;
+
+	switch (humanState.CurrentBehavior)
 	{
 		case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
 		{
-			LogNpcDebug("OnHumanImpact: alignment=", bounceEdgeNormal.dot(vec2f(npc.KindSpecificState.HumanNpcState.CurrentFaceDirectionX, 0.0f)));
+			LogNpcDebug("OnHumanImpact: alignment=", bounceEdgeNormal.dot(vec2f(humanState.CurrentFaceDirectionX, 0.0f)));
 
 			// Check alignment of impact with walking direction; if hit => flip
 			float constexpr MaxOppositionSlope = 0.5f;
-			if (bounceEdgeNormal.dot(vec2f(npc.KindSpecificState.HumanNpcState.CurrentFaceDirectionX, 0.0f)) > MaxOppositionSlope
-				&& npc.KindSpecificState.HumanNpcState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
+			if (bounceEdgeNormal.dot(vec2f(humanState.CurrentFaceDirectionX, 0.0f)) > MaxOppositionSlope
+				&& humanState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
 			{
 				LogNpcDebug("OnHumanImpact: FLIP!");
 
 				// Flip now
-				FlipHumanWalk(npc.KindSpecificState.HumanNpcState, StrongTypedTrue<_DoImmediate>);
+				FlipHumanWalk(humanState, StrongTypedTrue<_DoImmediate>);
 			}
 
 			break;
