@@ -2295,7 +2295,8 @@ void Npcs::UpdateNpcAnimation(
                 // Calculate leg angle based on distance traveled
                 //
 
-                float const actualHalfStepLengthFraction = (GameParameters::HumanNpcGeometry::StepLengthFraction * std::sqrt(CalculateActualHumanWalkingAbsoluteSpeed(humanNpcState, gameParameters)) / 2.0f);
+                float const actualWalkingSpeed = CalculateActualHumanWalkingAbsoluteSpeed(humanNpcState, gameParameters);
+                float const actualHalfStepLengthFraction = (GameParameters::HumanNpcGeometry::StepLengthFraction * std::sqrt(actualWalkingSpeed) / 2.0f);
                 float const maxLegAngle = std::atan(actualHalfStepLengthFraction / GameParameters::HumanNpcGeometry::LegLengthFraction);
 
                 float const adjustedStandardHumanHeight = GameParameters::HumanNpcGeometry::BodyLength * gameParameters.HumanNpcBodyLengthAdjustment;
@@ -2314,7 +2315,12 @@ void Npcs::UpdateNpcAnimation(
                 // Arms depend on panic
                 if (humanNpcState.ResultantPanicLevel < 0.0001f)
                 {
-                    targetRightArmAngle = targetLeftLegAngle * 1.4f;
+                    // Arms aperture depends on speed
+
+                    // At base speed (1m/s): 1.4
+                    // Swing more
+                    float const apertureMultiplier = 1.4f + (actualWalkingSpeed - 1.0f) * 0.4f;
+                    targetRightArmAngle = targetLeftLegAngle * apertureMultiplier;
                 }
                 else
                 {
