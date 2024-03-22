@@ -492,11 +492,18 @@ void Npcs::BeginMoveNpc(
 	// Move NPC to BeingPlaced
 	//
 
+	// Both particles become free
+	npc.PrimaryParticleState.ConstrainedState.reset();
+	assert(npc.DipoleState.has_value());
+	npc.DipoleState->SecondaryParticleState.ConstrainedState.reset();
+
+	// Change regime
 	auto const oldRegime = npc.CurrentRegime;
 	npc.CurrentRegime = StateType::RegimeType::BeingPlaced;
 
 	if (npc.Kind == NpcKindType::Human)
 	{
+		// Change behavior
 		npc.KindSpecificState.HumanNpcState.TransitionToState(
 			StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::BeingPlaced,
 			currentSimulationTime);
