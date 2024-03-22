@@ -707,6 +707,10 @@ private:
 		Ship const & shipMesh,
 		std::optional<ElementIndex> triangleIndex);
 
+	void OnMayBeNpcRegimeChanged(
+		StateType::RegimeType oldRegime,
+		StateType & npc);
+
 	static StateType::RegimeType CalculateRegime(StateType const & npc);
 
 	void UpdateNpcs(

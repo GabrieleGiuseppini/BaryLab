@@ -154,6 +154,55 @@ std::optional<Npcs::StateType::NpcParticleStateType::ConstrainedStateType> Npcs:
     return std::nullopt;
 }
 
+void Npcs::OnMayBeNpcRegimeChanged(
+    StateType::RegimeType oldRegime,
+    StateType & npc)
+{
+    if (oldRegime == npc.CurrentRegime)
+    {
+        // Nothing to do
+        return;
+    }
+
+    if (npc.Kind == NpcKindType::Human)
+    {
+        //
+        // Update stats
+        //
+
+        bool doPublishStats = false;
+
+        if (oldRegime == StateType::RegimeType::Constrained)
+        {
+            assert(mConstrainedRegimeHumanNpcCount > 0);
+            --mConstrainedRegimeHumanNpcCount;
+            doPublishStats = true;
+        }
+        else if (oldRegime == StateType::RegimeType::Free)
+        {
+            assert(mFreeRegimeHumanNpcCount > 0);
+            --mFreeRegimeHumanNpcCount;
+            doPublishStats = true;
+        }
+
+        if (npc.CurrentRegime == StateType::RegimeType::Constrained)
+        {
+            ++mConstrainedRegimeHumanNpcCount;
+            doPublishStats = true;
+        }
+        else if (npc.CurrentRegime == StateType::RegimeType::Free)
+        {
+            ++mFreeRegimeHumanNpcCount;
+            doPublishStats = true;
+        }
+
+        if (doPublishStats)
+        {
+            PublishHumanNpcStats();
+        }
+    }
+}
+
 Npcs::StateType::RegimeType Npcs::CalculateRegime(StateType const & npc)
 {
     // Constrained if at least one is constrained;

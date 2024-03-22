@@ -595,20 +595,9 @@ void Npcs::EndMoveNpc(
 		npc,
 		currentSimulationTime);
 
-	// Update stats
-	if (npc.Kind == NpcKindType::Human)
-	{
-		if (npc.CurrentRegime == StateType::RegimeType::Constrained)
-		{
-			++mConstrainedRegimeHumanNpcCount;
-			PublishHumanNpcStats();
-		}
-		else if (npc.CurrentRegime == StateType::RegimeType::Free)
-		{
-			++mFreeRegimeHumanNpcCount;
-			PublishHumanNpcStats();
-		}
-	}
+	OnMayBeNpcRegimeChanged(
+		StateType::RegimeType::BeingPlaced,
+		npc);
 }
 
 void Npcs::CompleteNewNpc(
@@ -752,7 +741,11 @@ void Npcs::MoveParticleBy(
 			if (state->PrimaryParticleState.ParticleIndex == particleIndex
 				|| (state->DipoleState.has_value() && state->DipoleState->SecondaryParticleState.ParticleIndex == particleIndex))
 			{
+				auto const oldRegime = state->CurrentRegime;
+
 				ResetNpcStateToWorld(*state, currentSimulationTime);
+
+				OnMayBeNpcRegimeChanged(oldRegime, *state);
 
 				//
 				// Select particle
@@ -855,7 +848,11 @@ void Npcs::OnPointMoved(float currentSimulationTime)
 	{
 		if (state.has_value())
 		{
+			auto const oldRegime = state->CurrentRegime;
+
 			ResetNpcStateToWorld(*state, currentSimulationTime);
+
+			OnMayBeNpcRegimeChanged(oldRegime, *state);
 		}
 	}
 }

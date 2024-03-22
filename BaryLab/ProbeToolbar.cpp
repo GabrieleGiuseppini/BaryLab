@@ -312,7 +312,7 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                     wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
                     0);
 
-                mHumanNpcInsideShipCountTextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth2, -1), wxTE_RIGHT | wxTE_READONLY);
+                mHumanNpcInsideShipCountTextCtrl = new wxTextCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxSize(TextCtrlWidth2, -1), wxTE_RIGHT | wxTE_READONLY);
                 gridSizer->Add(
                     mHumanNpcInsideShipCountTextCtrl,
                     wxGBPosition(0, 1),
@@ -331,7 +331,7 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                     wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
                     0);
 
-                mHumanNpcOutsideShipCountTextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth2, -1), wxTE_RIGHT | wxTE_READONLY);
+                mHumanNpcOutsideShipCountTextCtrl = new wxTextCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxSize(TextCtrlWidth2, -1), wxTE_RIGHT | wxTE_READONLY);
                 gridSizer->Add(
                     mHumanNpcOutsideShipCountTextCtrl,
                     wxGBPosition(1, 1),
@@ -422,6 +422,9 @@ void ProbeToolbar::OnBLabReset()
     mProbeBarycentricCoordinateL1TextCtrl->SetValue("");
     mProbeBarycentricCoordinateL2TextCtrl->SetValue("");
     mProbeBarycentricCoordinateL3TextCtrl->SetValue("");
+
+    mHumanNpcInsideShipCountTextCtrl->SetValue("0");
+    mHumanNpcOutsideShipCountTextCtrl->SetValue("0");
 
     for (auto const & p : mCustomProbes)
     {
