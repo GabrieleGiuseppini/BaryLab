@@ -2566,11 +2566,12 @@ void Npcs::UpdateNpcAnimation(
                 float constexpr Period1 = 3.00f;
                 float constexpr Period2 = 1.00f;
 
+                float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
                 float const panicAccelerator = 1.0f + std::min(humanNpcState.ResultantPanicLevel, 2.0f) / 2.0f * 4.0f;
 
                 float const arg =
                     Period1 / 2.0f // Start some-halfway-through to avoid sudden extreme angles
-                    + (currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp) * 2.6f * panicAccelerator
+                    + (elapsed) * 2.6f * panicAccelerator
                     + humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition * 0.7f;
 
                 float const inPeriod = fmod(arg, (Period1 + Period2));
@@ -2592,15 +2593,17 @@ void Npcs::UpdateNpcAnimation(
 
                 // Legs:flapping around a (small) angle, which becomes even smaller
                 // width depth amplitude depending on depth
-                float constexpr LegAngleAmplitude = 0.39f * 2.0f; // Half of this on each side of center angle
-                float const legCenterAngle = 0.42f * (depthDamper * 0.5f + 0.5f);
+                float constexpr LegAngleAmplitude = 0.25f * 2.0f; // Half of this on each side of center angle
+                float const legCenterAngle = 0.25f * (depthDamper * 0.5f + 0.5f);
                 float const legAngle =
                     legCenterAngle
                     + (y * 2.0f - 1.0f) * LegAngleAmplitude / 2.0f * (depthDamper * 0.45f + 0.55f);
                 targetRightLegAngle = legAngle;
                 targetLeftLegAngle = -targetRightLegAngle;
 
-                convergenceRate = 0.25f;
+                // Converge rate depends on how long we've been in this state
+                float const MaxConvergenceWait = 3.5f;
+                convergenceRate = 0.01f + Clamp(elapsed, 0.0f, MaxConvergenceWait) / MaxConvergenceWait * (0.25f - 0.01f);
 
                 break;
             }

@@ -119,9 +119,9 @@ void LabController::Update()
 
         // Update rendering
         mCurrentShipTranslationAccelerationIndicator *= 0.98f;
-    }
 
-    mCurrentSimulationTime += GameParameters::SimulationTimeStepDuration;
+        mCurrentSimulationTime += GameParameters::SimulationTimeStepDuration;
+    }
 }
 
 void LabController::Render()
