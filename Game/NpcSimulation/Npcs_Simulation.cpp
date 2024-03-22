@@ -1342,7 +1342,7 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
         //
 
         // Calculate angle that we want to enforce with this torque
-        float const stiffness = gameParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient + std::min(npc.KindSpecificState.HumanNpcState.PanicLevel, 1.0f) * 0.0005f;
+        float const stiffness = gameParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient + std::min(npc.KindSpecificState.HumanNpcState.ResultantPanicLevel, 1.0f) * 0.0005f;
         float const totalTorqueAngleCW =
             staticDisplacementAngleCW * stiffness
             + relativeVelocityAngleCW * gameParameters.HumanNpcEquilibriumTorqueDampingCoefficient;
@@ -2312,21 +2312,21 @@ void Npcs::UpdateNpcAnimation(
                 targetLeftLegAngle = -legAngle;
 
                 // Arms depend on panic
-                if (humanNpcState.PanicLevel == 0.0f)
+                if (humanNpcState.ResultantPanicLevel < 0.0001f)
                 {
                     targetRightArmAngle = targetLeftLegAngle * 1.4f;
                 }
                 else
                 {
                     float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
-                    float const halfPeriod = 1.0f - 0.6f * std::min(humanNpcState.PanicLevel, 4.0f) / 4.0f;
+                    float const halfPeriod = 1.0f - 0.6f * std::min(humanNpcState.ResultantPanicLevel, 4.0f) / 4.0f;
                     float const inPeriod = std::fmod(elapsed, halfPeriod * 2.0f);
 
                     float constexpr MaxAngle = Pi<float> / 2.0f;
                     float const angle = std::abs(halfPeriod - inPeriod) / halfPeriod * 2.0f * MaxAngle - MaxAngle;
 
                     // PanicMultiplier: p=0.0 => 1.0 p=2.0 => 0.4
-                    float const panicMultiplier = 0.4f + 0.6f * (1.0f - std::min(humanNpcState.PanicLevel, 2.0f) / 2.0f);
+                    float const panicMultiplier = 0.4f + 0.6f * (1.0f - std::min(humanNpcState.ResultantPanicLevel, 2.0f) / 2.0f);
                     targetRightArmAngle = Pi<float> -angle * panicMultiplier;
                 }
                 targetLeftArmAngle = -targetRightArmAngle;
@@ -2558,7 +2558,7 @@ void Npcs::UpdateNpcAnimation(
                 float constexpr Period1 = 3.00f;
                 float constexpr Period2 = 1.00f;
 
-                float const panicAccelerator = 1.0f + std::min(humanNpcState.PanicLevel, 2.0f) / 2.0f * 4.0f;
+                float const panicAccelerator = 1.0f + std::min(humanNpcState.ResultantPanicLevel, 2.0f) / 2.0f * 4.0f;
 
                 float const arg =
                     Period1 / 2.0f // Start some-halfway-through to avoid sudden extreme angles

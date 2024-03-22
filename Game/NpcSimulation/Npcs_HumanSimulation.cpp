@@ -64,7 +64,27 @@ void Npcs::UpdateHuman(
 	auto & humanState = npc.KindSpecificState.HumanNpcState;
 	using HumanNpcStateType = StateType::KindSpecificStateType::HumanNpcStateType;
 
+	//
+	// Constants
+	//
+
 	float constexpr MaxRelativeVelocityMagnitudeForEquilibrium = 3.0f; // So high because we slip a lot while we try to stand up, and thus need to be immune to ourselves
+
+	//
+	// Update panic
+	//
+
+	humanState.ResultantPanicLevel =
+		humanState.ShipOnFirePanicLevel
+		+ humanState.GeneralizedPanicLevel;
+
+	// Decay
+
+	humanState.ShipOnFirePanicLevel -= humanState.ShipOnFirePanicLevel * 0.01f;
+
+	//
+	// Process human
+	//
 
 	std::optional<std::tuple<std::string, std::string>> publishStateQuantity;
 
@@ -220,7 +240,7 @@ void Npcs::UpdateHuman(
 
 			// Advance towards knocked out
 
-			float const toKnockedConvergenceRate = 0.14f + std::min(humanState.PanicLevel, 1.0f) * 0.07f;
+			float const toKnockedConvergenceRate = 0.14f + std::min(humanState.ResultantPanicLevel, 1.0f) * 0.07f;
 			humanState.CurrentBehaviorState.Constrained_Falling.ProgressToKnockedOut +=
 				(knockedOutTarget - humanState.CurrentBehaviorState.Constrained_Falling.ProgressToKnockedOut)
 				* toKnockedConvergenceRate;
@@ -308,7 +328,7 @@ void Npcs::UpdateHuman(
 
 			// Advance towards rising
 
-			float const toRisingConvergenceRate = 0.067f + std::min(humanState.PanicLevel, 1.0f) * 0.07f;
+			float const toRisingConvergenceRate = 0.067f + std::min(humanState.ResultantPanicLevel, 1.0f) * 0.07f;
 			humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising +=
 				(risingTarget - humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising)
 				* toRisingConvergenceRate;
@@ -395,7 +415,7 @@ void Npcs::UpdateHuman(
 				{
 					// Advance towards walking
 
-					float const toWalkingConvergenceRate = 0.09f + std::min(humanState.PanicLevel, 1.0f) * 0.15f;
+					float const toWalkingConvergenceRate = 0.09f + std::min(humanState.ResultantPanicLevel, 1.0f) * 0.15f;
 					humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking +=
 						(1.0f - humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking)
 						* toWalkingConvergenceRate;
@@ -867,7 +887,7 @@ void Npcs::RunWalkingHumanStateMachine(
 	// 4. Advance walking magnitude towards full walk
 	//
 
-	float const walkMagnitudeConvergenceRate = 0.03f + std::min(humanState.PanicLevel, 1.0f) * 0.15f;
+	float const walkMagnitudeConvergenceRate = 0.03f + std::min(humanState.ResultantPanicLevel, 1.0f) * 0.15f;
 	walkingState.CurrentWalkMagnitude += (1.0f - walkingState.CurrentWalkMagnitude) * walkMagnitudeConvergenceRate;
 
 	LogNpcDebug("        currentWalkMagnitude: ", walkingState.CurrentWalkMagnitude);
@@ -970,7 +990,7 @@ float Npcs::CalculateActualHumanWalkingAbsoluteSpeed(
 	return std::min(
 		gameParameters.HumanNpcWalkingSpeed
 		* humanState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude // Note that this is the only one that might be zero
-		* (1.0f + humanState.PanicLevel),
+		* (1.0f + humanState.ResultantPanicLevel * 3.0f),
 		4.0f); // Absolute cap
 }
 

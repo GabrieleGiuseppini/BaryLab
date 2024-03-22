@@ -668,7 +668,7 @@ void Npcs::HighlightNpc(
 	mStateBuffer[id]->Highlight = highlight;
 }
 
-void Npcs::SetPanicLevelForAllHumans(float panicLevel)
+void Npcs::SetGeneralizedPanicLevelForAllHumans(float panicLevel)
 {
 	for (auto & npc : mStateBuffer)
 	{
@@ -676,7 +676,7 @@ void Npcs::SetPanicLevelForAllHumans(float panicLevel)
 		{
 			if (npc->Kind == NpcKindType::Human)
 			{
-				npc->KindSpecificState.HumanNpcState.PanicLevel = panicLevel;
+				npc->KindSpecificState.HumanNpcState.GeneralizedPanicLevel = panicLevel;
 			}
 		}
 	}

@@ -271,7 +271,10 @@ private:
 				float CurrentFaceOrientation; // [-1.0f, 0.0f, 1.0f]
 				float CurrentFaceDirectionX; // [-1.0f, 0.0f, 1.0f]
 
-				float PanicLevel; // [0.0f ... +INF)
+				// Panic levels
+				float ShipOnFirePanicLevel; // [0.0f ... +1.0f]
+				float GeneralizedPanicLevel; // [0.0f ... +1.0f]
+				float ResultantPanicLevel; // [0.0f ... +INF)
 
 				// Animation
 
@@ -301,7 +304,9 @@ private:
 					, CurrentEquilibriumSoftTerminationDecision(0.0f)
 					, CurrentFaceOrientation(1.0f)
 					, CurrentFaceDirectionX(0.0f)
-					, PanicLevel(0.0f)
+					, ShipOnFirePanicLevel(0.0f)
+					, GeneralizedPanicLevel(0.0f)
+					, ResultantPanicLevel(0.0f)
 					// Animation
 					, RightLegAngle(InitialLegAngle)
 					, RightLegLengthMultiplier(1.0f)
@@ -544,7 +549,7 @@ public:
 		NpcId id,
 		NpcHighlightType highlight);
 
-	void SetPanicLevelForAllHumans(float panicLevel);
+	void SetGeneralizedPanicLevelForAllHumans(float panicLevel);
 
 public:
 

@@ -962,7 +962,7 @@ void LabController::HighlightNpc(
 void LabController::SetNpcPanicLevelForAllHumans(float panicLevel)
 {
     assert(!!mWorld);
-    mWorld->GetNpcs().SetPanicLevelForAllHumans(panicLevel);
+    mWorld->GetNpcs().SetGeneralizedPanicLevelForAllHumans(panicLevel);
 }
 
 ////////////////////////////////////////////////
