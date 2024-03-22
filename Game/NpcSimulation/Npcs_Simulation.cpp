@@ -2525,10 +2525,13 @@ void Npcs::UpdateNpcAnimation(
                 vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
                 vec2f const actualBodyDir = (feetPosition - headPosition).normalise();
 
-                // Arms: always up, unless horizontal
+                // Arms: always up, unless horizontal or foot on the floor
 
                 float const horizontality = std::abs(actualBodyDir.dot(GameParameters::GravityDir));
-                float const armAngle = Pi<float> - (Pi<float> / 2.0f) / std::exp(horizontality * 2.2f);
+
+                float const armAngle = (primaryContrainedState.has_value() && IsOnFloorEdge(*primaryContrainedState, shipMesh))
+                    ? Pi<float> / 2.0f
+                    : Pi<float> - (Pi<float> / 2.0f) / std::exp(horizontality * 2.2f);
                 targetRightArmAngle = armAngle;
                 targetLeftArmAngle = -targetRightArmAngle;
 
