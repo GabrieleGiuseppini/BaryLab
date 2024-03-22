@@ -2513,10 +2513,10 @@ void Npcs::UpdateNpcAnimation(
                 vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
                 vec2f const actualBodyDir = (feetPosition - headPosition).normalise();
 
-                // Arms: always pointing downward
+                // Arms: always up, unless horizontal
 
-                float constexpr MaxAngleAroundPerp = Pi<float> / 2.0f * 0.7f;
-                float const armAngle = Pi<float> / 2.0f - (actualBodyDir.dot(GameParameters::GravityDir)) * MaxAngleAroundPerp;
+                float const horizontality = std::abs(actualBodyDir.dot(GameParameters::GravityDir));
+                float const armAngle = Pi<float> - (Pi<float> / 2.0f) / std::exp(horizontality * 2.2f);
                 targetRightArmAngle = armAngle;
                 targetLeftArmAngle = -targetRightArmAngle;
 
@@ -2525,7 +2525,7 @@ void Npcs::UpdateNpcAnimation(
                     // Legs: when arms far from rest, tight; when arms close, at fixed angle
 
                     float constexpr LegRestAngle = HumanNpcStateType::InitialLegAngle;
-                    float const legAngle = LegRestAngle * (1.0f - (armAngle - (Pi<float> / 2.0f - MaxAngleAroundPerp)) / (MaxAngleAroundPerp * 2.0f));
+                    float const legAngle = LegRestAngle;
 
                     // Legs inclined in direction opposite of relvel, by an amount proportional to relvel itself
                     vec2f const relativeVelocity = mParticles.GetVelocity(primaryParticleIndex) - mParticles.GetVelocity(secondaryParticleIndex);
