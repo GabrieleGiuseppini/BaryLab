@@ -29,8 +29,6 @@ Npcs::StateType::KindSpecificStateType::HumanNpcStateType Npcs::CalculateInitial
 	auto const & primaryParticleState = npc.PrimaryParticleState;
 	auto const & secondaryParticleState = npc.DipoleState->SecondaryParticleState;
 
-	// Return state
-
 	if (!primaryParticleState.ConstrainedState.has_value()
 		&& !secondaryParticleState.ConstrainedState.has_value())
 	{
@@ -45,7 +43,7 @@ Npcs::StateType::KindSpecificStateType::HumanNpcStateType Npcs::CalculateInitial
 		// NPC is constrained
 		return StateType::KindSpecificStateType::HumanNpcStateType(
 			npc.KindSpecificState.HumanNpcState.Kind,
-			StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut,
+			StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Aerial,
 			currentSimulationTime);
 	}
 }
@@ -270,7 +268,7 @@ void Npcs::UpdateHuman(
 			{
 				// Advance towards aerial
 
-				float constexpr ToAerialConvergenceRate = 0.15f;
+				float constexpr ToAerialConvergenceRate = 0.35f;
 
 				humanState.CurrentBehaviorState.Constrained_Falling.ProgressToAerial +=
 					(1.0f - humanState.CurrentBehaviorState.Constrained_Falling.ProgressToAerial)
