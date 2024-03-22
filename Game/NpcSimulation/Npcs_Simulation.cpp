@@ -2597,7 +2597,7 @@ void Npcs::UpdateNpcAnimation(
                 float const legCenterAngle = 0.25f * (depthDamper * 0.5f + 0.5f);
                 float const legAngle =
                     legCenterAngle
-                    + (y * 2.0f - 1.0f) * LegAngleAmplitude / 2.0f * (depthDamper * 0.45f + 0.55f);
+                    + (y * 2.0f - 1.0f) * LegAngleAmplitude / 2.0f * (depthDamper * 0.35f + 0.65f);
                 targetRightLegAngle = legAngle;
                 targetLeftLegAngle = -targetRightLegAngle;
 
