@@ -51,6 +51,8 @@ public:
         {
             mCurrentTool->Deinitialize(mInputState);
         }
+
+        mCurrentTool = nullptr;
     }
 
     void Update()
