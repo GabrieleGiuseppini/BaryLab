@@ -702,6 +702,15 @@ private:
 		Ship const & shipMesh,
 		std::optional<ElementIndex> primaryParticleTriangleIndex) const;
 
+	void TransitionParticleToConstrainedState(
+		StateType & npc,
+		bool isPrimaryParticle,
+		StateType::NpcParticleStateType::ConstrainedStateType constrainedState);
+
+	void TransitionParticleToFreeState(
+		StateType & npc,
+		bool isPrimaryParticle);
+
 	static std::optional<StateType::NpcParticleStateType::ConstrainedStateType> CalculateParticleConstrainedState(
 		vec2f const & position,
 		Ship const & shipMesh,
@@ -757,7 +766,7 @@ private:
 		float dt,
 		Ship const & shipMesh,
 		NpcParticles & particles,
-		GameParameters const & gameParameters) const;
+		GameParameters const & gameParameters);
 
 	float UpdateNpcParticle_ConstrainedInertial(
 		StateType & npc,
@@ -770,7 +779,7 @@ private:
 		float segmentDt,
 		Ship const & shipMesh,
 		NpcParticles & particles,
-		GameParameters const & gameParameters) const;
+		GameParameters const & gameParameters);
 
 	struct NavigateVertexOutcome
 	{
@@ -821,7 +830,7 @@ private:
 		bool isInitialStateUnknown,
 		Ship const & shipMesh,
 		NpcParticles & particles,
-		GameParameters const & gameParameters) const;
+		GameParameters const & gameParameters);
 
 	inline void BounceConstrainedNpcParticle(
 		StateType & npc,

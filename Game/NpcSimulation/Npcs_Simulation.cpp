@@ -123,6 +123,57 @@ void Npcs::ResetNpcStateToWorld(
     Publish();
 }
 
+void Npcs::TransitionParticleToConstrainedState(
+    StateType & npc,
+    bool isPrimaryParticle,
+    StateType::NpcParticleStateType::ConstrainedStateType constrainedState)
+{
+    // Transition
+
+    if (isPrimaryParticle)
+    {
+        npc.PrimaryParticleState.ConstrainedState = constrainedState;
+    }
+    else
+    {
+        assert(npc.DipoleState.has_value());
+        npc.DipoleState->SecondaryParticleState.ConstrainedState = constrainedState;
+    }
+
+    // Regime
+
+    auto const oldRegime = npc.CurrentRegime;
+
+    npc.CurrentRegime = CalculateRegime(npc);
+
+    OnMayBeNpcRegimeChanged(oldRegime, npc);
+}
+
+void Npcs::TransitionParticleToFreeState(
+    StateType & npc,
+    bool isPrimaryParticle)
+{
+    // Transition
+
+    if (isPrimaryParticle)
+    {
+        npc.PrimaryParticleState.ConstrainedState.reset();
+    }
+    else
+    {
+        assert(npc.DipoleState.has_value());
+        npc.DipoleState->SecondaryParticleState.ConstrainedState.reset();
+    }
+
+    // Regime
+
+    auto const oldRegime = npc.CurrentRegime;
+
+    npc.CurrentRegime = CalculateRegime(npc);
+
+    OnMayBeNpcRegimeChanged(oldRegime, npc);
+}
+
 std::optional<Npcs::StateType::NpcParticleStateType::ConstrainedStateType> Npcs::CalculateParticleConstrainedState(
     vec2f const & position,
     Ship const & shipMesh,
@@ -243,10 +294,15 @@ void Npcs::UpdateNpcs(
             {
                 assert(mShips[npcState->CurrentShipId].has_value());
 
-                npcState->DipoleState->SecondaryParticleState.ConstrainedState = CalculateParticleConstrainedState(
+                auto newConstrainedState = CalculateParticleConstrainedState(
                     mParticles.GetPosition(npcState->DipoleState->SecondaryParticleState.ParticleIndex),
                     mShips[npcState->CurrentShipId]->ShipMesh,
                     std::nullopt);
+
+                if (newConstrainedState.has_value())
+                {
+                    TransitionParticleToConstrainedState(*npcState, false, std::move(*newConstrainedState));
+                }
             }
 
             // Preliminary Forces
@@ -1340,7 +1396,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
     float dt,
     Ship const & shipMesh,
     NpcParticles & particles,
-    GameParameters const & gameParameters) const
+    GameParameters const & gameParameters)
 {
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
     assert(npcParticle.ConstrainedState.has_value());
@@ -1563,7 +1619,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
     float segmentDt,
     Ship const & shipMesh,
     NpcParticles & particles,
-    GameParameters const & gameParameters) const
+    GameParameters const & gameParameters)
 {
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
     assert(npcParticle.ConstrainedState.has_value());
@@ -1784,7 +1840,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                 // Move to endpoint and exit, consuming whole quantum
                 //
 
-                npcParticle.ConstrainedState.reset();
+                TransitionParticleToFreeState(npc, isPrimaryParticle);
 
                 UpdateNpcParticle_Free(
                     npcParticle,
@@ -1847,7 +1903,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
     bool isInitialStateUnknown,
     Ship const & shipMesh,
     NpcParticles & particles,
-    GameParameters const & gameParameters) const
+    GameParameters const & gameParameters)
 {
     //
     // Note: we don't move here
@@ -1942,7 +1998,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
 
             LogNpcDebug("      No opposite triangle found, becoming free - ConvertedToFree");
 
-            npcParticle.ConstrainedState.reset();
+            TransitionParticleToFreeState(npc, isPrimaryParticle);
 
             UpdateNpcParticle_Free(
                 npcParticle,
