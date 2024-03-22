@@ -2318,6 +2318,8 @@ void Npcs::UpdateNpcAnimation(
                 }
                 else
                 {
+                    // Arms raised up
+
                     float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
                     float const halfPeriod = 1.0f - 0.6f * std::min(humanNpcState.ResultantPanicLevel, 4.0f) / 4.0f;
                     float const inPeriod = std::fmod(elapsed, halfPeriod * 2.0f);
