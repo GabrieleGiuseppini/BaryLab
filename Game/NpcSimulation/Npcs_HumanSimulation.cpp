@@ -21,9 +21,7 @@ namespace {
 
 }
 
-Npcs::StateType::KindSpecificStateType::HumanNpcStateType Npcs::CalculateInitialHumanState(
-	StateType & npc,
-	float currentSimulationTime)
+Npcs::StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType Npcs::CalculateHumanBehavior(StateType & npc)
 {
 	assert(npc.DipoleState.has_value());
 	auto const & primaryParticleState = npc.PrimaryParticleState;
@@ -32,19 +30,13 @@ Npcs::StateType::KindSpecificStateType::HumanNpcStateType Npcs::CalculateInitial
 	if (!primaryParticleState.ConstrainedState.has_value()
 		&& !secondaryParticleState.ConstrainedState.has_value())
 	{
-		// Whole NPC is free
-		return StateType::KindSpecificStateType::HumanNpcStateType(
-			npc.KindSpecificState.HumanNpcState.Kind,
-			StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Aerial,
-			currentSimulationTime);
+		// Whole Human is free
+		return StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Aerial;
 	}
 	else
 	{
-		// NPC is constrained
-		return StateType::KindSpecificStateType::HumanNpcStateType(
-			npc.KindSpecificState.HumanNpcState.Kind,
-			StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Aerial,
-			currentSimulationTime);
+		// Human is constrained
+		return StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Aerial;
 	}
 }
 

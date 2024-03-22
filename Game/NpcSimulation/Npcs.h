@@ -974,9 +974,7 @@ private:
 	// Human simulation
 	//
 
-	static StateType::KindSpecificStateType::HumanNpcStateType CalculateInitialHumanState(
-		StateType & npc,
-		float currentSimulationTime);
+	static StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType CalculateHumanBehavior(StateType & npc);
 
 	void UpdateHuman(
 		StateType & npc,

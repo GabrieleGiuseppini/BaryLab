@@ -107,6 +107,7 @@ void Npcs::ResetNpcStateToWorld(
     {
         case NpcKindType::Furniture:
         {
+            // Reset state
             npc.KindSpecificState.FurnitureNpcState = StateType::KindSpecificStateType::FurnitureNpcStateType();
 
             break;
@@ -114,7 +115,10 @@ void Npcs::ResetNpcStateToWorld(
 
         case NpcKindType::Human:
         {
-            npc.KindSpecificState.HumanNpcState = CalculateInitialHumanState(npc, currentSimulationTime);
+            // Change behavior
+            npc.KindSpecificState.HumanNpcState.TransitionToState(
+                CalculateHumanBehavior(npc),
+                currentSimulationTime);
 
             break;
         }
