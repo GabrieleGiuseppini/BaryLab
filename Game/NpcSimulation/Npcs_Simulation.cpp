@@ -2539,7 +2539,7 @@ void Npcs::UpdateNpcAnimation(
                     // Leave legs as-is
                 }
 
-                convergenceRate = 0.3f;
+                convergenceRate = 0.1f;
 
                 break;
             }

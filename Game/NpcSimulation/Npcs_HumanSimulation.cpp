@@ -106,7 +106,7 @@ void Npcs::UpdateHuman(
 				break;
 			}
 
-			// Check conditions for falling/KO
+			// Check conditions for falling/rising
 
 			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, shipMesh);
 			bool const areFeetOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, shipMesh);
@@ -120,7 +120,7 @@ void Npcs::UpdateHuman(
 			float constexpr MinVelocityMagnitudeForFalling = 0.05f;
 
 			float fallingTarget;
-			float knockedOutTarget;
+			float risingTarget;
 			if (isHeadOnFloor || areFeetOnFloor)
 			{
 				if (std::abs(headVelocityAlongFloor) >= MinVelocityMagnitudeForFalling
@@ -129,15 +129,15 @@ void Npcs::UpdateHuman(
 					// Likely falling
 					fallingTarget = 1.0f;
 
-					// Definitely not knocked out
-					knockedOutTarget = 0.0f;
+					// Definitely not rising
+					risingTarget = 0.0f;
 				}
 				else
 				{
 					// We're quite still...
 
-					// ...likely knocked out
-					knockedOutTarget = 1.0f;
+					// ...likely rising
+					risingTarget = 1.0f;
 
 					// Definitely not falling
 					fallingTarget = 0.0f;
@@ -147,7 +147,7 @@ void Npcs::UpdateHuman(
 			{
 				// Completely in the air, no transition
 				fallingTarget = 0.0f;
-				knockedOutTarget = 0.0f;
+				risingTarget = 0.0f;
 			}
 
 			// Progress to falling
@@ -185,26 +185,26 @@ void Npcs::UpdateHuman(
 				break;
 			}
 
-			// Progress to knocked out
+			// Progress to rising
 
-			float constexpr ToKnockedOutConvergenceRate = 0.5f;
+			float constexpr ToRisingConvergenceRate = 0.5f;
 
-			humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToKnockedOut +=
-				(knockedOutTarget - humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToKnockedOut)
-				* ToKnockedOutConvergenceRate;
+			humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToRising +=
+				(risingTarget - humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToRising)
+				* ToRisingConvergenceRate;
 
 			if (fallingTarget == 0.0f)
-				publishStateQuantity = std::make_tuple("ProgressToKnockedOut", std::to_string(humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToKnockedOut));
+				publishStateQuantity = std::make_tuple("ProgressToRising", std::to_string(humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToRising));
 
-			if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToKnockedOut, 1.0f))
+			if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToRising, 1.0f))
 			{
 				// Transition
 
-				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
+				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Rising, currentSimulationTime);
 
 				if (npc.Id == mCurrentlySelectedNpc)
 				{
-					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Rising");
 				}
 
 				break;

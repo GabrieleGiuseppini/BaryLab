@@ -180,12 +180,12 @@ private:
 					struct Constrained_AerialStateType
 					{
 						float ProgressToFalling;
-						float ProgressToKnockedOut;
+						float ProgressToRising;
 
 						void Reset()
 						{
 							ProgressToFalling = 0.0f;
-							ProgressToKnockedOut = 0.0f;
+							ProgressToRising = 0.0f;
 						}
 					} Constrained_Aerial;
 
