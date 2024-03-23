@@ -2638,16 +2638,7 @@ void Npcs::UpdateNpcAnimation(
                 // Trappelen
                 //
 
-                // Angles: perfectly vertical
-
-                targetRightArmAngle = 0.0f;
-                targetLeftArmAngle = 0.0f;
-                targetRightLegAngle = 0.0f;
-                targetLeftLegAngle = 0.0f;
-
-                // Lengths
-
-                float constexpr Period = 4.00f;
+                float constexpr Period = 2.00f;
 
                 float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
                 float const panicAccelerator = 1.0f + std::min(humanNpcState.ResultantPanicLevel, 2.0f) / 2.0f * 4.0f;
@@ -2662,10 +2653,16 @@ void Npcs::UpdateNpcAnimation(
                     ? inPeriod / (Period / 2.0f)
                     : 1.0f - (inPeriod - (Period / 2.0f)) / (Period / 2.0f);
 
-                float constexpr TrappelenExtent = 0.3f;
+                // Arms: around a small angle
+                targetRightArmAngle = StateType::KindSpecificStateType::HumanNpcStateType::InitialArmAngle + (y - 0.5f) * Pi<float>/8.0f;
+                targetLeftArmAngle = -targetRightArmAngle;
 
-                targetRightArmLengthMultiplier = 1.0f - y * TrappelenExtent;
-                targetLeftArmLengthMultiplier = 1.0f - (1.0f - y) * TrappelenExtent;
+                // Legs: perfectly vertical
+                targetRightLegAngle = 0.0f;
+                targetLeftLegAngle = 0.0f;
+
+                // Lengths
+                float constexpr TrappelenExtent = 0.3f;
                 targetRightLegLengthMultiplier = 1.0f - (1.0f - y) * TrappelenExtent;
                 targetLeftLegLengthMultiplier = 1.0f - y * TrappelenExtent;
 
