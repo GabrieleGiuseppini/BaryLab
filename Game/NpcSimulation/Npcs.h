@@ -695,6 +695,8 @@ private:
 
 	void PublishHumanNpcStats();
 
+	void OnHumanNpcBodyLengthAdjustmentChanged(float newHumanNpcBodyLengthAdjustment);
+
 private:
 
 	//

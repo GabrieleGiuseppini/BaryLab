@@ -22,7 +22,7 @@ void Npcs::Update(
 
 	if (gameParameters.HumanNpcBodyLengthAdjustment != mCurrentHumanNpcBodyLengthAdjustment)
 	{
-		mCurrentHumanNpcBodyLengthAdjustment = gameParameters.HumanNpcBodyLengthAdjustment;
+		OnHumanNpcBodyLengthAdjustmentChanged(gameParameters.HumanNpcBodyLengthAdjustment);
 	}
 
 	//
@@ -286,7 +286,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 	StateType::DipoleStateType dipoleState = StateType::DipoleStateType(
 		std::move(secondaryParticleState),
 		StateType::DipolePropertiesType(
-			GameParameters::HumanNpcGeometry::BodyLength,
+			GameParameters::HumanNpcGeometry::BodyLength * mCurrentHumanNpcBodyLengthAdjustment,
 			massFactor,
 			1.0f));
 
@@ -1610,6 +1610,24 @@ void Npcs::PublishHumanNpcStats()
 	mGameEventHandler->OnHumanNpcCountsUpdated(
 		mConstrainedRegimeHumanNpcCount,
 		mFreeRegimeHumanNpcCount);
+}
+
+void Npcs::OnHumanNpcBodyLengthAdjustmentChanged(float newHumanNpcBodyLengthAdjustment)
+{
+	// Adjust all humans' dipole lengths
+	for (auto & state : mStateBuffer)
+	{
+		if (state.has_value())
+		{
+			if (state->Kind == NpcKindType::Human)
+			{
+				assert(state->DipoleState.has_value());
+				state->DipoleState->DipoleProperties.DipoleLength = GameParameters::HumanNpcGeometry::BodyLength * newHumanNpcBodyLengthAdjustment;
+			}
+		}
+	}
+
+	mCurrentHumanNpcBodyLengthAdjustment = newHumanNpcBodyLengthAdjustment;
 }
 
 }

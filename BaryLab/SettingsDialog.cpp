@@ -319,7 +319,7 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
 
         {
             wxGridBagSizer * mechanicsSizer = new wxGridBagSizer(0, 0);
-            
+
             // Elasticity Adjustment
             {
                 mElasticityAdjustmentSlider = new SliderControl<float>(
@@ -712,6 +712,31 @@ void SettingsDialog::PopulateNpcsPanel(wxPanel * panel)
                     CellBorder);
             }
 
+            // Human NPC Body Length Adjustment
+            {
+                mHumanNpcBodyLengthAdjustmentSlider = new SliderControl<float>(
+                    npcsBox,
+                    SliderWidth,
+                    SliderHeight,
+                    "Human Height Adjust",
+                    "Adjusts the height of human NPCs.",
+                    [this](float value)
+                    {
+                        this->mLiveSettings.SetValue(SLabSettings::HumanNpcBodyLengthAdjustment, value);
+                        this->OnLiveSettingsChanged();
+                    },
+                    std::make_unique<LinearSliderCore>(
+                        mLabController->GetMinHumanNpcBodyLengthAdjustment(),
+                        mLabController->GetMaxHumanNpcBodyLengthAdjustment()));
+
+                npcsSizer->Add(
+                    mHumanNpcBodyLengthAdjustmentSlider,
+                    wxGBPosition(0, 3),
+                    wxGBSpan(1, 1),
+                    wxEXPAND | wxALL,
+                    CellBorder);
+            }
+
             npcsBoxSizer->Add(npcsSizer, 0, wxALL, StaticBoxInsetMargin);
         }
 
@@ -740,7 +765,7 @@ void SettingsDialog::SyncControlsWithSettings(Settings<SLabSettings> const & set
     mStaticFrictionAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::StaticFrictionAdjustment));
     mKineticFrictionAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::KineticFrictionAdjustment));
     mMassAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::MassAdjustment));
-    mGravityAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::GravityAdjustment));    
+    mGravityAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::GravityAdjustment));
     mGlobalDampingSlider->SetValue(settings.GetValue<float>(SLabSettings::GlobalDamping));
     mSeaLevelSlider->SetValue(settings.GetValue<float>(SLabSettings::SeaLevel));
     mSpringReductionFractionSlider->SetValue(settings.GetValue<float>(SLabSettings::SpringReductionFraction));
@@ -752,6 +777,7 @@ void SettingsDialog::SyncControlsWithSettings(Settings<SLabSettings> const & set
     mHumanNpcEquilibriumTorqueStiffnessCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcEquilibriumTorqueStiffnessCoefficient));
     mHumanNpcEquilibriumTorqueDampingCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcEquilibriumTorqueDampingCoefficient));
     mHumanNpcWalkingSpeedSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcWalkingSpeed));
+    mHumanNpcBodyLengthAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcBodyLengthAdjustment));
 }
 
 void SettingsDialog::OnLiveSettingsChanged()

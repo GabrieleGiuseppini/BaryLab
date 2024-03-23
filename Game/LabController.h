@@ -271,6 +271,11 @@ public:
     float GetMinHumanNpcWalkingSpeed() const { return GameParameters::MinHumanNpcWalkingSpeed; }
     float GetMaxHumanNpcWalkingSpeed() const { return GameParameters::MaxHumanNpcWalkingSpeed; }
 
+    float GetHumanNpcBodyLengthAdjustment() const { return mGameParameters.HumanNpcBodyLengthAdjustment; }
+    void SetHumanNpcBodyLengthAdjustment(float value) { mGameParameters.HumanNpcBodyLengthAdjustment = value; }
+    float GetMinHumanNpcBodyLengthAdjustment() const { return GameParameters::MinHumanNpcBodyLengthAdjustment; }
+    float GetMaxHumanNpcBodyLengthAdjustment() const { return GameParameters::MaxHumanNpcBodyLengthAdjustment; }
+
 private:
 
     LabController(
