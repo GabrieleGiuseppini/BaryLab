@@ -1352,7 +1352,8 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
             + relativeVelocityAngleCW * gameParameters.HumanNpcEquilibriumTorqueDampingCoefficient;
 
         // Calculate (linear) force that generates this rotation
-        vec2f const torqueDisplacement = humanVector.rotate(totalTorqueAngleCW) - humanVector;
+        // Note: we divide by human length adjustment to maintain torque independent from lever length
+        vec2f const torqueDisplacement = (humanVector.rotate(totalTorqueAngleCW) - humanVector) / mCurrentHumanNpcBodyLengthAdjustment;
         vec2f const equilibriumTorqueForce =
             torqueDisplacement
             * particleMass / (GameParameters::SimulationTimeStepDuration * GameParameters::SimulationTimeStepDuration)
