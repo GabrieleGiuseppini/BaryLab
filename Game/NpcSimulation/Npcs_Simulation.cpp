@@ -343,6 +343,7 @@ void Npcs::UpdateNpcs(
                 *npcState,
                 true,
                 shipMesh,
+                currentSimulationTime,
                 gameParameters);
 
             if (npcState->DipoleState.has_value())
@@ -351,6 +352,7 @@ void Npcs::UpdateNpcs(
                     *npcState,
                     false,
                     shipMesh,
+                    currentSimulationTime,
                     gameParameters);
             }
         }
@@ -417,6 +419,7 @@ void Npcs::UpdateNpcParticlePhysics(
     StateType & npc,
     bool isPrimaryParticle,
     Ship const & shipMesh,
+    float currentSimulationTime,
     GameParameters const & gameParameters)
 {
     //
@@ -953,6 +956,7 @@ void Npcs::UpdateNpcParticlePhysics(
                                 remainingDt,
                                 shipMesh,
                                 mParticles,
+                                currentSimulationTime,
                                 gameParameters);
 
                             LogNpcDebug("    Actual edge traveled in non-inertial step: ", edgeTraveledActual);
@@ -1112,6 +1116,7 @@ void Npcs::UpdateNpcParticlePhysics(
                     remainingDt,
                     shipMesh,
                     mParticles,
+                    currentSimulationTime,
                     gameParameters);
 
                 // Update total traveled
@@ -1401,6 +1406,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
     float dt,
     Ship const & shipMesh,
     NpcParticles & particles,
+    float currentSimulationTime,
     GameParameters const & gameParameters)
 {
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
@@ -1601,6 +1607,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
                     meshVelocity,
                     dt,
                     particles,
+                    currentSimulationTime,
                     gameParameters);
 
                 // Terminate
@@ -1624,6 +1631,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
     float segmentDt,
     Ship const & shipMesh,
     NpcParticles & particles,
+    float currentSimulationTime,
     GameParameters const & gameParameters)
 {
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
@@ -1818,6 +1826,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                 meshVelocity,
                 segmentDt,
                 particles,
+                currentSimulationTime,
                 gameParameters);
 
             // Return (mesh-relative) distance traveled with this move
@@ -2074,6 +2083,7 @@ void Npcs::BounceConstrainedNpcParticle(
     vec2f const meshVelocity,
     float dt,
     NpcParticles & particles,
+    float currentSimulationTime,
     GameParameters const & gameParameters) const
 {
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
@@ -2120,14 +2130,16 @@ void Npcs::BounceConstrainedNpcParticle(
         npc,
         isPrimaryParticle,
         normalVelocity,
-        bounceEdgeNormal);
+        bounceEdgeNormal,
+        currentSimulationTime);
 }
 
 void Npcs::OnImpact(
     StateType & npc,
     bool isPrimaryParticle,
     vec2f const & impactVector,
-    vec2f const & bounceEdgeNormal) const // Pointing outside of triangle
+    vec2f const & bounceEdgeNormal, // Pointing outside of triangle
+    float currentSimulationTime) const
 {
     LogNpcDebug("    OnImpact(", impactVector.length(), ", ", bounceEdgeNormal, ")");
 
@@ -2138,7 +2150,8 @@ void Npcs::OnImpact(
             npc,
             isPrimaryParticle,
             impactVector,
-            bounceEdgeNormal);
+            bounceEdgeNormal,
+            currentSimulationTime);
     }
 }
 
@@ -2304,7 +2317,7 @@ void Npcs::UpdateNpcAnimation(
                 float const actualHalfStepLengthFraction = (GameParameters::HumanNpcGeometry::StepLengthFraction * std::sqrt(actualWalkingSpeed) / 2.0f);
                 float const maxLegAngle = std::atan(actualHalfStepLengthFraction / GameParameters::HumanNpcGeometry::LegLengthFraction);
 
-                float const adjustedStandardHumanHeight = GameParameters::HumanNpcGeometry::BodyLength * gameParameters.HumanNpcBodyLengthAdjustment;
+                float const adjustedStandardHumanHeight = GameParameters::HumanNpcGeometry::BodyLength * mCurrentHumanNpcBodyLengthAdjustment;
                 float const stepLength = GameParameters::HumanNpcGeometry::StepLengthFraction * adjustedStandardHumanHeight;
                 float const distance =
                     humanNpcState.TotalDistanceTraveledOnEdgeSinceStateTransition

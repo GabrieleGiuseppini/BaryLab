@@ -743,6 +743,7 @@ private:
 		StateType & npc,
 		bool isPrimaryParticle,
 		Ship const & shipMesh,
+		float currentSimulationTime,
 		GameParameters const & gameParameters);
 
 	void CalculateNpcParticlePreliminaryForces(
@@ -779,6 +780,7 @@ private:
 		float dt,
 		Ship const & shipMesh,
 		NpcParticles & particles,
+		float currentSimulationTime,
 		GameParameters const & gameParameters);
 
 	float UpdateNpcParticle_ConstrainedInertial(
@@ -792,6 +794,7 @@ private:
 		float segmentDt,
 		Ship const & shipMesh,
 		NpcParticles & particles,
+		float currentSimulationTime,
 		GameParameters const & gameParameters);
 
 	struct NavigateVertexOutcome
@@ -854,13 +857,15 @@ private:
 		vec2f const meshVelocity,
 		float dt,
 		NpcParticles & particles,
+		float currentSimulationTime,
 		GameParameters const & gameParameters) const;
 
 	void OnImpact(
 		StateType & npc,
 		bool isPrimaryParticle,
 		vec2f const & impactVector,
-		vec2f const & bounceEdgeNormal) const;
+		vec2f const & bounceEdgeNormal,
+		float currentSimulationTime) const;
 
 	void UpdateNpcAnimation(
 		StateType & npc,
@@ -1008,7 +1013,8 @@ private:
 		StateType & npc,
 		bool isPrimaryParticle,
 		vec2f const & impactVector,
-		vec2f const & bounceEdgeNormal) const;
+		vec2f const & bounceEdgeNormal,
+		float currentSimulationTime) const;
 
 	using DoImmediate = StrongTypedBool<struct _DoImmediate>;
 

@@ -909,9 +909,10 @@ void Npcs::RunWalkingHumanStateMachine(
 
 void Npcs::OnHumanImpact(
 	StateType & npc,
-	bool /*isPrimaryParticle*/,
+	bool isPrimaryParticle,
 	vec2f const & /*impactVector*/,
-	vec2f const & bounceEdgeNormal) const
+	vec2f const & bounceEdgeNormal,
+	float currentSimulationTime) const
 {
 	assert(npc.Kind == NpcKindType::Human);
 
@@ -919,6 +920,20 @@ void Npcs::OnHumanImpact(
 
 	switch (humanState.CurrentBehavior)
 	{
+		case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Rising:
+		{
+			if (!isPrimaryParticle)
+			{
+				// Hit head while rising
+
+				LogNpcDebug("OnHumanImpact: Hit head while rising - going to KnockedOut");
+
+				humanState.TransitionToState(StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
+			}
+
+			break;
+		}
+
 		case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
 		{
 			LogNpcDebug("OnHumanImpact: alignment=", bounceEdgeNormal.dot(vec2f(humanState.CurrentFaceDirectionX, 0.0f)));
