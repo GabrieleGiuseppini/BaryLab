@@ -1595,6 +1595,7 @@ void Npcs::Publish() const
 
 				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Swimming_Style1:
 				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Swimming_Style2:
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Swimming_Style3:
 				{
 					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Swimming");
 					break;

@@ -2601,8 +2601,6 @@ void Npcs::UpdateNpcAnimation(
                     ? std::sqrt(inPeriod / Period1)
                     : ((inPeriod - Period1) - Period2) * ((inPeriod - Period1) - Period2) / std::sqrt(Period2);
 
-                mGameEventHandler->OnCustomProbe("y", y);
-
                 // 0: 0, 2: 1, >+ INF: 1
                 float const depthDamper = Clamp(mParentWorld.GetOceanSurface().GetDepth(mParticles.GetPosition(secondaryParticleIndex)) / 1.5f, 0.0f, 1.0f);
 
@@ -2641,7 +2639,7 @@ void Npcs::UpdateNpcAnimation(
                 float constexpr Period = 2.00f;
 
                 float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
-                float const panicAccelerator = 1.0f + std::min(humanNpcState.ResultantPanicLevel, 2.0f) / 2.0f * 4.0f;
+                float const panicAccelerator = 1.0f + std::min(humanNpcState.ResultantPanicLevel, 2.0f) / 2.0f * 1.0f;
 
                 float const arg =
                     elapsed * 2.6f * panicAccelerator
@@ -2656,6 +2654,57 @@ void Npcs::UpdateNpcAnimation(
                 // Arms: around a small angle
                 targetRightArmAngle = StateType::KindSpecificStateType::HumanNpcStateType::InitialArmAngle + (y - 0.5f) * Pi<float>/8.0f;
                 targetLeftArmAngle = -targetRightArmAngle;
+
+                // Legs: perfectly vertical
+                targetRightLegAngle = 0.0f;
+                targetLeftLegAngle = 0.0f;
+
+                // Lengths
+                float constexpr TrappelenExtent = 0.3f;
+                targetRightLegLengthMultiplier = 1.0f - (1.0f - y) * TrappelenExtent;
+                targetLeftLegLengthMultiplier = 1.0f - y * TrappelenExtent;
+
+                // Convergence rate depends on how long we've been in this state
+                float const MaxConvergenceWait = 3.5f;
+                convergenceRate = 0.01f + Clamp(elapsed, 0.0f, MaxConvergenceWait) / MaxConvergenceWait * (0.25f - 0.01f);
+
+                break;
+            }
+
+            case HumanNpcStateType::BehaviorType::Free_Swimming_Style3:
+            {
+                //
+                // Trappelen
+                //
+
+                float constexpr Period = 2.00f;
+
+                float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
+                float const panicAccelerator = 1.0f + std::min(humanNpcState.ResultantPanicLevel, 2.0f) / 2.0f * 2.0f;
+
+                float const arg =
+                    elapsed * 2.6f * panicAccelerator
+                    + humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition * 0.7f;
+
+                float const inPeriod = fmod(arg, Period);
+                // y: [0.0 ... 1.0]
+                float const y = (inPeriod < Period / 2.0f)
+                    ? inPeriod / (Period / 2.0f)
+                    : 1.0f - (inPeriod - (Period / 2.0f)) / (Period / 2.0f);
+
+                // Arms: one arm around around a large angle; the other fixed around a small angle
+                float const angle1 = (Pi<float> -StateType::KindSpecificStateType::HumanNpcStateType::InitialArmAngle) + (y - 0.5f) * Pi<float> / 8.0f;
+                float const angle2 = -StateType::KindSpecificStateType::HumanNpcStateType::InitialArmAngle;
+                if (npc.RandomNormalizedUniformSeed < 0.5f)
+                {
+                    targetRightArmAngle = angle1;
+                    targetLeftArmAngle = angle2;
+                }
+                else
+                {
+                    targetRightArmAngle = -angle2;
+                    targetLeftArmAngle = -angle1;
+                }
 
                 // Legs: perfectly vertical
                 targetRightLegAngle = 0.0f;
