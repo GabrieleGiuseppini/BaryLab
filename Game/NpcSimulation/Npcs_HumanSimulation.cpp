@@ -670,7 +670,8 @@ void Npcs::UpdateHuman(
 		}
 
 		case HumanNpcStateType::BehaviorType::Free_InWater:
-		case HumanNpcStateType::BehaviorType::Free_Swimming:
+		case HumanNpcStateType::BehaviorType::Free_Swimming_Style1:
+		case HumanNpcStateType::BehaviorType::Free_Swimming_Style2:
 		{
 			if (!isFree)
 			{
@@ -728,7 +729,12 @@ void Npcs::UpdateHuman(
 				{
 					// Transition
 
-					humanState.TransitionToState(HumanNpcStateType::BehaviorType::Free_Swimming, currentSimulationTime);
+					// TODOTEST
+					if (GameRandomEngine::GetInstance().Choose(2) == 0)
+						humanState.TransitionToState(HumanNpcStateType::BehaviorType::Free_Swimming_Style1, currentSimulationTime);
+					else
+						humanState.TransitionToState(HumanNpcStateType::BehaviorType::Free_Swimming_Style2, currentSimulationTime);
+					////humanState.TransitionToState(HumanNpcStateType::BehaviorType::Free_Swimming_Style2, currentSimulationTime);
 
 					// Face: FvB/0
 					humanState.CurrentFaceOrientation = 1.0f; // TODO: random: back

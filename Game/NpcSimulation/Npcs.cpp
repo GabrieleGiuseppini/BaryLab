@@ -1150,8 +1150,8 @@ void Npcs::RenderNpc(
 
 				// Arms and legs
 
-				vec2f const leftArmJointPosition = shoulderPosition - actualBodyHDir * (halfTorsoW - halfArmW);
-				vec2f const rightArmJointPosition = shoulderPosition + actualBodyHDir * (halfTorsoW - halfArmW);
+				vec2f const leftArmJointPosition = shoulderPosition - actualBodyHDir * halfTorsoW;
+				vec2f const rightArmJointPosition = shoulderPosition + actualBodyHDir * halfTorsoW;
 
 				vec2f const leftLegJointPosition = crotchPosition - actualBodyHDir * (halfTorsoW - halfLegW);
 				vec2f const rightLegJointPosition = crotchPosition + actualBodyHDir * (halfTorsoW - halfLegW);
@@ -1593,7 +1593,8 @@ void Npcs::Publish() const
 					break;
 				}
 
-				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Swimming:
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Swimming_Style1:
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Swimming_Style2:
 				{
 					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Swimming");
 					break;

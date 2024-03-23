@@ -151,7 +151,8 @@ private:
 
 					Free_Aerial, // Does nothing
 					Free_InWater, // Does nothing, but waits to swim
-					Free_Swimming // Swims
+					Free_Swimming_Style1, // Swims
+					Free_Swimming_Style2  // Swims
 				};
 
 				BehaviorType CurrentBehavior;
@@ -385,7 +386,8 @@ private:
 							break;
 						}
 
-						case BehaviorType::Free_Swimming:
+						case BehaviorType::Free_Swimming_Style1:
+						case BehaviorType::Free_Swimming_Style2:
 						{
 							CurrentBehaviorState.Free_Swimming.Reset();
 							break;
