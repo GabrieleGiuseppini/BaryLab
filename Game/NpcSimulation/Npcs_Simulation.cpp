@@ -2309,7 +2309,6 @@ void Npcs::UpdateNpcAnimation(
                     humanNpcState.TotalDistanceTraveledOnEdgeSinceStateTransition
                     + 0.3f * humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition;
                 float const distanceInTwoSteps = std::fmod(distance + 3.0f * stepLength / 2.0f, stepLength * 2.0f);
-                LogNpcDebug("distanceInTwoSteps=", distanceInTwoSteps);
 
                 float const legAngle = std::abs(stepLength - distanceInTwoSteps) / stepLength * 2.0f * maxLegAngle - maxLegAngle;
 
