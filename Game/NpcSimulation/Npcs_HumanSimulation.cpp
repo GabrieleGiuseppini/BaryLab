@@ -650,9 +650,9 @@ void Npcs::UpdateHuman(
 			auto const & headPosition = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex);
 			auto const & feetPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
 
-			// It's in water if both in water
+			// It's in water if at least one in water
 			if (mParentWorld.GetOceanSurface().GetDepth(headPosition) > 0.0f
-				&& mParentWorld.GetOceanSurface().GetDepth(feetPosition) > 0.0f)
+				|| mParentWorld.GetOceanSurface().GetDepth(feetPosition) > 0.0f)
 			{
 				// Transition
 

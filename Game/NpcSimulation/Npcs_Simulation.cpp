@@ -2625,7 +2625,7 @@ void Npcs::UpdateNpcAnimation(
                 targetRightLegAngle = legAngle;
                 targetLeftLegAngle = -targetRightLegAngle;
 
-                // Converge rate depends on how long we've been in this state
+                // Convergence rate depends on how long we've been in this state
                 float const MaxConvergenceWait = 3.5f;
                 convergenceRate = 0.01f + Clamp(elapsed, 0.0f, MaxConvergenceWait) / MaxConvergenceWait * (0.25f - 0.01f);
 
@@ -2669,7 +2669,9 @@ void Npcs::UpdateNpcAnimation(
                 targetRightLegLengthMultiplier = 1.0f - (1.0f - y) * TrappelenExtent;
                 targetLeftLegLengthMultiplier = 1.0f - y * TrappelenExtent;
 
-                convergenceRate = 0.25f;
+                // Convergence rate depends on how long we've been in this state
+                float const MaxConvergenceWait = 3.5f;
+                convergenceRate = 0.01f + Clamp(elapsed, 0.0f, MaxConvergenceWait) / MaxConvergenceWait * (0.25f - 0.01f);
 
                 break;
             }
