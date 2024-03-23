@@ -2572,12 +2572,23 @@ void Npcs::UpdateNpcAnimation(
                 float constexpr Period1 = 3.00f;
                 float constexpr Period2 = 1.00f;
 
-                float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
+                float elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
+                // Prolong first period
+                float constexpr ActualLeadInTime = 6.0f;
+                if (elapsed < ActualLeadInTime)
+                {
+                    elapsed = elapsed / ActualLeadInTime * Period1;
+                }
+                else
+                {
+                    elapsed = elapsed - Period1;
+                }
+
                 float const panicAccelerator = 1.0f + std::min(humanNpcState.ResultantPanicLevel, 2.0f) / 2.0f * 4.0f;
 
                 float const arg =
                     Period1 / 2.0f // Start some-halfway-through to avoid sudden extreme angles
-                    + (elapsed) * 2.6f * panicAccelerator
+                    + elapsed * 2.6f * panicAccelerator
                     + humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition * 0.7f;
 
                 float const inPeriod = fmod(arg, (Period1 + Period2));
@@ -2585,6 +2596,8 @@ void Npcs::UpdateNpcAnimation(
                 float const y = (inPeriod < Period1)
                     ? std::sqrt(inPeriod / Period1)
                     : ((inPeriod - Period1) - Period2) * ((inPeriod - Period1) - Period2) / std::sqrt(Period2);
+
+                mGameEventHandler->OnCustomProbe("y", y);
 
                 // 0: 0, 2: 1, >+ INF: 1
                 float const depthDamper = Clamp(mParentWorld.GetOceanSurface().GetDepth(mParticles.GetPosition(secondaryParticleIndex)) / 1.5f, 0.0f, 1.0f);
