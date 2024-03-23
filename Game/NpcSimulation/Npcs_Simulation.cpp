@@ -2581,6 +2581,7 @@ void Npcs::UpdateNpcAnimation(
                     + humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition * 0.7f;
 
                 float const inPeriod = fmod(arg, (Period1 + Period2));
+                // y: [0.0 ... 1.0]
                 float const y = (inPeriod < Period1)
                     ? std::sqrt(inPeriod / Period1)
                     : ((inPeriod - Period1) - Period2) * ((inPeriod - Period1) - Period2) / std::sqrt(Period2);
