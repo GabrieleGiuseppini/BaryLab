@@ -324,6 +324,8 @@ private:
 					BehaviorType behavior,
 					float currentSimulationTime)
 				{
+					LogNpcDebug("  HumanBehaviorTransition: ", int(CurrentBehavior), " -> ", int(behavior));
+
 					CurrentBehavior = behavior;
 
 					switch (behavior)

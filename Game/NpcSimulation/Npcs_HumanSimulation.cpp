@@ -794,7 +794,7 @@ bool Npcs::CheckAndMaintainHumanEquilibrium(
 	// We lose equilibrium if HumanVector is outside of sector around vertical, with non-negligible rotation velocity towards outside of sector
 	//
 
-	float constexpr MaxStaticAngleForEquilibrium = Pi<float> / 7.0f;
+	float constexpr MaxStaticAngleForEquilibrium = Pi<float> / 6.0f;
 
 	float const maxRelativeVelocityAngleForEqulibrium = isRisingState
 		? 0.01f
