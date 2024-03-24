@@ -1030,6 +1030,10 @@ private:
 		StateType::KindSpecificStateType::HumanNpcStateType & humanState,
 		GameParameters const & gameParameters) const;
 
+	float CalculateHumanWalkingSpeedAdjustment(
+		StateType::KindSpecificStateType::HumanNpcStateType & humanState,
+		GameParameters const & gameParameters) const;
+
 private:
 
 	World & mParentWorld;

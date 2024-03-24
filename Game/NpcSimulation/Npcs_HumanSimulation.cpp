@@ -443,13 +443,27 @@ void Npcs::UpdateHuman(
 			bool isStateMaintained;
 			if (!isOnEdge)
 			{
-				// When walking, we want to be a bit more tolerant about "losing the edge"
-
-				// This is a quite important parameter: it's the duration through which we tolerate temporarily losing contact
-				// with the ground
-				float const toTerminateEquilibriumConvergenceRate = (humanState.CurrentBehavior != HumanNpcStateType::BehaviorType::Constrained_Walking)
-					? 0.25f
-					: 0.1f;
+				float toTerminateEquilibriumConvergenceRate;
+				if (humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_Walking)
+				{
+					// When walking, we want to be a bit more tolerant about "losing the edge";
+					// this is a quite important parameter: it's the duration through which we tolerate temporarily losing contact
+					// with the ground.
+					// If we're walking normally we can bear having a short tolerance; we only need a long tolerance
+					// when we're walking "fast".
+					// Walking speed rel == 1.0 => 0.25
+					// Walking speed rel == 1.5 => 0.1
+					float const relWalkingSpeed = CalculateHumanWalkingSpeedAdjustment(humanState, gameParameters);
+					toTerminateEquilibriumConvergenceRate = Clamp(
+						0.25f - (relWalkingSpeed - 1.0f) / (1.5f - 1.0f) * (0.25f - 0.1f),
+						0.1f,
+						0.25f);
+				}
+				else
+				{
+					// When not walking, we lose equilibrium very fast!
+					toTerminateEquilibriumConvergenceRate = 0.25f;
+				}
 
 				// Advance
 				humanState.CurrentEquilibriumSoftTerminationDecision += (1.0f - humanState.CurrentEquilibriumSoftTerminationDecision) * toTerminateEquilibriumConvergenceRate;
@@ -1032,9 +1046,17 @@ float Npcs::CalculateActualHumanWalkingAbsoluteSpeed(
 {
 	assert(humanState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking);
 
+	return gameParameters.HumanNpcWalkingSpeed * CalculateHumanWalkingSpeedAdjustment(humanState, gameParameters);
+}
+
+float Npcs::CalculateHumanWalkingSpeedAdjustment(
+	StateType::KindSpecificStateType::HumanNpcStateType & humanState,
+	GameParameters const & /*gameParameters*/) const
+{
+	assert(humanState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking);
+
 	return std::min(
-		gameParameters.HumanNpcWalkingSpeed
-		* humanState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude // Note that this is the only one that might be zero
+		humanState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude // Note that this is the only one that might be zero
 		* (1.0f + humanState.ResultantPanicLevel * 3.0f),
 		4.0f); // Absolute cap
 }
