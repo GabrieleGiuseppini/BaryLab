@@ -23,10 +23,16 @@
 #include <optional>
 #include <vector>
 
+#ifdef IN_BARYLAB
+#ifdef _DEBUG
+#define IN_BARYLAB_DEBUG
+#endif
+#endif
+
 template<typename... TArgs>
 void LogNpcDebug(TArgs&&... args)
 {
-#ifdef BARYLAB_DEBUG
+#ifdef IN_BARYLAB_DEBUG
 	LogDebug(std::forward<TArgs>(args)...);
 #else
 	Logger::Instance.LogToNothing(std::forward<TArgs>(args)...);
