@@ -108,7 +108,8 @@ struct GameParameters
 
     struct HumanNpcGeometry
     {
-        static float constexpr BodyLength = 1.65f;
+        static float constexpr BodyLengthMean = 1.65f;
+        static float constexpr BodyLengthStdDev = 0.065f;
 
         // All fractions below ar relative to BodyLength
 

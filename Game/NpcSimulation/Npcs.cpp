@@ -243,6 +243,12 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 	// Create NPC
 	//
 
+	// Decide height
+
+	float const height = GameRandomEngine::GetInstance().GenerateNormalReal(
+		GameParameters::HumanNpcGeometry::BodyLengthMean,
+		GameParameters::HumanNpcGeometry::BodyLengthStdDev);
+
 	// Feet (primary)
 
 	auto const & feetMaterial = mMaterialDatabase.GetNpcMaterial(NpcMaterial::KindType::HumanFeet);
@@ -253,7 +259,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 		feetMaterial.KineticFriction,
 		feetMaterial.Elasticity,
 		feetMaterial.BuoyancyVolumeFill,
-		worldCoordinates - vec2f(0.0f, 1.0f) * GameParameters::HumanNpcGeometry::BodyLength * mCurrentHumanNpcBodyLengthAdjustment,
+		worldCoordinates - vec2f(0.0f, 1.0f) * height * mCurrentHumanNpcBodyLengthAdjustment,
 		feetMaterial.RenderColor);
 
 	StateType::NpcParticleStateType primaryParticleState = StateType::NpcParticleStateType(
@@ -286,7 +292,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 	StateType::DipoleStateType dipoleState = StateType::DipoleStateType(
 		std::move(secondaryParticleState),
 		StateType::DipolePropertiesType(
-			GameParameters::HumanNpcGeometry::BodyLength * mCurrentHumanNpcBodyLengthAdjustment,
+			height * mCurrentHumanNpcBodyLengthAdjustment,
 			massFactor,
 			1.0f));
 
@@ -294,6 +300,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 
 	StateType::KindSpecificStateType::HumanNpcStateType humanState = StateType::KindSpecificStateType::HumanNpcStateType(
 		humanKind,
+		height,
 		StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::BeingPlaced,
 		currentSimulationTime);
 
@@ -1118,7 +1125,7 @@ void Npcs::RenderNpc(
 			float const sinRightLegAngle = std::sin(humanNpcState.RightLegAngle);
 
 			// Arm and Leg lengths are relative to ideal
-			float const adjustedIdealHumanHeight = GameParameters::HumanNpcGeometry::BodyLength * mCurrentHumanNpcBodyLengthAdjustment;
+			float const adjustedIdealHumanHeight = humanNpcState.Height * mCurrentHumanNpcBodyLengthAdjustment;
 			float const leftArmLength = adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::ArmLengthFraction * humanNpcState.LeftArmLengthMultiplier;
 			float const rightArmLength = adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::ArmLengthFraction * humanNpcState.RightArmLengthMultiplier;
 			float const leftLegLength = adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::LegLengthFraction * humanNpcState.LeftLegLengthMultiplier;
@@ -1623,7 +1630,7 @@ void Npcs::OnHumanNpcBodyLengthAdjustmentChanged(float newHumanNpcBodyLengthAdju
 			if (state->Kind == NpcKindType::Human)
 			{
 				assert(state->DipoleState.has_value());
-				state->DipoleState->DipoleProperties.DipoleLength = GameParameters::HumanNpcGeometry::BodyLength * newHumanNpcBodyLengthAdjustment;
+				state->DipoleState->DipoleProperties.DipoleLength = state->KindSpecificState.HumanNpcState.Height * newHumanNpcBodyLengthAdjustment;
 			}
 		}
 	}

@@ -135,7 +135,8 @@ private:
 
 			struct HumanNpcStateType final
 			{
-				HumanNpcKindType Kind;
+				HumanNpcKindType const Kind;
+				float const Height; // This is "ideal"; dipole length is "real"
 
 				enum class BehaviorType
 				{
@@ -300,9 +301,11 @@ private:
 
 				HumanNpcStateType(
 					HumanNpcKindType kind,
+					float height,
 					BehaviorType initialBehavior,
 					float currentSimulationTime)
 					: Kind(kind)
+					, Height(height)
 					, CurrentEquilibriumSoftTerminationDecision(0.0f)
 					, CurrentFaceOrientation(1.0f)
 					, CurrentFaceDirectionX(0.0f)

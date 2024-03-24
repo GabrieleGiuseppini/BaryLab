@@ -2317,7 +2317,7 @@ void Npcs::UpdateNpcAnimation(
                 float const actualHalfStepLengthFraction = (GameParameters::HumanNpcGeometry::StepLengthFraction * std::sqrt(actualWalkingSpeed) / 2.0f);
                 float const maxLegAngle = std::atan(actualHalfStepLengthFraction / GameParameters::HumanNpcGeometry::LegLengthFraction);
 
-                float const adjustedStandardHumanHeight = GameParameters::HumanNpcGeometry::BodyLength * mCurrentHumanNpcBodyLengthAdjustment;
+                float const adjustedStandardHumanHeight = humanNpcState.Height * mCurrentHumanNpcBodyLengthAdjustment;
                 float const stepLength = GameParameters::HumanNpcGeometry::StepLengthFraction * adjustedStandardHumanHeight;
                 float const distance =
                     humanNpcState.TotalDistanceTraveledOnEdgeSinceStateTransition
