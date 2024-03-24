@@ -21,7 +21,7 @@ GameParameters::GameParameters()
 	// NPC
 	, HumanNpcEquilibriumTorqueStiffnessCoefficient(0.0032f)
 	, HumanNpcEquilibriumTorqueDampingCoefficient(0.055f)
-	, HumanNpcWalkingSpeed(1.0f)
+	, HumanNpcWalkingSpeedAdjustment(1.0f)
 	, HumanNpcBodyLengthAdjustment(1.0f)
 {
 }

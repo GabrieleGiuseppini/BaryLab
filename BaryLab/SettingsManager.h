@@ -24,7 +24,7 @@ enum class SLabSettings : size_t
     BuoyancyAdjustment,
     HumanNpcEquilibriumTorqueStiffnessCoefficient,
     HumanNpcEquilibriumTorqueDampingCoefficient,
-    HumanNpcWalkingSpeed,
+    HumanNpcWalkingSpeedAdjustment,
     HumanNpcBodyLengthAdjustment,
 
     _Last = HumanNpcBodyLengthAdjustment

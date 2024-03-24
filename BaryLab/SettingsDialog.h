@@ -64,7 +64,7 @@ private:
     // NPCs
     SliderControl<float> * mHumanNpcEquilibriumTorqueStiffnessCoefficientSlider;
     SliderControl<float> * mHumanNpcEquilibriumTorqueDampingCoefficientSlider;
-    SliderControl<float> * mHumanNpcWalkingSpeedSlider;
+    SliderControl<float> * mHumanNpcWalkingSpeedAdjustmentSlider;
     SliderControl<float> * mHumanNpcBodyLengthAdjustmentSlider;
 
     //////////////////////////////////////////////////////

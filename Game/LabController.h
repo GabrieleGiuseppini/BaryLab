@@ -266,10 +266,10 @@ public:
     float GetMinHumanNpcEquilibriumTorqueDampingCoefficient() const { return GameParameters::MinHumanNpcEquilibriumTorqueDampingCoefficient; }
     float GetMaxHumanNpcEquilibriumTorqueDampingCoefficient() const { return GameParameters::MaxHumanNpcEquilibriumTorqueDampingCoefficient; }
 
-    float GetHumanNpcWalkingSpeed() const { return mGameParameters.HumanNpcWalkingSpeed; }
-    void SetHumanNpcWalkingSpeed(float value) { mGameParameters.HumanNpcWalkingSpeed = value; }
-    float GetMinHumanNpcWalkingSpeed() const { return GameParameters::MinHumanNpcWalkingSpeed; }
-    float GetMaxHumanNpcWalkingSpeed() const { return GameParameters::MaxHumanNpcWalkingSpeed; }
+    float GetHumanNpcWalkingSpeedAdjustment() const { return mGameParameters.HumanNpcWalkingSpeedAdjustment; }
+    void SetHumanNpcWalkingSpeedAdjustment(float value) { mGameParameters.HumanNpcWalkingSpeedAdjustment = value; }
+    float GetMinHumanNpcWalkingSpeedAdjustment() const { return GameParameters::MinHumanNpcWalkingSpeedAdjustment; }
+    float GetMaxHumanNpcWalkingSpeedAdjustment() const { return GameParameters::MaxHumanNpcWalkingSpeedAdjustment; }
 
     float GetHumanNpcBodyLengthAdjustment() const { return mGameParameters.HumanNpcBodyLengthAdjustment; }
     void SetHumanNpcBodyLengthAdjustment(float value) { mGameParameters.HumanNpcBodyLengthAdjustment = value; }

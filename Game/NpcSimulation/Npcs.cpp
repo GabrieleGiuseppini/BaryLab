@@ -298,9 +298,12 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 
 	// Human
 
+	float const walkingSpeedBase = height / 1.65f; // Just comes from 1m/s looks good when human is 1.65
+
 	StateType::KindSpecificStateType::HumanNpcStateType humanState = StateType::KindSpecificStateType::HumanNpcStateType(
 		humanKind,
 		height,
+		walkingSpeedBase,
 		StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::BeingPlaced,
 		currentSimulationTime);
 

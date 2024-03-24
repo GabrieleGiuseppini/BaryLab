@@ -36,7 +36,7 @@ BaseSettingsManager<SLabSettings>::BaseSettingsManagerFactory SettingsManager::M
     ADD_SETTING(float, BuoyancyAdjustment);
     ADD_SETTING(float, HumanNpcEquilibriumTorqueStiffnessCoefficient);
     ADD_SETTING(float, HumanNpcEquilibriumTorqueDampingCoefficient);
-    ADD_SETTING(float, HumanNpcWalkingSpeed);
+    ADD_SETTING(float, HumanNpcWalkingSpeedAdjustment);
     ADD_SETTING(float, HumanNpcBodyLengthAdjustment);
 
     return factory;

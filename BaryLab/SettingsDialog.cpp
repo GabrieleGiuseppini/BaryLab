@@ -687,25 +687,25 @@ void SettingsDialog::PopulateNpcsPanel(wxPanel * panel)
                     CellBorder);
             }
 
-            // Human NPC Walking Speed
+            // Human NPC Walking Speed Adjustment
             {
-                mHumanNpcWalkingSpeedSlider = new SliderControl<float>(
+                mHumanNpcWalkingSpeedAdjustmentSlider = new SliderControl<float>(
                     npcsBox,
                     SliderWidth,
                     SliderHeight,
-                    "Walking Speed",
-                    "The speed at which human NPC's walk.",
+                    "Walking Speed Adjust",
+                    "Adjusts the speed at which human NPC's walk.",
                     [this](float value)
                     {
-                        this->mLiveSettings.SetValue(SLabSettings::HumanNpcWalkingSpeed, value);
+                        this->mLiveSettings.SetValue(SLabSettings::HumanNpcWalkingSpeedAdjustment, value);
                         this->OnLiveSettingsChanged();
                     },
                     std::make_unique<LinearSliderCore>(
-                        mLabController->GetMinHumanNpcWalkingSpeed(),
-                        mLabController->GetMaxHumanNpcWalkingSpeed()));
+                        mLabController->GetMinHumanNpcWalkingSpeedAdjustment(),
+                        mLabController->GetMaxHumanNpcWalkingSpeedAdjustment()));
 
                 npcsSizer->Add(
-                    mHumanNpcWalkingSpeedSlider,
+                    mHumanNpcWalkingSpeedAdjustmentSlider,
                     wxGBPosition(0, 2),
                     wxGBSpan(1, 1),
                     wxEXPAND | wxALL,
@@ -776,7 +776,7 @@ void SettingsDialog::SyncControlsWithSettings(Settings<SLabSettings> const & set
     // NPCs
     mHumanNpcEquilibriumTorqueStiffnessCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcEquilibriumTorqueStiffnessCoefficient));
     mHumanNpcEquilibriumTorqueDampingCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcEquilibriumTorqueDampingCoefficient));
-    mHumanNpcWalkingSpeedSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcWalkingSpeed));
+    mHumanNpcWalkingSpeedAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcWalkingSpeedAdjustment));
     mHumanNpcBodyLengthAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcBodyLengthAdjustment));
 }
 
