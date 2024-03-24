@@ -260,11 +260,10 @@ void Npcs::OnMayBeNpcRegimeChanged(
 
 Npcs::StateType::RegimeType Npcs::CalculateRegime(StateType const & npc)
 {
-    // Constrained if at least one is constrained;
-    // conversely: Free only if both are free
+    // Constrained iff primary is constrained
     return npc.PrimaryParticleState.ConstrainedState.has_value()
         ? StateType::RegimeType::Constrained
-        : (npc.DipoleState.has_value() && npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value()) ? StateType::RegimeType::Constrained : StateType::RegimeType::Free;
+        : StateType::RegimeType::Free;
 }
 
 void Npcs::UpdateNpcs(

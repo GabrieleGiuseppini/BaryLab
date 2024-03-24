@@ -893,7 +893,8 @@ private:
 	{
 		//
 		// An edge is a floor for a given (constrained) particle if:
-		// - It is a floor; AND
+		// - It is a floor
+		//	AND
 		// - The triangle is _not_ sealed, OR it _is_ sealed but crossing the edge would make the particle free
 		//
 
