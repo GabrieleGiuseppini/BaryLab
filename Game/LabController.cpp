@@ -55,7 +55,6 @@ LabController::LabController(
     , mCurrentShipTranslationAccelerationIndicator(0.0f)
     , mCurrentVideoStep(0)
     // Simulation control
-    //, mSimulationControlState(SimulationControlStateType::Paused)
     , mSimulationControlState(SimulationControlStateType::Play)
     , mSimulationControlImpulse(false)
 {

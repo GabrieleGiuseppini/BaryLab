@@ -2137,11 +2137,11 @@ void Npcs::BounceConstrainedNpcParticle(
 void Npcs::OnImpact(
     StateType & npc,
     bool isPrimaryParticle,
-    vec2f const & impactVector,
+    vec2f const & normalResponse,
     vec2f const & bounceEdgeNormal, // Pointing outside of triangle
     float currentSimulationTime) const
 {
-    LogNpcDebug("    OnImpact(", impactVector.length(), ", ", bounceEdgeNormal, ")");
+    LogNpcDebug("    OnImpact(", normalResponse.length(), ", ", bounceEdgeNormal, ")");
 
     // Human state machine
     if (npc.Kind == NpcKindType::Human)
@@ -2149,7 +2149,7 @@ void Npcs::OnImpact(
         OnHumanImpact(
             npc,
             isPrimaryParticle,
-            impactVector,
+            normalResponse,
             bounceEdgeNormal,
             currentSimulationTime);
     }

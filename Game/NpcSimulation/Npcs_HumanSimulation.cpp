@@ -910,8 +910,8 @@ void Npcs::RunWalkingHumanStateMachine(
 void Npcs::OnHumanImpact(
 	StateType & npc,
 	bool isPrimaryParticle,
-	vec2f const & impactVector,
-	vec2f const & bounceEdgeNormal,
+	vec2f const & normalResponse,
+	vec2f const & bounceEdgeNormal,  // Pointing outside of triangle
 	float currentSimulationTime) const
 {
 	assert(npc.Kind == NpcKindType::Human);
@@ -936,7 +936,7 @@ void Npcs::OnHumanImpact(
 
 		case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
 		{
-			if (!isPrimaryParticle && impactVector.length() > 1.5f)
+			if (!isPrimaryParticle && normalResponse.length() > 1.5f)
 			{
 				// Hit head hard while in equilibrium
 

@@ -863,7 +863,7 @@ private:
 	void OnImpact(
 		StateType & npc,
 		bool isPrimaryParticle,
-		vec2f const & impactVector,
+		vec2f const & normalResponse,
 		vec2f const & bounceEdgeNormal,
 		float currentSimulationTime) const;
 
@@ -1012,7 +1012,7 @@ private:
 	void OnHumanImpact(
 		StateType & npc,
 		bool isPrimaryParticle,
-		vec2f const & impactVector,
+		vec2f const & normalResponse,
 		vec2f const & bounceEdgeNormal,
 		float currentSimulationTime) const;
 
