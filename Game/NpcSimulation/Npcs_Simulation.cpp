@@ -2315,7 +2315,7 @@ void Npcs::UpdateNpcAnimation(
 
                 float const actualWalkingSpeed = CalculateActualHumanWalkingAbsoluteSpeed(humanNpcState, gameParameters);
                 float const actualHalfStepLengthFraction = (GameParameters::HumanNpcGeometry::StepLengthFraction * std::sqrt(actualWalkingSpeed) / 2.0f);
-                float const maxLegAngle = std::atan(actualHalfStepLengthFraction / GameParameters::HumanNpcGeometry::LegLengthFraction);
+                float const MaxLegAngle = std::atan(actualHalfStepLengthFraction / GameParameters::HumanNpcGeometry::LegLengthFraction);
 
                 float const adjustedStandardHumanHeight = humanNpcState.Height * mCurrentHumanNpcBodyLengthAdjustment;
                 float const stepLength = GameParameters::HumanNpcGeometry::StepLengthFraction * adjustedStandardHumanHeight;
@@ -2324,7 +2324,7 @@ void Npcs::UpdateNpcAnimation(
                     + 0.3f * humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition;
                 float const distanceInTwoSteps = std::fmod(distance + 3.0f * stepLength / 2.0f, stepLength * 2.0f);
 
-                float const legAngle = std::abs(stepLength - distanceInTwoSteps) / stepLength * 2.0f * maxLegAngle - maxLegAngle;
+                float const legAngle = std::abs(stepLength - distanceInTwoSteps) / stepLength * 2.0f * MaxLegAngle - MaxLegAngle;
 
                 targetRightLegAngle = legAngle;
                 targetLeftLegAngle = -legAngle;
