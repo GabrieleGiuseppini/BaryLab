@@ -1035,7 +1035,7 @@ private:
 		StateType::KindSpecificStateType::HumanNpcStateType & humanState,
 		DoImmediate doImmediate) const;
 
-	void TransitionHumanToFree(
+	void TransitionHumanBehaviorToFree(
 		StateType & npc,
 		float currentSimulationTime);
 

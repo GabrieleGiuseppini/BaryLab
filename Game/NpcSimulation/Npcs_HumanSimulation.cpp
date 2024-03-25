@@ -93,7 +93,7 @@ void Npcs::UpdateHuman(
 			if (isFree)
 			{
 				// Transition
-				TransitionHumanToFree(npc, currentSimulationTime);
+				TransitionHumanBehaviorToFree(npc, currentSimulationTime);
 
 				break;
 			}
@@ -210,7 +210,7 @@ void Npcs::UpdateHuman(
 			if (isFree)
 			{
 				// Transition
-				TransitionHumanToFree(npc, currentSimulationTime);
+				TransitionHumanBehaviorToFree(npc, currentSimulationTime);
 
 				break;
 			}
@@ -299,7 +299,7 @@ void Npcs::UpdateHuman(
 			if (isFree)
 			{
 				// Transition
-				TransitionHumanToFree(npc, currentSimulationTime);
+				TransitionHumanBehaviorToFree(npc, currentSimulationTime);
 
 				break;
 			}
@@ -390,7 +390,7 @@ void Npcs::UpdateHuman(
 			if (isFree)
 			{
 				// Transition
-				TransitionHumanToFree(npc, currentSimulationTime);
+				TransitionHumanBehaviorToFree(npc, currentSimulationTime);
 
 				break;
 			}
@@ -1010,7 +1010,7 @@ void Npcs::FlipHumanWalk(
 	}
 }
 
-void Npcs::TransitionHumanToFree(
+void Npcs::TransitionHumanBehaviorToFree(
 	StateType & npc,
 	float currentSimulationTime)
 {

@@ -91,10 +91,21 @@ void Npcs::ResetNpcStateToWorld(
 
     if (npc.DipoleState.has_value())
     {
-        npc.DipoleState->SecondaryParticleState.ConstrainedState = CalculateParticleConstrainedState(
-            mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex),
-            shipMesh,
-            std::nullopt);
+        if (!npc.PrimaryParticleState.ConstrainedState.has_value())
+        {
+            // When primary is free, also secondary is free (and thus whole NPC)
+            if (npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value())
+            {
+                npc.DipoleState->SecondaryParticleState.ConstrainedState.reset();
+            }
+        }
+        else
+        {
+            npc.DipoleState->SecondaryParticleState.ConstrainedState = CalculateParticleConstrainedState(
+                mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex),
+                shipMesh,
+                std::nullopt);
+        }
     }
 
     // Regime
@@ -162,6 +173,12 @@ void Npcs::TransitionParticleToFreeState(
     if (isPrimaryParticle)
     {
         npc.PrimaryParticleState.ConstrainedState.reset();
+
+        // When primary is free, also secondary is free (and thus whole NPC)
+        if (npc.DipoleState.has_value() && npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value())
+        {
+            npc.DipoleState->SecondaryParticleState.ConstrainedState.reset();
+        }
     }
     else
     {
