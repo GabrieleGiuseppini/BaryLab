@@ -452,7 +452,7 @@ Physics::Triangles ShipBuilder::CreateTriangles(
         bool isSealedTriangle = true;
         for (int iEdge = 0; iEdge < 3; ++iEdge)
         {
-            isSealedTriangle = isSealedTriangle && (springs.GetNpcSurfaceType(triangleInfos[t].Springs[0]) != NpcSurfaceType::Open);
+            isSealedTriangle = isSealedTriangle && (springs.GetNpcSurfaceType(triangleInfos[t].Springs[iEdge]) != NpcSurfaceType::Open);
         }
 
         // Calculate opposite triangles and surface types

@@ -406,8 +406,6 @@ void Npcs::UpdateNpcs(
     {
         if (npcState.has_value())
         {
-            LogNpcDebug("NPC ", npcState->Id);
-
             assert(mShips[npcState->CurrentShipId].has_value());
             auto const & shipMesh = mShips[npcState->CurrentShipId]->ShipMesh;
 
@@ -725,16 +723,10 @@ void Npcs::UpdateNpcParticlePhysics(
 
                     assert(isPrimaryParticle || npc.DipoleState.has_value());
 
-                    LogNpcDebug("      edge ", edgeOrdinal, ": isFloor=", IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentTriangle, edgeOrdinal, shipMesh));
+                    LogNpcDebug("      edge ", edgeOrdinal, ": isFloor=", IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentTriangle, edgeOrdinal, npc, isPrimaryParticle, mParticles, shipMesh));
 
                     // Check if this is really a floor to this particle
-                    if (IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentTriangle, edgeOrdinal, shipMesh)
-                        && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
-                            mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex),
-                            trajectoryStartAbsolutePosition, // Current (virtual, not yet real) position of this (secondary) particle
-                            npcParticle.ConstrainedState->CurrentTriangle,
-                            edgeOrdinal,
-                            shipMesh)))
+                    if (IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentTriangle, edgeOrdinal, npc, isPrimaryParticle, mParticles, shipMesh))
                     {
                         // On floor edge - so potentially in a non-inertial frame
 
@@ -1807,13 +1799,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
 
         assert(isPrimaryParticle || npc.DipoleState.has_value());
 
-        if (IsEdgeFloorToParticle(npcParticleConstrainedState.CurrentTriangle, intersectionEdgeOrdinal, shipMesh)
-            && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
-                mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex),
-                intersectionAbsolutePosition,
-                npcParticleConstrainedState.CurrentTriangle,
-                intersectionEdgeOrdinal,
-                shipMesh)))
+        if (IsEdgeFloorToParticle(npcParticleConstrainedState.CurrentTriangle, intersectionEdgeOrdinal, npc, isPrimaryParticle, mParticles, shipMesh))
         {
             //
             // Impact and bounce
@@ -1927,7 +1913,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
     bool isPrimaryParticle,
     int vertexOrdinal,
     vec2f const & particleStartAbsolutePosition,
-    vec2f const & trajectoryStartAbsolutePosition,
+    vec2f const & /*trajectoryStartAbsolutePosition*/,
     vec2f const & trajectoryEndAbsolutePosition,
     bcoords3f trajectoryEndBarycentricCoords,
     bool isInitialStateUnknown,
@@ -1997,13 +1983,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         // Check whether this new edge is floor
         //
 
-        if (IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentTriangle, crossedEdgeOrdinal, shipMesh)
-            && (isPrimaryParticle || !DoesFloorSeparateFromPrimaryParticle(
-                mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex),
-                trajectoryStartAbsolutePosition, // Current (virtual, not yet real) position of this (secondary) particle
-                npcParticle.ConstrainedState->CurrentTriangle,
-                crossedEdgeOrdinal,
-                shipMesh)))
+        if (IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentTriangle, crossedEdgeOrdinal, npc, isPrimaryParticle, mParticles, shipMesh))
         {
             //
             // Encountered floor

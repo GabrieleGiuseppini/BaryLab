@@ -889,45 +889,59 @@ private:
 	static bool IsEdgeFloorToParticle(
 		ElementIndex triangleElementIndex,
 		int edgeOrdinal,
+		StateType const & npc,
+		bool isPrimaryParticle,
+		NpcParticles const & npcParticles,
 		Ship const & shipMesh)
 	{
-		//
-		// An edge is a floor for a given (constrained) particle if:
-		// - It is a floor
-		//	AND
-		// - The triangle is _not_ sealed, OR it _is_ sealed but crossing the edge would make the particle free
-		//
+		// First off: if not a floor, it's not a floor
 
-		// TODOTEST
-		return shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, edgeOrdinal) != NpcSurfaceType::Open;
+		if (shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, edgeOrdinal) == NpcSurfaceType::Open)
+		{
+			return false;
+		}
 
-		//if (shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, edgeOrdinal) != NpcSurfaceType::Floor)
-		//{
-		//	// Not even a floor
-		//	return false;
-		//}
+		// Ok, it's a floor
 
-		//bool const isSealedTriangle =
-		//	shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, 0) == NpcSurfaceType::Floor
-		//	&& shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, 1) == NpcSurfaceType::Floor
-		//	&& shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, 2) == NpcSurfaceType::Floor;
+		// If it's a primary, then every floor is a floor
 
-		//if (!isSealedTriangle)
-		//{
-		//	return true;
-		//}
+		if (isPrimaryParticle)
+		{
+			return true;
+		}
 
-		//auto const & oppositeTriangleInfo = shipMesh.GetTriangles().GetOppositeTriangle(triangleElementIndex, edgeOrdinal);
-		//if (oppositeTriangleInfo.TriangleElementIndex == NoneElementIndex || shipMesh.GetTriangles().IsDeleted(oppositeTriangleInfo.TriangleElementIndex))
-		//{
-		//	// Crossing this floor makes the particle free
-		//	return true;
-		//}
+		// Ok, it's a floor and this is a secondary particle
 
-		//return false;
+		assert(npc.DipoleState.has_value());
+
+		// If the primary is not on the other side of this edge, then every floor is a floor
+
+		vec2f const & primaryPosition = npcParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
+		bcoords3f const primaryBaryCoords = shipMesh.GetTriangles().ToBarycentricCoordinates(primaryPosition, triangleElementIndex, shipMesh.GetPoints());
+
+		// It's on the other side of the edge if its "edge's" b-coord is negative
+		if (primaryBaryCoords[(edgeOrdinal + 2) % 3] >= 0.0f)
+		{
+			return true;
+		}
+
+		// Ok, it's a floor and it's separating this secondary particle from the primary
+
+		// Now a bit of a hack: at this moment we're hurting because of the "hanging head" problem, i.e.
+		// a human NPC ending with its head on an edge and it feet hanging underneath. To prevent this,
+		// we consider this as a floor only if the human is not "quite vertical"
+
+		vec2f const & secondaryPosition = npcParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex);
+		vec2f const humanDir = (primaryPosition - secondaryPosition).normalise(); // Pointing down to feet
+
+		LogMessage("TODOTEST: ", humanDir.y);
+
+		// It's vertical when y is -1.0 (cos of angle)
+		return humanDir.y > -0.8f;
 	}
 
-	static bool DoesFloorSeparateFromPrimaryParticle(
+	// TODO: NUKE
+	static bool DoesFloorSeparateFromPrimaryParticleTODO(
 		vec2f const & primaryParticlePosition,
 		vec2f const & secondaryParticlePosition,
 		ElementIndex triangleElementIndex,
@@ -955,28 +969,19 @@ private:
 		auto const & triangleIndex = constrainedState.CurrentTriangle;
 
 		if (baryCoords[0] == 0.0f
-			&& IsEdgeFloorToParticle(
-				triangleIndex,
-				1,
-				shipMesh))
+			&& shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleIndex, 1) != NpcSurfaceType::Open)
 		{
 			return true;
 		}
 
 		if (baryCoords[1] == 0.0f
-			&& IsEdgeFloorToParticle(
-				triangleIndex,
-				2,
-				shipMesh))
+			&& shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleIndex, 2) != NpcSurfaceType::Open)
 		{
 			return true;
 		}
 
 		if (baryCoords[2] == 0.0f
-			&& IsEdgeFloorToParticle(
-				triangleIndex,
-				0,
-				shipMesh))
+			&& shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleIndex, 0) != NpcSurfaceType::Open)
 		{
 			return true;
 		}
