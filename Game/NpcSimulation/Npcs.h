@@ -898,30 +898,33 @@ private:
 		// - The triangle is _not_ sealed, OR it _is_ sealed but crossing the edge would make the particle free
 		//
 
-		if (shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, edgeOrdinal) != NpcSurfaceType::Floor)
-		{
-			// Not even a floor
-			return false;
-		}
+		// TODOTEST
+		return shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, edgeOrdinal) != NpcSurfaceType::Open;
 
-		bool const isSealedTriangle =
-			shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, 0) == NpcSurfaceType::Floor
-			&& shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, 1) == NpcSurfaceType::Floor
-			&& shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, 2) == NpcSurfaceType::Floor;
+		//if (shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, edgeOrdinal) != NpcSurfaceType::Floor)
+		//{
+		//	// Not even a floor
+		//	return false;
+		//}
 
-		if (!isSealedTriangle)
-		{
-			return true;
-		}
+		//bool const isSealedTriangle =
+		//	shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, 0) == NpcSurfaceType::Floor
+		//	&& shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, 1) == NpcSurfaceType::Floor
+		//	&& shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, 2) == NpcSurfaceType::Floor;
 
-		auto const & oppositeTriangleInfo = shipMesh.GetTriangles().GetOppositeTriangle(triangleElementIndex, edgeOrdinal);
-		if (oppositeTriangleInfo.TriangleElementIndex == NoneElementIndex || shipMesh.GetTriangles().IsDeleted(oppositeTriangleInfo.TriangleElementIndex))
-		{
-			// Crossing this floor makes the particle free
-			return true;
-		}
+		//if (!isSealedTriangle)
+		//{
+		//	return true;
+		//}
 
-		return false;
+		//auto const & oppositeTriangleInfo = shipMesh.GetTriangles().GetOppositeTriangle(triangleElementIndex, edgeOrdinal);
+		//if (oppositeTriangleInfo.TriangleElementIndex == NoneElementIndex || shipMesh.GetTriangles().IsDeleted(oppositeTriangleInfo.TriangleElementIndex))
+		//{
+		//	// Crossing this floor makes the particle free
+		//	return true;
+		//}
+
+		//return false;
 	}
 
 	static bool DoesFloorSeparateFromPrimaryParticle(

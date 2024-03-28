@@ -448,7 +448,16 @@ Physics::Triangles ShipBuilder::CreateTriangles(
     {
         assert(triangleInfos[t].Springs.size() == 3);
 
+        // Derive whether this is a sealed triangle
+        bool isSealedTriangle = true;
+        for (int iEdge = 0; iEdge < 3; ++iEdge)
+        {
+            isSealedTriangle = isSealedTriangle && (springs.GetNpcSurfaceType(triangleInfos[t].Springs[0]) != NpcSurfaceType::Open);
+        }
+
+        // Calculate opposite triangles and surface types
         std::array<std::pair<ElementIndex, int>, 3> subSpringsOppositeTriangle;
+        std::array<NpcSurfaceType, 3> subSpringsSurfaceType;
         for (int iEdge = 0; iEdge < 3; ++iEdge)
         {
             ElementIndex const springElementIndex = triangleInfos[t].Springs[iEdge];
@@ -494,6 +503,25 @@ Physics::Triangles ShipBuilder::CreateTriangles(
                 }
             }
 
+            //
+            // Triangle's subedge is floor if:
+            //  - Edge is floor, AND
+            //  - NOT is sealed, OR (is sealed and) there's no triangle on the other side of this subedge
+            //
+
+            NpcSurfaceType surface;
+            if (springs.GetNpcSurfaceType(triangleInfos[t].Springs[iEdge]) == NpcSurfaceType::Open
+                || !isSealedTriangle
+                || subSpringsOppositeTriangle[iEdge].first == NoneElementIndex)
+            {
+                surface = springs.GetNpcSurfaceType(triangleInfos[t].Springs[iEdge]);
+            }
+            else
+            {
+                surface = NpcSurfaceType::Open;
+            }
+
+            subSpringsSurfaceType[iEdge] = surface;
         }
 
         // Create triangle
@@ -510,9 +538,9 @@ Physics::Triangles ShipBuilder::CreateTriangles(
             subSpringsOppositeTriangle[1].second,
             subSpringsOppositeTriangle[2].first,
             subSpringsOppositeTriangle[2].second,
-            springs.GetNpcSurfaceType(triangleInfos[t].Springs[0]),
-            springs.GetNpcSurfaceType(triangleInfos[t].Springs[1]),
-            springs.GetNpcSurfaceType(triangleInfos[t].Springs[2]));
+            subSpringsSurfaceType[0],
+            subSpringsSurfaceType[1],
+            subSpringsSurfaceType[2]);
 
         // Add triangle to its endpoints
         points.AddConnectedTriangle(triangleInfos[t].PointIndices[0], t, true); // Owner
