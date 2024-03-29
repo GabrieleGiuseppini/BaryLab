@@ -15,6 +15,7 @@ set  (GAME_SOURCES
 	MaterialDatabase.h
 	Materials.cpp
 	Materials.h
+	PerfStats.h
 	ResourceLocator.h
 	ShipBuilder.cpp
 	ShipBuilder.h

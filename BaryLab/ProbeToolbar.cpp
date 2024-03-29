@@ -298,13 +298,13 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
 
         hSizer->AddSpacer(HMargin);
 
-        // Human counts
+        // Hard numbers
         {
             wxGridBagSizer * gridSizer = new wxGridBagSizer(0, 0);
 
-            // Inside
+            // Update time
             {
-                auto label = new wxStaticText(this, wxID_ANY, _("Humans Inside:"));
+                auto label = new wxStaticText(this, wxID_ANY, _("Update Time (ms):"));
                 gridSizer->Add(
                     label,
                     wxGBPosition(0, 0),
@@ -312,10 +312,29 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                     wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
                     0);
 
+                mUpdateTimeTextCtrl = new wxTextCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxSize(TextCtrlWidth2, -1), wxTE_RIGHT | wxTE_READONLY);
+                gridSizer->Add(
+                    mUpdateTimeTextCtrl,
+                    wxGBPosition(0, 1),
+                    wxGBSpan(1, 1),
+                    wxEXPAND,
+                    0);
+            }
+
+            // Inside
+            {
+                auto label = new wxStaticText(this, wxID_ANY, _("Humans Inside:"));
+                gridSizer->Add(
+                    label,
+                    wxGBPosition(1, 0),
+                    wxGBSpan(1, 1),
+                    wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
+                    0);
+
                 mHumanNpcInsideShipCountTextCtrl = new wxTextCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxSize(TextCtrlWidth2, -1), wxTE_RIGHT | wxTE_READONLY);
                 gridSizer->Add(
                     mHumanNpcInsideShipCountTextCtrl,
-                    wxGBPosition(0, 1),
+                    wxGBPosition(1, 1),
                     wxGBSpan(1, 1),
                     wxEXPAND,
                     0);
@@ -326,7 +345,7 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                 auto label = new wxStaticText(this, wxID_ANY, _("Humans Outside:"));
                 gridSizer->Add(
                     label,
-                    wxGBPosition(1, 0),
+                    wxGBPosition(2, 0),
                     wxGBSpan(1, 1),
                     wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
                     0);
@@ -334,7 +353,7 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                 mHumanNpcOutsideShipCountTextCtrl = new wxTextCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxSize(TextCtrlWidth2, -1), wxTE_RIGHT | wxTE_READONLY);
                 gridSizer->Add(
                     mHumanNpcOutsideShipCountTextCtrl,
-                    wxGBPosition(1, 1),
+                    wxGBPosition(2, 1),
                     wxGBSpan(1, 1),
                     wxEXPAND,
                     0);
@@ -539,6 +558,11 @@ void ProbeToolbar::OnHumanNpcStateQuantityChanged(std::optional<std::tuple<std::
 {
     mHumanStateQuantityNameLabel->SetLabel(nameAndValue.has_value() ? std::get<0>(*nameAndValue) : "");
     mHumanStateQuantityTextCtrl->SetValue(nameAndValue.has_value() ? std::get<1>(*nameAndValue) : "");
+}
+
+void ProbeToolbar::OnUpdateTimeMeasured(float updateDurationMilliseconds)
+{
+    mUpdateTimeTextCtrl->SetValue(std::to_string(updateDurationMilliseconds));
 }
 
 void ProbeToolbar::OnCustomProbe(

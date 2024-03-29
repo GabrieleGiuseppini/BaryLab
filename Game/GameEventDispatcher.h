@@ -78,6 +78,14 @@ public:
         }
     }
 
+    void OnUpdateTimeMeasured(float updateDurationMilliseconds) override
+    {
+        for (auto sink : mBLabSinks)
+        {
+            sink->OnUpdateTimeMeasured(updateDurationMilliseconds);
+        }
+    }
+
     void OnCustomProbe(
         std::string const & name,
         float value) override

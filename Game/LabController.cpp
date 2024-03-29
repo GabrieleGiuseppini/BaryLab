@@ -11,6 +11,7 @@
 #include <GameCore/GameRandomEngine.h>
 #include <GameCore/Log.h>
 
+#include <chrono>
 #include <cmath>
 #include <sstream>
 
@@ -49,6 +50,9 @@ LabController::LabController(
     , mWorld()
     , mCurrentShipFilePath()
     , mCurrentSimulationTime(0.0f)
+    , mPerfStats()
+    , mLastPublishedPerfStats()
+    , mLastPerfPublishTimestamp(GameChronometer::now())
     , mIsGravityEnabled(true)
     , mOceanDepth(-7.0f)
     , mCurrentShipTranslationVelocity(vec2f::zero())
@@ -111,7 +115,8 @@ void LabController::Update()
 
         mWorld->Update(
             mCurrentSimulationTime,
-            mGameParameters);
+            mGameParameters,
+            mPerfStats);
 
         // Update state
         mSimulationControlImpulse = false;
@@ -120,6 +125,17 @@ void LabController::Update()
         mCurrentShipTranslationAccelerationIndicator *= 0.98f;
 
         mCurrentSimulationTime += GameParameters::SimulationTimeStepDuration;
+
+        auto const now = GameChronometer::now();
+        if (now > mLastPerfPublishTimestamp + std::chrono::seconds(1))
+        {
+            // Publish perf stats
+            auto const deltaStats = mPerfStats - mLastPublishedPerfStats;
+            mGameEventHandler->OnUpdateTimeMeasured(deltaStats.TotalNpcUpdateDuration.ToRatio<std::chrono::milliseconds>());
+
+            mLastPublishedPerfStats = mPerfStats;
+            mLastPerfPublishTimestamp = now;
+        }
     }
 }
 
@@ -1012,6 +1028,8 @@ void LabController::Reset(
     //
 
     mCurrentSimulationTime = 0.0f;
+
+    mPerfStats.Reset();
 
     //
     // Auto-zoom & center

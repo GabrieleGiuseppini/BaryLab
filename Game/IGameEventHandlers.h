@@ -59,6 +59,11 @@ struct IBLabEventHandler
         // Default-implemented
     }
 
+    virtual void OnUpdateTimeMeasured(float /*updateDurationMilliseconds*/)
+    {
+        // Default-implemented
+    }
+
     virtual void OnCustomProbe(
         std::string const & /*name*/,
         float /*value*/)

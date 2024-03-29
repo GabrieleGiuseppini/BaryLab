@@ -9,7 +9,11 @@
 
 #include "GameParameters.h"
 #include "MaterialDatabase.h"
+#include "PerfStats.h"
 
+#include <GameCore/GameChronometer.h>
+
+#include <chrono>
 #include <memory>
 #include <vector>
 
@@ -96,11 +100,16 @@ public:
 
 	void Update(
 		float currentSimulationTime,
-		GameParameters const & gameParameters)
+		GameParameters const & gameParameters,
+		PerfStats & perfStats)
 	{
+		auto const startTime = GameChronometer::now();
+
 		mNpcs->Update(
 			currentSimulationTime,
 			gameParameters);
+
+		perfStats.TotalNpcUpdateDuration.Update(GameChronometer::now() - startTime);
 	}
 
 private:

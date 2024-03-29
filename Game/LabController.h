@@ -8,10 +8,12 @@
 #include "GameEventDispatcher.h"
 #include "GameParameters.h"
 #include "MaterialDatabase.h"
+#include "PerfStats.h"
 #include "Physics.h"
 #include "RenderContext.h"
 #include "ShipDefinition.h"
 
+#include <GameCore/GameChronometer.h>
 #include <GameCore/GameTypes.h>
 #include <GameCore/Vectors.h>
 
@@ -304,6 +306,10 @@ private:
     std::optional<std::filesystem::path> mCurrentShipFilePath;
 
     float mCurrentSimulationTime;
+
+    PerfStats mPerfStats;
+    PerfStats mLastPublishedPerfStats;
+    GameChronometer::time_point mLastPerfPublishTimestamp;
 
     bool mIsGravityEnabled;
     float mOceanDepth;
