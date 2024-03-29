@@ -224,6 +224,7 @@ public:
     // Properties
     //
 
+    // This is only used in BaryLab - for ShipBuilder and for Rendering
     NpcSurfaceType GetNpcSurfaceType(ElementIndex springElementIndex) const
     {
         return mNpcSurfaceTypeBuffer[springElementIndex];
