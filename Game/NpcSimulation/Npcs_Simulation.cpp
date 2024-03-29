@@ -1048,7 +1048,7 @@ void Npcs::UpdateNpcParticlePhysics(
                             if (npc.Kind == NpcKindType::Human
                                 && isPrimaryParticle) // Human is represented by primary particle
                             {
-                                // Note: does not include eventual disance traveled after becoming free; fine because we will transition and wipe out total traveled
+                                // Note: does not include eventual distance traveled after becoming free; fine because we will transition and wipe out total traveled
                                 npc.KindSpecificState.HumanNpcState.TotalDistanceTraveledOnEdgeSinceStateTransition += std::abs(edgeTraveledActual);
                             }
 
