@@ -934,31 +934,8 @@ private:
 		vec2f const & secondaryPosition = npcParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex);
 		vec2f const humanDir = (primaryPosition - secondaryPosition).normalise(); // Pointing down to feet
 
-		LogMessage("TODOTEST: ", humanDir.y);
-
 		// It's vertical when y is -1.0 (cos of angle)
 		return humanDir.y > -0.8f;
-	}
-
-	// TODO: NUKE
-	static bool DoesFloorSeparateFromPrimaryParticleTODO(
-		vec2f const & primaryParticlePosition,
-		vec2f const & secondaryParticlePosition,
-		ElementIndex triangleElementIndex,
-		int edgeOrdinal,
-		Ship const & shipMesh)
-	{
-		ElementIndex const springElementIndex = shipMesh.GetTriangles().GetSubSprings(triangleElementIndex).SpringIndices[edgeOrdinal];
-		vec2f const aPos = shipMesh.GetSprings().GetEndpointAPosition(springElementIndex, shipMesh.GetPoints());
-		vec2f const bPos = shipMesh.GetSprings().GetEndpointBPosition(springElementIndex, shipMesh.GetPoints());
-		vec2f const & p1Pos = primaryParticlePosition;
-		vec2f const & p2Pos = secondaryParticlePosition;
-
-		// ((y1−y2)(ax−x1)+(x2−x1)(ay−y1)) * ((y1−y2)(bx−x1)+(x2−x1)(by−y1)) < 0
-		float const magic = ((aPos.y - bPos.y) * (p1Pos.x - aPos.x) + (bPos.x - aPos.x) * (p1Pos.y - aPos.y))
-			* ((aPos.y - bPos.y) * (p2Pos.x - aPos.x) + (bPos.x - aPos.x) * (p2Pos.y - aPos.y));
-
-		return magic < -0.0001f;
 	}
 
 	static bool IsOnFloorEdge(
