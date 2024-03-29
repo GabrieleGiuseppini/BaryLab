@@ -137,6 +137,11 @@ private:
 		{
 			struct FurnitureNpcStateType final
 			{
+				FurnitureNpcKindType const Kind;
+
+				FurnitureNpcStateType(FurnitureNpcKindType kind)
+					: Kind(kind)
+				{}
 			} FurnitureNpcState;
 
 			struct HumanNpcStateType final
@@ -534,6 +539,11 @@ public:
 	void OnShipAdded(Ship const & ship);
 
 	void OnShipRemoved(ShipId shipId);
+
+	std::optional<PickedObjectId<NpcId>> BeginPlaceNewFurnitureNpc(
+		FurnitureNpcKindType furnitureKind,
+		vec2f const & worldCoordinates,
+		float currentSimulationTime);
 
 	std::optional<PickedObjectId<NpcId>> BeginPlaceNewHumanNpc(
 		HumanNpcKindType humanKind,

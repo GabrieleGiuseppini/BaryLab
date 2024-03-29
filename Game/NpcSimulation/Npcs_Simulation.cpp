@@ -118,8 +118,7 @@ void Npcs::ResetNpcStateToWorld(
     {
         case NpcKindType::Furniture:
         {
-            // Reset state
-            npc.KindSpecificState.FurnitureNpcState = StateType::KindSpecificStateType::FurnitureNpcStateType();
+            // Nop
 
             break;
         }

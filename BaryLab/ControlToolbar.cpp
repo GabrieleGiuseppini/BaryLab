@@ -32,6 +32,7 @@ long const ControlToolbar::ID_ROTATE_MESH_BY_PARTICLE = wxNewId();
 long const ControlToolbar::ID_ADD_HUMAN_NPC = wxNewId();
 long const ControlToolbar::ID_MOVE_NPC = wxNewId();
 long const ControlToolbar::ID_REMOVE_NPC = wxNewId();
+long const ControlToolbar::ID_ADD_FURNITURE_NPC = wxNewId();
 
 long const ControlToolbar::ID_SET_PARTICLE_GRAVITY = wxNewId();
 
@@ -345,6 +346,31 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
 
             gridSizer->Add(mRemoveNpcButton);
         }
+
+        // Add Furniture NPC
+        {
+            mAddFurnitureNpcButton = new wxBitmapToggleButton(
+                this,
+                ID_ADD_FURNITURE_NPC,
+                wxBitmap(
+                    (ResourceLocator::GetResourcesFolderPath() / "add_furniture_npc_icon.png").string(),
+                    wxBITMAP_TYPE_PNG),
+                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+
+            mAddFurnitureNpcButton->Bind(wxEVT_TOGGLEBUTTON,
+                [this](wxCommandEvent & /*event*/)
+                {
+                    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_ADD_FURNITURE_NPC);
+                    ProcessEvent(evt);
+
+                    ReconciliateUIWithTool(ToolType::AddFurnitureNpc);
+                });
+
+            mAddFurnitureNpcButton->SetToolTip("Add a furniture NPC");
+
+            gridSizer->Add(mAddFurnitureNpcButton);
+        }
+
 
         vSizer->Add(gridSizer, 0, wxALIGN_CENTER | wxALL, 5);
     }
@@ -723,6 +749,7 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(false);
+            mAddFurnitureNpcButton->SetValue(false);
 
             break;
         }
@@ -740,6 +767,7 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(false);
+            mAddFurnitureNpcButton->SetValue(false);
 
             break;
         }
@@ -757,6 +785,7 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(false);
+            mAddFurnitureNpcButton->SetValue(false);
 
             break;
         }
@@ -774,6 +803,7 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(false);
+            mAddFurnitureNpcButton->SetValue(false);
 
             break;
         }
@@ -790,6 +820,7 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
 
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(false);
+            mAddFurnitureNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(false);
 
             break;
@@ -808,6 +839,7 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(false);
+            mAddFurnitureNpcButton->SetValue(false);
 
             break;
         }
@@ -825,6 +857,7 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(false);
+            mAddFurnitureNpcButton->SetValue(false);
 
             break;
         }
@@ -842,6 +875,7 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(true);
             mMoveNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(false);
+            mAddFurnitureNpcButton->SetValue(false);
 
             break;
         }
@@ -859,6 +893,7 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(true);
             mRemoveNpcButton->SetValue(false);
+            mAddFurnitureNpcButton->SetValue(false);
 
             break;
         }
@@ -876,6 +911,25 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(true);
+            mAddFurnitureNpcButton->SetValue(false);
+
+            break;
+        }
+
+        case ToolType::AddFurnitureNpc:
+        {
+            mMoveParticleButton->SetValue(false);
+            mMoveVertexButton->SetValue(false);
+            mRotateMeshByPositionButton->SetValue(false);
+            mRotateMeshByParticleButton->SetValue(false);
+            mSetParticleTrajectoryButton->SetValue(false);
+            mSetOriginTriangleButton->SetValue(false);
+            mSelectParticleButton->SetValue(false);
+
+            mAddHumanNpcButton->SetValue(false);
+            mMoveNpcButton->SetValue(false);
+            mRemoveNpcButton->SetValue(false);
+            mAddFurnitureNpcButton->SetValue(true);
 
             break;
         }

@@ -225,6 +225,81 @@ void Npcs::OnShipRemoved(ShipId shipId)
 	mShips[s].reset();
 }
 
+std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
+	FurnitureNpcKindType furnitureKind,
+	vec2f const & worldCoordinates,
+	float /*currentSimulationTime*/)
+{
+	//
+	// Check if there are enough NPCs and particles
+	//
+
+	if (mNpcCount >= GameParameters::MaxNpcs || mParticles.GetRemainingParticlesCount() < 2)
+	{
+		return std::nullopt;
+	}
+
+	//
+	// Create NPC
+	//
+
+	// Futurework
+	assert(furnitureKind == FurnitureNpcKindType::Particle);
+
+	// Primary
+
+	auto const & furnitureMaterial = mMaterialDatabase.GetNpcMaterial(NpcMaterial::KindType::Furniture);
+
+	auto const primaryParticleIndex = mParticles.Add(
+		furnitureMaterial.Mass,
+		furnitureMaterial.StaticFriction,
+		furnitureMaterial.KineticFriction,
+		furnitureMaterial.Elasticity,
+		furnitureMaterial.BuoyancyVolumeFill,
+		worldCoordinates,
+		furnitureMaterial.RenderColor);
+
+	StateType::NpcParticleStateType primaryParticleState = StateType::NpcParticleStateType(
+		primaryParticleIndex,
+		std::nullopt);
+
+	// Furniture
+
+	StateType::KindSpecificStateType::FurnitureNpcStateType furnitureState = StateType::KindSpecificStateType::FurnitureNpcStateType(
+		furnitureKind);
+
+	//
+	// Store NPC
+	//
+
+	NpcId const npcId = GetNewNpcId();
+
+	// This NPC begins its journey on the topmost ship, just
+	// to make sure it's at the nearest Z
+	ShipId const shipId = GetTopmostShipId();
+
+	mStateBuffer[npcId].emplace(
+		npcId,
+		NpcKindType::Furniture,
+		shipId, // Topmost ship ID
+		std::nullopt, // Topmost plane ID
+		StateType::RegimeType::BeingPlaced,
+		std::move(primaryParticleState),
+		std::nullopt, // DipoleState
+		StateType::KindSpecificStateType(std::move(furnitureState)));
+
+	assert(mShips[shipId].has_value());
+	mShips[shipId]->Npcs.push_back(npcId);
+
+	//
+	// Update stats
+	//
+
+	++mNpcCount;
+
+	return PickedObjectId<NpcId>(npcId, vec2f::zero());
+}
+
 std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 	HumanNpcKindType humanKind,
 	vec2f const & worldCoordinates,
@@ -504,8 +579,10 @@ void Npcs::BeginMoveNpc(
 
 	// Both particles become free
 	npc.PrimaryParticleState.ConstrainedState.reset();
-	assert(npc.DipoleState.has_value());
-	npc.DipoleState->SecondaryParticleState.ConstrainedState.reset();
+	if (npc.DipoleState.has_value())
+	{
+		npc.DipoleState->SecondaryParticleState.ConstrainedState.reset();
+	}
 
 	// Change regime
 	auto const oldRegime = npc.CurrentRegime;

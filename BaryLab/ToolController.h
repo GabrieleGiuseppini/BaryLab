@@ -37,6 +37,13 @@ public:
         mCurrentTool->Initialize(mInputState);
     }
 
+    void SetFurnitureNpcPlaceTool(FurnitureNpcKindType furnitureNpcKind)
+    {
+        AddFurnitureNpcTool * tool = dynamic_cast<AddFurnitureNpcTool *>(mAllTools[static_cast<size_t>(ToolType::AddFurnitureNpc)].get());
+        tool->SetFurnitureNpcKind(furnitureNpcKind);
+        SetTool(ToolType::AddFurnitureNpc);
+    }
+
     void SetHumanNpcPlaceTool(HumanNpcKindType humanNpcKind)
     {
         AddHumanNpcTool * tool = dynamic_cast<AddHumanNpcTool *>(mAllTools[static_cast<size_t>(ToolType::AddHumanNpc)].get());

@@ -102,6 +102,7 @@ public:
     // NPC
     //
 
+    std::optional<PickedObjectId<NpcId>> BeginPlaceNewFurnitureNpc(FurnitureNpcKindType humanKind, vec2f const & screenCoordinates);
     std::optional<PickedObjectId<NpcId>> BeginPlaceNewHumanNpc(HumanNpcKindType humanKind, vec2f const & screenCoordinates);
     std::optional<PickedObjectId<NpcId>> ProbeNpcAt(vec2f const & screenCoordinates) const;
     void BeginMoveNpc(NpcId id);

@@ -853,6 +853,27 @@ void LabController::DoStepForVideo()
 
 ////////////////////////////////////////////////
 
+std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewFurnitureNpc(
+    FurnitureNpcKindType furnitureKind,
+    vec2f const & screenCoordinates)
+{
+    assert(!!mWorld);
+
+    vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
+
+    auto const pickedObjectId = mWorld->GetNpcs().BeginPlaceNewFurnitureNpc(
+        furnitureKind,
+        worldCoordinates,
+        mCurrentSimulationTime);
+
+    if (pickedObjectId.has_value())
+    {
+        mWorld->GetNpcs().SelectNpc(pickedObjectId->ObjectId);
+    }
+
+    return pickedObjectId;
+}
+
 std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewHumanNpc(
     HumanNpcKindType humanKind,
     vec2f const & screenCoordinates)

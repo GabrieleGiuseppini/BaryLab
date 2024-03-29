@@ -132,6 +132,7 @@ private:
     void OnRotateMeshByPosition(wxCommandEvent & event);
     void OnRotateMeshByParticle(wxCommandEvent & event);
     void OnSetParticleGravity(wxCommandEvent & event);
+    void OnAddFurnitureNpc(wxCommandEvent & event);
     void OnAddHumanNpc(wxCommandEvent & event);
     void OnMoveNpc(wxCommandEvent & event);
     void OnRemoveNpc(wxCommandEvent & event);

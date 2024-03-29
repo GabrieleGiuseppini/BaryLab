@@ -151,6 +151,7 @@ MainFrame::MainFrame(wxApp * mainApp)
         mControlToolbar->Connect(ControlToolbar::ID_ROTATE_MESH_BY_PARTICLE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnRotateMeshByParticle, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_SET_PARTICLE_GRAVITY, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnSetParticleGravity, 0, this);
 
+        mControlToolbar->Connect(ControlToolbar::ID_ADD_FURNITURE_NPC, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnAddFurnitureNpc, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_ADD_HUMAN_NPC, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnAddHumanNpc, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_MOVE_NPC, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnMoveNpc, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_REMOVE_NPC, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnRemoveNpc, 0, this);
@@ -716,6 +717,12 @@ void MainFrame::OnSetParticleGravity(wxCommandEvent & event)
 {
     assert(!!mLabController);
     mLabController->SetGravityEnabled(event.GetInt() != 0);
+}
+
+void MainFrame::OnAddFurnitureNpc(wxCommandEvent & /*event*/)
+{
+    assert(!!mToolController);
+    mToolController->SetFurnitureNpcPlaceTool(FurnitureNpcKindType::Particle); // Futurework
 }
 
 void MainFrame::OnAddHumanNpc(wxCommandEvent & /*event*/)

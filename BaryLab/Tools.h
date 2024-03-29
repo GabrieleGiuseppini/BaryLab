@@ -28,9 +28,10 @@ enum class ToolType
     SetOriginTriangle = 5,
     SelectParticle = 6,
 
-    AddHumanNpc = 7,
-    MoveNpc = 8,
-    RemoveNpc = 9
+    AddFurnitureNpc = 7,
+    AddHumanNpc = 8,
+    MoveNpc = 9,
+    RemoveNpc = 10
 };
 
 struct InputState
@@ -815,6 +816,34 @@ private:
     wxCursor const mOpenCursor;
     wxCursor const mErrorCursor;
 };
+
+class AddFurnitureNpcTool final : public AddNpcToolBase
+{
+public:
+
+    AddFurnitureNpcTool(
+        wxWindow * cursorWindow,
+        std::shared_ptr<LabController> labController);
+
+    void SetFurnitureNpcKind(FurnitureNpcKindType furnitureNpcKind)
+    {
+        mFurnitureNpcKind = furnitureNpcKind;
+    }
+
+protected:
+
+    std::optional<PickedObjectId<NpcId>> InternalBeginPlaceNewNpc(vec2f const & screenCoordinates) override
+    {
+        return mLabController->BeginPlaceNewFurnitureNpc(
+            mFurnitureNpcKind,
+            screenCoordinates);
+    }
+
+private:
+
+    FurnitureNpcKindType mFurnitureNpcKind;
+};
+
 
 class AddHumanNpcTool final : public AddNpcToolBase
 {

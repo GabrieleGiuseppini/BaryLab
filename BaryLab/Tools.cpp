@@ -93,6 +93,17 @@ SelectParticleTool::SelectParticleTool(
 {
 }
 
+AddFurnitureNpcTool::AddFurnitureNpcTool(
+    wxWindow * cursorWindow,
+    std::shared_ptr<LabController> labController)
+    : AddNpcToolBase(
+        ToolType::AddFurnitureNpc,
+        cursorWindow,
+        std::move(labController))
+    , mFurnitureNpcKind(FurnitureNpcKindType::Particle) // Will be given one when needed
+{
+}
+
 AddHumanNpcTool::AddHumanNpcTool(
     wxWindow * cursorWindow,
     std::shared_ptr<LabController> labController)

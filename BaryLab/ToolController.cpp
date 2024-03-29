@@ -60,6 +60,11 @@ ToolController::ToolController(
             mLabController));
 
     mAllTools.emplace_back(
+        std::make_unique<AddFurnitureNpcTool>(
+            mCursorWindow,
+            mLabController));
+
+    mAllTools.emplace_back(
         std::make_unique<AddHumanNpcTool>(
             mCursorWindow,
             mLabController));

@@ -229,6 +229,14 @@ enum class NpcKindType
 };
 
 /*
+ * Furniture NPC types (second level).
+ */
+enum class FurnitureNpcKindType
+{
+    Particle
+};
+
+/*
  * Human NPC types (second level).
  */
 enum class HumanNpcKindType
