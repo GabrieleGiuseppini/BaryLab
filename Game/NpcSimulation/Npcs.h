@@ -302,6 +302,7 @@ private:
 				float RightArmLengthMultiplier;
 				float LeftArmAngle;
 				float LeftArmLengthMultiplier;
+				float LowerExtremityLengthMultiplier; // Multiplier for the part of the body from the crotch down to the feet
 
 				static float constexpr InitialArmAngle = Pi<float> / 2.0f * 0.3f;
 				static float constexpr InitialLegAngle = 0.2f;
@@ -330,6 +331,7 @@ private:
 					, RightArmLengthMultiplier(1.0f)
 					, LeftArmAngle(-InitialArmAngle)
 					, LeftArmLengthMultiplier(1.0f)
+					, LowerExtremityLengthMultiplier(1.0f)
 				{
 					TransitionToState(initialBehavior, currentSimulationTime);
 				}

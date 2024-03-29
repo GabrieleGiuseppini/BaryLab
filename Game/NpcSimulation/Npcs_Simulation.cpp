@@ -2179,6 +2179,8 @@ void Npcs::UpdateNpcAnimation(
         float targetLeftLegAngle = humanNpcState.LeftLegAngle;
         float targetLeftLegLengthMultiplier = 1.0f;
 
+        float targetLowerExtremityLengthMultiplier = 1.0f;
+
         float convergenceRate = 0.0f;
 
         switch (humanNpcState.CurrentBehavior)
@@ -2324,6 +2326,9 @@ void Npcs::UpdateNpcAnimation(
 
                 targetRightLegAngle = legAngle;
                 targetLeftLegAngle = -legAngle;
+
+                // Take into account that crotch is lower
+                targetLowerExtremityLengthMultiplier = std::cos(legAngle);
 
                 // Arms depend on panic
                 if (humanNpcState.ResultantPanicLevel < 0.0001f)
@@ -2742,6 +2747,8 @@ void Npcs::UpdateNpcAnimation(
         humanNpcState.RightLegLengthMultiplier += (targetRightLegLengthMultiplier - humanNpcState.RightLegLengthMultiplier) * convergenceRate;
         humanNpcState.LeftLegAngle += (targetLeftLegAngle - humanNpcState.LeftLegAngle) * convergenceRate;
         humanNpcState.LeftLegLengthMultiplier += (targetLeftLegLengthMultiplier - humanNpcState.LeftLegLengthMultiplier) * convergenceRate;
+
+        humanNpcState.LowerExtremityLengthMultiplier += (targetLowerExtremityLengthMultiplier - humanNpcState.LowerExtremityLengthMultiplier) * convergenceRate;
     }
 }
 

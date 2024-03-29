@@ -1104,19 +1104,20 @@ void Npcs::RenderNpc(
 			auto const & humanNpcState = npc.KindSpecificState.HumanNpcState;
 
 			// Note:
-			// - head, neck, shoulder, crotch, feet: based on current dipole length
+			// - head, neck, shoulder, crotch, feet: based on current dipole length; anchor point is feet
 			// - arms, legs : based on ideal (incl. adjustment)
 			//
 
-			vec2f const headPosition = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex);
 			vec2f const feetPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
-			vec2f const actualBodyVector = feetPosition - headPosition; // From head to feet
-			float const actualBodyLength = actualBodyVector.length();
-			vec2f const actualBodyVDir = actualBodyVector.normalise(actualBodyLength);
+
+			vec2f const actualBodyVector = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex) - feetPosition; // From feet to head
+			vec2f const actualBodyVDir = -actualBodyVector.normalise(); // From head to feet - facilitates arm and length angle-making
 			vec2f const actualBodyHDir = actualBodyVDir.to_perpendicular(); // Points R (of the screen)
-			vec2f const neckPosition = headPosition + actualBodyVector * GameParameters::HumanNpcGeometry::HeadLengthFraction;
-			vec2f const shoulderPosition = neckPosition + actualBodyVector * GameParameters::HumanNpcGeometry::ArmDepthFraction / 2.0f;
-			vec2f const crotchPosition = headPosition + actualBodyVector * (GameParameters::HumanNpcGeometry::HeadLengthFraction + GameParameters::HumanNpcGeometry::TorsoLengthFraction);
+
+			vec2f const crotchPosition = feetPosition + actualBodyVector * (GameParameters::HumanNpcGeometry::LegLengthFraction * humanNpcState.LowerExtremityLengthMultiplier);
+			vec2f const headPosition = crotchPosition + actualBodyVector * (GameParameters::HumanNpcGeometry::HeadLengthFraction + GameParameters::HumanNpcGeometry::TorsoLengthFraction);
+			vec2f const neckPosition = headPosition - actualBodyVector * GameParameters::HumanNpcGeometry::HeadLengthFraction;
+			vec2f const shoulderPosition = neckPosition - actualBodyVector * GameParameters::HumanNpcGeometry::ArmDepthFraction / 2.0f;
 
 			float const cosLeftArmAngle = std::cos(humanNpcState.LeftArmAngle);
 			float const sinLeftArmAngle = std::sin(humanNpcState.LeftArmAngle);
