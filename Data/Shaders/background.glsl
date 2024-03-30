@@ -35,5 +35,6 @@ void main()
     
     gl_FragColor = 
         (1.0 - isUnderwater) * vec4(1.0, 1.0, 1.0, 1.0)
-        + isUnderwater * vec4(0.900, 0.998, 1.00, 1.0);
+        //+ isUnderwater * vec4(0.900, 0.998, 1.00, 1.0);
+        + isUnderwater * vec4(0.690, 0.928, 1.00, 1.0);
 } 

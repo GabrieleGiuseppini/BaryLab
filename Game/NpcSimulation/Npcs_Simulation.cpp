@@ -1197,7 +1197,7 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
 
     vec2f preliminaryForces = GameParameters::Gravity * gameParameters.GravityAdjustment * mGravityGate * particleMass;
 
-    if (!npcParticle.ConstrainedState.has_value())
+    if (!npcParticle.ConstrainedState.has_value() && npc.CurrentRegime != StateType::RegimeType::BeingPlaced)
     {
         // Check whether we are underwater
 

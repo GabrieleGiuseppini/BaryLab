@@ -30,12 +30,6 @@ void Npcs::Update(
 	//
 
 	UpdateNpcs(currentSimulationTime, gameParameters);
-
-	//
-	// Publish
-	//
-
-	Publish();
 }
 
 void Npcs::RenderUpload(RenderContext & renderContext)
@@ -1019,6 +1013,145 @@ bool Npcs::IsSpringHostingCurrentlySelectedParticle(ElementIndex springIndex) co
 	return false;
 }
 
+void Npcs::Publish() const
+{
+#ifdef IN_BARYLAB
+	std::optional<ConstrainedRegimeParticleProbe> constrainedRegimeParticleProbe;
+	std::optional<bcoords3f> subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged;
+	std::optional<PhysicsParticleProbe> physicsParticleProbe;
+
+	if (mCurrentlySelectedParticle.has_value())
+	{
+		for (size_t n = 0; n < mStateBuffer.size(); ++n)
+		{
+			if (mStateBuffer[n].has_value())
+			{
+				auto const & state = *mStateBuffer[n];
+
+				assert(mShips[state.CurrentShipId].has_value());
+				auto const & shipMesh = mShips[state.CurrentShipId]->ShipMesh;
+
+				if (state.PrimaryParticleState.ParticleIndex == *mCurrentlySelectedParticle)
+				{
+					if (state.PrimaryParticleState.ConstrainedState.has_value())
+					{
+						constrainedRegimeParticleProbe.emplace(
+							state.PrimaryParticleState.ConstrainedState->CurrentTriangle,
+							state.PrimaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords);
+
+						if (mCurrentOriginTriangle.has_value())
+						{
+							subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = shipMesh.GetTriangles().ToBarycentricCoordinates(
+								mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
+								*mCurrentOriginTriangle,
+								shipMesh.GetPoints());
+						}
+					}
+
+					physicsParticleProbe.emplace(mParticles.GetVelocity(state.PrimaryParticleState.ParticleIndex));
+				}
+				else if (state.DipoleState.has_value()
+					&& state.DipoleState->SecondaryParticleState.ParticleIndex == *mCurrentlySelectedParticle)
+				{
+					if (state.DipoleState->SecondaryParticleState.ConstrainedState.has_value())
+					{
+						constrainedRegimeParticleProbe.emplace(
+							state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangle,
+							state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords);
+
+						if (mCurrentOriginTriangle.has_value())
+						{
+							subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = shipMesh.GetTriangles().ToBarycentricCoordinates(
+								mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
+								*mCurrentOriginTriangle,
+								shipMesh.GetPoints());
+						}
+					}
+
+					physicsParticleProbe.emplace(mParticles.GetVelocity(state.DipoleState->SecondaryParticleState.ParticleIndex));
+				}
+			}
+		}
+	}
+
+	mGameEventHandler->OnSubjectParticleConstrainedRegimeUpdated(constrainedRegimeParticleProbe);
+	mGameEventHandler->OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged);
+	mGameEventHandler->OnSubjectParticlePhysicsUpdated(physicsParticleProbe);
+
+	if (mCurrentlySelectedNpc.has_value()
+		&& mStateBuffer[*mCurrentlySelectedNpc].has_value())
+	{
+		if (mStateBuffer[*mCurrentlySelectedNpc]->Kind == NpcKindType::Human)
+		{
+			switch (mStateBuffer[*mCurrentlySelectedNpc]->KindSpecificState.HumanNpcState.CurrentBehavior)
+			{
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::BeingPlaced:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("BeingPlaced");
+					break;
+				}
+
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Aerial:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Aerial");
+					break;
+				}
+
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Equilibrium");
+					break;
+				}
+
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Falling:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Falling");
+					break;
+				}
+
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+					break;
+				}
+
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Rising:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Rising");
+					break;
+				}
+
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Walking");
+					break;
+				}
+
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Aerial:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Aerial");
+					break;
+				}
+
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_InWater:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_InWater");
+					break;
+				}
+
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Swimming_Style1:
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Swimming_Style2:
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Swimming_Style3:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Swimming");
+					break;
+				}
+			}
+		}
+	}
+#endif
+}
+
 #endif
 
 ///////////////////////////////
@@ -1553,145 +1686,6 @@ void Npcs::RenderNpc(
 			break;
 		}
 	}
-}
-
-void Npcs::Publish() const
-{
-#ifdef IN_BARYLAB
-	std::optional<ConstrainedRegimeParticleProbe> constrainedRegimeParticleProbe;
-	std::optional<bcoords3f> subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged;
-	std::optional<PhysicsParticleProbe> physicsParticleProbe;
-
-	if (mCurrentlySelectedParticle.has_value())
-	{
-		for (size_t n = 0; n < mStateBuffer.size(); ++n)
-		{
-			if (mStateBuffer[n].has_value())
-			{
-				auto const & state = *mStateBuffer[n];
-
-				assert(mShips[state.CurrentShipId].has_value());
-				auto const & shipMesh = mShips[state.CurrentShipId]->ShipMesh;
-
-				if (state.PrimaryParticleState.ParticleIndex == *mCurrentlySelectedParticle)
-				{
-					if (state.PrimaryParticleState.ConstrainedState.has_value())
-					{
-						constrainedRegimeParticleProbe.emplace(
-							state.PrimaryParticleState.ConstrainedState->CurrentTriangle,
-							state.PrimaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords);
-
-						if (mCurrentOriginTriangle.has_value())
-						{
-							subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = shipMesh.GetTriangles().ToBarycentricCoordinates(
-								mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
-								*mCurrentOriginTriangle,
-								shipMesh.GetPoints());
-						}
-					}
-
-					physicsParticleProbe.emplace(mParticles.GetVelocity(state.PrimaryParticleState.ParticleIndex));
-				}
-				else if (state.DipoleState.has_value()
-					&& state.DipoleState->SecondaryParticleState.ParticleIndex == *mCurrentlySelectedParticle)
-				{
-					if (state.DipoleState->SecondaryParticleState.ConstrainedState.has_value())
-					{
-						constrainedRegimeParticleProbe.emplace(
-							state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangle,
-							state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords);
-
-						if (mCurrentOriginTriangle.has_value())
-						{
-							subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = shipMesh.GetTriangles().ToBarycentricCoordinates(
-								mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
-								*mCurrentOriginTriangle,
-								shipMesh.GetPoints());
-						}
-					}
-
-					physicsParticleProbe.emplace(mParticles.GetVelocity(state.DipoleState->SecondaryParticleState.ParticleIndex));
-				}
-			}
-		}
-	}
-
-	mGameEventHandler->OnSubjectParticleConstrainedRegimeUpdated(constrainedRegimeParticleProbe);
-	mGameEventHandler->OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged);
-	mGameEventHandler->OnSubjectParticlePhysicsUpdated(physicsParticleProbe);
-
-	if (mCurrentlySelectedNpc.has_value()
-		&& mStateBuffer[*mCurrentlySelectedNpc].has_value())
-	{
-		if (mStateBuffer[*mCurrentlySelectedNpc]->Kind == NpcKindType::Human)
-		{
-			switch (mStateBuffer[*mCurrentlySelectedNpc]->KindSpecificState.HumanNpcState.CurrentBehavior)
-			{
-				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::BeingPlaced:
-				{
-					mGameEventHandler->OnHumanNpcBehaviorChanged("BeingPlaced");
-					break;
-				}
-
-				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Aerial:
-				{
-					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Aerial");
-					break;
-				}
-
-				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
-				{
-					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Equilibrium");
-					break;
-				}
-
-				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Falling:
-				{
-					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Falling");
-					break;
-				}
-
-				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
-				{
-					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
-					break;
-				}
-
-				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Rising:
-				{
-					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Rising");
-					break;
-				}
-
-				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
-				{
-					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Walking");
-					break;
-				}
-
-				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Aerial:
-				{
-					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Aerial");
-					break;
-				}
-
-				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_InWater:
-				{
-					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_InWater");
-					break;
-				}
-
-				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Swimming_Style1:
-				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Swimming_Style2:
-				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Swimming_Style3:
-				{
-					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Swimming");
-					break;
-				}
-			}
-		}
-	}
-#endif
 }
 
 void Npcs::PublishHumanNpcStats()

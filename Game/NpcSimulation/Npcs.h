@@ -695,6 +695,8 @@ public:
 
 	bool IsSpringHostingCurrentlySelectedParticle(ElementIndex springIndex) const;
 
+	void Publish() const;
+
 #endif
 
 private:
@@ -716,8 +718,6 @@ private:
 	void RenderNpc(
 		StateType const & npc,
 		ShipRenderContext & shipRenderContext);
-
-	void Publish() const;
 
 	void PublishHumanNpcStats();
 

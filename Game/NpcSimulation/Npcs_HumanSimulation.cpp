@@ -318,7 +318,10 @@ void Npcs::UpdateHuman(
 
 			// Advance towards rising
 
-			float const toRisingConvergenceRate = 0.067f + std::min(humanState.ResultantPanicLevel, 1.0f) * 0.07f;
+			float const toRisingConvergenceRate =
+				0.067f
+				+ std::min(humanState.ResultantPanicLevel, 1.0f) * 0.07f
+				+ npc.RandomNormalizedUniformSeed / 10.0f;
 			humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising +=
 				(risingTarget - humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising)
 				* toRisingConvergenceRate;
@@ -377,8 +380,6 @@ void Npcs::UpdateHuman(
 				if (risingTarget == 0.0f)
 					publishStateQuantity = std::make_tuple("ProgressToAerial", std::to_string(humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToAerial));
 			}
-
-
 
 			break;
 		}
@@ -745,15 +746,16 @@ void Npcs::UpdateHuman(
 					// Transition
 
 					StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType swimStyle;
-					switch (GameRandomEngine::GetInstance().Choose(3))
+					switch (GameRandomEngine::GetInstance().Choose(4))
 					{
 						case 0:
+						case 1:
 						{
 							swimStyle = HumanNpcStateType::BehaviorType::Free_Swimming_Style1;
 							break;
 						}
 
-						case 1:
+						case 2:
 						{
 							swimStyle = HumanNpcStateType::BehaviorType::Free_Swimming_Style2;
 							break;
@@ -936,7 +938,7 @@ void Npcs::OnHumanImpact(
 	{
 		case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Rising:
 		{
-			if (!isPrimaryParticle)
+			if (!isPrimaryParticle && normalResponse.length() > 0.1f)
 			{
 				// Hit head while rising
 
