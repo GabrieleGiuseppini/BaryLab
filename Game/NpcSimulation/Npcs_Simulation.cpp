@@ -2398,7 +2398,7 @@ void Npcs::UpdateNpcAnimation(
                     //
 
                     float const adjustedStandardLegLength = GameParameters::HumanNpcGeometry::LegLengthFraction * adjustedStandardHumanHeight;
-                    vec2f const crotchPosition = headPosition + actualBodyVector * (GameParameters::HumanNpcGeometry::HeadLengthFraction + GameParameters::HumanNpcGeometry::TorsoLengthFraction);
+                    vec2f const crotchPosition = feetPosition - actualBodyVector * (GameParameters::HumanNpcGeometry::LegLengthFraction * targetLowerExtremityLengthMultiplier);
 
                     // PERF: the below may be optimized: leg*2 is not needed and leg*1 is crotch => no dependency on legs
                     {
