@@ -27,6 +27,7 @@
 #ifdef _DEBUG
 #define IN_BARYLAB_DEBUG
 #endif
+#define BARYLAB_PROBING
 #endif
 
 template<typename... TArgs>
@@ -536,6 +537,11 @@ public:
 
 	///////////////////////////////
 
+	NpcParticles const & GetParticles() const
+	{
+		return mParticles;
+	}
+
 	void OnShipAdded(Ship const & ship);
 
 	void OnShipRemoved(ShipId shipId);
@@ -611,11 +617,6 @@ public:
 		Ship const & shipMesh);
 
 	void OnPointMoved(float currentSimulationTime);
-
-	NpcParticles const & GetParticles() const
-	{
-		return mParticles;
-	}
 
 	bool IsGravityEnabled() const
 	{

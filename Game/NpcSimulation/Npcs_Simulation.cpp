@@ -134,7 +134,9 @@ void Npcs::ResetNpcStateToWorld(
         }
     }
 
+#ifdef BARYLAB_PROBING
     Publish();
+#endif
 }
 
 void Npcs::TransitionParticleToConstrainedState(
@@ -1167,7 +1169,7 @@ void Npcs::UpdateNpcParticlePhysics(
         }
     }
 
-#ifdef IN_BARYLAB
+#ifdef BARYLAB_PROBING
     if (mCurrentlySelectedParticle == npcParticle.ParticleIndex)
     {
         // Publish final velocities

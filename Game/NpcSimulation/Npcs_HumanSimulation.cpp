@@ -76,7 +76,9 @@ void Npcs::UpdateHuman(
 	// Process human
 	//
 
+#ifdef BARYLAB_PROBING
 	std::optional<std::tuple<std::string, std::string>> publishStateQuantity;
+#endif
 
 	bool const isFree = !primaryParticleState.ConstrainedState.has_value();
 
@@ -150,7 +152,9 @@ void Npcs::UpdateHuman(
 				(fallingTarget - humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToFalling)
 				* ToFallingConvergenceRate;
 
+#ifdef BARYLAB_PROBING
 			publishStateQuantity = std::make_tuple("ProgressToFalling", std::to_string(humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToFalling));
+#endif
 
 			if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToFalling, 1.0f))
 			{
@@ -169,10 +173,12 @@ void Npcs::UpdateHuman(
 						: -1.0f;
 				}
 
+#ifdef BARYLAB_PROBING
 				if (npc.Id == mCurrentlySelectedNpc)
 				{
 					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Falling");
 				}
+#endif
 
 				break;
 			}
@@ -185,8 +191,10 @@ void Npcs::UpdateHuman(
 				(risingTarget - humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToRising)
 				* ToRisingConvergenceRate;
 
+#ifdef BARYLAB_PROBING
 			if (fallingTarget == 0.0f)
 				publishStateQuantity = std::make_tuple("ProgressToRising", std::to_string(humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToRising));
+#endif
 
 			if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_Aerial.ProgressToRising, 1.0f))
 			{
@@ -194,10 +202,12 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Rising, currentSimulationTime);
 
+#ifdef BARYLAB_PROBING
 				if (npc.Id == mCurrentlySelectedNpc)
 				{
 					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Rising");
 				}
+#endif
 
 				break;
 			}
@@ -235,8 +245,10 @@ void Npcs::UpdateHuman(
 				(knockedOutTarget - humanState.CurrentBehaviorState.Constrained_Falling.ProgressToKnockedOut)
 				* toKnockedConvergenceRate;
 
+#ifdef BARYLAB_PROBING
 			if (knockedOutTarget > 0.0f)
 				publishStateQuantity = std::make_tuple("ProgressToKnockedOut", std::to_string(humanState.CurrentBehaviorState.Constrained_Falling.ProgressToKnockedOut));
+#endif
 
 			if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_Falling.ProgressToKnockedOut, 1.0f))
 			{
@@ -244,10 +256,12 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
 
+#ifdef BARYLAB_PROBING
 				if (npc.Id == mCurrentlySelectedNpc)
 				{
 					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 				}
+#endif
 
 				break;
 			}
@@ -266,8 +280,10 @@ void Npcs::UpdateHuman(
 					(1.0f - humanState.CurrentBehaviorState.Constrained_Falling.ProgressToAerial)
 					* ToAerialConvergenceRate;
 
+#ifdef BARYLAB_PROBING
 				if (knockedOutTarget == 0.0f)
 					publishStateQuantity = std::make_tuple("ProgressToAerial", std::to_string(humanState.CurrentBehaviorState.Constrained_Falling.ProgressToAerial));
+#endif
 
 				if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_Falling.ProgressToAerial, 1.0f))
 				{
@@ -275,10 +291,12 @@ void Npcs::UpdateHuman(
 
 					humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Aerial, currentSimulationTime);
 
+#ifdef BARYLAB_PROBING
 					if (npc.Id == mCurrentlySelectedNpc)
 					{
 						mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Aerial");
 					}
+#endif
 
 					break;
 				}
@@ -286,9 +304,13 @@ void Npcs::UpdateHuman(
 			else
 			{
 				// Reset progress to aerial
+
 				humanState.CurrentBehaviorState.Constrained_Falling.ProgressToAerial = 0.0f;
+
+#ifdef BARYLAB_PROBING
 				if (knockedOutTarget == 0.0f)
 					publishStateQuantity = std::make_tuple("ProgressToAerial", std::to_string(humanState.CurrentBehaviorState.Constrained_Falling.ProgressToAerial));
+#endif
 			}
 
 			break;
@@ -326,7 +348,9 @@ void Npcs::UpdateHuman(
 				(risingTarget - humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising)
 				* toRisingConvergenceRate;
 
+#ifdef BARYLAB_PROBING
 			publishStateQuantity = std::make_tuple("ProgressToRising", std::to_string(humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising));
+#endif
 
 			if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising, 1.0f))
 			{
@@ -334,10 +358,12 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Rising, currentSimulationTime);
 
+#ifdef BARYLAB_PROBING
 				if (npc.Id == mCurrentlySelectedNpc)
 				{
 					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Rising");
 				}
+#endif
 
 				break;
 			}
@@ -356,7 +382,9 @@ void Npcs::UpdateHuman(
 					(1.0f - humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToAerial)
 					* ToAerialConvergenceRate;
 
+#ifdef BARYLAB_PROBING
 				publishStateQuantity = std::make_tuple("ProgressToAerial", std::to_string(humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToAerial));
+#endif
 
 				if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToAerial, 1.0f))
 				{
@@ -364,10 +392,12 @@ void Npcs::UpdateHuman(
 
 					humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Aerial, currentSimulationTime);
 
+#ifdef BARYLAB_PROBING
 					if (npc.Id == mCurrentlySelectedNpc)
 					{
 						mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Aerial");
 					}
+#endif
 
 					break;
 				}
@@ -375,10 +405,13 @@ void Npcs::UpdateHuman(
 			else
 			{
 				// Reset progress to aerial
+
 				humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToAerial = 0.0f;
 
+#ifdef BARYLAB_PROBING
 				if (risingTarget == 0.0f)
 					publishStateQuantity = std::make_tuple("ProgressToAerial", std::to_string(humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToAerial));
+#endif
 			}
 
 			break;
@@ -411,7 +444,9 @@ void Npcs::UpdateHuman(
 						(1.0f - humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking)
 						* toWalkingConvergenceRate;
 
+#ifdef BARYLAB_PROBING
 					publishStateQuantity = std::make_tuple("ProgressToWalking", std::to_string(humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking));
+#endif
 
 					if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking, 1.0f))
 					{
@@ -425,10 +460,12 @@ void Npcs::UpdateHuman(
 
 						// Keep torque
 
+#ifdef BARYLAB_PROBING
 						if (npc.Id == mCurrentlySelectedNpc)
 						{
 							mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Walking");
 						}
+#endif
 
 						break;
 					}
@@ -572,10 +609,12 @@ void Npcs::UpdateHuman(
 						? 1.0f
 						: -1.0f;
 
+#ifdef BARYLAB_PROBING
 					if (npc.Id == mCurrentlySelectedNpc)
 					{
 						mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Falling");
 					}
+#endif
 				}
 				else
 				{
@@ -583,10 +622,12 @@ void Npcs::UpdateHuman(
 
 					humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Aerial, currentSimulationTime);
 
+#ifdef BARYLAB_PROBING
 					if (npc.Id == mCurrentlySelectedNpc)
 					{
 						mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Aerial");
 					}
+#endif
 				}
 
 				break;
@@ -602,7 +643,9 @@ void Npcs::UpdateHuman(
 
 				float const alignment = CalculateDipoleVerticalAlignment(primaryParticleState.ParticleIndex, secondaryParticleState.ParticleIndex, mParticles);
 
+#ifdef BARYLAB_PROBING
 				publishStateQuantity = std::make_tuple("Alignment", std::to_string(alignment));
+#endif
 
 				if (AreAlmostEqual(alignment, 1.0f, 0.004f))
 				{
@@ -610,10 +653,12 @@ void Npcs::UpdateHuman(
 
 					humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Equilibrium, currentSimulationTime);
 
+#ifdef BARYLAB_PROBING
 					if (npc.Id == mCurrentlySelectedNpc)
 					{
 						mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Equilibrium");
 					}
+#endif
 				}
 			}
 			else if (humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_Equilibrium)
@@ -634,10 +679,12 @@ void Npcs::UpdateHuman(
 						gameParameters);
 				}
 
+#ifdef BARYLAB_PROBING
 				if (humanState.CurrentBehaviorState.Constrained_Walking.CurrentFlipDecision != 0.0f)
 					publishStateQuantity = std::make_tuple("WalkFlip", std::to_string(humanState.CurrentBehaviorState.Constrained_Walking.CurrentFlipDecision));
 				else
 					publishStateQuantity = std::make_tuple("EquilibriumTermination", std::to_string(humanState.CurrentEquilibriumSoftTerminationDecision));
+#endif
 			}
 
 			break;
@@ -651,10 +698,12 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
 
+#ifdef BARYLAB_PROBING
 				if (npc.Id == mCurrentlySelectedNpc)
 				{
 					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 				}
+#endif
 
 				break;
 			}
@@ -673,10 +722,12 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Free_InWater, currentSimulationTime);
 
+#ifdef BARYLAB_PROBING
 				if (npc.Id == mCurrentlySelectedNpc)
 				{
 					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_InWater");
 				}
+#endif
 
 				break;
 			}
@@ -695,10 +746,12 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
 
+#ifdef BARYLAB_PROBING
 				if (npc.Id == mCurrentlySelectedNpc)
 				{
 					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
 				}
+#endif
 
 				break;
 			}
@@ -717,10 +770,12 @@ void Npcs::UpdateHuman(
 
 				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Free_Aerial, currentSimulationTime);
 
+#ifdef BARYLAB_PROBING
 				if (npc.Id == mCurrentlySelectedNpc)
 				{
 					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Aerial");
 				}
+#endif
 
 				break;
 			}
@@ -739,7 +794,9 @@ void Npcs::UpdateHuman(
 				float constexpr ToSwimmingConvergenceRate = 0.12f;
 				humanState.CurrentBehaviorState.Free_InWater.ProgressToSwimming += (targetSwim - humanState.CurrentBehaviorState.Free_InWater.ProgressToSwimming) * ToSwimmingConvergenceRate;
 
+#ifdef BARYLAB_PROBING
 				publishStateQuantity = std::make_tuple("ProgressToSwimming", std::to_string(humanState.CurrentBehaviorState.Free_InWater.ProgressToSwimming));
+#endif
 
 				if (IsAtTarget(humanState.CurrentBehaviorState.Free_InWater.ProgressToSwimming, 0.9f)) // We're content with "almost"
 				{
@@ -774,10 +831,12 @@ void Npcs::UpdateHuman(
 					humanState.CurrentFaceOrientation = 1.0f; // TODO: random: back
 					humanState.CurrentFaceDirectionX = 0.0f;
 
+#ifdef BARYLAB_PROBING
 					if (npc.Id == mCurrentlySelectedNpc)
 					{
 						mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Swimming");
 					}
+#endif
 
 					break;
 				}
@@ -787,10 +846,12 @@ void Npcs::UpdateHuman(
 		}
 	}
 
+#ifdef BARYLAB_PROBING
 	if (npc.Id == mCurrentlySelectedNpc)
 	{
 		mGameEventHandler->OnHumanNpcStateQuantityChanged(publishStateQuantity);
 	}
+#endif
 }
 
 bool Npcs::CheckAndMaintainHumanEquilibrium(
@@ -1027,18 +1088,24 @@ void Npcs::TransitionHumanBehaviorToFree(
 		&& mParentWorld.GetOceanSurface().GetDepth(feetPosition) > 0.0f)
 	{
 		npc.KindSpecificState.HumanNpcState.TransitionToState(StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_InWater, currentSimulationTime);
+
+#ifdef BARYLAB_PROBING
 		if (npc.Id == mCurrentlySelectedNpc)
 		{
 			mGameEventHandler->OnHumanNpcBehaviorChanged("Free_InWater");
 		}
+#endif
 	}
 	else
 	{
 		npc.KindSpecificState.HumanNpcState.TransitionToState(StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Aerial, currentSimulationTime);
+
+#ifdef BARYLAB_PROBING
 		if (npc.Id == mCurrentlySelectedNpc)
 		{
 			mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Aerial");
 		}
+#endif
 	}
 }
 

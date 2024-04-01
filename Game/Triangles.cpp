@@ -156,7 +156,7 @@ vec2f Triangles::InternalToBarycentricCoordinates(
 
     float const denominator =
         (positionB.y - positionC.y) * (positionA.x - positionC.x)
-        + (positionC.x - positionB.x) * (positionA.y - positionC.y);
+        - (positionB.x - positionC.x) * (positionA.y - positionC.y);
 
     if (IsAlmostZero(denominator))
     {

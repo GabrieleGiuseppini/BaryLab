@@ -1015,7 +1015,6 @@ bool Npcs::IsSpringHostingCurrentlySelectedParticle(ElementIndex springIndex) co
 
 void Npcs::Publish() const
 {
-#ifdef IN_BARYLAB
 	std::optional<ConstrainedRegimeParticleProbe> constrainedRegimeParticleProbe;
 	std::optional<bcoords3f> subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged;
 	std::optional<PhysicsParticleProbe> physicsParticleProbe;
@@ -1149,7 +1148,6 @@ void Npcs::Publish() const
 			}
 		}
 	}
-#endif
 }
 
 #endif
