@@ -321,9 +321,9 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                     0);
             }
 
-            // Inside
+            // RenderUpload time
             {
-                auto label = new wxStaticText(this, wxID_ANY, _("Humans Inside:"));
+                auto label = new wxStaticText(this, wxID_ANY, _("Render Upl. Time (ms):"));
                 gridSizer->Add(
                     label,
                     wxGBPosition(1, 0),
@@ -331,10 +331,29 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                     wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
                     0);
 
+                mRenderUploadTimeTextCtrl = new wxTextCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxSize(TextCtrlWidth2, -1), wxTE_RIGHT | wxTE_READONLY);
+                gridSizer->Add(
+                    mRenderUploadTimeTextCtrl,
+                    wxGBPosition(1, 1),
+                    wxGBSpan(1, 1),
+                    wxEXPAND,
+                    0);
+            }
+
+            // Inside
+            {
+                auto label = new wxStaticText(this, wxID_ANY, _("Humans Inside:"));
+                gridSizer->Add(
+                    label,
+                    wxGBPosition(2, 0),
+                    wxGBSpan(1, 1),
+                    wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
+                    0);
+
                 mHumanNpcInsideShipCountTextCtrl = new wxTextCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxSize(TextCtrlWidth2, -1), wxTE_RIGHT | wxTE_READONLY);
                 gridSizer->Add(
                     mHumanNpcInsideShipCountTextCtrl,
-                    wxGBPosition(1, 1),
+                    wxGBPosition(2, 1),
                     wxGBSpan(1, 1),
                     wxEXPAND,
                     0);
@@ -345,7 +364,7 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                 auto label = new wxStaticText(this, wxID_ANY, _("Humans Outside:"));
                 gridSizer->Add(
                     label,
-                    wxGBPosition(2, 0),
+                    wxGBPosition(3, 0),
                     wxGBSpan(1, 1),
                     wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
                     0);
@@ -353,7 +372,7 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                 mHumanNpcOutsideShipCountTextCtrl = new wxTextCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxSize(TextCtrlWidth2, -1), wxTE_RIGHT | wxTE_READONLY);
                 gridSizer->Add(
                     mHumanNpcOutsideShipCountTextCtrl,
-                    wxGBPosition(2, 1),
+                    wxGBPosition(3, 1),
                     wxGBSpan(1, 1),
                     wxEXPAND,
                     0);
@@ -560,9 +579,12 @@ void ProbeToolbar::OnHumanNpcStateQuantityChanged(std::optional<std::tuple<std::
     mHumanStateQuantityTextCtrl->SetValue(nameAndValue.has_value() ? std::get<1>(*nameAndValue) : "");
 }
 
-void ProbeToolbar::OnUpdateTimeMeasured(float updateDurationMilliseconds)
+void ProbeToolbar::OnUpdateTimeMeasured(
+    float updateDurationMilliseconds,
+    float renderUploadDurationMilliseconds)
 {
     mUpdateTimeTextCtrl->SetValue(std::to_string(updateDurationMilliseconds));
+    mRenderUploadTimeTextCtrl->SetValue(std::to_string(renderUploadDurationMilliseconds));
 }
 
 void ProbeToolbar::OnCustomProbe(

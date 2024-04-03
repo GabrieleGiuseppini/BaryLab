@@ -129,11 +129,13 @@ void LabController::Update()
         mCurrentSimulationTime += GameParameters::SimulationTimeStepDuration;
 
         auto const now = GameChronometer::now();
-        if (now > mLastPerfPublishTimestamp + std::chrono::seconds(1))
+        if (now > mLastPerfPublishTimestamp + std::chrono::milliseconds(500))
         {
             // Publish perf stats
             auto const deltaStats = mPerfStats - mLastPublishedPerfStats;
-            mGameEventHandler->OnUpdateTimeMeasured(deltaStats.TotalNpcUpdateDuration.ToRatio<std::chrono::milliseconds>());
+            mGameEventHandler->OnUpdateTimeMeasured(
+                deltaStats.TotalNpcUpdateDuration.ToRatio<std::chrono::milliseconds>(),
+                deltaStats.TotalNpcRenderUploadDuration.ToRatio<std::chrono::milliseconds>());
 
             mLastPublishedPerfStats = mPerfStats;
             mLastPerfPublishTimestamp = now;
@@ -248,7 +250,7 @@ void LabController::Render()
         // Npcs
         //
 
-        mWorld->GetNpcs().RenderUpload(*mRenderContext);
+        mWorld->GetNpcs().RenderUpload(*mRenderContext, mPerfStats);
 
         //
         // Ship velocity
@@ -1009,11 +1011,14 @@ void LabController::Reset(
     std::unique_ptr<Physics::Ship> ship,
     std::filesystem::path const & shipDefinitionFilepath)
 {
+    AABB const shipAABB = ship->GetPoints().GetAABB();
+
     //
     // Make new world
     //
 
     mWorld.reset();
+
     mWorld = std::make_unique<Physics::World>(
         mMaterialDatabase,
         mGameEventHandler,
@@ -1038,22 +1043,39 @@ void LabController::Reset(
     //
 
     {
-        AABB const objectAABB = mWorld->GetShip().GetPoints().GetAABB();
-
-        vec2f const objectSize = objectAABB.GetSize();
+        vec2f const shipSize = shipAABB.GetSize();
 
         // Zoom to fit width and height (plus a nicely-looking margin)
         float const newZoom = std::min(
-            mRenderContext->CalculateZoomForWorldWidth(objectSize.x + 5.0f),
-            mRenderContext->CalculateZoomForWorldHeight(objectSize.y + 3.0f));
+            mRenderContext->CalculateZoomForWorldWidth(shipSize.x + 5.0f),
+            mRenderContext->CalculateZoomForWorldHeight(shipSize.y + 3.0f));
         mRenderContext->SetZoom(newZoom);
 
         // Center
         vec2f const objectCenter(
-            (objectAABB.BottomLeft.x + objectAABB.TopRight.x) / 2.0f,
-            (objectAABB.BottomLeft.y + objectAABB.TopRight.y) / 2.0f);
+            (shipAABB.BottomLeft.x + shipAABB.TopRight.x) / 2.0f,
+            (shipAABB.BottomLeft.y + shipAABB.TopRight.y) / 2.0f);
         mRenderContext->SetCameraWorldPosition(objectCenter);
+    }
 
+    //
+    // Add initial NPCs
+    //
+
+    for (size_t i = 0; i < GameParameters::MaxNpcs; ++i)
+    {
+        float const posX = GameRandomEngine::GetInstance().GenerateUniformReal(shipAABB.BottomLeft.x, shipAABB.TopRight.x);
+        float const posY = GameRandomEngine::GetInstance().GenerateUniformReal(shipAABB.BottomLeft.y + GameParameters::HumanNpcGeometry::BodyLengthMean * 1.5f * mGameParameters.HumanNpcBodyLengthAdjustment, shipAABB.TopRight.y);
+
+        bool const hasBeenAdded = mWorld->GetNpcs().AddHumanNpc(
+            HumanNpcKindType::Passenger,
+            vec2f(posX, posY),
+            mCurrentSimulationTime);
+
+        if (!hasBeenAdded)
+        {
+            throw GameException("Cannot add NPC!");
+        }
     }
 
     //

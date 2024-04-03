@@ -49,7 +49,9 @@ public:
 
     void OnHumanNpcStateQuantityChanged(std::optional<std::tuple<std::string, std::string>> nameAndValue) override;
 
-    void OnUpdateTimeMeasured(float updateDurationMilliseconds) override;
+    void OnUpdateTimeMeasured(
+        float updateDurationMilliseconds,
+        float renderUploadDurationMilliseconds) override;
 
     void OnCustomProbe(
         std::string const & name,
@@ -92,6 +94,7 @@ private:
     wxTextCtrl * mHumanStateQuantityTextCtrl;
 
     wxTextCtrl * mUpdateTimeTextCtrl;
+    wxTextCtrl * mRenderUploadTimeTextCtrl;
     wxTextCtrl * mHumanNpcInsideShipCountTextCtrl;
     wxTextCtrl * mHumanNpcOutsideShipCountTextCtrl;
 

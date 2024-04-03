@@ -8,6 +8,7 @@
 #include "GameEventDispatcher.h"
 #include "GameParameters.h"
 #include "MaterialDatabase.h"
+#include "PerfStats.h"
 #include "Physics.h"
 #include "RenderContext.h"
 
@@ -27,7 +28,8 @@
 #ifdef _DEBUG
 #define IN_BARYLAB_DEBUG
 #endif
-#define BARYLAB_PROBING
+// TODOTEST
+//#define BARYLAB_PROBING
 #endif
 
 template<typename... TArgs>
@@ -533,7 +535,9 @@ public:
 		float currentSimulationTime,
 		GameParameters const & gameParameters);
 
-	void RenderUpload(RenderContext & renderContext);
+	void RenderUpload(
+		RenderContext & renderContext,
+		PerfStats & perfStats);
 
 	///////////////////////////////
 
@@ -594,6 +598,11 @@ public:
 	//
 	// Barylab-specific
 	//
+
+	bool AddHumanNpc(
+		HumanNpcKindType humanKind,
+		vec2f const & worldCoordinates,
+		float currentSimulationTime);
 
 	void FlipHumanWalk(int npcIndex);
 

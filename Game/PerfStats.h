@@ -93,6 +93,7 @@ struct PerfStats
     };
 
     Ratio TotalNpcUpdateDuration;
+    Ratio TotalNpcRenderUploadDuration;
 
     PerfStats()
     {
@@ -102,6 +103,7 @@ struct PerfStats
     void Reset()
     {
         TotalNpcUpdateDuration.Reset();
+        TotalNpcRenderUploadDuration.Reset();
     }
 
     PerfStats & operator=(PerfStats const & other) = default;
@@ -112,6 +114,7 @@ inline PerfStats operator-(PerfStats const & lhs, PerfStats const & rhs)
     PerfStats perfStats;
 
     perfStats.TotalNpcUpdateDuration = lhs.TotalNpcUpdateDuration - rhs.TotalNpcUpdateDuration;
+    perfStats.TotalNpcRenderUploadDuration = lhs.TotalNpcRenderUploadDuration - rhs.TotalNpcRenderUploadDuration;
 
     return perfStats;
 }

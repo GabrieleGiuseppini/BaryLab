@@ -78,11 +78,15 @@ public:
         }
     }
 
-    void OnUpdateTimeMeasured(float updateDurationMilliseconds) override
+    void OnUpdateTimeMeasured(
+        float updateDurationMilliseconds,
+        float renderUploadDurationMilliseconds) override
     {
         for (auto sink : mBLabSinks)
         {
-            sink->OnUpdateTimeMeasured(updateDurationMilliseconds);
+            sink->OnUpdateTimeMeasured(
+                updateDurationMilliseconds,
+                renderUploadDurationMilliseconds);
         }
     }
 

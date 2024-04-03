@@ -32,7 +32,9 @@ void Npcs::Update(
 	UpdateNpcs(currentSimulationTime, gameParameters);
 }
 
-void Npcs::RenderUpload(RenderContext & renderContext)
+void Npcs::RenderUpload(
+	RenderContext & renderContext,
+	PerfStats & perfStats)
 {
 #ifdef IN_BARYLAB
 	if (renderContext.GetNpcRenderMode() == NpcRenderModeType::Physical)
@@ -97,6 +99,8 @@ void Npcs::RenderUpload(RenderContext & renderContext)
 	renderContext.UploadNpcParticlesStart();
 #endif
 
+	auto const startTime = GameChronometer::now();
+
 	for (ShipId shipId = 0; shipId < mShips.size(); ++shipId)
 	{
 		if (mShips[shipId].has_value())
@@ -112,6 +116,8 @@ void Npcs::RenderUpload(RenderContext & renderContext)
 			}
 		}
 	}
+
+	perfStats.TotalNpcRenderUploadDuration.Update(GameChronometer::now() - startTime);
 
 #ifdef IN_BARYLAB
 	// For furniture
@@ -773,6 +779,30 @@ void Npcs::SetGeneralizedPanicLevelForAllHumans(float panicLevel)
 /////////////////////////////// Barylab-specific
 
 #ifdef IN_BARYLAB
+
+bool Npcs::AddHumanNpc(
+	HumanNpcKindType humanKind,
+	vec2f const & worldCoordinates,
+	float currentSimulationTime)
+{
+	auto const npcId = BeginPlaceNewHumanNpc(
+		humanKind,
+		worldCoordinates,
+		currentSimulationTime);
+
+	if (npcId.has_value())
+	{
+		CompleteNewNpc(
+			npcId->ObjectId,
+			currentSimulationTime);
+
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
 
 void Npcs::FlipHumanWalk(int npcIndex)
 {

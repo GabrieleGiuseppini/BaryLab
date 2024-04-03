@@ -59,7 +59,9 @@ struct IBLabEventHandler
         // Default-implemented
     }
 
-    virtual void OnUpdateTimeMeasured(float /*updateDurationMilliseconds*/)
+    virtual void OnUpdateTimeMeasured(
+        float /*updateDurationMilliseconds*/,
+        float /*renderUploadDurationMilliseconds*/)
     {
         // Default-implemented
     }
