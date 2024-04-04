@@ -35,8 +35,6 @@ public:
     static long const ID_REMOVE_NPC;
     static long const ID_ADD_FURNITURE_NPC;
 
-    static long const ID_SET_PARTICLE_GRAVITY;
-
     static long const ID_SIMULATION_CONTROL_PLAY;
     static long const ID_SIMULATION_CONTROL_PAUSE;
     static long const ID_SIMULATION_CONTROL_STEP;
@@ -127,7 +125,6 @@ public:
 
     void ReconcialiteUI(
         SimulationControlStateType simulationControlState,
-        bool isGravityEnabled,
         bool isViewGridEnabled);
 
     void ReconciliateUIWithTool(ToolType tool);

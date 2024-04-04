@@ -90,10 +90,6 @@ public:
 
     void QueryNearestNpcParticleAt(vec2f const & screenCoordinates) const;
 
-    bool IsGravityEnabled() const;
-
-    void SetGravityEnabled(bool isEnabled);
-
     vec2f const & GetShipVelocity() const;
 
     void SetShipVelocity(vec2f const & velocity);
@@ -219,15 +215,15 @@ public:
     float GetMinKineticFrictionAdjustment() const { return GameParameters::MinKineticFrictionAdjustment; }
     float GetMaxKineticFrictionAdjustment() const { return GameParameters::MaxKineticFrictionAdjustment; }
 
-    float GetMassAdjustment() const { return mGameParameters.MassAdjustment; }
-    void SetMassAdjustment(float value) { mGameParameters.MassAdjustment = value; }
-    float GetMinMassAdjustment() const { return GameParameters::MinMassAdjustment; }
-    float GetMaxMassAdjustment() const { return GameParameters::MaxMassAdjustment; }
+    float GetMassAdjustment() const { return mMassAdjustment; }
+    void SetMassAdjustment(float value) { mMassAdjustment = value; if (mWorld) mWorld->GetNpcs().OnMassAdjustmentChanged(mMassAdjustment); }
+    float GetMinMassAdjustment() const { return 0.0001f; }
+    float GetMaxMassAdjustment() const { return 100.0f; }
 
-    float GetGravityAdjustment() const { return mGameParameters.GravityAdjustment; }
-    void SetGravityAdjustment(float value) { mGameParameters.GravityAdjustment = value; }
-    float GetMinGravityAdjustment() const { return GameParameters::MinGravityAdjustment; }
-    float GetMaxGravityAdjustment() const { return GameParameters::MaxGravityAdjustment; }
+    float GetGravityAdjustment() const { return mGravityAdjustment; }
+    void SetGravityAdjustment(float value) { mGravityAdjustment = value; if (mWorld) mWorld->GetNpcs().OnGravityAdjustmentChanged(mGravityAdjustment); }
+    float GetMinGravityAdjustment() const { return 0.0f; }
+    float GetMaxGravityAdjustment() const { return 100.0f; }
 
     float GetGlobalDamping() const { return mGameParameters.GlobalDamping; }
     void SetGlobalDamping(float value) { mGameParameters.GlobalDamping = value; }
@@ -311,8 +307,14 @@ private:
     PerfStats mLastPublishedPerfStats;
     GameChronometer::time_point mLastPerfPublishTimestamp;
 
-    bool mIsGravityEnabled;
+    //
+    // Simulation parameters owned by us
+    //
+
+    float mMassAdjustment;
+    float mGravityAdjustment;
     float mOceanDepth;
+
     vec2f mCurrentShipTranslationVelocity;
     float mCurrentShipTranslationAccelerationIndicator;
 

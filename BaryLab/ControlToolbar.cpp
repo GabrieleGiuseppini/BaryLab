@@ -34,8 +34,6 @@ long const ControlToolbar::ID_MOVE_NPC = wxNewId();
 long const ControlToolbar::ID_REMOVE_NPC = wxNewId();
 long const ControlToolbar::ID_ADD_FURNITURE_NPC = wxNewId();
 
-long const ControlToolbar::ID_SET_PARTICLE_GRAVITY = wxNewId();
-
 long const ControlToolbar::ID_SIMULATION_CONTROL_PLAY = wxNewId();
 long const ControlToolbar::ID_SIMULATION_CONTROL_PAUSE = wxNewId();
 long const ControlToolbar::ID_SIMULATION_CONTROL_STEP = wxNewId();
@@ -241,29 +239,6 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
             mRotateMeshByParticleButton->SetToolTip("Rotate the mesh around a particle");
 
             gridSizer->Add(mRotateMeshByParticleButton);
-        }
-
-        // Set particle gravity
-        {
-            mSetParticleGravityButton = new wxBitmapToggleButton(
-                this,
-                ID_SET_PARTICLE_GRAVITY,
-                wxBitmap(
-                    (ResourceLocator::GetResourcesFolderPath() / "gravity_icon.png").string(),
-                    wxBITMAP_TYPE_PNG),
-                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-
-            mSetParticleGravityButton->Bind(wxEVT_TOGGLEBUTTON,
-                [this](wxCommandEvent & /*event*/)
-                {
-                    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_SET_PARTICLE_GRAVITY);
-                    evt.SetInt(mSetParticleGravityButton->GetValue() ? 1 : 0);
-                    ProcessEvent(evt);
-                });
-
-            mSetParticleGravityButton->SetToolTip("Enable gravity for the particles");
-
-            gridSizer->Add(mSetParticleGravityButton);
         }
 
         vSizer->Add(gridSizer, 0, wxALIGN_CENTER | wxALL, 5);
@@ -707,7 +682,6 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
 
 void ControlToolbar::ReconcialiteUI(
     SimulationControlStateType simulationControlState,
-    bool isGravityEnabled,
     bool isViewGridEnabled)
 {
     switch (simulationControlState)
@@ -728,7 +702,6 @@ void ControlToolbar::ReconcialiteUI(
         }
     }
 
-    mSetParticleGravityButton->SetValue(isGravityEnabled);
     mViewControlGridButton->SetValue(isViewGridEnabled);
 }
 

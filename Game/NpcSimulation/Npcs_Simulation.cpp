@@ -446,7 +446,7 @@ void Npcs::UpdateNpcParticlePhysics(
     LogNpcDebug("----------------------------------");
     LogNpcDebug("  ", isPrimaryParticle ? "Primary" : "Secondary");
 
-    float const particleMass = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).Mass * gameParameters.MassAdjustment;
+    float const particleMass = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).Mass * mCurrentMassAdjustment;
     float const dt = GameParameters::SimulationTimeStepDuration;
 
     vec2f const particleStartAbsolutePosition = mParticles.GetPosition(npcParticle.ParticleIndex);
@@ -1193,11 +1193,11 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
     // Calculate world forces
     //
 
-    float const particleMass = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).Mass * gameParameters.MassAdjustment;
+    float const particleMass = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).Mass * mCurrentMassAdjustment;
 
     // 1. World forces - gravity
 
-    vec2f preliminaryForces = GameParameters::Gravity * gameParameters.GravityAdjustment * mGravityGate * particleMass;
+    vec2f preliminaryForces = GameParameters::Gravity * mCurrentGravityAdjustment * particleMass;
 
     if (!npcParticle.ConstrainedState.has_value() && npc.CurrentRegime != StateType::RegimeType::BeingPlaced)
     {
@@ -1254,7 +1254,7 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
 
         float const springStiffnessCoefficient =
             gameParameters.SpringReductionFraction
-            * npc.DipoleState->DipoleProperties.MassFactor * gameParameters.MassAdjustment
+            * npc.DipoleState->DipoleProperties.MassFactor * mCurrentMassAdjustment
             / (dt * dt);
 
         // Calculate spring force on this particle
@@ -1271,7 +1271,7 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
 
         float const springDampingCoefficient =
             gameParameters.SpringDampingCoefficient
-            * npc.DipoleState->DipoleProperties.MassFactor * gameParameters.MassAdjustment
+            * npc.DipoleState->DipoleProperties.MassFactor * mCurrentMassAdjustment
             / dt;
 
         // Calculate damp force on this particle
@@ -1377,6 +1377,11 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
     }
 
     return definitiveForces;
+}
+
+void Npcs::RecalculateSpringForceParameters()
+{
+
 }
 
 void Npcs::UpdateNpcParticle_Free(

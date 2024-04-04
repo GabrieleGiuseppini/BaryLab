@@ -33,18 +33,10 @@ struct GameParameters
     static size_t constexpr MaxParticlesPerNpc = 2u;
 
     //
-    // Simulation
+    // Physics
     //
 
     static float constexpr SimulationTimeStepDuration = 1.0f / 64.0f;
-
-    float MassAdjustment;
-    static float constexpr MinMassAdjustment = 0.0001f;
-    static float constexpr MaxMassAdjustment = 1000.0f;
-
-    float GravityAdjustment;
-    static float constexpr MinGravityAdjustment = 0.0f;
-    static float constexpr MaxGravityAdjustment = 1000.0f;
 
     float GlobalDamping;
     static float constexpr MinGlobalDamping = 0.0f;

@@ -53,7 +53,8 @@ LabController::LabController(
     , mPerfStats()
     , mLastPublishedPerfStats()
     , mLastPerfPublishTimestamp(GameChronometer::now())
-    , mIsGravityEnabled(true)
+    , mMassAdjustment(1.0f)
+    , mGravityAdjustment(1.0f)
     , mOceanDepth(-7.0f)
     , mCurrentShipTranslationVelocity(vec2f::zero())
     , mCurrentShipTranslationAccelerationIndicator(0.0f)
@@ -547,21 +548,6 @@ void LabController::QueryNearestNpcParticleAt(vec2f const & screenCoordinates) c
     }
 }
 
-bool LabController::IsGravityEnabled() const
-{
-    return mIsGravityEnabled;
-}
-
-void LabController::SetGravityEnabled(bool isEnabled)
-{
-    mIsGravityEnabled = isEnabled;
-
-    if (mWorld)
-    {
-        mWorld->GetNpcs().SetGravityEnabled(isEnabled);
-    }
-}
-
 vec2f const & LabController::GetShipVelocity() const
 {
     return mCurrentShipTranslationVelocity;
@@ -1023,8 +1009,11 @@ void LabController::Reset(
         mMaterialDatabase,
         mGameEventHandler,
         mGameParameters,
-        mIsGravityEnabled,
         mOceanDepth);
+
+    // Because we need to use a separate interface
+    mWorld->GetNpcs().OnMassAdjustmentChanged(mMassAdjustment);
+    mWorld->GetNpcs().OnGravityAdjustmentChanged(mGravityAdjustment);
 
     mWorld->AddShip(std::move(ship));
 

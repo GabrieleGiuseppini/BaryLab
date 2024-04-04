@@ -29,7 +29,6 @@ public:
 		MaterialDatabase const & materialDatabase,
 		std::shared_ptr<GameEventDispatcher> gameEventHandler,
 		GameParameters const & gameParameters,
-		bool isGravityEnabled,
 		float oceanDepth)
 		: mGameEventHandler(std::move(gameEventHandler))
 		, mAllShips()
@@ -40,8 +39,7 @@ public:
 			*this,
 			materialDatabase,
 			mGameEventHandler,
-			gameParameters,
-			isGravityEnabled);
+			gameParameters);
 	}
 
 	void AddShip(std::unique_ptr<Ship> ship)

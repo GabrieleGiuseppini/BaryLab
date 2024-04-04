@@ -513,8 +513,7 @@ public:
 		Physics::World & parentWorld,
 		MaterialDatabase const & materialDatabase,
 		std::shared_ptr<GameEventDispatcher> gameEventHandler,
-		GameParameters const & gameParameters,
-		bool isGravityEnabled)
+		GameParameters const & gameParameters)
 		: mParentWorld(parentWorld)
 		, mMaterialDatabase(materialDatabase)
 		, mGameEventHandler(std::move(gameEventHandler))
@@ -527,8 +526,7 @@ public:
 		, mFurnitureNpcCount(0)
 		, mFreeRegimeHumanNpcCount(0)
 		, mConstrainedRegimeHumanNpcCount(0)
-		// Parameters
-		, mGravityGate(isGravityEnabled ? 1.0f : 0.0f)
+		// Simulation Parameters
 		, mCurrentHumanNpcBodyLengthAdjustment(gameParameters.HumanNpcBodyLengthAdjustment)
 	{}
 
@@ -628,14 +626,22 @@ public:
 
 	void OnPointMoved(float currentSimulationTime);
 
-	bool IsGravityEnabled() const
+	void OnMassAdjustmentChanged(float massAdjustment)
 	{
-		return mGravityGate != 0.0f;
+		if (massAdjustment != mCurrentMassAdjustment)
+		{
+			mCurrentMassAdjustment = massAdjustment;
+			RecalculateSpringForceParameters();
+		}
 	}
 
-	void SetGravityEnabled(bool isEnabled)
+	void OnGravityAdjustmentChanged(float gravityAdjustment)
 	{
-		mGravityGate = isEnabled ? 1.0f : 0.0f;
+		if (gravityAdjustment != mCurrentGravityAdjustment)
+		{
+			mCurrentGravityAdjustment = gravityAdjustment;
+			RecalculateSpringForceParameters();
+		}
 	}
 
 	//
@@ -791,6 +797,8 @@ private:
 		bool isPrimaryParticle,
 		float particleMass,
 		GameParameters const & gameParameters) const;
+
+	void RecalculateSpringForceParameters();
 
 	void UpdateNpcParticle_Free(
 		StateType::NpcParticleStateType & particle,
@@ -1091,13 +1099,19 @@ private:
 	ElementCount mConstrainedRegimeHumanNpcCount;
 
 	//
-	// Simulation parameters, owned by us.
+	// Simulation parameters
 	//
-
-	float mGravityGate;
 
 	// Cached from game parameters
 	float mCurrentHumanNpcBodyLengthAdjustment;
+
+#ifdef IN_BARYLAB
+
+	// Cached from LabController
+	float mCurrentMassAdjustment{ 1.0f };
+	float mCurrentGravityAdjustment{ 1.0f };
+
+#endif
 
 #ifdef IN_BARYLAB
 
