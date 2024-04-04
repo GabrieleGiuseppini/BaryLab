@@ -7,8 +7,6 @@
 
 GameParameters::GameParameters()
 	: GlobalDamping(0.0078f)
-	, SpringReductionFraction(0.39f) // At least for humans, larger than this causes heads to pull up feet
-	, SpringDampingCoefficient(0.5f)
 	, ElasticityAdjustment(1.0f)
 	, StaticFrictionAdjustment(1.0f)
 	, KineticFrictionAdjustment(1.0f)
@@ -17,6 +15,8 @@ GameParameters::GameParameters()
 	// Misc
 	, ToolSearchRadius(0.3f)
 	// NPC
+	, NpcSpringReductionFraction(0.39f) // At least for humans, larger than this causes heads to pull up feet
+	, NpcSpringDampingCoefficient(0.5f)
 	, HumanNpcEquilibriumTorqueStiffnessCoefficient(0.0032f)
 	, HumanNpcEquilibriumTorqueDampingCoefficient(0.055f)
 	, HumanNpcWalkingSpeedAdjustment(1.0f)

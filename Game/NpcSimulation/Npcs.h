@@ -110,16 +110,19 @@ private:
 		struct DipolePropertiesType final
 		{
 			float DipoleLength;
-			float MassFactor; // Net of MassAdjustment
-			float BaseStiffnessCoefficient;
+			float MassFactor; // Purely from materials
+
+			// Calculated
+			float SpringStiffnessCoefficient;
+			float SpringDampingCoefficient;
 
 			DipolePropertiesType(
 				float dipoleLength,
-				float massFactor,
-				float baseStiffnessCoefficient)
+				float massFactor)
 				: DipoleLength(dipoleLength)
 				, MassFactor(massFactor)
-				, BaseStiffnessCoefficient(baseStiffnessCoefficient)
+				, SpringStiffnessCoefficient(0.0f) // Will be recalculated
+				, SpringDampingCoefficient(0.0f) // Will be recalculated
 			{}
 		};
 
@@ -528,6 +531,8 @@ public:
 		, mConstrainedRegimeHumanNpcCount(0)
 		// Simulation Parameters
 		, mCurrentHumanNpcBodyLengthAdjustment(gameParameters.HumanNpcBodyLengthAdjustment)
+		, mCurrentSpringReductionFraction(gameParameters.NpcSpringReductionFraction)
+		, mCurrentSpringDampingCoefficient(gameParameters.NpcSpringReductionFraction)
 	{}
 
 	void Update(
@@ -738,8 +743,6 @@ private:
 
 	void PublishHumanNpcStats();
 
-	void OnHumanNpcBodyLengthAdjustmentChanged(float newHumanNpcBodyLengthAdjustment);
-
 private:
 
 	//
@@ -799,6 +802,10 @@ private:
 		GameParameters const & gameParameters) const;
 
 	void RecalculateSpringForceParameters();
+
+	void RecalculateSpringForceParameters(StateType::DipolePropertiesType & dipoleProperties) const;
+
+	void RecalculateHumanNpcBodyLengths();
 
 	void UpdateNpcParticle_Free(
 		StateType::NpcParticleStateType & particle,
@@ -1104,6 +1111,8 @@ private:
 
 	// Cached from game parameters
 	float mCurrentHumanNpcBodyLengthAdjustment;
+	float mCurrentSpringReductionFraction;
+	float mCurrentSpringDampingCoefficient;
 
 #ifdef IN_BARYLAB
 

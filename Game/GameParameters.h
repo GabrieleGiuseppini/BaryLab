@@ -42,13 +42,7 @@ struct GameParameters
     static float constexpr MinGlobalDamping = 0.0f;
     static float constexpr MaxGlobalDamping = 1.0f;
 
-    float SpringReductionFraction;
-    static float constexpr MinSpringReductionFraction = 0.0f;
-    static float constexpr MaxSpringReductionFraction = 2.0f;
-
-    float SpringDampingCoefficient;
-    static float constexpr MinSpringDampingCoefficient = 0.0f;
-    static float constexpr MaxSpringDampingCoefficient = 1.0f;
+    // TODO: the following 3 should probably be renamed as "Npc_" for the port
 
     float ElasticityAdjustment;
     static float constexpr MinElasticityAdjustment = 0.0f;
@@ -85,6 +79,14 @@ struct GameParameters
     //
     // NPCs
     //
+
+    float NpcSpringReductionFraction;
+    static float constexpr MinNpcSpringReductionFraction = 0.0f;
+    static float constexpr MaxNpcSpringReductionFraction = 2.0f;
+
+    float NpcSpringDampingCoefficient;
+    static float constexpr MinNpcSpringDampingCoefficient = 0.0f;
+    static float constexpr MaxNpcSpringDampingCoefficient = 1.0f;
 
     float HumanNpcEquilibriumTorqueStiffnessCoefficient;
     static float constexpr MinHumanNpcEquilibriumTorqueStiffnessCoefficient = 0.0f;

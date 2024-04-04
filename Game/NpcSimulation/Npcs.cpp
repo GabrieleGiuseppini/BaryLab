@@ -22,7 +22,18 @@ void Npcs::Update(
 
 	if (gameParameters.HumanNpcBodyLengthAdjustment != mCurrentHumanNpcBodyLengthAdjustment)
 	{
-		OnHumanNpcBodyLengthAdjustmentChanged(gameParameters.HumanNpcBodyLengthAdjustment);
+		mCurrentHumanNpcBodyLengthAdjustment = gameParameters.HumanNpcBodyLengthAdjustment;
+
+		RecalculateHumanNpcBodyLengths();
+	}
+
+	if (gameParameters.NpcSpringReductionFraction != mCurrentSpringReductionFraction
+		|| gameParameters.NpcSpringDampingCoefficient != mCurrentSpringDampingCoefficient)
+	{
+		mCurrentSpringReductionFraction = gameParameters.NpcSpringReductionFraction;
+		mCurrentSpringDampingCoefficient = gameParameters.NpcSpringDampingCoefficient;
+
+		RecalculateSpringForceParameters();
 	}
 
 	//
@@ -370,12 +381,15 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 		(feetMaterial.Mass * headMaterial.Mass)
 		/ (feetMaterial.Mass + headMaterial.Mass);
 
+	StateType::DipolePropertiesType dipoleProperties(
+		height * mCurrentHumanNpcBodyLengthAdjustment,
+		massFactor);
+
+	RecalculateSpringForceParameters(dipoleProperties);
+
 	StateType::DipoleStateType dipoleState = StateType::DipoleStateType(
 		std::move(secondaryParticleState),
-		StateType::DipolePropertiesType(
-			height * mCurrentHumanNpcBodyLengthAdjustment,
-			massFactor,
-			1.0f));
+		dipoleProperties);
 
 	// Human
 
@@ -1733,24 +1747,6 @@ void Npcs::PublishHumanNpcStats()
 	mGameEventHandler->OnHumanNpcCountsUpdated(
 		mConstrainedRegimeHumanNpcCount,
 		mFreeRegimeHumanNpcCount);
-}
-
-void Npcs::OnHumanNpcBodyLengthAdjustmentChanged(float newHumanNpcBodyLengthAdjustment)
-{
-	// Adjust all humans' dipole lengths
-	for (auto & state : mStateBuffer)
-	{
-		if (state.has_value())
-		{
-			if (state->Kind == NpcKindType::Human)
-			{
-				assert(state->DipoleState.has_value());
-				state->DipoleState->DipoleProperties.DipoleLength = state->KindSpecificState.HumanNpcState.Height * newHumanNpcBodyLengthAdjustment;
-			}
-		}
-	}
-
-	mCurrentHumanNpcBodyLengthAdjustment = newHumanNpcBodyLengthAdjustment;
 }
 
 }

@@ -1047,6 +1047,8 @@ void LabController::Reset(
         mRenderContext->SetCameraWorldPosition(objectCenter);
     }
 
+#ifndef _DEBUG
+
     //
     // Add initial NPCs
     //
@@ -1066,6 +1068,8 @@ void LabController::Reset(
             throw GameException("Cannot add NPC!");
         }
     }
+
+#endif
 
     //
     // Publish reset

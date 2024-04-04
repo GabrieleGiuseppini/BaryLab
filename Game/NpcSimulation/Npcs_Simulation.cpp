@@ -446,7 +446,12 @@ void Npcs::UpdateNpcParticlePhysics(
     LogNpcDebug("----------------------------------");
     LogNpcDebug("  ", isPrimaryParticle ? "Primary" : "Secondary");
 
-    float const particleMass = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).Mass * mCurrentMassAdjustment;
+    float const particleMass =
+        mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).Mass
+#ifdef IN_BARYLAB
+        * mCurrentMassAdjustment
+#endif
+        ;
     float const dt = GameParameters::SimulationTimeStepDuration;
 
     vec2f const particleStartAbsolutePosition = mParticles.GetPosition(npcParticle.ParticleIndex);
@@ -1193,11 +1198,21 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
     // Calculate world forces
     //
 
-    float const particleMass = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).Mass * mCurrentMassAdjustment;
+    float const particleMass =
+        mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).Mass
+#ifdef IN_BARYLAB
+        * mCurrentMassAdjustment
+#endif
+        ;
 
     // 1. World forces - gravity
 
-    vec2f preliminaryForces = GameParameters::Gravity * mCurrentGravityAdjustment * particleMass;
+    vec2f preliminaryForces =
+        GameParameters::Gravity
+#ifdef IN_BARYLAB
+        * mCurrentGravityAdjustment
+#endif
+        * particleMass;
 
     if (!npcParticle.ConstrainedState.has_value() && npc.CurrentRegime != StateType::RegimeType::BeingPlaced)
     {
@@ -1252,15 +1267,10 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
         // 3a. Hooke's law
         //
 
-        float const springStiffnessCoefficient =
-            gameParameters.SpringReductionFraction
-            * npc.DipoleState->DipoleProperties.MassFactor * mCurrentMassAdjustment
-            / (dt * dt);
-
         // Calculate spring force on this particle
         float const fSpring =
             (springDisplacementLength - npc.DipoleState->DipoleProperties.DipoleLength)
-            * springStiffnessCoefficient;
+            * npc.DipoleState->DipoleProperties.SpringStiffnessCoefficient;
 
         //
         // 3b. Damper forces
@@ -1269,16 +1279,11 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
         // along the same direction as the spring
         //
 
-        float const springDampingCoefficient =
-            gameParameters.SpringDampingCoefficient
-            * npc.DipoleState->DipoleProperties.MassFactor * mCurrentMassAdjustment
-            / dt;
-
         // Calculate damp force on this particle
         vec2f const relVelocity = mParticles.GetVelocity(otherParticleIndex) - mParticles.GetVelocity(npcParticle.ParticleIndex);
         float const fDamp =
             relVelocity.dot(springDir)
-            * springDampingCoefficient;
+            * npc.DipoleState->DipoleProperties.SpringDampingCoefficient;
 
         //
         // Apply forces
@@ -1381,7 +1386,50 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
 
 void Npcs::RecalculateSpringForceParameters()
 {
+    // Visit all dipoles
 
+    for (auto & npc : mStateBuffer)
+    {
+        if (npc.has_value() && npc->DipoleState.has_value())
+        {
+            RecalculateSpringForceParameters(npc->DipoleState->DipoleProperties);
+        }
+    }
+}
+
+void Npcs::RecalculateSpringForceParameters(StateType::DipolePropertiesType & dipoleProperties) const
+{
+    dipoleProperties.SpringStiffnessCoefficient =
+        mCurrentSpringReductionFraction
+        * dipoleProperties.MassFactor
+#ifdef IN_BARYLAB
+        * mCurrentMassAdjustment
+#endif
+        / (GameParameters::SimulationTimeStepDuration * GameParameters::SimulationTimeStepDuration);
+
+    dipoleProperties.SpringDampingCoefficient =
+        mCurrentSpringDampingCoefficient
+        * dipoleProperties.MassFactor
+#ifdef IN_BARYLAB
+        * mCurrentMassAdjustment
+#endif
+        / GameParameters::SimulationTimeStepDuration;
+}
+
+void Npcs::RecalculateHumanNpcBodyLengths()
+{
+    // Adjust all humans' dipole lengths
+    for (auto & state : mStateBuffer)
+    {
+        if (state.has_value())
+        {
+            if (state->Kind == NpcKindType::Human)
+            {
+                assert(state->DipoleState.has_value());
+                state->DipoleState->DipoleProperties.DipoleLength = state->KindSpecificState.HumanNpcState.Height * mCurrentHumanNpcBodyLengthAdjustment;
+            }
+        }
+    }
 }
 
 void Npcs::UpdateNpcParticle_Free(
