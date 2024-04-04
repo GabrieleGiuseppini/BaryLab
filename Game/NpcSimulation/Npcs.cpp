@@ -92,7 +92,7 @@ void Npcs::RenderUpload(
 
 	assert(renderContext.GetNpcRenderMode() == NpcRenderModeType::Limbs);
 
-	renderContext.UploadNpcQuadsStart();
+	renderContext.UploadNpcQuadsStart(mFurnitureNpcCount + mHumanNpcCount * 6);
 
 #ifdef IN_BARYLAB
 	// For furniture
@@ -206,9 +206,15 @@ void Npcs::OnShipRemoved(ShipId shipId)
 				--mFreeRegimeHumanNpcCount;
 				doPublishHumanNpcStats = true;
 			}
-		}
 
-		--mNpcCount;
+			--mHumanNpcCount;
+		}
+		else
+		{
+			assert(mStateBuffer[npcId]->Kind == NpcKindType::Furniture);
+
+			--mFurnitureNpcCount;
+		}
 
 		mStateBuffer[npcId].reset();
 	}
@@ -234,7 +240,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 	// Check if there are enough NPCs and particles
 	//
 
-	if (mNpcCount >= GameParameters::MaxNpcs || mParticles.GetRemainingParticlesCount() < 2)
+	if ((mHumanNpcCount + mFurnitureNpcCount) >= GameParameters::MaxNpcs || mParticles.GetRemainingParticlesCount() < 2)
 	{
 		return std::nullopt;
 	}
@@ -295,7 +301,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 	// Update stats
 	//
 
-	++mNpcCount;
+	++mFurnitureNpcCount;
 
 	return PickedObjectId<NpcId>(npcId, vec2f::zero());
 }
@@ -309,7 +315,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 	// Check if there are enough NPCs and particles
 	//
 
-	if (mNpcCount >= GameParameters::MaxNpcs || mParticles.GetRemainingParticlesCount() < 2)
+	if ((mHumanNpcCount + mFurnitureNpcCount) >= GameParameters::MaxNpcs || mParticles.GetRemainingParticlesCount() < 2)
 	{
 		return std::nullopt;
 	}
@@ -413,7 +419,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 	// Update stats
 	//
 
-	++mNpcCount;
+	++mHumanNpcCount;
 
 	return PickedObjectId<NpcId>(npcId, vec2f::zero());
 }
@@ -723,9 +729,15 @@ void Npcs::RemoveNpc(NpcId id)
 			--mFreeRegimeHumanNpcCount;
 			PublishHumanNpcStats();
 		}
-	}
 
-	--mNpcCount;
+		--mHumanNpcCount;
+	}
+	else
+	{
+		assert(mStateBuffer[id]->Kind == NpcKindType::Furniture);
+
+		--mFurnitureNpcCount;
+	}
 
 	//
 	// Update ship indices

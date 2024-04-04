@@ -522,8 +522,9 @@ public:
 		, mStateBuffer()
 		, mShips()
 		, mParticles(GameParameters::MaxNpcs * GameParameters::MaxParticlesPerNpc)
-		// State
-		, mNpcCount(0)
+		// Stats
+		, mHumanNpcCount(0)
+		, mFurnitureNpcCount(0)
 		, mFreeRegimeHumanNpcCount(0)
 		, mConstrainedRegimeHumanNpcCount(0)
 		// Parameters
@@ -1081,10 +1082,11 @@ private:
 	NpcParticles mParticles;
 
 	//
-	// State
+	// Stats
 	//
 
-	ElementCount mNpcCount;
+	ElementCount mHumanNpcCount;
+	ElementCount mFurnitureNpcCount;
 	ElementCount mFreeRegimeHumanNpcCount;
 	ElementCount mConstrainedRegimeHumanNpcCount;
 

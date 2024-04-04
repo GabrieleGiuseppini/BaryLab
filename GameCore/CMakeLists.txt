@@ -7,6 +7,7 @@ set  (SOURCES
 	AABB.h
 	BarycentricCoords.cpp
 	BarycentricCoords.h
+	BoundedVector.h
 	Buffer.h
 	CircularList.h
 	Colors.cpp

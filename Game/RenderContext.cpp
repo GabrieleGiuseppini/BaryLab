@@ -449,77 +449,13 @@ void RenderContext::UploadEdgesEnd()
     }
 }
 
-void RenderContext::UploadNpcQuadsStart()
+void RenderContext::UploadNpcQuadsStart(size_t quadCount)
 {
     //
     // Prepare buffer
     //
 
-    mNpcQuadVertexBuffer.clear();
-}
-
-void RenderContext::UploadNpcQuad(
-    PlaneId /*planeId*/,
-    Quadf const & quad,
-    float faceOrientation,
-    float faceDirectionX,
-    NpcHighlightType highlight)
-{
-    float const backDepth = std::max(-faceOrientation, 0.0f);
-    float const orientationDepth = std::abs(faceDirectionX);
-
-    if (faceDirectionX == 0.0f)
-        faceDirectionX = 1.0f; // Front/Back are different textures altogether
-
-    vec4f const overlayColor = NpcHighlightToOverlayColor(highlight);
-
-    // Left, bottom
-    mNpcQuadVertexBuffer.emplace_back(
-        quad.BottomLeft,
-        vec2f(-faceDirectionX, -1.0f),
-        backDepth,
-        orientationDepth,
-        overlayColor);
-
-    // Left, top
-    mNpcQuadVertexBuffer.emplace_back(
-        quad.TopLeft,
-        vec2f(-faceDirectionX, 1.0f),
-        backDepth,
-        orientationDepth,
-        overlayColor);
-
-    // Right, bottom
-    mNpcQuadVertexBuffer.emplace_back(
-        quad.BottomRight,
-        vec2f(faceDirectionX, -1.0f),
-        backDepth,
-        orientationDepth,
-        overlayColor);
-
-    // Left, top
-    mNpcQuadVertexBuffer.emplace_back(
-        quad.TopLeft,
-        vec2f(-faceDirectionX, 1.0f),
-        backDepth,
-        orientationDepth,
-        overlayColor);
-
-    // Right, bottom
-    mNpcQuadVertexBuffer.emplace_back(
-        quad.BottomRight,
-        vec2f(faceDirectionX, -1.0f),
-        backDepth,
-        orientationDepth,
-        overlayColor);
-
-    // Right, top
-    mNpcQuadVertexBuffer.emplace_back(
-        quad.TopRight,
-        vec2f(faceDirectionX, 1.0f),
-        backDepth,
-        orientationDepth,
-        overlayColor);
+    mNpcQuadVertexBuffer.reset(quadCount * 6);
 }
 
 void RenderContext::UploadNpcQuadsEnd()
