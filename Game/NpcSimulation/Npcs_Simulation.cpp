@@ -2445,6 +2445,8 @@ void Npcs::UpdateNpcAnimation(
                     //
 
                     //
+                    // Using parametric eq's (tl=scalar from leg1 to leg2, te=scalar from edg1 to edg2):
+                    //
                     // leg1 + tl * (leg2 - leg1) = edg1 + te * (edg2 - edg1)
                     // =>
                     // tl = (edg1.y - leg1.y) * (edg2.x - edg1.x) + (leg1.x - edg1.x) * (edg2.y - edg1.y)
