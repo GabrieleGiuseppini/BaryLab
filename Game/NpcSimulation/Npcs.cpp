@@ -1366,6 +1366,7 @@ void Npcs::RenderNpc(
 		{
 			assert(npc.DipoleState.has_value());
 			auto const & humanNpcState = npc.KindSpecificState.HumanNpcState;
+			auto const & animationState = humanNpcState.AnimationState;
 
 			// Note:
 			// - head, neck, shoulder, crotch, feet: based on current dipole length; anchor point is feet
@@ -1378,26 +1379,17 @@ void Npcs::RenderNpc(
 			vec2f const actualBodyVDir = -actualBodyVector.normalise(); // From head to feet - facilitates arm and length angle-making
 			vec2f const actualBodyHDir = actualBodyVDir.to_perpendicular(); // Points R (of the screen)
 
-			vec2f const crotchPosition = feetPosition + actualBodyVector * (GameParameters::HumanNpcGeometry::LegLengthFraction * humanNpcState.LowerExtremityLengthMultiplier);
+			vec2f const crotchPosition = feetPosition + actualBodyVector * (GameParameters::HumanNpcGeometry::LegLengthFraction * animationState.LowerExtremityLengthMultiplier);
 			vec2f const headPosition = crotchPosition + actualBodyVector * (GameParameters::HumanNpcGeometry::HeadLengthFraction + GameParameters::HumanNpcGeometry::TorsoLengthFraction);
 			vec2f const neckPosition = headPosition - actualBodyVector * GameParameters::HumanNpcGeometry::HeadLengthFraction;
 			vec2f const shoulderPosition = neckPosition - actualBodyVector * GameParameters::HumanNpcGeometry::ArmDepthFraction / 2.0f;
 
-			float const cosLeftArmAngle = std::cos(humanNpcState.LeftArmAngle);
-			float const sinLeftArmAngle = std::sin(humanNpcState.LeftArmAngle);
-			float const cosRightArmAngle = std::cos(humanNpcState.RightArmAngle);
-			float const sinRightArmAngle = std::sin(humanNpcState.RightArmAngle);
-			float const cosLeftLegAngle = std::cos(humanNpcState.LeftLegAngle);
-			float const sinLeftLegAngle = std::sin(humanNpcState.LeftLegAngle);
-			float const cosRightLegAngle = std::cos(humanNpcState.RightLegAngle);
-			float const sinRightLegAngle = std::sin(humanNpcState.RightLegAngle);
-
 			// Arm and Leg lengths are relative to ideal
 			float const adjustedIdealHumanHeight = humanNpcState.Height * mCurrentHumanNpcBodyLengthAdjustment;
-			float const leftArmLength = adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::ArmLengthFraction * humanNpcState.LeftArmLengthMultiplier;
-			float const rightArmLength = adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::ArmLengthFraction * humanNpcState.RightArmLengthMultiplier;
-			float const leftLegLength = adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::LegLengthFraction * humanNpcState.LeftLegLengthMultiplier;
-			float const rightLegLength = adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::LegLengthFraction * humanNpcState.RightLegLengthMultiplier;
+			float const leftArmLength = adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::ArmLengthFraction * animationState.LeftArmLengthMultiplier;
+			float const rightArmLength = adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::ArmLengthFraction * animationState.RightArmLengthMultiplier;
+			float const leftLegLength = adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::LegLengthFraction * animationState.LeftLegLengthMultiplier;
+			float const rightLegLength = adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::LegLengthFraction * animationState.RightLegLengthMultiplier;
 
 			if (humanNpcState.CurrentFaceOrientation != 0.0f)
 			{
@@ -1436,7 +1428,7 @@ void Npcs::RenderNpc(
 					// Front
 
 					// Left arm (on left side of the screen)
-					vec2f const leftArmVector = actualBodyVDir.rotate(cosLeftArmAngle, sinLeftArmAngle) * leftArmLength;
+					vec2f const leftArmVector = actualBodyVDir.rotate(animationState.LeftArmAngleCos, animationState.LeftArmAngleSin) * leftArmLength;
 					vec2f const leftArmTraverseDir = leftArmVector.normalise().to_perpendicular();
 					shipRenderContext.UploadNpcQuad(
 						planeId,
@@ -1450,7 +1442,7 @@ void Npcs::RenderNpc(
 						npc.Highlight);
 
 					// Right arm (on right side of the screen)
-					vec2f const rightArmVector = actualBodyVDir.rotate(cosRightArmAngle, sinRightArmAngle) * rightArmLength;
+					vec2f const rightArmVector = actualBodyVDir.rotate(animationState.RightArmAngleCos, animationState.RightArmAngleSin) * rightArmLength;
 					vec2f const rightArmTraverseDir = rightArmVector.normalise().to_perpendicular();
 					shipRenderContext.UploadNpcQuad(
 						planeId,
@@ -1464,7 +1456,7 @@ void Npcs::RenderNpc(
 						npc.Highlight);
 
 					// Left leg (on left side of the screen)
-					vec2f const leftLegVector = actualBodyVDir.rotate(cosLeftLegAngle, sinLeftLegAngle) * leftLegLength;
+					vec2f const leftLegVector = actualBodyVDir.rotate(animationState.LeftLegAngleCos, animationState.LeftLegAngleSin) * leftLegLength;
 					vec2f const leftLegTraverseDir = leftLegVector.normalise().to_perpendicular();
 					shipRenderContext.UploadNpcQuad(
 						planeId,
@@ -1478,7 +1470,7 @@ void Npcs::RenderNpc(
 						npc.Highlight);
 
 					// Right leg (on right side of the screen)
-					vec2f const rightLegVector = actualBodyVDir.rotate(cosRightLegAngle, sinRightLegAngle) * rightLegLength;
+					vec2f const rightLegVector = actualBodyVDir.rotate(animationState.RightLegAngleCos, animationState.RightLegAngleSin) * rightLegLength;
 					vec2f const rightLegTraverseDir = rightLegVector.normalise().to_perpendicular();
 					shipRenderContext.UploadNpcQuad(
 						planeId,
@@ -1496,7 +1488,7 @@ void Npcs::RenderNpc(
 					// Back
 
 					// Left arm (on right side of screen)
-					vec2f const leftArmVector = actualBodyVDir.rotate(cosLeftArmAngle, -sinLeftArmAngle) * leftArmLength;
+					vec2f const leftArmVector = actualBodyVDir.rotate(animationState.LeftArmAngleCos, -animationState.LeftArmAngleSin) * leftArmLength;
 					vec2f const leftArmTraverseDir = leftArmVector.normalise().to_perpendicular();
 					shipRenderContext.UploadNpcQuad(
 						planeId,
@@ -1510,7 +1502,7 @@ void Npcs::RenderNpc(
 						npc.Highlight);
 
 					// Right arm (on left side of the screen)
-					vec2f const rightArmVector = actualBodyVDir.rotate(cosRightArmAngle, -sinRightArmAngle) * rightArmLength;
+					vec2f const rightArmVector = actualBodyVDir.rotate(animationState.RightArmAngleCos, -animationState.RightArmAngleSin) * rightArmLength;
 					vec2f const rightArmTraverseDir = rightArmVector.normalise().to_perpendicular();
 					shipRenderContext.UploadNpcQuad(
 						planeId,
@@ -1524,7 +1516,7 @@ void Npcs::RenderNpc(
 						npc.Highlight);
 
 					// Left leg (on right side of the screen)
-					vec2f const leftLegVector = actualBodyVDir.rotate(cosLeftLegAngle, -sinLeftLegAngle) * leftLegLength;
+					vec2f const leftLegVector = actualBodyVDir.rotate(animationState.LeftLegAngleCos, -animationState.LeftLegAngleSin) * leftLegLength;
 					vec2f const leftLegTraverseDir = leftLegVector.normalise().to_perpendicular();
 					shipRenderContext.UploadNpcQuad(
 						planeId,
@@ -1538,7 +1530,7 @@ void Npcs::RenderNpc(
 						npc.Highlight);
 
 					// Right leg (on left side of the screen)
-					vec2f const rightLegVector = actualBodyVDir.rotate(cosRightLegAngle, -sinRightLegAngle) * rightLegLength;
+					vec2f const rightLegVector = actualBodyVDir.rotate(animationState.RightLegAngleCos, -animationState.RightLegAngleSin) * rightLegLength;
 					vec2f const rightLegTraverseDir = rightLegVector.normalise().to_perpendicular();
 					shipRenderContext.UploadNpcQuad(
 						planeId,
@@ -1578,7 +1570,7 @@ void Npcs::RenderNpc(
 
 				// Note: angles are with vertical, regardless of L/R
 
-				vec2f const leftArmVector = actualBodyVDir.rotate(cosLeftArmAngle, sinLeftArmAngle) * leftArmLength;
+				vec2f const leftArmVector = actualBodyVDir.rotate(animationState.LeftArmAngleCos, animationState.LeftArmAngleSin) * leftArmLength;
 				vec2f const leftArmTraverseDir = leftArmVector.normalise().to_perpendicular();
 				Quadf leftArmQuad(
 					shoulderPosition - leftArmTraverseDir * halfArmD,
@@ -1586,7 +1578,7 @@ void Npcs::RenderNpc(
 					shoulderPosition + leftArmVector - leftArmTraverseDir * halfArmD,
 					shoulderPosition + leftArmVector + leftArmTraverseDir * halfArmD);
 
-				vec2f const rightArmVector = actualBodyVDir.rotate(cosRightArmAngle, sinRightArmAngle) * rightArmLength;
+				vec2f const rightArmVector = actualBodyVDir.rotate(animationState.RightArmAngleCos, animationState.RightArmAngleSin) * rightArmLength;
 				vec2f const rightArmTraverseDir = rightArmVector.normalise().to_perpendicular();
 				Quadf rightArmQuad(
 					shoulderPosition - rightArmTraverseDir * halfArmD,
@@ -1594,7 +1586,7 @@ void Npcs::RenderNpc(
 					shoulderPosition + rightArmVector - rightArmTraverseDir * halfArmD,
 					shoulderPosition + rightArmVector + rightArmTraverseDir * halfArmD);
 
-				vec2f const leftLegVector = actualBodyVDir.rotate(cosLeftLegAngle, sinLeftLegAngle) * leftLegLength;
+				vec2f const leftLegVector = actualBodyVDir.rotate(animationState.LeftLegAngleCos, animationState.LeftLegAngleSin) * leftLegLength;
 				vec2f const leftLegTraverseDir = leftLegVector.normalise().to_perpendicular();
 				Quadf leftLegQuad(
 					crotchPosition - leftLegTraverseDir * halfLegD,
@@ -1602,7 +1594,7 @@ void Npcs::RenderNpc(
 					crotchPosition + leftLegVector - leftLegTraverseDir * halfLegD,
 					crotchPosition + leftLegVector + leftLegTraverseDir * halfLegD);
 
-				vec2f const rightLegVector = actualBodyVDir.rotate(cosRightLegAngle, sinRightLegAngle) * rightLegLength;
+				vec2f const rightLegVector = actualBodyVDir.rotate(animationState.RightLegAngleCos, animationState.RightLegAngleSin) * rightLegLength;
 				vec2f const rightLegTraverseDir = rightLegVector.normalise().to_perpendicular();
 				Quadf rightLegQuad(
 					crotchPosition - rightLegTraverseDir * halfLegD,
@@ -1744,9 +1736,10 @@ void Npcs::RenderNpc(
 
 void Npcs::PublishHumanNpcStats()
 {
-	mGameEventHandler->OnHumanNpcCountsUpdated(
-		mConstrainedRegimeHumanNpcCount,
-		mFreeRegimeHumanNpcCount);
+	// TODOTEST
+	////mGameEventHandler->OnHumanNpcCountsUpdated(
+	////	mConstrainedRegimeHumanNpcCount,
+	////	mFreeRegimeHumanNpcCount);
 }
 
 }

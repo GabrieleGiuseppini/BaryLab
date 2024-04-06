@@ -299,24 +299,57 @@ private:
 
 				// Animation
 
-				// Angles are CCW relative to vertical, regardless of where the NPC is looking towards (L/R)
-				// (when we flip we pretend immediate mirroring of limbs from the point of view of the human,
-				// so angles are independent from direction, and animation is smoother)
+				struct AnimationStateType
+				{
+					// Angles are CCW relative to vertical, regardless of where the NPC is looking towards (L/R)
+					// (when we flip we pretend immediate mirroring of limbs from the point of view of the human,
+					// so angles are independent from direction, and animation is smoother)
 
-				// "Left" and "Right" are relative to screen when the NPC is looking at us
-				// (so "right arm" is really its left arm)
-				float RightLegAngle;
-				float RightLegLengthMultiplier;
-				float LeftLegAngle;
-				float LeftLegLengthMultiplier;
-				float RightArmAngle;
-				float RightArmLengthMultiplier;
-				float LeftArmAngle;
-				float LeftArmLengthMultiplier;
-				float LowerExtremityLengthMultiplier; // Multiplier for the part of the body from the crotch down to the feet
+					// "Left" and "Right" are relative to screen when the NPC is looking at us
+					// (so "right arm" is really its left arm)
+					float RightLegAngle;
+					float RightLegAngleCos;
+					float RightLegAngleSin;
+					float LeftLegAngle;
+					float LeftLegAngleCos;
+					float LeftLegAngleSin;
+					float RightArmAngle;
+					float RightArmAngleCos;
+					float RightArmAngleSin;
+					float LeftArmAngle;
+					float LeftArmAngleCos;
+					float LeftArmAngleSin;
 
-				static float constexpr InitialArmAngle = Pi<float> / 2.0f * 0.3f;
-				static float constexpr InitialLegAngle = 0.2f;
+					static float constexpr InitialArmAngle = Pi<float> / 2.0f * 0.3f;
+					static float constexpr InitialLegAngle = 0.2f;
+
+					float RightLegLengthMultiplier;
+					float LeftLegLengthMultiplier;
+					float RightArmLengthMultiplier;
+					float LeftArmLengthMultiplier;
+					float LowerExtremityLengthMultiplier; // Multiplier for the part of the body from the crotch down to the feet
+
+					AnimationStateType()
+						: RightLegAngle(InitialLegAngle)
+						, RightLegAngleCos(std::cos(RightLegAngle))
+						, RightLegAngleSin(std::sin(RightLegAngle))
+						, LeftLegAngle(-InitialLegAngle)
+						, LeftLegAngleCos(std::cos(LeftLegAngle))
+						, LeftLegAngleSin(std::sin(LeftLegAngle))
+						, RightArmAngle(InitialArmAngle)
+						, RightArmAngleCos(std::cos(RightArmAngle))
+						, RightArmAngleSin(std::sin(RightArmAngle))
+						, LeftArmAngle(-InitialArmAngle)
+						, LeftArmAngleCos(std::cos(LeftArmAngle))
+						, LeftArmAngleSin(std::sin(LeftArmAngle))
+						//
+						, RightLegLengthMultiplier(1.0f)
+						, LeftLegLengthMultiplier(1.0f)
+						, RightArmLengthMultiplier(1.0f)
+						, LeftArmLengthMultiplier(1.0f)
+						, LowerExtremityLengthMultiplier(1.0f)
+					{}
+				} AnimationState;
 
 				HumanNpcStateType(
 					HumanNpcKindType kind,
@@ -334,15 +367,7 @@ private:
 					, GeneralizedPanicLevel(0.0f)
 					, ResultantPanicLevel(0.0f)
 					// Animation
-					, RightLegAngle(InitialLegAngle)
-					, RightLegLengthMultiplier(1.0f)
-					, LeftLegAngle(-InitialLegAngle)
-					, LeftLegLengthMultiplier(1.0f)
-					, RightArmAngle(InitialArmAngle)
-					, RightArmLengthMultiplier(1.0f)
-					, LeftArmAngle(-InitialArmAngle)
-					, LeftArmLengthMultiplier(1.0f)
-					, LowerExtremityLengthMultiplier(1.0f)
+					, AnimationState()
 				{
 					TransitionToState(initialBehavior, currentSimulationTime);
 				}
