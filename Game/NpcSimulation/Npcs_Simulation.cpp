@@ -2794,6 +2794,8 @@ void Npcs::UpdateNpcAnimation(
                     //                                  edg X leg
                     //
 
+                    float constexpr MaxLengthMultiplier = 1.4f;
+
                     float const adjustedStandardLegLength = GameParameters::HumanNpcGeometry::LegLengthFraction * adjustedStandardHumanHeight;
                     vec2f const crotchPosition = feetPosition - actualBodyVector * (GameParameters::HumanNpcGeometry::LegLengthFraction * targetLowerExtremityLengthMultiplier);
 
@@ -2802,23 +2804,34 @@ void Npcs::UpdateNpcAnimation(
 
                     {
                         vec2f const legrVector = actualBodyDir.rotate(animationState.RightLegAngleCos, animationState.RightLegAngleSin) * adjustedStandardLegLength;
-                        //vec2f const legrVector = actualBodyDir.rotate(targetRightLegAngle) * adjustedStandardLegLength;
                         float const edgCrossRightLeg = edgVector.cross(legrVector);
                         if (std::abs(edgCrossRightLeg) > 0.0000001f)
                         {
-                            targetRightLegLengthMultiplier = numerator / edgCrossRightLeg;
+                            //targetRightLegLengthMultiplier = numerator / edgCrossRightLeg;
+                            float const candidate = numerator / edgCrossRightLeg;
+                            if (candidate > 0.01f)
+                            {
+                                targetRightLegLengthMultiplier = std::min(candidate, MaxLengthMultiplier);
+                            }
                         }
                     }
 
                     {
                         vec2f const leglVector = actualBodyDir.rotate(animationState.LeftLegAngleCos, animationState.LeftLegAngleSin) * adjustedStandardLegLength;
-                        //vec2f const leglVector = actualBodyDir.rotate(targetLeftLegAngle) * adjustedStandardLegLength;
                         float const edgCrossLeftLeg = edgVector.cross(leglVector);
                         if (std::abs(edgCrossLeftLeg) > 0.0000001f)
                         {
-                            targetLeftLegLengthMultiplier = numerator / edgCrossLeftLeg;
+                            //targetLeftLegLengthMultiplier = numerator / edgCrossLeftLeg;
+                            float const candidate = numerator / edgCrossLeftLeg;
+                            if (candidate > 0.01f)
+                            {
+                                targetLeftLegLengthMultiplier = std::min(candidate, MaxLengthMultiplier);
+                            }
                         }
                     }
+
+                    // Lower convergence rate to cope with "edge problem"
+                    convergenceRate = 0.09f;
                 }
 
                 break;
