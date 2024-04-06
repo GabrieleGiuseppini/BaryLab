@@ -1986,7 +1986,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
     {
         LogNpcDebug("    NavigateVertex: iter=", iIter);
 
-        assert(iIter < 5); // Detect and break on infinite loops
+        assert(iIter < 5); // Detect and debug-break on infinite loops
 
         // The two vertices around the vertex we are on - seen in clockwise order
         int const nextVertexOrdinal = (vertexOrdinal + 1) % 3;
@@ -2830,7 +2830,7 @@ void Npcs::UpdateNpcAnimation(
                         }
                     }
 
-                    // Lower convergence rate to cope with "edge problem"
+                    // Lower convergence rate to cope with "edge problem" (bouncing against vertical wall and causing huge discontinuities in legs)
                     convergenceRate = 0.09f;
                 }
 
