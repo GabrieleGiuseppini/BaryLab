@@ -48,6 +48,28 @@ class Npcs final
 {
 private:
 
+#pragma pack(push)
+
+	struct LimbVector
+	{
+		float RightLeg;
+		float LeftLeg;
+		float RightArm;
+		float LeftArm;
+
+		float const * fptr() const
+		{
+			return &(RightLeg);
+		}
+
+		float * fptr()
+		{
+			return &(RightLeg);
+		}
+	};
+
+#pragma pack(pop)
+
 	//
 	// The NPC state.
 	//
@@ -307,46 +329,21 @@ private:
 
 					// "Left" and "Right" are relative to screen when the NPC is looking at us
 					// (so "right arm" is really its left arm)
-					float RightLegAngle;
-					float RightLegAngleCos;
-					float RightLegAngleSin;
-					float LeftLegAngle;
-					float LeftLegAngleCos;
-					float LeftLegAngleSin;
-					float RightArmAngle;
-					float RightArmAngleCos;
-					float RightArmAngleSin;
-					float LeftArmAngle;
-					float LeftArmAngleCos;
-					float LeftArmAngleSin;
+					LimbVector LimbAngles;
+					LimbVector LimbAnglesCos;
+					LimbVector LimbAnglesSin;
 
 					static float constexpr InitialArmAngle = Pi<float> / 2.0f * 0.3f;
 					static float constexpr InitialLegAngle = 0.2f;
 
-					float RightLegLengthMultiplier;
-					float LeftLegLengthMultiplier;
-					float RightArmLengthMultiplier;
-					float LeftArmLengthMultiplier;
+					LimbVector LimbLengthMultipliers;
 					float LowerExtremityLengthMultiplier; // Multiplier for the part of the body from the crotch down to the feet
 
 					AnimationStateType()
-						: RightLegAngle(InitialLegAngle)
-						, RightLegAngleCos(std::cos(RightLegAngle))
-						, RightLegAngleSin(std::sin(RightLegAngle))
-						, LeftLegAngle(-InitialLegAngle)
-						, LeftLegAngleCos(std::cos(LeftLegAngle))
-						, LeftLegAngleSin(std::sin(LeftLegAngle))
-						, RightArmAngle(InitialArmAngle)
-						, RightArmAngleCos(std::cos(RightArmAngle))
-						, RightArmAngleSin(std::sin(RightArmAngle))
-						, LeftArmAngle(-InitialArmAngle)
-						, LeftArmAngleCos(std::cos(LeftArmAngle))
-						, LeftArmAngleSin(std::sin(LeftArmAngle))
-						//
-						, RightLegLengthMultiplier(1.0f)
-						, LeftLegLengthMultiplier(1.0f)
-						, RightArmLengthMultiplier(1.0f)
-						, LeftArmLengthMultiplier(1.0f)
+						: LimbAngles({ InitialLegAngle, -InitialLegAngle, InitialArmAngle, -InitialArmAngle })
+						, LimbAnglesCos({std::cosf(LimbAngles.RightLeg), std::cosf(LimbAngles.LeftLeg), std::cosf(LimbAngles.RightArm), std::cosf(LimbAngles.LeftArm)})
+						, LimbAnglesSin({ std::sinf(LimbAngles.RightLeg), std::sinf(LimbAngles.LeftLeg), std::sinf(LimbAngles.RightArm), std::sinf(LimbAngles.LeftArm) })
+						, LimbLengthMultipliers({1.0f, 1.0f, 1.0f, 1.0f})
 						, LowerExtremityLengthMultiplier(1.0f)
 					{}
 				} AnimationState;

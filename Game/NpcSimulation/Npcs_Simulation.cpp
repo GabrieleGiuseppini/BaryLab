@@ -2228,10 +2228,7 @@ void Npcs::UpdateNpcAnimation(
         // Angles
         //
 
-        float targetRightArmAngle = animationState.RightArmAngle;
-        float targetLeftArmAngle = animationState.LeftArmAngle;
-        float targetRightLegAngle = animationState.RightLegAngle;
-        float targetLeftLegAngle = animationState.LeftLegAngle;
+        LimbVector targetAngles(animationState.LimbAngles);
 
         float convergenceRate = 0.0f;
 
@@ -2250,12 +2247,12 @@ void Npcs::UpdateNpcAnimation(
                     + humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition * 0.2f;
 
                 float const yArms = std::sin(arg * Pi<float> * 2.0f);
-                targetRightArmAngle = Pi<float> / 2.0f + Pi<float> / 2.0f * 0.8f * yArms;
-                targetLeftArmAngle = -targetRightArmAngle;
+                targetAngles.RightArm = Pi<float> / 2.0f + Pi<float> / 2.0f * 0.8f * yArms;
+                targetAngles.LeftArm = -targetAngles.RightArm;
 
                 float const yLegs = std::sin(arg * Pi<float> * 2.0f + npc.RandomNormalizedUniformSeed * Pi<float> * 2.0f);
-                targetRightLegAngle = (1.0f + yLegs) / 2.0f * Pi<float> / 2.0f * 0.45f;
-                targetLeftLegAngle = -targetRightLegAngle;
+                targetAngles.RightLeg = (1.0f + yLegs) / 2.0f * Pi<float> / 2.0f * 0.45f;
+                targetAngles.LeftLeg = -targetAngles.RightLeg;
 
                 convergenceRate = 0.3f;
 
@@ -2265,12 +2262,12 @@ void Npcs::UpdateNpcAnimation(
             case HumanNpcStateType::BehaviorType::Constrained_Rising:
             {
                 // Arms slightly open
-                targetRightArmAngle = HumanNpcStateType::AnimationStateType::InitialArmAngle;
-                targetLeftArmAngle = -HumanNpcStateType::AnimationStateType::InitialArmAngle;
+                targetAngles.RightArm = HumanNpcStateType::AnimationStateType::InitialArmAngle;
+                targetAngles.LeftArm = -HumanNpcStateType::AnimationStateType::InitialArmAngle;
 
                 // Legs slightly open
-                targetRightLegAngle = HumanNpcStateType::AnimationStateType::InitialLegAngle * 2.0f;
-                targetLeftLegAngle = -HumanNpcStateType::AnimationStateType::InitialLegAngle * 2.0f;
+                targetAngles.RightLeg = HumanNpcStateType::AnimationStateType::InitialLegAngle * 2.0f;
+                targetAngles.LeftLeg = -HumanNpcStateType::AnimationStateType::InitialLegAngle * 2.0f;
 
                 // Leg and arm that are against floor "help"
                 if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualEdgeOrdinal >= 0)
@@ -2301,18 +2298,18 @@ void Npcs::UpdateNpcAnimation(
                         if (humanEdgeAngle <= MaxAngle)
                         {
                             // Quadratically
-                            targetLeftArmAngle = -(1.0f - (MaxAngle - humanEdgeAngle) * (MaxAngle - humanEdgeAngle) / (MaxAngle * MaxAngle)) * Pi<float> / 2.0f;
+                            targetAngles.LeftArm = -(1.0f - (MaxAngle - humanEdgeAngle) * (MaxAngle - humanEdgeAngle) / (MaxAngle * MaxAngle)) * Pi<float> / 2.0f;
                         }
                         else
                         {
-                            targetLeftArmAngle = -Pi<float> / 2.0f - (MaxAngle - humanEdgeAngle) / (MaxAngle - Pi<float> / 2.0f) * (HumanNpcStateType::AnimationStateType::InitialArmAngle - Pi<float> / 2.0f);
+                            targetAngles.LeftArm = -Pi<float> / 2.0f - (MaxAngle - humanEdgeAngle) / (MaxAngle - Pi<float> / 2.0f) * (HumanNpcStateType::AnimationStateType::InitialArmAngle - Pi<float> / 2.0f);
                         }
 
                         // Right arm helps
-                        targetRightArmAngle = targetLeftArmAngle + 0.15f;
+                        targetAngles.RightArm = targetAngles.LeftArm + 0.15f;
 
                         // Right leg slightly more open
-                        targetRightLegAngle *= 0.2f;
+                        targetAngles.RightLeg *= 0.2f;
                     }
                     else
                     {
@@ -2326,18 +2323,18 @@ void Npcs::UpdateNpcAnimation(
                         if (humanEdgeAngle >= Pi<float> - MaxAngle)
                         {
                             // Quadratically
-                            targetRightArmAngle = Pi<float> / 2.0f - (Pi<float> - MaxAngle - humanEdgeAngle) * (Pi<float> -MaxAngle - humanEdgeAngle) / (MaxAngle * MaxAngle) * (Pi<float> / 2.0f);
+                            targetAngles.RightArm = Pi<float> / 2.0f - (Pi<float> - MaxAngle - humanEdgeAngle) * (Pi<float> -MaxAngle - humanEdgeAngle) / (MaxAngle * MaxAngle) * (Pi<float> / 2.0f);
                         }
                         else
                         {
-                            targetRightArmAngle = HumanNpcStateType::AnimationStateType::InitialArmAngle + (humanEdgeAngle - Pi<float> / 2.0f) / (Pi<float> -MaxAngle - Pi<float> / 2.0f) * (Pi<float> / 2.0f - HumanNpcStateType::AnimationStateType::InitialArmAngle);
+                            targetAngles.RightArm = HumanNpcStateType::AnimationStateType::InitialArmAngle + (humanEdgeAngle - Pi<float> / 2.0f) / (Pi<float> -MaxAngle - Pi<float> / 2.0f) * (Pi<float> / 2.0f - HumanNpcStateType::AnimationStateType::InitialArmAngle);
                         }
 
                         // Left arm helps
-                        targetLeftArmAngle = targetRightArmAngle - 0.15f;
+                        targetAngles.LeftArm = targetAngles.RightArm - 0.15f;
 
                         // Left leg slightly more open
-                        targetLeftLegAngle *= 0.2f;
+                        targetAngles.LeftLeg *= 0.2f;
                     }
                 }
 
@@ -2352,11 +2349,11 @@ void Npcs::UpdateNpcAnimation(
 
                 float constexpr ArmsAngle = HumanNpcStateType::AnimationStateType::InitialArmAngle;
 
-                targetRightArmAngle = ArmsAngle;
-                targetLeftArmAngle = -ArmsAngle;
+                targetAngles.RightArm = ArmsAngle;
+                targetAngles.LeftArm = -ArmsAngle;
 
-                targetRightLegAngle = 0.0f;
-                targetLeftLegAngle = 0.0f;
+                targetAngles.RightLeg = 0.0f;
+                targetAngles.LeftLeg = 0.0f;
 
                 convergenceRate = 0.1f;
 
@@ -2382,8 +2379,8 @@ void Npcs::UpdateNpcAnimation(
 
                 float const legAngle = std::abs(stepLength - distanceInTwoSteps) / stepLength * 2.0f * MaxLegAngle - MaxLegAngle;
 
-                targetRightLegAngle = legAngle;
-                targetLeftLegAngle = -legAngle;
+                targetAngles.RightLeg = legAngle;
+                targetAngles.LeftLeg = -legAngle;
 
                 // Arms depend on panic
                 if (humanNpcState.ResultantPanicLevel < 0.0001f)
@@ -2393,7 +2390,7 @@ void Npcs::UpdateNpcAnimation(
                     // At base speed (1m/s): 1.4
                     // Swing more
                     float const apertureMultiplier = 1.4f + (actualWalkingSpeed - 1.0f) * 0.4f;
-                    targetRightArmAngle = targetLeftLegAngle * apertureMultiplier;
+                    targetAngles.RightArm = targetAngles.LeftLeg * apertureMultiplier;
                 }
                 else
                 {
@@ -2408,9 +2405,9 @@ void Npcs::UpdateNpcAnimation(
 
                     // PanicMultiplier: p=0.0 => 1.0 p=2.0 => 0.4
                     float const panicMultiplier = 0.4f + 0.6f * (1.0f - std::min(humanNpcState.ResultantPanicLevel, 2.0f) / 2.0f);
-                    targetRightArmAngle = Pi<float> -angle * panicMultiplier;
+                    targetAngles.RightArm = Pi<float> -angle * panicMultiplier;
                 }
-                targetLeftArmAngle = -targetRightArmAngle;
+                targetAngles.LeftArm = -targetAngles.RightArm;
 
                 convergenceRate = 0.25f;
 
@@ -2438,8 +2435,8 @@ void Npcs::UpdateNpcAnimation(
 
                     float const bodyToVirtualEdgeAlignment = std::abs(edgDir.dot(actualBodyDir.to_perpendicular()));
                     float const angleLimitFactor = bodyToVirtualEdgeAlignment * bodyToVirtualEdgeAlignment * bodyToVirtualEdgeAlignment;
-                    targetRightLegAngle *= angleLimitFactor;
-                    targetLeftLegAngle *= angleLimitFactor;
+                    targetAngles.RightLeg *= angleLimitFactor;
+                    targetAngles.LeftLeg *= angleLimitFactor;
                 }
 
                 break;
@@ -2468,13 +2465,13 @@ void Npcs::UpdateNpcAnimation(
                     // ...but not against face direction
                     if (humanNpcState.CurrentFaceDirectionX >= 0.0f)
                     {
-                        targetRightArmAngle = Pi<float> / 2.0f * targetDepth + 0.09f;
-                        targetLeftArmAngle = targetRightArmAngle - 0.18f;
+                        targetAngles.RightArm = Pi<float> / 2.0f * targetDepth + 0.09f;
+                        targetAngles.LeftArm = targetAngles.RightArm - 0.18f;
                     }
                     else
                     {
-                        targetRightArmAngle = 0.0f;
-                        targetLeftArmAngle = 0.0f;
+                        targetAngles.RightArm = 0.0f;
+                        targetAngles.LeftArm = 0.0f;
                     }
                 }
                 else
@@ -2483,21 +2480,21 @@ void Npcs::UpdateNpcAnimation(
                    // ...but not against face direction
                     if (humanNpcState.CurrentFaceDirectionX <= 0.0f)
                     {
-                        targetLeftArmAngle = -Pi<float> / 2.0f * targetDepth - 0.09f;
-                        targetRightArmAngle = targetLeftArmAngle + 0.18f;
+                        targetAngles.LeftArm = -Pi<float> / 2.0f * targetDepth - 0.09f;
+                        targetAngles.RightArm = targetAngles.LeftArm + 0.18f;
                     }
                     else
                     {
-                        targetRightArmAngle = 0.0f;
-                        targetLeftArmAngle = 0.0f;
+                        targetAngles.RightArm = 0.0f;
+                        targetAngles.LeftArm = 0.0f;
                     }
                 }
 
                 convergenceRate = 0.08f * (0.2f + targetDepth);
 
                 // Close legs
-                targetRightLegAngle = 0.05f;
-                targetLeftLegAngle = -0.05f;
+                targetAngles.RightLeg = 0.05f;
+                targetAngles.LeftLeg = -0.05f;
 
                 break;
             }
@@ -2511,30 +2508,30 @@ void Npcs::UpdateNpcAnimation(
                 {
                     // Arms: +/- PI or 0, depending on where they are now
 
-                    if (animationState.RightArmAngle >= -Pi<float> / 2.0f
-                        && animationState.RightArmAngle <= Pi<float> / 2.0f)
+                    if (animationState.LimbAngles.RightArm >= -Pi<float> / 2.0f
+                        && animationState.LimbAngles.RightArm <= Pi<float> / 2.0f)
                     {
-                        targetRightArmAngle = 0.0f;
+                        targetAngles.RightArm = 0.0f;
                     }
                     else
                     {
-                        targetRightArmAngle = Pi<float>;
+                        targetAngles.RightArm = Pi<float>;
                     }
 
-                    if (animationState.LeftArmAngle >= -Pi<float> / 2.0f
-                        && animationState.LeftArmAngle <= Pi<float> / 2.0f)
+                    if (animationState.LimbAngles.LeftArm >= -Pi<float> / 2.0f
+                        && animationState.LimbAngles.LeftArm <= Pi<float> / 2.0f)
                     {
-                        targetLeftArmAngle = 0.0f;
+                        targetAngles.LeftArm = 0.0f;
                     }
                     else
                     {
-                        targetLeftArmAngle = Pi<float>;
+                        targetAngles.LeftArm = Pi<float>;
                     }
 
                     // Legs: 0
 
-                    targetRightLegAngle = 0.0f;
-                    targetLeftLegAngle = 0.0f;
+                    targetAngles.RightLeg = 0.0f;
+                    targetAngles.LeftLeg = 0.0f;
 
                     convergenceRate = 0.05f; // Quite slow
                 }
@@ -2562,8 +2559,8 @@ void Npcs::UpdateNpcAnimation(
                 float const armAngle = (primaryContrainedState.has_value() && IsOnFloorEdge(*primaryContrainedState, shipMesh))
                     ? Pi<float> / 2.0f
                     : Pi<float> - (Pi<float> / 2.0f) / std::exp(horizontality * 2.2f);
-                targetRightArmAngle = armAngle;
-                targetLeftArmAngle = -targetRightArmAngle;
+                targetAngles.RightArm = armAngle;
+                targetAngles.LeftArm = -targetAngles.RightArm;
 
                 if (humanNpcState.CurrentBehavior != HumanNpcStateType::BehaviorType::Constrained_KnockedOut)
                 {
@@ -2576,8 +2573,8 @@ void Npcs::UpdateNpcAnimation(
                     vec2f const relativeVelocity = mParticles.GetVelocity(primaryParticleIndex) - mParticles.GetVelocity(secondaryParticleIndex);
                     float const relVelPerpToBody = relativeVelocity.dot(actualBodyDir.to_perpendicular());
                     float const legAngleOffset = -SmoothStep(0.0f, 3.0f, std::abs(relVelPerpToBody)) * (LegRestAngle + 0.3f) * (relVelPerpToBody < 0.0f ? -1.0f : 1.0f);
-                    targetRightLegAngle = legAngle - legAngleOffset;
-                    targetLeftLegAngle = -legAngle - legAngleOffset;
+                    targetAngles.RightLeg = legAngle - legAngleOffset;
+                    targetAngles.LeftLeg = -legAngle - legAngleOffset;
                 }
                 else
                 {
@@ -2641,8 +2638,8 @@ void Npcs::UpdateNpcAnimation(
                 float const armAngle =
                     armCenterAngle
                     + (y * 2.0f - 1.0f) * ArmAngleAmplitude / 2.0f * (depthDamper * 0.75f + 0.25f);
-                targetRightArmAngle = armAngle;
-                targetLeftArmAngle = -targetRightArmAngle;
+                targetAngles.RightArm = armAngle;
+                targetAngles.LeftArm = -targetAngles.RightArm;
 
                 // Legs:flapping around a (small) angle, which becomes even smaller
                 // width depth amplitude depending on depth
@@ -2651,8 +2648,8 @@ void Npcs::UpdateNpcAnimation(
                 float const legAngle =
                     legCenterAngle
                     + (y * 2.0f - 1.0f) * LegAngleAmplitude / 2.0f * (depthDamper * 0.35f + 0.65f);
-                targetRightLegAngle = legAngle;
-                targetLeftLegAngle = -targetRightLegAngle;
+                targetAngles.RightLeg = legAngle;
+                targetAngles.LeftLeg = -targetAngles.RightLeg;
 
                 // Convergence rate depends on how long we've been in this state
                 float const MaxConvergenceWait = 3.5f;
@@ -2683,12 +2680,12 @@ void Npcs::UpdateNpcAnimation(
                     : 1.0f - (inPeriod - (Period / 2.0f)) / (Period / 2.0f);
 
                 // Arms: around a small angle
-                targetRightArmAngle = StateType::KindSpecificStateType::HumanNpcStateType::AnimationStateType::InitialArmAngle + (periodicValue - 0.5f) * Pi<float>/8.0f;
-                targetLeftArmAngle = -targetRightArmAngle;
+                targetAngles.RightArm = StateType::KindSpecificStateType::HumanNpcStateType::AnimationStateType::InitialArmAngle + (periodicValue - 0.5f) * Pi<float>/8.0f;
+                targetAngles.LeftArm = -targetAngles.RightArm;
 
                 // Legs: perfectly vertical
-                targetRightLegAngle = 0.0f;
-                targetLeftLegAngle = 0.0f;
+                targetAngles.RightLeg = 0.0f;
+                targetAngles.LeftLeg = 0.0f;
 
                 // Convergence rate depends on how long we've been in this state
                 float const MaxConvergenceWait = 3.5f;
@@ -2723,18 +2720,18 @@ void Npcs::UpdateNpcAnimation(
                 float const angle2 = -StateType::KindSpecificStateType::HumanNpcStateType::AnimationStateType::InitialArmAngle;
                 if (npc.RandomNormalizedUniformSeed < 0.5f)
                 {
-                    targetRightArmAngle = angle1;
-                    targetLeftArmAngle = angle2;
+                    targetAngles.RightArm = angle1;
+                    targetAngles.LeftArm = angle2;
                 }
                 else
                 {
-                    targetRightArmAngle = -angle2;
-                    targetLeftArmAngle = -angle1;
+                    targetAngles.RightArm = -angle2;
+                    targetAngles.LeftArm = -angle1;
                 }
 
                 // Legs: perfectly vertical
-                targetRightLegAngle = 0.0f;
-                targetLeftLegAngle = 0.0f;
+                targetAngles.RightLeg = 0.0f;
+                targetAngles.LeftLeg = 0.0f;
 
                 // Convergence rate depends on how long we've been in this state
                 float const MaxConvergenceWait = 3.5f;
@@ -2744,27 +2741,19 @@ void Npcs::UpdateNpcAnimation(
             }
         }
 
-        animationState.RightArmAngle += (targetRightArmAngle - animationState.RightArmAngle) * convergenceRate;
-        animationState.RightArmAngleCos = std::cos(animationState.RightArmAngle);
-        animationState.RightArmAngleSin = std::sin(animationState.RightArmAngle);
-        animationState.LeftArmAngle += (targetLeftArmAngle - animationState.LeftArmAngle) * convergenceRate;
-        animationState.LeftArmAngleCos = std::cos(animationState.LeftArmAngle);
-        animationState.LeftArmAngleSin = std::sin(animationState.LeftArmAngle);
-        animationState.RightLegAngle += (targetRightLegAngle - animationState.RightLegAngle) * convergenceRate;
-        animationState.RightLegAngleCos = std::cos(animationState.RightLegAngle);
-        animationState.RightLegAngleSin = std::sin(animationState.RightLegAngle);
-        animationState.LeftLegAngle += (targetLeftLegAngle - animationState.LeftLegAngle) * convergenceRate;
-        animationState.LeftLegAngleCos = std::cos(animationState.LeftLegAngle);
-        animationState.LeftLegAngleSin = std::sin(animationState.LeftLegAngle);
+        animationState.LimbAngles.RightLeg += (targetAngles.RightLeg - animationState.LimbAngles.RightLeg) * convergenceRate;
+        animationState.LimbAngles.LeftLeg += (targetAngles.LeftLeg - animationState.LimbAngles.LeftLeg) * convergenceRate;
+        animationState.LimbAngles.RightArm += (targetAngles.RightArm - animationState.LimbAngles.RightArm) * convergenceRate;
+        animationState.LimbAngles.LeftArm += (targetAngles.LeftArm - animationState.LimbAngles.LeftArm) * convergenceRate;
+
+        // Calculate sins and coss
+        SinCos4(animationState.LimbAngles.fptr(), animationState.LimbAnglesSin.fptr(), animationState.LimbAnglesCos.fptr());
 
         //
         // Length Multipliers
         //
 
-        float targetRightArmLengthMultiplier = 1.0f;
-        float targetLeftArmLengthMultiplier = 1.0f;
-        float targetRightLegLengthMultiplier = 1.0f;
-        float targetLeftLegLengthMultiplier = 1.0f;
+        LimbVector targetLengthMultipliers({ 1.0f, 1.0f, 1.0f, 1.0f });
         float targetLowerExtremityLengthMultiplier = 1.0f;
 
         switch (humanNpcState.CurrentBehavior)
@@ -2772,7 +2761,7 @@ void Npcs::UpdateNpcAnimation(
             case HumanNpcStateType::BehaviorType::Constrained_Walking:
             {
                 // Take into account that crotch is lower
-                targetLowerExtremityLengthMultiplier = animationState.RightLegAngleCos;
+                targetLowerExtremityLengthMultiplier = animationState.LimbAnglesCos.RightLeg;
 
                 if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualEdgeOrdinal >= 0)
                 {
@@ -2803,7 +2792,7 @@ void Npcs::UpdateNpcAnimation(
                     float const numerator = (edg1.y - crotchPosition.y) * (edg2.x - edg1.x) + (crotchPosition.x - edg1.x) * (edg2.y - edg1.y);
 
                     {
-                        vec2f const legrVector = actualBodyDir.rotate(animationState.RightLegAngleCos, animationState.RightLegAngleSin) * adjustedStandardLegLength;
+                        vec2f const legrVector = actualBodyDir.rotate(animationState.LimbAnglesCos.RightLeg, animationState.LimbAnglesSin.RightLeg) * adjustedStandardLegLength;
                         float const edgCrossRightLeg = edgVector.cross(legrVector);
                         if (std::abs(edgCrossRightLeg) > 0.0000001f)
                         {
@@ -2811,13 +2800,13 @@ void Npcs::UpdateNpcAnimation(
                             float const candidate = numerator / edgCrossRightLeg;
                             if (candidate > 0.01f)
                             {
-                                targetRightLegLengthMultiplier = std::min(candidate, MaxLengthMultiplier);
+                                targetLengthMultipliers.RightLeg = std::min(candidate, MaxLengthMultiplier);
                             }
                         }
                     }
 
                     {
-                        vec2f const leglVector = actualBodyDir.rotate(animationState.LeftLegAngleCos, animationState.LeftLegAngleSin) * adjustedStandardLegLength;
+                        vec2f const leglVector = actualBodyDir.rotate(animationState.LimbAnglesCos.LeftLeg, animationState.LimbAnglesSin.LeftLeg) * adjustedStandardLegLength;
                         float const edgCrossLeftLeg = edgVector.cross(leglVector);
                         if (std::abs(edgCrossLeftLeg) > 0.0000001f)
                         {
@@ -2825,7 +2814,7 @@ void Npcs::UpdateNpcAnimation(
                             float const candidate = numerator / edgCrossLeftLeg;
                             if (candidate > 0.01f)
                             {
-                                targetLeftLegLengthMultiplier = std::min(candidate, MaxLengthMultiplier);
+                                targetLengthMultipliers.LeftLeg = std::min(candidate, MaxLengthMultiplier);
                             }
                         }
                     }
@@ -2844,8 +2833,8 @@ void Npcs::UpdateNpcAnimation(
                 //
 
                 float constexpr TrappelenExtent = 0.3f;
-                targetRightLegLengthMultiplier = 1.0f - (1.0f - periodicValue) * TrappelenExtent;
-                targetLeftLegLengthMultiplier = 1.0f - periodicValue * TrappelenExtent;
+                targetLengthMultipliers.RightLeg = 1.0f - (1.0f - periodicValue) * TrappelenExtent;
+                targetLengthMultipliers.LeftLeg = 1.0f - periodicValue * TrappelenExtent;
 
                 break;
             }
@@ -2857,8 +2846,8 @@ void Npcs::UpdateNpcAnimation(
                 //
 
                 float constexpr TrappelenExtent = 0.3f;
-                targetRightLegLengthMultiplier = 1.0f - (1.0f - periodicValue) * TrappelenExtent;
-                targetLeftLegLengthMultiplier = 1.0f - periodicValue * TrappelenExtent;
+                targetLengthMultipliers.RightLeg = 1.0f - (1.0f - periodicValue) * TrappelenExtent;
+                targetLengthMultipliers.LeftLeg = 1.0f - periodicValue * TrappelenExtent;
 
                 break;
             }
@@ -2878,10 +2867,10 @@ void Npcs::UpdateNpcAnimation(
             }
         }
 
-        animationState.RightArmLengthMultiplier += (targetRightArmLengthMultiplier - animationState.RightArmLengthMultiplier) * convergenceRate;
-        animationState.LeftArmLengthMultiplier += (targetLeftArmLengthMultiplier - animationState.LeftArmLengthMultiplier) * convergenceRate;
-        animationState.RightLegLengthMultiplier += (targetRightLegLengthMultiplier - animationState.RightLegLengthMultiplier) * convergenceRate;
-        animationState.LeftLegLengthMultiplier += (targetLeftLegLengthMultiplier - animationState.LeftLegLengthMultiplier) * convergenceRate;
+        animationState.LimbLengthMultipliers.RightLeg += (targetLengthMultipliers.RightLeg - animationState.LimbLengthMultipliers.RightLeg) * convergenceRate;
+        animationState.LimbLengthMultipliers.LeftLeg += (targetLengthMultipliers.LeftLeg - animationState.LimbLengthMultipliers.LeftLeg) * convergenceRate;
+        animationState.LimbLengthMultipliers.RightArm += (targetLengthMultipliers.RightArm - animationState.LimbLengthMultipliers.RightArm) * convergenceRate;
+        animationState.LimbLengthMultipliers.LeftArm += (targetLengthMultipliers.LeftArm - animationState.LimbLengthMultipliers.LeftArm) * convergenceRate;
         animationState.LowerExtremityLengthMultiplier += (targetLowerExtremityLengthMultiplier - animationState.LowerExtremityLengthMultiplier) * convergenceRate;
     }
 }

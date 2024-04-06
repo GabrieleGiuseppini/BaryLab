@@ -839,6 +839,14 @@ void MainFrame::OnSimulationTimer(wxTimerEvent & /*event*/)
     assert(!!mProbeToolbar);
 
     mProbeToolbar->Update();
+
+    // TODOTEST
+    static int TODO = 0;
+    ++TODO;
+    if (TODO > 10 * 64)
+    {
+        Close();
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
