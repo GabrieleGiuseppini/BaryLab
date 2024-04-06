@@ -2741,10 +2741,8 @@ void Npcs::UpdateNpcAnimation(
             }
         }
 
-        animationState.LimbAngles.RightLeg += (targetAngles.RightLeg - animationState.LimbAngles.RightLeg) * convergenceRate;
-        animationState.LimbAngles.LeftLeg += (targetAngles.LeftLeg - animationState.LimbAngles.LeftLeg) * convergenceRate;
-        animationState.LimbAngles.RightArm += (targetAngles.RightArm - animationState.LimbAngles.RightArm) * convergenceRate;
-        animationState.LimbAngles.LeftArm += (targetAngles.LeftArm - animationState.LimbAngles.LeftArm) * convergenceRate;
+        // Converge
+        animationState.LimbAngles.ConvergeTo(targetAngles, convergenceRate);
 
         // Calculate sins and coss
         SinCos4(animationState.LimbAngles.fptr(), animationState.LimbAnglesSin.fptr(), animationState.LimbAnglesCos.fptr());
@@ -2867,11 +2865,8 @@ void Npcs::UpdateNpcAnimation(
             }
         }
 
-        animationState.LimbLengthMultipliers.RightLeg += (targetLengthMultipliers.RightLeg - animationState.LimbLengthMultipliers.RightLeg) * convergenceRate;
-        animationState.LimbLengthMultipliers.LeftLeg += (targetLengthMultipliers.LeftLeg - animationState.LimbLengthMultipliers.LeftLeg) * convergenceRate;
-        animationState.LimbLengthMultipliers.RightArm += (targetLengthMultipliers.RightArm - animationState.LimbLengthMultipliers.RightArm) * convergenceRate;
-        animationState.LimbLengthMultipliers.LeftArm += (targetLengthMultipliers.LeftArm - animationState.LimbLengthMultipliers.LeftArm) * convergenceRate;
-        animationState.LowerExtremityLengthMultiplier += (targetLowerExtremityLengthMultiplier - animationState.LowerExtremityLengthMultiplier) * convergenceRate;
+        // Converge
+        animationState.LimbLengthMultipliers.ConvergeTo(targetLengthMultipliers, convergenceRate);
     }
 }
 

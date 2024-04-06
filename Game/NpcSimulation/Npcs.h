@@ -18,6 +18,7 @@
 #include <GameCore/GameTypes.h>
 #include <GameCore/Log.h>
 #include <GameCore/StrongTypeDef.h>
+#include <GameCore/SysSpecifics.h>
 #include <GameCore/Vectors.h>
 
 #include <memory>
@@ -65,6 +66,27 @@ private:
 		float * fptr()
 		{
 			return &(RightLeg);
+		}
+
+		void ConvergeTo(LimbVector const & target, float convergenceRate)
+		{
+#if FS_IS_ARCHITECTURE_X86_32() || FS_IS_ARCHITECTURE_X86_64()
+			__m128 v = _mm_loadu_ps(fptr());
+			__m128 t = _mm_loadu_ps(target.fptr());
+			__m128 r = _mm_set_ps1(convergenceRate);
+			_mm_storeu_ps(
+				fptr(),
+				_mm_add_ps(
+					v,
+					_mm_mul_ps(
+						_mm_sub_ps(t, v),
+						r)));
+#else
+			RightLeg += (target.RightLeg - RightLeg) * convergenceRate;
+			LeftLeg += (target.LeftLeg - LeftLeg) * convergenceRate;
+			RightArm += (target.RightArm - RightArm) * convergenceRate;
+			LeftArm += (target.LeftArm - LeftArm) * convergenceRate;
+#endif
 		}
 	};
 
