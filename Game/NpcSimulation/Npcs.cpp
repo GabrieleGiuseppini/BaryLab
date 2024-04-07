@@ -1568,7 +1568,7 @@ void Npcs::RenderNpc(
 				float const halfArmD = (adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::ArmDepthFraction) / 2.0f;
 				float const halfLegD = (adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::LegDepthFraction) / 2.0f;
 
-				// Note: angles are with vertical, regardless of L/R
+				// Note: angles are with body vertical, regardless of L/R
 
 				vec2f const leftArmVector = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftArm, animationState.LimbAnglesSin.LeftArm) * leftArmLength;
 				vec2f const leftArmTraverseDir = leftArmVector.normalise().to_perpendicular();
