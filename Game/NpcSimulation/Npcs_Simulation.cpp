@@ -2228,7 +2228,7 @@ void Npcs::UpdateNpcAnimation(
         // Angles
         //
 
-        LimbVector targetAngles(animationState.LimbAngles);
+        FS_ALIGN16_BEG LimbVector targetAngles(animationState.LimbAngles) FS_ALIGN16_END;
 
         float convergenceRate = 0.0f;
 
@@ -2366,7 +2366,7 @@ void Npcs::UpdateNpcAnimation(
                 // Calculate leg angle based on distance traveled
                 //
 
-                float const actualWalkingSpeed = CalculateActualHumanWalkingAbsoluteSpeed(humanNpcState, gameParameters);
+                float const actualWalkingSpeed = CalculateActualHumanWalkingAbsoluteSpeed(humanNpcState, gameParameters); // Add some dependency on walking speed
                 float const actualHalfStepLengthFraction = (GameParameters::HumanNpcGeometry::StepLengthFraction * std::sqrt(actualWalkingSpeed) / 2.0f);
                 float const MaxLegAngle = std::atan(actualHalfStepLengthFraction / GameParameters::HumanNpcGeometry::LegLengthFraction);
 
@@ -2751,7 +2751,7 @@ void Npcs::UpdateNpcAnimation(
         // Length Multipliers
         //
 
-        LimbVector targetLengthMultipliers({ 1.0f, 1.0f, 1.0f, 1.0f });
+        FS_ALIGN16_BEG LimbVector targetLengthMultipliers({ 1.0f, 1.0f, 1.0f, 1.0f }) FS_ALIGN16_END;
         float targetLowerExtremityLengthMultiplier = 1.0f;
 
         switch (humanNpcState.CurrentBehavior)

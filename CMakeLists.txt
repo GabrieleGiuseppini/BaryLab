@@ -126,7 +126,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 		if(${flag_var} MATCHES "/W3")
 			string(REGEX REPLACE "/W3" "" ${flag_var} "${${flag_var}}")
 		endif(${flag_var} MATCHES "/W3")
-		set(${flag_var} "${${flag_var}} /W4 /w44062 /wd4189")
+		set(${flag_var} "${${flag_var}} /W4 /w44062 /wd4189 /wd4324")
 	endforeach(flag_var)
 
 	# Warnings are errors

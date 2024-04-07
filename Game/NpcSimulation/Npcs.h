@@ -351,14 +351,14 @@ private:
 
 					// "Left" and "Right" are relative to screen when the NPC is looking at us
 					// (so "right arm" is really its left arm)
-					LimbVector LimbAngles;
-					LimbVector LimbAnglesCos;
-					LimbVector LimbAnglesSin;
+					FS_ALIGN16_BEG LimbVector LimbAngles FS_ALIGN16_END;
+					FS_ALIGN16_BEG LimbVector LimbAnglesCos FS_ALIGN16_END;
+					FS_ALIGN16_BEG LimbVector LimbAnglesSin FS_ALIGN16_END;
 
 					static float constexpr InitialArmAngle = Pi<float> / 2.0f * 0.3f;
 					static float constexpr InitialLegAngle = 0.2f;
 
-					LimbVector LimbLengthMultipliers;
+					FS_ALIGN16_BEG LimbVector LimbLengthMultipliers FS_ALIGN16_END;
 					float LowerExtremityLengthMultiplier; // Multiplier for the part of the body from the crotch down to the feet
 
 					AnimationStateType()

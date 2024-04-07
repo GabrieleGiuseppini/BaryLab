@@ -182,7 +182,7 @@ public:
 
     void UploadNpcQuadsStart(size_t quadCount);
 
-    void UploadNpcQuad(
+    inline void UploadNpcQuad(
         PlaneId /*planeId*/,
         Quadf const & quad,
         float faceOrientation,
