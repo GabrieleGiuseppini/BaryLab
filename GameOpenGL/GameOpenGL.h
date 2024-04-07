@@ -1,6 +1,6 @@
 /***************************************************************************************
 * Original Author:		Gabriele Giuseppini
-* Created:				2020-05-15
+* Created:				2018-02-21
 * Copyright:			Gabriele Giuseppini  (https://github.com/GabrieleGiuseppini)
 ***************************************************************************************/
 #pragma once
@@ -8,6 +8,7 @@
 #include "GameOpenGL_Ext.h"
 
 #include <GameCore/GameException.h>
+#include <GameCore/ImageData.h>
 #include <GameCore/Log.h>
 
 #include <cassert>
@@ -19,34 +20,43 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T, typename TDeleter>
-class BLabOpenGLObject
+class GameOpenGLObject
 {
 public:
 
-    BLabOpenGLObject()
+    GameOpenGLObject()
         : mValue(T())
     {}
 
-    BLabOpenGLObject(T value)
+    // Takes ownership of object
+    explicit GameOpenGLObject(T value)
         : mValue(value)
     {}
 
-    ~BLabOpenGLObject()
+    ~GameOpenGLObject()
     {
         TDeleter::Delete(mValue);
     }
 
-    BLabOpenGLObject(BLabOpenGLObject const & other) = delete;
+    GameOpenGLObject(GameOpenGLObject const & other) = delete;
 
-    BLabOpenGLObject(BLabOpenGLObject && other)
+    GameOpenGLObject(GameOpenGLObject && other)
     {
         mValue = other.mValue;
         other.mValue = T();
     }
 
-    BLabOpenGLObject & operator=(BLabOpenGLObject const & other) = delete;
+    // Takes ownership of object
+    GameOpenGLObject & operator=(T value)
+    {
+        mValue = value;
 
-    BLabOpenGLObject & operator=(BLabOpenGLObject && other)
+        return *this;
+    }
+
+    GameOpenGLObject & operator=(GameOpenGLObject const & other) = delete;
+
+    GameOpenGLObject & operator=(GameOpenGLObject && other)
     {
         if (!!(mValue))
         {
@@ -74,9 +84,8 @@ public:
         if (!!(mValue))
         {
             TDeleter::Delete(mValue);
+            mValue = T();
         }
-
-        mValue = T();
     }
 
     [[nodiscard]] T release() noexcept
@@ -90,7 +99,7 @@ private:
     T mValue;
 };
 
-struct BLabOpenGLProgramDeleter
+struct GameOpenGLProgramDeleter
 {
     static void Delete(GLuint p)
     {
@@ -103,7 +112,7 @@ struct BLabOpenGLProgramDeleter
     }
 };
 
-struct BLabOpenGLVBODeleter
+struct GameOpenGLVBODeleter
 {
     static void Delete(GLuint p)
     {
@@ -116,7 +125,7 @@ struct BLabOpenGLVBODeleter
     }
 };
 
-struct BLabOpenGLVAODeleter
+struct GameOpenGLVAODeleter
 {
     static void Delete(GLuint p)
     {
@@ -129,7 +138,7 @@ struct BLabOpenGLVAODeleter
     }
 };
 
-struct BLabOpenGLTextureDeleter
+struct GameOpenGLTextureDeleter
 {
     static void Delete(GLuint p)
     {
@@ -142,7 +151,7 @@ struct BLabOpenGLTextureDeleter
     }
 };
 
-struct BLabOpenGLFramebufferDeleter
+struct GameOpenGLFramebufferDeleter
 {
     static void Delete(GLuint p)
     {
@@ -155,7 +164,7 @@ struct BLabOpenGLFramebufferDeleter
     }
 };
 
-struct BLabOpenGLRenderbufferDeleter
+struct GameOpenGLRenderbufferDeleter
 {
     static void Delete(GLuint p)
     {
@@ -168,18 +177,18 @@ struct BLabOpenGLRenderbufferDeleter
     }
 };
 
-using BLabOpenGLShaderProgram = BLabOpenGLObject<GLuint, BLabOpenGLProgramDeleter>;
-using BLabOpenGLVBO = BLabOpenGLObject<GLuint, BLabOpenGLVBODeleter>;
-using BLabOpenGLVAO = BLabOpenGLObject<GLuint, BLabOpenGLVAODeleter>;
-using BLabOpenGLTexture = BLabOpenGLObject<GLuint, BLabOpenGLTextureDeleter>;
-using BLabOpenGLFramebuffer = BLabOpenGLObject<GLuint, BLabOpenGLFramebufferDeleter>;
-using BLabOpenGLRenderbuffer = BLabOpenGLObject<GLuint, BLabOpenGLRenderbufferDeleter>;
+using GameOpenGLShaderProgram = GameOpenGLObject<GLuint, GameOpenGLProgramDeleter>;
+using GameOpenGLVBO = GameOpenGLObject<GLuint, GameOpenGLVBODeleter>;
+using GameOpenGLVAO = GameOpenGLObject<GLuint, GameOpenGLVAODeleter>;
+using GameOpenGLTexture = GameOpenGLObject<GLuint, GameOpenGLTextureDeleter>;
+using GameOpenGLFramebuffer = GameOpenGLObject<GLuint, GameOpenGLFramebufferDeleter>;
+using GameOpenGLRenderbuffer = GameOpenGLObject<GLuint, GameOpenGLRenderbufferDeleter>;
 
 /////////////////////////////////////////////////////////////////////////////////////////
-// BLabOpenGL
+// GameOpenGL
 /////////////////////////////////////////////////////////////////////////////////////////
 
-class BLabOpenGL
+class GameOpenGL
 {
 public:
 
@@ -192,7 +201,12 @@ public:
     static int MaxViewportWidth;
     static int MaxViewportHeight;
     static int MaxTextureSize;
+    static int MaxTextureUnits;
     static int MaxRenderbufferSize;
+    static int MaxSupportedOpenGLVersionMajor;
+    static int MaxSupportedOpenGLVersionMinor;
+
+    static bool AvoidGlFinish;
 
 public:
 
@@ -201,28 +215,45 @@ public:
     static void CompileShader(
         std::string const & shaderSource,
         GLenum shaderType,
-        BLabOpenGLShaderProgram const & shaderProgram,
+        GameOpenGLShaderProgram const & shaderProgram,
         std::string const & programName);
 
     static void LinkShaderProgram(
-        BLabOpenGLShaderProgram const & shaderProgram,
+        GameOpenGLShaderProgram const & shaderProgram,
         std::string const & programName);
 
     static GLint GetParameterLocation(
-        BLabOpenGLShaderProgram const & shaderProgram,
+        GameOpenGLShaderProgram const & shaderProgram,
         std::string const & parameterName);
 
     static void BindAttributeLocation(
-        BLabOpenGLShaderProgram const & shaderProgram,
+        GameOpenGLShaderProgram const & shaderProgram,
         GLuint attributeIndex,
         std::string const & attributeName);
+
+    static void UploadTexture(RgbaImageData const & texture);
+
+    static void UploadTextureRegion(
+        rgbaColor const * textureData,
+        int xOffset,
+        int yOffset,
+        int width,
+        int height);
+
+    static void UploadMipmappedTexture(
+        RgbaImageData baseTexture,
+        GLint internalFormat = GL_RGBA);
+
+    static void UploadMipmappedPowerOfTwoTexture(
+        RgbaImageData baseTexture,
+        int maxDimension);
 
     static void Flush();
 };
 
 inline void _CheckOpenGLError(char const * file, int line)
 {
-    GLenum errorCode = glGetError();
+    GLenum const errorCode = glGetError();
     if (errorCode != GL_NO_ERROR)
     {
         std::string errorCodeString;

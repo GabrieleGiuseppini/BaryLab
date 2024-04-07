@@ -10,7 +10,9 @@ set  (SOURCES
 	GameOpenGL_Ext.h
 	GameOpenGLMappedBuffer.h
 	ShaderManager.cpp
-	ShaderManager.h)
+	ShaderManager.h
+	TriangleQuadElementArrayVBO.cpp
+	TriangleQuadElementArrayVBO.h)
 
 set  (GLAD_SOURCES
 	glad/glad.c

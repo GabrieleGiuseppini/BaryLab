@@ -23,6 +23,7 @@ RenderContext::RenderContext(
     , mVertexVertexCount(0)
     , mIsGridEnabled(false)
     ////
+    , mElementIndices()
     , mNpcRenderMode(NpcRenderModeType::Limbs)
 {
     GLuint tmpGLuint;
@@ -33,7 +34,7 @@ RenderContext::RenderContext(
 
     try
     {
-        BLabOpenGL::InitOpenGL();
+        GameOpenGL::InitOpenGL();
     }
     catch (std::exception const & e)
     {
@@ -45,6 +46,8 @@ RenderContext::RenderContext(
     ////////////////////////////////////////////////////////////////
 
     mShaderManager = ShaderManager::CreateInstance(ResourceLocator::GetShadersRootFolderPath());
+
+    mElementIndices = TriangleQuadElementArrayVBO::Create();
 
     //
     // Background
@@ -452,10 +455,12 @@ void RenderContext::UploadEdgesEnd()
 void RenderContext::UploadNpcQuadsStart(size_t quadCount)
 {
     //
-    // Prepare buffer
+    // Prepare buffer and indices
     //
 
     mNpcQuadVertexBuffer.reset(quadCount * 6);
+
+    mElementIndices->EnsureSize(quadCount);
 }
 
 void RenderContext::UploadNpcQuadsEnd()
@@ -860,6 +865,15 @@ void RenderContext::UploadShipVelocity(
 void RenderContext::RenderEnd()
 {
     ////////////////////////////////////////////////////////////////
+    // Element Indices
+    ////////////////////////////////////////////////////////////////
+
+    if (mElementIndices->IsDirty())
+    {
+        mElementIndices->Upload();
+    }
+
+    ////////////////////////////////////////////////////////////////
     // Background
     ////////////////////////////////////////////////////////////////
 
@@ -988,10 +1002,16 @@ void RenderContext::RenderEnd()
     {
         glBindVertexArray(*mNpcQuadVAO);
 
+        // Intel bug: cannot associate with VAO
+        mElementIndices->Bind();
+
         mShaderManager->ActivateProgram<ShaderManager::ProgramType::NpcQuads>();
 
-        assert((mNpcQuadVertexBuffer.size() % 6) == 0);
-        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mNpcQuadVertexBuffer.size()));
+        glDrawElements(
+            GL_TRIANGLES,
+            static_cast<GLsizei>(mNpcQuadVertexBuffer.size() * 6),
+            GL_UNSIGNED_INT,
+            (GLvoid *)0);
 
         CheckOpenGLError();
 
@@ -1038,7 +1058,7 @@ void RenderContext::RenderEnd()
     ////////////////////////////////////////////////////////////////
 
     // Flush all pending commands (but not the GPU buffer)
-    BLabOpenGL::Flush();
+    GameOpenGL::Flush();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

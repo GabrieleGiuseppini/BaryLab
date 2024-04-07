@@ -128,7 +128,7 @@ void ShaderManager::CompileShader(
 
         vertexShaderSource = SubstituteStaticParameters(vertexShaderSource, staticParameters);
 
-        BLabOpenGL::CompileShader(
+        GameOpenGL::CompileShader(
             vertexShaderSource,
             GL_VERTEX_SHADER,
             mPrograms[programIndex].OpenGLHandle,
@@ -141,7 +141,7 @@ void ShaderManager::CompileShader(
 
         fragmentShaderSource = SubstituteStaticParameters(fragmentShaderSource, staticParameters);
 
-        BLabOpenGL::CompileShader(
+        GameOpenGL::CompileShader(
             fragmentShaderSource,
             GL_FRAGMENT_SHADER,
             mPrograms[programIndex].OpenGLHandle,
@@ -158,7 +158,7 @@ void ShaderManager::CompileShader(
         {
             auto vertexAttribute = StrToVertexAttributeType(vertexAttributeName);
 
-            BLabOpenGL::BindAttributeLocation(
+            GameOpenGL::BindAttributeLocation(
                 mPrograms[programIndex].OpenGLHandle,
                 static_cast<GLuint>(vertexAttribute),
                 "in" + vertexAttributeName);
@@ -169,7 +169,7 @@ void ShaderManager::CompileShader(
         // Link
         //
 
-        BLabOpenGL::LinkShaderProgram(mPrograms[programIndex].OpenGLHandle, programName);
+        GameOpenGL::LinkShaderProgram(mPrograms[programIndex].OpenGLHandle, programName);
 
 
         //
@@ -192,7 +192,7 @@ void ShaderManager::CompileShader(
             }
 
             // Get and store
-            mPrograms[programIndex].UniformLocations[programParameterIndex] = BLabOpenGL::GetParameterLocation(
+            mPrograms[programIndex].UniformLocations[programParameterIndex] = GameOpenGL::GetParameterLocation(
                 mPrograms[programIndex].OpenGLHandle,
                 "param" + ProgramParameterTypeToStr(programParameter));
         }

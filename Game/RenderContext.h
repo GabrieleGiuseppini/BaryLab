@@ -10,6 +10,7 @@
 #include <GameOpenGL/GameOpenGL.h>
 #include <GameOpenGL/GameOpenGLMappedBuffer.h>
 #include <GameOpenGL/ShaderManager.h>
+#include <GameOpenGL/TriangleQuadElementArrayVBO.h>
 
 #include <GameCore/BoundedVector.h>
 #include <GameCore/GameTypes.h>
@@ -221,22 +222,6 @@ public:
             orientationDepth,
             overlayColor);
 
-        // Left, top
-        mNpcQuadVertexBuffer.emplace_back(
-            quad.TopLeft,
-            vec2f(-faceDirectionX, 1.0f),
-            backDepth,
-            orientationDepth,
-            overlayColor);
-
-        // Right, bottom
-        mNpcQuadVertexBuffer.emplace_back(
-            quad.BottomRight,
-            vec2f(faceDirectionX, -1.0f),
-            backDepth,
-            orientationDepth,
-            overlayColor);
-
         // Right, top
         mNpcQuadVertexBuffer.emplace_back(
             quad.TopRight,
@@ -360,10 +345,10 @@ private:
 
 #pragma pack(pop)
 
-    BLabOpenGLVAO mBackgroundVAO;
+    GameOpenGLVAO mBackgroundVAO;
 
     std::vector<BackgroundVertex> mBackgroundVertexBuffer;
-    BLabOpenGLVBO mBackgroundVertexVBO;
+    GameOpenGLVBO mBackgroundVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // Vertices
@@ -388,10 +373,10 @@ private:
 
     size_t mVertexVertexCount;
 
-    BLabOpenGLVAO mVertexVAO;
+    GameOpenGLVAO mVertexVAO;
 
     BLabOpenGLMappedBuffer<VertexVertex, GL_ARRAY_BUFFER> mVertexVertexBuffer;
-    BLabOpenGLVBO mVertexVertexVBO;
+    GameOpenGLVBO mVertexVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // Edges
@@ -417,10 +402,10 @@ private:
 
 #pragma pack(pop)
 
-    BLabOpenGLVAO mEdgeVAO;
+    GameOpenGLVAO mEdgeVAO;
 
     std::vector<EdgeVertex> mEdgeVertexBuffer;
-    BLabOpenGLVBO mEdgeVertexVBO;
+    GameOpenGLVBO mEdgeVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // NPC Quads
@@ -452,10 +437,10 @@ private:
 
 #pragma pack(pop)
 
-    BLabOpenGLVAO mNpcQuadVAO;
+    GameOpenGLVAO mNpcQuadVAO;
 
     BoundedVector<NpcQuadVertex> mNpcQuadVertexBuffer;
-    BLabOpenGLVBO mNpcQuadVertexVBO;
+    GameOpenGLVBO mNpcQuadVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // NPC Particles
@@ -484,10 +469,10 @@ private:
 
 #pragma pack(pop)
 
-    BLabOpenGLVAO mNpcParticleVAO;
+    GameOpenGLVAO mNpcParticleVAO;
 
     std::vector<NpcParticleVertex> mNpcParticleVertexBuffer;
-    BLabOpenGLVBO mNpcParticleVertexVBO;
+    GameOpenGLVBO mNpcParticleVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // NPC Springs
@@ -513,10 +498,10 @@ private:
 
 #pragma pack(pop)
 
-    BLabOpenGLVAO mNpcSpringVAO;
+    GameOpenGLVAO mNpcSpringVAO;
 
     std::vector<NpcSpringVertex> mNpcSpringVertexBuffer;
-    BLabOpenGLVBO mNpcSpringVertexVBO;
+    GameOpenGLVBO mNpcSpringVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // Particle trajectory
@@ -542,10 +527,10 @@ private:
 
 #pragma pack(pop)
 
-    BLabOpenGLVAO mParticleTrajectoryVAO;
+    GameOpenGLVAO mParticleTrajectoryVAO;
 
     std::vector<ParticleTrajectoryVertex> mParticleTrajectoryVertexBuffer;
-    BLabOpenGLVBO mParticleTrajectoryVertexVBO;
+    GameOpenGLVBO mParticleTrajectoryVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // Triangles
@@ -568,10 +553,10 @@ private:
 
 #pragma pack(pop)
 
-    BLabOpenGLVAO mTriangleVAO;
+    GameOpenGLVAO mTriangleVAO;
 
     std::vector<TriangleVertex> mTriangleVertexBuffer;
-    BLabOpenGLVBO mTriangleVertexVBO;
+    GameOpenGLVBO mTriangleVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // Ship velocity
@@ -597,10 +582,10 @@ private:
 
 #pragma pack(pop)
 
-    BLabOpenGLVAO mShipVelocityVAO;
+    GameOpenGLVAO mShipVelocityVAO;
 
     std::vector<ShipVelocityVertex> mShipVelocityVertexBuffer;
-    BLabOpenGLVBO mShipVelocityVertexVBO;
+    GameOpenGLVBO mShipVelocityVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // Grid
@@ -622,9 +607,15 @@ private:
 
 #pragma pack(pop)
 
-    BLabOpenGLVAO mGridVAO;
-    BLabOpenGLVBO mGridVBO;
+    GameOpenGLVAO mGridVAO;
+    GameOpenGLVBO mGridVBO;
     bool mIsGridEnabled;
+
+    ////////////////////////////////////////////////////////////////
+    // Quad indices
+    ////////////////////////////////////////////////////////////////
+
+    std::unique_ptr<TriangleQuadElementArrayVBO> mElementIndices;
 
     ////////////////////////////////////////////////////////////////
     // Render parameters

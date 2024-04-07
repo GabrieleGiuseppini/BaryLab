@@ -278,7 +278,7 @@ private:
     struct ProgramInfo
     {
         // The OpenGL handle to the program
-        BLabOpenGLShaderProgram OpenGLHandle;
+        GameOpenGLShaderProgram OpenGLHandle;
 
         // The uniform locations, indexed by shader parameter type;
         // set to NoLocation when not specified in the shader
