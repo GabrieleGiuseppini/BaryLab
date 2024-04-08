@@ -1033,6 +1033,7 @@ void Npcs::UpdateNpcParticlePhysics(
                                     remainingDt *= (1.0f - dtFractionConsumed);
 
                                     // Reset well detection machinery
+                                    // TODOHERE: check assembly
                                     std::for_each(
                                         pastBarycentricPositions.begin(),
                                         pastBarycentricPositions.end(),
@@ -1118,6 +1119,16 @@ void Npcs::UpdateNpcParticlePhysics(
                 //
                 // Move towards target bary coords
                 //
+
+                // TODOZORRO
+#ifdef _DEBUG
+                auto const b = shipMesh.GetTriangles().FromBarycentricCoordinates(
+                    npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords,
+                    npcParticle.ConstrainedState->CurrentTriangle,
+                    shipMesh.GetPoints());
+                assert(std::abs(b.x - trajectoryStartAbsolutePosition.x) < 0.001f);
+                assert(std::abs(b.y - trajectoryStartAbsolutePosition.y) < 0.001f);
+#endif
 
                 float totalTraveled = UpdateNpcParticle_ConstrainedInertial(
                     npc,
@@ -1501,6 +1512,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
 
         npcParticleConstrainedState.CurrentTriangleBarycentricCoords = flattenedTrajectoryEndBarycentricCoords;
 
+        // TODOHERE: we know this one already
         vec2f const particleEndAbsolutePosition = shipMesh.GetTriangles().FromBarycentricCoordinates(
             flattenedTrajectoryEndBarycentricCoords,
             npcParticleConstrainedState.CurrentTriangle,
@@ -1703,6 +1715,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
     assert(npcParticle.ConstrainedState.has_value());
     auto & npcParticleConstrainedState = *npcParticle.ConstrainedState;
 
+    // TODOHERE: needed? See assert TODOZORRO, might take as arg
     vec2f const segmentTrajectoryStartAbsolutePosition = shipMesh.GetTriangles().FromBarycentricCoordinates(
         segmentTrajectoryStartBarycentricCoords,
         npcParticle.ConstrainedState->CurrentTriangle,
@@ -2870,6 +2883,7 @@ void Npcs::UpdateNpcAnimation(
 
         // Converge
         animationState.LimbLengthMultipliers.ConvergeTo(targetLengthMultipliers, convergenceRate);
+        animationState.LowerExtremityLengthMultiplier += (targetLowerExtremityLengthMultiplier - animationState.LowerExtremityLengthMultiplier) * convergenceRate;
     }
 }
 
