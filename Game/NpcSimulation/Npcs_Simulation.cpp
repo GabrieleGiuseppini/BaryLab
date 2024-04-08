@@ -1336,8 +1336,7 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
             mParticles.GetPosition(secondaryParticleIndex)
             + mParticles.GetVelocity(secondaryParticleIndex) * GameParameters::SimulationTimeStepDuration;
 
-        vec2f const humanVector = headPredictedPosition - feetPosition;
-        vec2f const humanDir = humanVector.normalise();
+        vec2f const humanDir = (headPredictedPosition - feetPosition).normalise();
 
         // Calculate radial force direction
         vec2f radialDir = humanDir.to_perpendicular(); // CCW
@@ -1355,7 +1354,8 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
         vec2f const idealHeadPosition = feetPosition + vec2f(0.0f, npc.KindSpecificState.HumanNpcState.Height * mCurrentHumanNpcBodyLengthAdjustment);
 
         float const stiffnessCoefficient =
-            (gameParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient + std::min(npc.KindSpecificState.HumanNpcState.ResultantPanicLevel, 1.0f) * 0.0005f);
+            gameParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient
+            + std::min(npc.KindSpecificState.HumanNpcState.ResultantPanicLevel, 1.0f) * 0.0005f;
 
         float const force1Magnitude =
             (idealHeadPosition - headPredictedPosition).length()
