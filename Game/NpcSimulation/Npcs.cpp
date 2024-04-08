@@ -1428,57 +1428,61 @@ void Npcs::RenderNpc(
 					// Front
 
 					// Left arm (on left side of the screen)
-					vec2f const leftArmVector = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftArm, animationState.LimbAnglesSin.LeftArm) * leftArmLength;
-					vec2f const leftArmTraverseDir = leftArmVector.normalise().to_perpendicular();
+					vec2f const leftArmDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftArm, animationState.LimbAnglesSin.LeftArm);
+					vec2f const leftArmVector = leftArmDir * leftArmLength;
+					vec2f const leftArmTraverseVector = leftArmDir.to_perpendicular() * halfArmW;
 					shipRenderContext.UploadNpcQuad(
 						planeId,
 						Quadf(
-							leftArmJointPosition - leftArmTraverseDir * halfArmW,
-							leftArmJointPosition + leftArmTraverseDir * halfArmW,
-							leftArmJointPosition + leftArmVector - leftArmTraverseDir * halfArmW,
-							leftArmJointPosition + leftArmVector + leftArmTraverseDir * halfArmW),
+							leftArmJointPosition - leftArmTraverseVector,
+							leftArmJointPosition + leftArmTraverseVector,
+							leftArmJointPosition + leftArmVector - leftArmTraverseVector,
+							leftArmJointPosition + leftArmVector + leftArmTraverseVector),
 						humanNpcState.CurrentFaceOrientation,
 						humanNpcState.CurrentFaceDirectionX,
 						npc.Highlight);
 
 					// Right arm (on right side of the screen)
-					vec2f const rightArmVector = actualBodyVDir.rotate(animationState.LimbAnglesCos.RightArm, animationState.LimbAnglesSin.RightArm) * rightArmLength;
-					vec2f const rightArmTraverseDir = rightArmVector.normalise().to_perpendicular();
+					vec2f const rightArmDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.RightArm, animationState.LimbAnglesSin.RightArm);
+					vec2f const rightArmVector = rightArmDir * rightArmLength;
+					vec2f const rightArmTraverseVector = rightArmDir.to_perpendicular() * halfArmW;
 					shipRenderContext.UploadNpcQuad(
 						planeId,
 						Quadf(
-							rightArmJointPosition - rightArmTraverseDir * halfArmW,
-							rightArmJointPosition + rightArmTraverseDir * halfArmW,
-							rightArmJointPosition + rightArmVector - rightArmTraverseDir * halfArmW,
-							rightArmJointPosition + rightArmVector + rightArmTraverseDir * halfArmW),
+							rightArmJointPosition - rightArmTraverseVector,
+							rightArmJointPosition + rightArmTraverseVector,
+							rightArmJointPosition + rightArmVector - rightArmTraverseVector,
+							rightArmJointPosition + rightArmVector + rightArmTraverseVector),
 						humanNpcState.CurrentFaceOrientation,
 						humanNpcState.CurrentFaceDirectionX,
 						npc.Highlight);
 
 					// Left leg (on left side of the screen)
-					vec2f const leftLegVector = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftLeg, animationState.LimbAnglesSin.LeftLeg) * leftLegLength;
-					vec2f const leftLegTraverseDir = leftLegVector.normalise().to_perpendicular();
+					vec2f const leftLegDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftLeg, animationState.LimbAnglesSin.LeftLeg);
+					vec2f const leftLegVector = leftLegDir * leftLegLength;
+					vec2f const leftLegTraverseVector = leftLegDir.to_perpendicular() * halfLegW;
 					shipRenderContext.UploadNpcQuad(
 						planeId,
 						Quadf(
-							leftLegJointPosition - leftLegTraverseDir * halfLegW,
-							leftLegJointPosition + leftLegTraverseDir * halfLegW,
-							leftLegJointPosition + leftLegVector - leftLegTraverseDir * halfLegW,
-							leftLegJointPosition + leftLegVector + leftLegTraverseDir * halfLegW),
+							leftLegJointPosition - leftLegTraverseVector,
+							leftLegJointPosition + leftLegTraverseVector,
+							leftLegJointPosition + leftLegVector - leftLegTraverseVector,
+							leftLegJointPosition + leftLegVector + leftLegTraverseVector),
 						humanNpcState.CurrentFaceOrientation,
 						humanNpcState.CurrentFaceDirectionX,
 						npc.Highlight);
 
 					// Right leg (on right side of the screen)
-					vec2f const rightLegVector = actualBodyVDir.rotate(animationState.LimbAnglesCos.RightLeg, animationState.LimbAnglesSin.RightLeg) * rightLegLength;
-					vec2f const rightLegTraverseDir = rightLegVector.normalise().to_perpendicular();
+					vec2f const rightLegDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.RightLeg, animationState.LimbAnglesSin.RightLeg);
+					vec2f const rightLegVector = rightLegDir * rightLegLength;
+					vec2f const rightLegTraverseVector = rightLegDir.to_perpendicular() * halfLegW;
 					shipRenderContext.UploadNpcQuad(
 						planeId,
 						Quadf(
-							rightLegJointPosition - rightLegTraverseDir * halfLegW,
-							rightLegJointPosition + rightLegTraverseDir * halfLegW,
-							rightLegJointPosition + rightLegVector - rightLegTraverseDir * halfLegW,
-							rightLegJointPosition + rightLegVector + rightLegTraverseDir * halfLegW),
+							rightLegJointPosition - rightLegTraverseVector,
+							rightLegJointPosition + rightLegTraverseVector,
+							rightLegJointPosition + rightLegVector - rightLegTraverseVector,
+							rightLegJointPosition + rightLegVector + rightLegTraverseVector),
 						humanNpcState.CurrentFaceOrientation,
 						humanNpcState.CurrentFaceDirectionX,
 						npc.Highlight);
@@ -1488,57 +1492,61 @@ void Npcs::RenderNpc(
 					// Back
 
 					// Left arm (on right side of screen)
-					vec2f const leftArmVector = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftArm, -animationState.LimbAnglesSin.LeftArm) * leftArmLength;
-					vec2f const leftArmTraverseDir = leftArmVector.normalise().to_perpendicular();
+					vec2f const leftArmDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftArm, -animationState.LimbAnglesSin.LeftArm);
+					vec2f const leftArmVector = leftArmDir * leftArmLength;
+					vec2f const leftArmTraverseVector = leftArmDir.to_perpendicular() * halfArmW;
 					shipRenderContext.UploadNpcQuad(
 						planeId,
 						Quadf(
-							rightArmJointPosition - leftArmTraverseDir * halfArmW,
-							rightArmJointPosition + leftArmTraverseDir * halfArmW,
-							rightArmJointPosition + leftArmVector - leftArmTraverseDir * halfArmW,
-							rightArmJointPosition + leftArmVector + leftArmTraverseDir * halfArmW),
+							rightArmJointPosition - leftArmTraverseVector,
+							rightArmJointPosition + leftArmTraverseVector,
+							rightArmJointPosition + leftArmVector - leftArmTraverseVector,
+							rightArmJointPosition + leftArmVector + leftArmTraverseVector),
 						humanNpcState.CurrentFaceOrientation,
 						humanNpcState.CurrentFaceDirectionX,
 						npc.Highlight);
 
 					// Right arm (on left side of the screen)
-					vec2f const rightArmVector = actualBodyVDir.rotate(animationState.LimbAnglesCos.RightArm, -animationState.LimbAnglesSin.RightArm) * rightArmLength;
-					vec2f const rightArmTraverseDir = rightArmVector.normalise().to_perpendicular();
+					vec2f const rightArmDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.RightArm, -animationState.LimbAnglesSin.RightArm);
+					vec2f const rightArmVector = rightArmDir * rightArmLength;
+					vec2f const rightArmTraverseVector = rightArmDir.to_perpendicular() * halfArmW;
 					shipRenderContext.UploadNpcQuad(
 						planeId,
 						Quadf(
-							leftArmJointPosition - rightArmTraverseDir * halfArmW,
-							leftArmJointPosition + rightArmTraverseDir * halfArmW,
-							leftArmJointPosition + rightArmVector - rightArmTraverseDir * halfArmW,
-							leftArmJointPosition + rightArmVector + rightArmTraverseDir * halfArmW),
+							leftArmJointPosition - rightArmTraverseVector,
+							leftArmJointPosition + rightArmTraverseVector,
+							leftArmJointPosition + rightArmVector - rightArmTraverseVector,
+							leftArmJointPosition + rightArmVector + rightArmTraverseVector),
 						humanNpcState.CurrentFaceOrientation,
 						humanNpcState.CurrentFaceDirectionX,
 						npc.Highlight);
 
 					// Left leg (on right side of the screen)
-					vec2f const leftLegVector = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftLeg, -animationState.LimbAnglesSin.LeftLeg) * leftLegLength;
-					vec2f const leftLegTraverseDir = leftLegVector.normalise().to_perpendicular();
+					vec2f const leftLegDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftLeg, -animationState.LimbAnglesSin.LeftLeg);
+					vec2f const leftLegVector = leftLegDir * leftLegLength;
+					vec2f const leftLegTraverseVector = leftLegDir.to_perpendicular() * halfLegW;
 					shipRenderContext.UploadNpcQuad(
 						planeId,
 						Quadf(
-							rightLegJointPosition - leftLegTraverseDir * halfLegW,
-							rightLegJointPosition + leftLegTraverseDir * halfLegW,
-							rightLegJointPosition + leftLegVector - leftLegTraverseDir * halfLegW,
-							rightLegJointPosition + leftLegVector + leftLegTraverseDir * halfLegW),
+							rightLegJointPosition - leftLegTraverseVector,
+							rightLegJointPosition + leftLegTraverseVector,
+							rightLegJointPosition + leftLegVector - leftLegTraverseVector,
+							rightLegJointPosition + leftLegVector + leftLegTraverseVector),
 						humanNpcState.CurrentFaceOrientation,
 						humanNpcState.CurrentFaceDirectionX,
 						npc.Highlight);
 
 					// Right leg (on left side of the screen)
-					vec2f const rightLegVector = actualBodyVDir.rotate(animationState.LimbAnglesCos.RightLeg, -animationState.LimbAnglesSin.RightLeg) * rightLegLength;
-					vec2f const rightLegTraverseDir = rightLegVector.normalise().to_perpendicular();
+					vec2f const rightLegDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.RightLeg, -animationState.LimbAnglesSin.RightLeg);
+					vec2f const rightLegVector = rightLegDir * rightLegLength;
+					vec2f const rightLegTraverseVector = rightLegDir.to_perpendicular() * halfLegW;
 					shipRenderContext.UploadNpcQuad(
 						planeId,
 						Quadf(
-							leftLegJointPosition - rightLegTraverseDir * halfLegW,
-							leftLegJointPosition + rightLegTraverseDir * halfLegW,
-							leftLegJointPosition + rightLegVector - rightLegTraverseDir * halfLegW,
-							leftLegJointPosition + rightLegVector + rightLegTraverseDir * halfLegW),
+							leftLegJointPosition - rightLegTraverseVector,
+							leftLegJointPosition + rightLegTraverseVector,
+							leftLegJointPosition + rightLegVector - rightLegTraverseVector,
+							leftLegJointPosition + rightLegVector + rightLegTraverseVector),
 						humanNpcState.CurrentFaceOrientation,
 						humanNpcState.CurrentFaceDirectionX,
 						npc.Highlight);
@@ -1570,37 +1578,41 @@ void Npcs::RenderNpc(
 
 				// Note: angles are with body vertical, regardless of L/R
 
-				vec2f const leftArmVector = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftArm, animationState.LimbAnglesSin.LeftArm) * leftArmLength;
-				vec2f const leftArmTraverseDir = leftArmVector.normalise().to_perpendicular();
+				vec2f const leftArmDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftArm, animationState.LimbAnglesSin.LeftArm);
+				vec2f const leftArmVector = leftArmDir * leftArmLength;
+				vec2f const leftArmTraverseVector = leftArmDir.to_perpendicular() * halfArmD;
 				Quadf leftArmQuad(
-					shoulderPosition - leftArmTraverseDir * halfArmD,
-					shoulderPosition + leftArmTraverseDir * halfArmD,
-					shoulderPosition + leftArmVector - leftArmTraverseDir * halfArmD,
-					shoulderPosition + leftArmVector + leftArmTraverseDir * halfArmD);
+					shoulderPosition - leftArmTraverseVector,
+					shoulderPosition + leftArmTraverseVector,
+					shoulderPosition + leftArmVector - leftArmTraverseVector,
+					shoulderPosition + leftArmVector + leftArmTraverseVector);
 
-				vec2f const rightArmVector = actualBodyVDir.rotate(animationState.LimbAnglesCos.RightArm, animationState.LimbAnglesSin.RightArm) * rightArmLength;
-				vec2f const rightArmTraverseDir = rightArmVector.normalise().to_perpendicular();
+				vec2f const rightArmDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.RightArm, animationState.LimbAnglesSin.RightArm);
+				vec2f const rightArmVector = rightArmDir * rightArmLength;
+				vec2f const rightArmTraverseVector = rightArmDir.to_perpendicular() * halfArmD;
 				Quadf rightArmQuad(
-					shoulderPosition - rightArmTraverseDir * halfArmD,
-					shoulderPosition + rightArmTraverseDir * halfArmD,
-					shoulderPosition + rightArmVector - rightArmTraverseDir * halfArmD,
-					shoulderPosition + rightArmVector + rightArmTraverseDir * halfArmD);
+					shoulderPosition - rightArmTraverseVector,
+					shoulderPosition + rightArmTraverseVector,
+					shoulderPosition + rightArmVector - rightArmTraverseVector,
+					shoulderPosition + rightArmVector + rightArmTraverseVector);
 
-				vec2f const leftLegVector = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftLeg, animationState.LimbAnglesSin.LeftLeg) * leftLegLength;
-				vec2f const leftLegTraverseDir = leftLegVector.normalise().to_perpendicular();
+				vec2f const leftLegDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftLeg, animationState.LimbAnglesSin.LeftLeg);
+				vec2f const leftLegVector = leftLegDir * leftLegLength;
+				vec2f const leftLegTraverseVector = leftLegDir.to_perpendicular() * halfLegD;
 				Quadf leftLegQuad(
-					crotchPosition - leftLegTraverseDir * halfLegD,
-					crotchPosition + leftLegTraverseDir * halfLegD,
-					crotchPosition + leftLegVector - leftLegTraverseDir * halfLegD,
-					crotchPosition + leftLegVector + leftLegTraverseDir * halfLegD);
+					crotchPosition - leftLegTraverseVector,
+					crotchPosition + leftLegTraverseVector,
+					crotchPosition + leftLegVector - leftLegTraverseVector,
+					crotchPosition + leftLegVector + leftLegTraverseVector);
 
-				vec2f const rightLegVector = actualBodyVDir.rotate(animationState.LimbAnglesCos.RightLeg, animationState.LimbAnglesSin.RightLeg) * rightLegLength;
-				vec2f const rightLegTraverseDir = rightLegVector.normalise().to_perpendicular();
+				vec2f const rightLegDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.RightLeg, animationState.LimbAnglesSin.RightLeg);
+				vec2f const rightLegVector = rightLegDir * rightLegLength;
+				vec2f const rightLegTraverseVector = rightLegDir.to_perpendicular() * halfLegD;
 				Quadf rightLegQuad(
-					crotchPosition - rightLegTraverseDir * halfLegD,
-					crotchPosition + rightLegTraverseDir * halfLegD,
-					crotchPosition + rightLegVector - rightLegTraverseDir * halfLegD,
-					crotchPosition + rightLegVector + rightLegTraverseDir * halfLegD);
+					crotchPosition - rightLegTraverseVector,
+					crotchPosition + rightLegTraverseVector,
+					crotchPosition + rightLegVector - rightLegTraverseVector,
+					crotchPosition + rightLegVector + rightLegTraverseVector);
 
 				// Arm and legs far
 
