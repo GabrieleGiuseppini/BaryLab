@@ -7,7 +7,6 @@
 
 #include <GameCore/GameMath.h>
 
-#include <algorithm>
 #include <limits>
 
 namespace Physics {
@@ -1033,11 +1032,9 @@ void Npcs::UpdateNpcParticlePhysics(
                                     remainingDt *= (1.0f - dtFractionConsumed);
 
                                     // Reset well detection machinery
-                                    // TODOHERE: check assembly
-                                    std::for_each(
-                                        pastBarycentricPositions.begin(),
-                                        pastBarycentricPositions.end(),
-                                        [](auto & bp) { bp.reset(); });
+                                    static_assert(pastBarycentricPositions.size() == 2);
+                                    pastBarycentricPositions[0].reset();
+                                    pastBarycentricPositions[1].reset();
                                 }
                             }
 
