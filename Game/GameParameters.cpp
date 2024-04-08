@@ -17,8 +17,8 @@ GameParameters::GameParameters()
 	// NPC
 	, NpcSpringReductionFraction(0.39f) // At least for humans, larger than this causes heads to pull up feet
 	, NpcSpringDampingCoefficient(0.5f)
-	, HumanNpcEquilibriumTorqueStiffnessCoefficient(0.0032f)
-	, HumanNpcEquilibriumTorqueDampingCoefficient(0.055f)
+	, HumanNpcEquilibriumTorqueStiffnessCoefficient(0.0044f)
+	, HumanNpcEquilibriumTorqueDampingCoefficient(0.0016f)
 	, HumanNpcWalkingSpeedAdjustment(1.0f)
 	, HumanNpcBodyLengthAdjustment(1.0f)
 {

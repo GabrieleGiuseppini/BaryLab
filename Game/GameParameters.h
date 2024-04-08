@@ -94,7 +94,7 @@ struct GameParameters
 
     float HumanNpcEquilibriumTorqueDampingCoefficient;
     static float constexpr MinHumanNpcEquilibriumTorqueDampingCoefficient = 0.0f;
-    static float constexpr MaxHumanNpcEquilibriumTorqueDampingCoefficient = 0.1f;
+    static float constexpr MaxHumanNpcEquilibriumTorqueDampingCoefficient = 0.01f;
 
     static float constexpr HumanNpcWalkingSpeedBase = 1.0f; // m/s
     float HumanNpcWalkingSpeedAdjustment;

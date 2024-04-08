@@ -56,7 +56,7 @@ ScalarTimeSeriesProbeControl::~ScalarTimeSeriesProbeControl()
 void ScalarTimeSeriesProbeControl::RegisterSample(float value)
 {
     mMaxValue = std::max(mMaxValue, value);
-    mMinValue = std::min(mMinValue, value);    
+    mMinValue = std::min(mMinValue, value);
 
     mSamples.emplace(
         [](float) {},
