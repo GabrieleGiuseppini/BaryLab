@@ -1325,16 +1325,18 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
         ElementIndex const primaryParticleIndex = npc.PrimaryParticleState.ParticleIndex;
         ElementIndex const secondaryParticleIndex = npc.DipoleState->SecondaryParticleState.ParticleIndex;
 
+        vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
+
         // Given that we apply torque onto the secondary particle *after* the primary has been simulated
         // (so that we take into account the primary's new position), and thus we see the primary where it
         // is at the end of the step - possibly far away if mesh velocity is high, we want to _predict_
         // where the secondary will be by its own velocity
 
-        vec2f const secondaryPredictedPosition =
+        vec2f const headPredictedPosition =
             mParticles.GetPosition(secondaryParticleIndex)
             + mParticles.GetVelocity(secondaryParticleIndex) * GameParameters::SimulationTimeStepDuration;
 
-        vec2f const humanVector = secondaryPredictedPosition - mParticles.GetPosition(primaryParticleIndex);
+        vec2f const humanVector = headPredictedPosition - feetPosition;
         vec2f const humanDir = humanVector.normalise();
 
         // Calculate radial force direction
@@ -1350,19 +1352,17 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
         //  - But we approximate the arc with the chord, i.e.the distance between source and destination
         //
 
-        vec2f const idealHeadPosition = mParticles.GetPosition(primaryParticleIndex) + vec2f(0.0f, npc.KindSpecificState.HumanNpcState.Height * mCurrentHumanNpcBodyLengthAdjustment);
+        vec2f const idealHeadPosition = feetPosition + vec2f(0.0f, npc.KindSpecificState.HumanNpcState.Height * mCurrentHumanNpcBodyLengthAdjustment);
+
         float const stiffnessCoefficient =
             (gameParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient + std::min(npc.KindSpecificState.HumanNpcState.ResultantPanicLevel, 1.0f) * 0.0005f);
 
-        vec2f equilibriumTorqueForce =
-            radialDir
-            * (idealHeadPosition - secondaryPredictedPosition).length()
-            * stiffnessCoefficient
-            * particleMass / (GameParameters::SimulationTimeStepDuration * GameParameters::SimulationTimeStepDuration) // Move these mult's to later
-            * mParticles.GetEquilibriumTorque(secondaryParticleIndex);
+        float const force1Magnitude =
+            (idealHeadPosition - headPredictedPosition).length()
+            * stiffnessCoefficient;
 
         //
-        // Damp force proportional to component of relative velocity that is orthogonal to human vector, opposite that velocity
+        // Second component: damp force proportional to component of relative velocity that is orthogonal to human vector, opposite that velocity
         //
 
         vec2f const relativeVelocity = mParticles.GetVelocity(secondaryParticleIndex) - mParticles.GetVelocity(primaryParticleIndex);
@@ -1370,15 +1370,16 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
 
         float const dampCoefficient = gameParameters.HumanNpcEquilibriumTorqueDampingCoefficient;
 
-        equilibriumTorqueForce +=
-            radialDir
-            * (-orthoRelativeVelocity)
-            * dampCoefficient
-            * particleMass / (GameParameters::SimulationTimeStepDuration * GameParameters::SimulationTimeStepDuration) // Move these mult's to later
-            * mParticles.GetEquilibriumTorque(secondaryParticleIndex);
+        float const force2Magnitude =
+            -orthoRelativeVelocity
+            * dampCoefficient;
 
-        // Note: we divide by human length adjustment to maintain torque independent from lever length
-        equilibriumTorqueForce /= mCurrentHumanNpcBodyLengthAdjustment;
+        vec2f const equilibriumTorqueForce =
+            radialDir
+            * (force1Magnitude + force2Magnitude)
+            / mCurrentHumanNpcBodyLengthAdjustment // Note: we divide by human length adjustment to maintain torque independent from lever length
+            * particleMass / (GameParameters::SimulationTimeStepDuration * GameParameters::SimulationTimeStepDuration)
+            * mParticles.GetEquilibriumTorque(secondaryParticleIndex);
 
         definitiveForces += equilibriumTorqueForce;
     }
