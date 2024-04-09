@@ -867,48 +867,41 @@ bool Npcs::CheckAndMaintainHumanEquilibrium(
 	//
 
 	vec2f const humanVector = particles.GetPosition(secondaryParticleIndex) - particles.GetPosition(primaryParticleIndex);
-
-	// Calculate CW angle between head and vertical (pointing up);
-	// positive when human is CW wrt vertical
-	//
-	// |   H
-	// |  /
-	// |-/
-	// |/
-	//
-	float const staticDisplacementAngleCW = (-GameParameters::GravityDir).angleCw(humanVector);
-
-	// Calculate CW angle that head would rotate by (relative to feet) due to relative velocity alone;
-	// positive when new position is CW wrt old
-	//
-	// |   H
-	// |  /
-	// | /\
-    // |/__L___H'
-	//
-	vec2f const relativeVelocityDisplacement = (particles.GetVelocity(secondaryParticleIndex) - particles.GetVelocity(primaryParticleIndex)) * GameParameters::SimulationTimeStepDuration;
-	float const relativeVelocityAngleCW = humanVector.angleCw(humanVector + relativeVelocityDisplacement);
+	vec2f const humanDir = humanVector.normalise(); // TODO: see if HumanVector even needed
 
 	//
-	// Check whether we are still in equilibrium
+	// Static angle necessary condition: human vector outside of sector around vertical
 	//
-	// We lose equilibrium if HumanVector is outside of sector around vertical, with non-negligible rotation velocity towards outside of sector
+	// We use y component of normalized human vector (i.e. cos(angle with vertical), +1.0 when fully vertical, < 1.0f when less vertical),
+	// and we're out if y < cos(MaxAngle)
 	//
 
-	float constexpr MaxStaticAngleForEquilibrium = Pi<float> / 5.5f;
+	float constexpr CosMaxStaticAngleForEquilibrium = 0.84f; //  cos(Pi / 5.5)
 
-	float const maxRelativeVelocityAngleForEqulibrium = isRisingState
-		? 0.01f
-		: 0.0f;
-
-	if (std::abs(staticDisplacementAngleCW) >= MaxStaticAngleForEquilibrium
-		&& std::abs(relativeVelocityAngleCW) >= maxRelativeVelocityAngleForEqulibrium // Large abs angle == velocity towards divergence
-		&& staticDisplacementAngleCW * relativeVelocityAngleCW > 0.0f) // Equal signs
+	if (humanDir.y < CosMaxStaticAngleForEquilibrium)
 	{
-		LogNpcDebug("Losing equilibrium because: StaticDisplacementAngleCW=", staticDisplacementAngleCW, " (Max=+/-", MaxStaticAngleForEquilibrium, ") RelativeVelocityAngleCW=", relativeVelocityAngleCW,
-			" (Max=+/-", maxRelativeVelocityAngleForEqulibrium, ")");
+		//
+		// Rotational velocity necessary condition: non-negligible rotational velocity away from vertical
+		//
+		// We're out (diverging from vertical) if RelVel component along perpendicular to humanDir (i.e. radialVelocity)
+		// is < or > 0 depending on whether head is to the left or to the right of ideal head,
+		// i.e. if RelVel dot perp(humanDir) * (IH.x - H.x) > 0
+		//
 
-		return false;
+		vec2f const relativeVelocity = (particles.GetVelocity(secondaryParticleIndex) - particles.GetVelocity(primaryParticleIndex));
+		float const radialVelocity = relativeVelocity.dot(humanDir.to_perpendicular());
+
+		float const maxRadialVelocityFactor = isRisingState
+			? 1.056f // chord/dt of a human traveling a 0.01 angle
+			: 0.0f;
+
+		if (radialVelocity * (-humanVector.x) > maxRadialVelocityFactor)
+		{
+			LogNpcDebug("Losing equilibrium because: humanDir.y=", humanDir.y, " < ", CosMaxStaticAngleForEquilibrium, " && ",
+				"radialVelocity * (-humanVector.x)=", radialVelocity * (-humanVector.x), " > ", maxRadialVelocityFactor);
+
+			return false;
+		}
 	}
 
 	//
