@@ -458,7 +458,7 @@ void RenderContext::UploadNpcQuadsStart(size_t quadCount)
     // Prepare buffer and indices
     //
 
-    mNpcQuadVertexBuffer.reset(quadCount * 6);
+    mNpcQuadVertexBuffer.reset(quadCount * 4);
 
     mElementIndices->EnsureSize(quadCount);
 }
@@ -1007,9 +1007,11 @@ void RenderContext::RenderEnd()
 
         mShaderManager->ActivateProgram<ShaderManager::ProgramType::NpcQuads>();
 
+        assert((mNpcQuadVertexBuffer.size() % 4) == 0);
+
         glDrawElements(
             GL_TRIANGLES,
-            static_cast<GLsizei>(mNpcQuadVertexBuffer.size() * 6),
+            static_cast<GLsizei>(mNpcQuadVertexBuffer.size() / 4 * 6),
             GL_UNSIGNED_INT,
             (GLvoid *)0);
 
