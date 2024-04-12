@@ -1393,7 +1393,7 @@ void Npcs::RenderNpc(
 			vec2f const feetPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
 
 			vec2f const actualBodyVector = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex) - feetPosition; // From feet to head
-			vec2f const actualBodyVDir = -actualBodyVector.normalise(); // From head to feet - facilitates arm and length angle-making
+			vec2f const actualBodyVDir = -actualBodyVector.normalise_approx(); // From head to feet - facilitates arm and length angle-making
 			vec2f const actualBodyHDir = actualBodyVDir.to_perpendicular(); // Points R (of the screen)
 
 			vec2f const crotchPosition = feetPosition + actualBodyVector * (GameParameters::HumanNpcGeometry::LegLengthFraction * animationState.LowerExtremityLengthMultiplier);

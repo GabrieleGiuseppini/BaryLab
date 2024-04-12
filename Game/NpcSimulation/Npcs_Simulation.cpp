@@ -1344,7 +1344,7 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
             mParticles.GetPosition(secondaryParticleIndex)
             + mParticles.GetVelocity(secondaryParticleIndex) * GameParameters::SimulationTimeStepDuration;
 
-        vec2f const humanDir = (headPredictedPosition - feetPosition).normalise();
+        vec2f const humanDir = (headPredictedPosition - feetPosition).normalise_approx();
 
         // Calculate radial force direction
         vec2f radialDir = humanDir.to_perpendicular(); // CCW
@@ -2435,7 +2435,7 @@ void Npcs::UpdateNpcAnimation(
                     edg1 = shipMesh.GetSprings().GetEndpointAPosition(edgeElementIndex, shipMesh.GetPoints());
                     edg2 = shipMesh.GetSprings().GetEndpointBPosition(edgeElementIndex, shipMesh.GetPoints());
                     edgVector = edg2 - edg1;
-                    edgDir = edgVector.normalise();
+                    edgDir = edgVector.normalise_approx();
 
                     //
                     // 1. Limit leg angles if on slope
@@ -2444,7 +2444,7 @@ void Npcs::UpdateNpcAnimation(
                     vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
                     feetPosition = mParticles.GetPosition(primaryParticleIndex);
                     actualBodyVector = feetPosition - headPosition; // From head to feet
-                    actualBodyDir = actualBodyVector.normalise();
+                    actualBodyDir = actualBodyVector.normalise_approx();
 
                     float const bodyToVirtualEdgeAlignment = std::abs(edgDir.dot(actualBodyDir.to_perpendicular()));
                     float const angleLimitFactor = bodyToVirtualEdgeAlignment * bodyToVirtualEdgeAlignment * bodyToVirtualEdgeAlignment;
@@ -2462,7 +2462,7 @@ void Npcs::UpdateNpcAnimation(
                 vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
                 feetPosition = mParticles.GetPosition(primaryParticleIndex);
                 actualBodyVector = feetPosition - headPosition; // From head to feet
-                actualBodyDir = actualBodyVector.normalise();
+                actualBodyDir = actualBodyVector.normalise_approx();
 
                 // The extent to which we move arms depends on the avg velocity or head+feet
 
@@ -2563,7 +2563,7 @@ void Npcs::UpdateNpcAnimation(
                 vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
                 feetPosition = mParticles.GetPosition(primaryParticleIndex);
                 actualBodyVector = feetPosition - headPosition;
-                actualBodyDir = actualBodyVector.normalise();
+                actualBodyDir = actualBodyVector.normalise_approx();
 
                 // Arms: always up, unless horizontal or foot on the floor
 

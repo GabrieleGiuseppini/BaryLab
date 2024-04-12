@@ -867,7 +867,7 @@ bool Npcs::CheckAndMaintainHumanEquilibrium(
 	//
 
 	vec2f const humanVector = particles.GetPosition(secondaryParticleIndex) - particles.GetPosition(primaryParticleIndex);
-	vec2f const humanDir = humanVector.normalise(); // TODO: see if HumanVector even needed
+	vec2f const humanDir = humanVector.normalise_approx();
 
 	//
 	// Static angle necessary condition: human vector outside of sector around vertical
