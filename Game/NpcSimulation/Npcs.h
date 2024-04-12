@@ -198,6 +198,7 @@ private:
 			{
 				HumanNpcKindType const Kind;
 				float const Height; // This is "ideal"; dipole length is "real"
+				float const WidthMultipier; // Randomization
 				float const WalkingSpeedBase;
 
 				enum class BehaviorType
@@ -373,11 +374,13 @@ private:
 				HumanNpcStateType(
 					HumanNpcKindType kind,
 					float height,
+					float widthMultipier,
 					float walkingSpeedBase,
 					BehaviorType initialBehavior,
 					float currentSimulationTime)
 					: Kind(kind)
 					, Height(height)
+					, WidthMultipier(widthMultipier)
 					, WalkingSpeedBase(walkingSpeedBase)
 					, CurrentEquilibriumSoftTerminationDecision(0.0f)
 					, CurrentFaceOrientation(1.0f)

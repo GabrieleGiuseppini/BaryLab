@@ -393,11 +393,28 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 
 	// Human
 
-	float const walkingSpeedBase = height / 1.65f; // Just comes from 1m/s looks good when human is 1.65
+	float widthMultiplier;
+	if (GameRandomEngine::GetInstance().Choose(2) == 0)
+	{
+		// Narrow
+		widthMultiplier = 1.0f - std::min(
+			std::abs(GameRandomEngine::GetInstance().GenerateNormalReal(0.0f, GameParameters::HumanNpcGeometry::BodyWidthNarrowMultiplierStdDev)),
+			3.0f * GameParameters::HumanNpcGeometry::BodyWidthNarrowMultiplierStdDev);
+	}
+	else
+	{
+		// Wide
+		widthMultiplier = 1.0f + std::min(
+			std::abs(GameRandomEngine::GetInstance().GenerateNormalReal(0.0f, GameParameters::HumanNpcGeometry::BodyWidthWideMultiplierStdDev)),
+			3.0f * GameParameters::HumanNpcGeometry::BodyWidthWideMultiplierStdDev);
+	}
+
+	float const walkingSpeedBase = height / 1.65f; // Just comes from 1m/s looking good when human is 1.65
 
 	StateType::KindSpecificStateType::HumanNpcStateType humanState = StateType::KindSpecificStateType::HumanNpcStateType(
 		humanKind,
 		height,
+		widthMultiplier,
 		walkingSpeedBase,
 		StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::BeingPlaced,
 		currentSimulationTime);
@@ -1397,10 +1414,10 @@ void Npcs::RenderNpc(
 				// Front-back
 				//
 
-				float const halfHeadW = (adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::HeadWidthFraction) / 2.0f;
-				float const halfTorsoW = (adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::TorsoWidthFraction) / 2.0f;
-				float const halfArmW = (adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::ArmWidthFraction) / 2.0f;
-				float const halfLegW = (adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::LegWidthFraction) / 2.0f;
+				float const halfHeadW = (adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::HeadWidthFraction * humanNpcState.WidthMultipier) / 2.0f;
+				float const halfTorsoW = (adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::TorsoWidthFraction * humanNpcState.WidthMultipier) / 2.0f;
+				float const halfArmW = (adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::ArmWidthFraction * humanNpcState.WidthMultipier) / 2.0f;
+				float const halfLegW = (adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::LegWidthFraction * humanNpcState.WidthMultipier) / 2.0f;
 
 				// Head
 
@@ -1571,10 +1588,10 @@ void Npcs::RenderNpc(
 				// Left-Right
 				//
 
-				float const halfHeadD = (adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::HeadDepthFraction) / 2.0f;
-				float const halfTorsoD = (adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::TorsoDepthFraction) / 2.0f;
-				float const halfArmD = (adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::ArmDepthFraction) / 2.0f;
-				float const halfLegD = (adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::LegDepthFraction) / 2.0f;
+				float const halfHeadD = (adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::HeadDepthFraction * humanNpcState.WidthMultipier) / 2.0f;
+				float const halfTorsoD = (adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::TorsoDepthFraction * humanNpcState.WidthMultipier) / 2.0f;
+				float const halfArmD = (adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::ArmDepthFraction * humanNpcState.WidthMultipier) / 2.0f;
+				float const halfLegD = (adjustedIdealHumanHeight * GameParameters::HumanNpcGeometry::LegDepthFraction * humanNpcState.WidthMultipier) / 2.0f;
 
 				// Note: angles are with body vertical, regardless of L/R
 
