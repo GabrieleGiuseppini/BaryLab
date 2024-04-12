@@ -343,7 +343,7 @@ void Npcs::UpdateHuman(
 			float const toRisingConvergenceRate =
 				0.067f
 				+ std::min(humanState.ResultantPanicLevel, 1.0f) * 0.07f
-				+ npc.RandomNormalizedUniformSeed / 10.0f;
+				+ npc.RandomNormalizedUniformSeed / 5.0f;
 			humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising +=
 				(risingTarget - humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising)
 				* toRisingConvergenceRate;
