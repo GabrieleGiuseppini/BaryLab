@@ -161,23 +161,88 @@ public:
     bcoords3f ToBarycentricCoordinates(
         vec2f const & position,
         ElementIndex triangleElementIndex,
-        Points const & points) const;
+        Points const & points) const
+    {
+        vec2f const abBaryCoords = InternalToBarycentricCoordinates(
+            position,
+            triangleElementIndex,
+            points);
+
+        return bcoords3f(
+            abBaryCoords.x,
+            abBaryCoords.y,
+            1.0f - abBaryCoords.x - abBaryCoords.y);
+    }
 
     bcoords3f ToBarycentricCoordinates(
         vec2f const & position,
         ElementIndex triangleElementIndex,
         Points const & points,
-        float epsilon) const;
+        float epsilon) const
+    {
+        vec2f abBaryCoords = InternalToBarycentricCoordinates(
+            position,
+            triangleElementIndex,
+            points);
+
+        if (std::abs(abBaryCoords.x) < epsilon)
+        {
+            abBaryCoords.x = 0.0f;
+        }
+
+        if (std::abs(abBaryCoords.y) < epsilon)
+        {
+            abBaryCoords.y = 0.0f;
+        }
+
+        float z = 1.0f - abBaryCoords.x - abBaryCoords.y;
+        if (std::abs(z) < epsilon)
+        {
+            z = 0.0f;
+        }
+
+        return bcoords3f(
+            abBaryCoords.x,
+            abBaryCoords.y,
+            z);
+    }
 
     bcoords3f ToBarycentricCoordinatesFromWithinTriangle(
         vec2f const & position,
         ElementIndex triangleElementIndex,
-        Points const & points) const;
+        Points const & points) const
+    {
+        assert(IsPointInTriangle(
+            position,
+            points.GetPosition(GetPointAIndex(triangleElementIndex)),
+            points.GetPosition(GetPointBIndex(triangleElementIndex)),
+            points.GetPosition(GetPointCIndex(triangleElementIndex))));
+
+        vec2f abBaryCoords = InternalToBarycentricCoordinates(
+            position,
+            triangleElementIndex,
+            points).clamp(0.0f, 1.0f, 0.0f, 1.0f);
+
+        return bcoords3f(
+            abBaryCoords.x,
+            abBaryCoords.y,
+            1.0f - abBaryCoords.x - abBaryCoords.y);
+    }
 
     vec2f FromBarycentricCoordinates(
         bcoords3f const & barycentricCoordinates,
         ElementIndex triangleElementIndex,
-        Points const & points) const;
+        Points const & points) const
+    {
+        vec2f const & positionA = points.GetPosition(mEndpointsBuffer[triangleElementIndex].PointIndices[0]);
+        vec2f const & positionB = points.GetPosition(mEndpointsBuffer[triangleElementIndex].PointIndices[1]);
+        vec2f const & positionC = points.GetPosition(mEndpointsBuffer[triangleElementIndex].PointIndices[2]);
+
+        return
+            positionA * barycentricCoordinates[0]
+            + positionB * barycentricCoordinates[1]
+            + positionC * barycentricCoordinates[2];
+    }
 
     //
     // Sub springs
@@ -262,7 +327,7 @@ public:
 
 private:
 
-    inline vec2f InternalToBarycentricCoordinates(
+    vec2f InternalToBarycentricCoordinates(
         vec2f const & position,
         ElementIndex triangleElementIndex,
         Points const & points) const;

@@ -413,8 +413,7 @@ void Npcs::UpdateNpcs(
                 *npcState,
                 true,
                 currentSimulationTime,
-                shipMesh,
-                gameParameters);
+                shipMesh);
 
             if (npcState->DipoleState.has_value())
             {
@@ -422,8 +421,7 @@ void Npcs::UpdateNpcs(
                     *npcState,
                     false,
                     currentSimulationTime,
-                    shipMesh,
-                    gameParameters);
+                    shipMesh);
             }
         }
     }
@@ -836,7 +834,7 @@ void Npcs::UpdateNpcParticlePhysics(
                                 vec2f const idealWalkDir = vec2f(npc.KindSpecificState.HumanNpcState.CurrentFaceDirectionX, 0.0f);
                                 assert(idealWalkDir.length() == 1.0f);
 
-                                float const idealWalkMagnitude = CalculateActualHumanWalkingAbsoluteSpeed(npc.KindSpecificState.HumanNpcState, gameParameters) * remainingDt;
+                                float const idealWalkMagnitude = CalculateActualHumanWalkingAbsoluteSpeed(npc.KindSpecificState.HumanNpcState) * remainingDt;
 
                                 vec2f walkDir; // Actual absolute direction of walk - along the edge
                                 if (idealWalkDir.dot(edgeDir) >= 0.0f)
@@ -2204,8 +2202,7 @@ void Npcs::UpdateNpcAnimation(
     StateType & npc,
     bool isPrimaryParticle,
     float currentSimulationTime,
-    Ship const & shipMesh,
-    GameParameters const & gameParameters)
+    Ship const & shipMesh)
 {
     if (npc.Kind == NpcKindType::Human && isPrimaryParticle) // Take the primary as the only representative of a human
     {
@@ -2361,7 +2358,7 @@ void Npcs::UpdateNpcAnimation(
                 // Calculate leg angle based on distance traveled
                 //
 
-                float const actualWalkingSpeed = CalculateActualHumanWalkingAbsoluteSpeed(humanNpcState, gameParameters); // Add some dependency on walking speed
+                float const actualWalkingSpeed = CalculateActualHumanWalkingAbsoluteSpeed(humanNpcState); // Add some dependency on walking speed
                 float const actualHalfStepLengthFraction = (GameParameters::HumanNpcGeometry::StepLengthFraction * std::sqrt(actualWalkingSpeed) / 2.0f);
                 float const MaxLegAngle = std::atan(actualHalfStepLengthFraction / GameParameters::HumanNpcGeometry::LegLengthFraction);
 

@@ -491,7 +491,7 @@ void Npcs::UpdateHuman(
 					// when we're walking "fast".
 					// Walking speed rel == 1.0 => 0.25
 					// Walking speed rel == 1.5 => 0.1
-					float const relWalkingSpeed = CalculateHumanWalkingSpeedAdjustment(humanState, gameParameters);
+					float const relWalkingSpeed = CalculateHumanWalkingSpeedAdjustment(humanState);
 					toTerminateEquilibriumConvergenceRate = Clamp(
 						0.25f - (relWalkingSpeed - 1.0f) / (1.5f - 1.0f) * (0.25f - 0.1f),
 						0.1f,
@@ -545,7 +545,7 @@ void Npcs::UpdateHuman(
 				vec2f const idealWalkVelocityDir = vec2f(
 					humanState.CurrentFaceDirectionX,
 					0.0f);
-				float const idealWalkVelocityMagnitude = CalculateActualHumanWalkingAbsoluteSpeed(humanState, gameParameters);
+				float const idealWalkVelocityMagnitude = CalculateActualHumanWalkingAbsoluteSpeed(humanState);
 				vec2f const idealWalkVelocity = idealWalkVelocityDir * idealWalkVelocityMagnitude;
 
 				float const primaryMeshRelativeVelocityAlongWalkDir = primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(idealWalkVelocityDir);
@@ -924,7 +924,7 @@ void Npcs::RunWalkingHumanStateMachine(
 	StateType::KindSpecificStateType::HumanNpcStateType & humanState,
 	StateType::NpcParticleStateType const & primaryParticleState,
 	Ship const & /*shipMesh*/, // Will come useful when we'll *plan* the walk
-	GameParameters const & gameParameters)
+	GameParameters const & /*gameParameters*/)
 {
 	assert(primaryParticleState.ConstrainedState.has_value());
 	assert(humanState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking);
@@ -939,7 +939,7 @@ void Npcs::RunWalkingHumanStateMachine(
 		float constexpr MinRelativeVelocityAgreementToAcceptWalk = 0.025f;
 		float const relativeVelocityAgreement = primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(
 			vec2f(
-				humanState.CurrentFaceDirectionX * CalculateActualHumanWalkingAbsoluteSpeed(humanState, gameParameters),
+				humanState.CurrentFaceDirectionX * CalculateActualHumanWalkingAbsoluteSpeed(humanState),
 				0.0f));
 		if (relativeVelocityAgreement < MinRelativeVelocityAgreementToAcceptWalk)
 		{
@@ -1101,28 +1101,6 @@ void Npcs::TransitionHumanBehaviorToFree(
 		}
 #endif
 	}
-}
-
-float Npcs::CalculateActualHumanWalkingAbsoluteSpeed(
-	StateType::KindSpecificStateType::HumanNpcStateType & humanState,
-	GameParameters const & gameParameters) const
-{
-	assert(humanState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking);
-
-	return humanState.WalkingSpeedBase * CalculateHumanWalkingSpeedAdjustment(humanState, gameParameters);
-}
-
-float Npcs::CalculateHumanWalkingSpeedAdjustment(
-	StateType::KindSpecificStateType::HumanNpcStateType & humanState,
-	GameParameters const & /*gameParameters*/) const
-{
-	assert(humanState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking);
-
-	return std::min(
-		humanState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude // Note that this is the only one that might be zero
-		* mCurrentHumanNpcWalkingSpeedAdjustment
-		* (1.0f + humanState.ResultantPanicLevel * 3.0f),
-		4.0f); // Absolute cap
 }
 
 }

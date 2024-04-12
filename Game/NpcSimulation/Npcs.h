@@ -936,7 +936,7 @@ private:
 		{}
 	};
 
-	NavigateVertexOutcome NavigateVertex(
+	inline NavigateVertexOutcome NavigateVertex(
 		StateType & npc,
 		bool isPrimaryParticle,
 		int vertexOrdinal,
@@ -949,7 +949,7 @@ private:
 		NpcParticles & particles,
 		GameParameters const & gameParameters);
 
-	inline void BounceConstrainedNpcParticle(
+	void BounceConstrainedNpcParticle(
 		StateType & npc,
 		bool isPrimaryParticle,
 		vec2f const & trajectory,
@@ -972,8 +972,7 @@ private:
 		StateType & npc,
 		bool isPrimaryParticle,
 		float currentSimulationTime,
-		Ship const & shipMesh,
-		GameParameters const & gameParameters);
+		Ship const & shipMesh);
 
 	static bool IsEdgeFloorToParticle(
 		ElementIndex triangleElementIndex,
@@ -1082,7 +1081,7 @@ private:
 		Ship const & shipMesh,
 		GameParameters const & gameParameters);
 
-	bool CheckAndMaintainHumanEquilibrium(
+	inline bool CheckAndMaintainHumanEquilibrium(
 		ElementIndex primaryParticleIndex,
 		ElementIndex secondaryParticleIndex,
 		bool isRisingState,
@@ -1090,7 +1089,7 @@ private:
 		NpcParticles & particles,
 		GameParameters const & gameParameters);
 
-	void RunWalkingHumanStateMachine(
+	inline void RunWalkingHumanStateMachine(
 		StateType::KindSpecificStateType::HumanNpcStateType & humanState,
 		StateType::NpcParticleStateType const & primaryParticleState,
 		Ship const & shipMesh,
@@ -1113,13 +1112,23 @@ private:
 		StateType & npc,
 		float currentSimulationTime);
 
-	float CalculateActualHumanWalkingAbsoluteSpeed(
-		StateType::KindSpecificStateType::HumanNpcStateType & humanState,
-		GameParameters const & gameParameters) const;
+	float CalculateActualHumanWalkingAbsoluteSpeed(StateType::KindSpecificStateType::HumanNpcStateType & humanState) const
+	{
+		assert(humanState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking);
 
-	float CalculateHumanWalkingSpeedAdjustment(
-		StateType::KindSpecificStateType::HumanNpcStateType & humanState,
-		GameParameters const & gameParameters) const;
+		return humanState.WalkingSpeedBase * CalculateHumanWalkingSpeedAdjustment(humanState);
+	}
+
+	float CalculateHumanWalkingSpeedAdjustment(StateType::KindSpecificStateType::HumanNpcStateType & humanState) const
+	{
+		assert(humanState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking);
+
+		return std::min(
+			humanState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude // Note that this is the only one that might be zero
+			* mCurrentHumanNpcWalkingSpeedAdjustment
+			* (1.0f + humanState.ResultantPanicLevel * 3.0f),
+			4.0f); // Absolute cap
+	}
 
 private:
 
