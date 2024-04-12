@@ -1119,6 +1119,7 @@ float Npcs::CalculateHumanWalkingSpeedAdjustment(
 
 	return std::min(
 		humanState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude // Note that this is the only one that might be zero
+		* mCurrentHumanNpcWalkingSpeedAdjustment
 		* (1.0f + humanState.ResultantPanicLevel * 3.0f),
 		4.0f); // Absolute cap
 }

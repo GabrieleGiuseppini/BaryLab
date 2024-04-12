@@ -578,6 +578,7 @@ public:
 		, mConstrainedRegimeHumanNpcCount(0)
 		// Simulation Parameters
 		, mCurrentHumanNpcBodyLengthAdjustment(gameParameters.HumanNpcBodyLengthAdjustment)
+		, mCurrentHumanNpcWalkingSpeedAdjustment(gameParameters.HumanNpcWalkingSpeedAdjustment)
 		, mCurrentSpringReductionFraction(gameParameters.NpcSpringReductionFraction)
 		, mCurrentSpringDampingCoefficient(gameParameters.NpcSpringReductionFraction)
 	{}
@@ -852,7 +853,9 @@ private:
 
 	void RecalculateSpringForceParameters(StateType::DipolePropertiesType & dipoleProperties) const;
 
-	void RecalculateHumanNpcBodyLengths();
+	void RecalculateHumanNpcDipoleLengths();
+
+	float CalculateHumanNpcDipoleLength(float baseHeight) const;
 
 	void UpdateNpcParticle_Free(
 		StateType::NpcParticleStateType & particle,
@@ -884,6 +887,7 @@ private:
 		StateType & npc,
 		bool isPrimaryParticle,
 		vec2f const & particleStartAbsolutePosition,
+		vec2f const & segmentTrajectoryStartAbsolutePosition,
 		bcoords3f const segmentTrajectoryStartBarycentricCoords,
 		vec2f const & segmentTrajectoryEndAbsolutePosition,
 		bcoords3f segmentTrajectoryEndBarycentricCoords,
@@ -1158,6 +1162,7 @@ private:
 
 	// Cached from game parameters
 	float mCurrentHumanNpcBodyLengthAdjustment;
+	float mCurrentHumanNpcWalkingSpeedAdjustment;
 	float mCurrentSpringReductionFraction;
 	float mCurrentSpringDampingCoefficient;
 

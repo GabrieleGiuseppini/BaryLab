@@ -24,7 +24,12 @@ void Npcs::Update(
 	{
 		mCurrentHumanNpcBodyLengthAdjustment = gameParameters.HumanNpcBodyLengthAdjustment;
 
-		RecalculateHumanNpcBodyLengths();
+		RecalculateHumanNpcDipoleLengths();
+	}
+
+	if (gameParameters.HumanNpcWalkingSpeedAdjustment != mCurrentHumanNpcWalkingSpeedAdjustment)
+	{
+		mCurrentHumanNpcWalkingSpeedAdjustment = gameParameters.HumanNpcWalkingSpeedAdjustment;
 	}
 
 	if (gameParameters.NpcSpringReductionFraction != mCurrentSpringReductionFraction
@@ -382,7 +387,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 		/ (feetMaterial.Mass + headMaterial.Mass);
 
 	StateType::DipolePropertiesType dipoleProperties(
-		height * mCurrentHumanNpcBodyLengthAdjustment,
+		CalculateHumanNpcDipoleLength(height),
 		massFactor);
 
 	RecalculateSpringForceParameters(dipoleProperties);
@@ -409,7 +414,9 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 			3.0f * GameParameters::HumanNpcGeometry::BodyWidthWideMultiplierStdDev);
 	}
 
-	float const walkingSpeedBase = height / 1.65f; // Just comes from 1m/s looking good when human is 1.65
+	float const walkingSpeedBase =
+		1.0f
+		* height / 1.65f; // Just comes from 1m/s looking good when human is 1.65
 
 	StateType::KindSpecificStateType::HumanNpcStateType humanState = StateType::KindSpecificStateType::HumanNpcStateType(
 		humanKind,

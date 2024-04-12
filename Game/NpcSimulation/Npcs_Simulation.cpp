@@ -1117,20 +1117,11 @@ void Npcs::UpdateNpcParticlePhysics(
                 // Move towards target bary coords
                 //
 
-                // TODOZORRO
-#ifdef _DEBUG
-                auto const b = shipMesh.GetTriangles().FromBarycentricCoordinates(
-                    npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords,
-                    npcParticle.ConstrainedState->CurrentTriangle,
-                    shipMesh.GetPoints());
-                assert(std::abs(b.x - trajectoryStartAbsolutePosition.x) < 0.001f);
-                assert(std::abs(b.y - trajectoryStartAbsolutePosition.y) < 0.001f);
-#endif
-
                 float totalTraveled = UpdateNpcParticle_ConstrainedInertial(
                     npc,
                     isPrimaryParticle,
                     particleStartAbsolutePosition,
+                    trajectoryStartAbsolutePosition, // segmentTrajectoryStartAbsolutePosition
                     npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, // segmentTrajectoryStartBarycentricCoords
                     trajectoryEndAbsolutePosition,
                     trajectoryEndBarycentricCoords,
@@ -1427,9 +1418,8 @@ void Npcs::RecalculateSpringForceParameters(StateType::DipolePropertiesType & di
         / GameParameters::SimulationTimeStepDuration;
 }
 
-void Npcs::RecalculateHumanNpcBodyLengths()
+void Npcs::RecalculateHumanNpcDipoleLengths()
 {
-    // Adjust all humans' dipole lengths
     for (auto & state : mStateBuffer)
     {
         if (state.has_value())
@@ -1437,10 +1427,15 @@ void Npcs::RecalculateHumanNpcBodyLengths()
             if (state->Kind == NpcKindType::Human)
             {
                 assert(state->DipoleState.has_value());
-                state->DipoleState->DipoleProperties.DipoleLength = state->KindSpecificState.HumanNpcState.Height * mCurrentHumanNpcBodyLengthAdjustment;
+                state->DipoleState->DipoleProperties.DipoleLength = CalculateHumanNpcDipoleLength(state->KindSpecificState.HumanNpcState.Height);
             }
         }
     }
+}
+
+float Npcs::CalculateHumanNpcDipoleLength(float baseHeight) const
+{
+    return baseHeight * mCurrentHumanNpcBodyLengthAdjustment;
 }
 
 void Npcs::UpdateNpcParticle_Free(
@@ -1509,13 +1504,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
 
         npcParticleConstrainedState.CurrentTriangleBarycentricCoords = flattenedTrajectoryEndBarycentricCoords;
 
-        // TODOHERE: we know this one already
-        vec2f const particleEndAbsolutePosition = shipMesh.GetTriangles().FromBarycentricCoordinates(
-            flattenedTrajectoryEndBarycentricCoords,
-            npcParticleConstrainedState.CurrentTriangle,
-            shipMesh.GetPoints());
-
-        particles.SetPosition(npcParticle.ParticleIndex, particleEndAbsolutePosition);
+        particles.SetPosition(npcParticle.ParticleIndex, flattenedTrajectoryEndAbsolutePosition);
 
         //
         // Velocity: given that we've completed *along the edge*, then we can calculate
@@ -1528,7 +1517,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
         // we can then assume that signed_edge_traveled_actual == signed_edge_traveled_planned (verified via assert)
         //
 
-        assert(std::abs((particleEndAbsolutePosition - trajectoryStartAbsolutePosition).dot(edgeDir) - edgeTraveledPlanned) < 0.001f);
+        assert(std::abs((flattenedTrajectoryEndAbsolutePosition - trajectoryStartAbsolutePosition).dot(edgeDir) - edgeTraveledPlanned) < 0.001f);
 
         vec2f const relativeVelocity =
             edgeDir
@@ -1698,6 +1687,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
     StateType & npc,
     bool isPrimaryParticle,
     vec2f const & particleStartAbsolutePosition, // Since beginning of whole time quantum, not just this step
+    vec2f const & segmentTrajectoryStartAbsolutePosition,
     bcoords3f const segmentTrajectoryStartBarycentricCoords, // In current triangle
     vec2f const & segmentTrajectoryEndAbsolutePosition,
     bcoords3f segmentTrajectoryEndBarycentricCoords, // In current triangle; mutable
@@ -1711,12 +1701,6 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
     assert(npcParticle.ConstrainedState.has_value());
     auto & npcParticleConstrainedState = *npcParticle.ConstrainedState;
-
-    // TODOHERE: needed? See assert TODOZORRO, might take as arg
-    vec2f const segmentTrajectoryStartAbsolutePosition = shipMesh.GetTriangles().FromBarycentricCoordinates(
-        segmentTrajectoryStartBarycentricCoords,
-        npcParticle.ConstrainedState->CurrentTriangle,
-        shipMesh.GetPoints());
 
     //
     // Ray-trace along the specified trajectory, ending only at one of the following three conditions:
