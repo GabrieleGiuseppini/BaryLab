@@ -858,11 +858,10 @@ void Npcs::UpdateNpcParticlePhysics(
                                 // to prevent walking on floors that are too steep
                                 float constexpr ResistanceSlopeStart = 0.50f; // Start slightly before expected 45-degree ramp
                                 float constexpr ResistanceSlopeEnd = 0.85f; // Max slope we're willing to climb
-                                float const x = walkDir.dot(-GameParameters::GravityDir); // TODO: perf: this is just y
-                                if (x >= ResistanceSlopeStart)
+                                if (walkDir.y >= ResistanceSlopeStart) // walkDir.y is component along vertical, pointing up
                                 {
-                                    float const x2 = (x - ResistanceSlopeStart) / (ResistanceSlopeEnd - ResistanceSlopeStart);
-                                    float const gravityResistance = std::max(1.0f - (x2 * x2), 0.0f);
+                                    float const y2 = (walkDir.y - ResistanceSlopeStart) / (ResistanceSlopeEnd - ResistanceSlopeStart);
+                                    float const gravityResistance = std::max(1.0f - (y2 * y2), 0.0f);
 
                                     edgeWalkedPlanned *= gravityResistance;
                                 }

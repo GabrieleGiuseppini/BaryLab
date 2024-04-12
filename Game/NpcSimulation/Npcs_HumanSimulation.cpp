@@ -1023,7 +1023,8 @@ void Npcs::OnHumanImpact(
 			LogNpcDebug("OnHumanImpact: alignment=", bounceEdgeNormal.dot(vec2f(humanState.CurrentFaceDirectionX, 0.0f)));
 
 			// Check alignment of impact with walking direction; if hit => flip
-			float constexpr MaxOppositionSlope = 0.5f;
+			// Note: might also want to check *magnitude* of hit
+			float constexpr MaxOppositionSlope = 0.85f;
 			if (bounceEdgeNormal.dot(vec2f(humanState.CurrentFaceDirectionX, 0.0f)) > MaxOppositionSlope
 				&& humanState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
 			{
