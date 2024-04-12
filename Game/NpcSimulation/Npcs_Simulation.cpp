@@ -1707,6 +1707,8 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
 
     for (int iIter = 0; ; ++iIter)
     {
+        assert(iIter < 5); // Detect and debug-break on infinite loops
+
         assert(npcParticleConstrainedState.CurrentTriangleBarycentricCoords.is_on_edge_or_internal());
 
         LogNpcDebug("    SegmentTrace ", iIter);
@@ -1945,7 +1947,8 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                 segmentTrajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinates(
                     segmentTrajectoryEndAbsolutePosition,
                     oppositeTriangleInfo.TriangleElementIndex,
-                    shipMesh.GetPoints());
+                    shipMesh.GetPoints(),
+                    1.0e-07f); // Be strict with roundings - there is a tiny region where the trajectory would oscillate between two triangles
 
                 LogNpcDebug("      TrajEndB-Coords: ", oldSegmentTrajectoryEndBarycentricCoords, " -> ", segmentTrajectoryEndBarycentricCoords);
 
