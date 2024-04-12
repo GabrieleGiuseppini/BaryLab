@@ -2358,9 +2358,11 @@ void Npcs::UpdateNpcAnimation(
                 // Calculate leg angle based on distance traveled
                 //
 
-                float const actualWalkingSpeed = CalculateActualHumanWalkingAbsoluteSpeed(humanNpcState); // Add some dependency on walking speed
-                float const actualHalfStepLengthFraction = (GameParameters::HumanNpcGeometry::StepLengthFraction * std::sqrt(actualWalkingSpeed) / 2.0f);
-                float const MaxLegAngle = std::atan(actualHalfStepLengthFraction / GameParameters::HumanNpcGeometry::LegLengthFraction);
+                // Add some dependency on walking speed
+                float const actualWalkingSpeed = CalculateActualHumanWalkingAbsoluteSpeed(humanNpcState);
+                float const MaxLegAngle =
+                    0.41f // std::atan((GameParameters::HumanNpcGeometry::StepLengthFraction / 2.0f) / GameParameters::HumanNpcGeometry::LegLengthFraction)
+                    * std::sqrt(actualWalkingSpeed * 0.9f);
 
                 adjustedStandardHumanHeight = humanNpcState.Height * mCurrentHumanNpcBodyLengthAdjustment;
                 float const stepLength = GameParameters::HumanNpcGeometry::StepLengthFraction * adjustedStandardHumanHeight;

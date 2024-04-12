@@ -12,6 +12,7 @@
 #include <GameCore/Colors.h>
 #include <GameCore/ElementContainer.h>
 #include <GameCore/FixedSizeVector.h>
+#include <GameCore/GameGeometry.h>
 #include <GameCore/GameTypes.h>
 
 #include <algorithm>

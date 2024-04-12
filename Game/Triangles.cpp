@@ -5,7 +5,6 @@
 ***************************************************************************************/
 #include "Physics.h"
 
-#include <GameCore/GameGeometry.h>
 #include <GameCore/GameMath.h>
 
 #include <cassert>
