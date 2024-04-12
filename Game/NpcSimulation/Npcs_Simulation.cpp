@@ -1503,7 +1503,6 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
         //
 
         npcParticleConstrainedState.CurrentTriangleBarycentricCoords = flattenedTrajectoryEndBarycentricCoords;
-
         particles.SetPosition(npcParticle.ParticleIndex, flattenedTrajectoryEndAbsolutePosition);
 
         //
