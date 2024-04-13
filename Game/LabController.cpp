@@ -63,7 +63,7 @@ LabController::LabController(
     , mCurrentWavesSpeed(0.0f)
     , mTargetWavesSpeed(0.0f)
     , mLastWaveRotationAngle(0.0f)
-    , mCurrentWaveTimeArg(0.0f)
+    , mLastWaveTimeArg(0.0f)
     , mCurrentVideoStep(0)
     // Simulation control
     , mSimulationControlState(SimulationControlStateType::Play)
@@ -304,7 +304,7 @@ void LabController::UpdateShipTransformations()
     mCurrentWavesSpeed += (mTargetWavesSpeed - mCurrentWavesSpeed) * 0.05f;
     if (mCurrentWavesAmplitude != 0.0f && mCurrentWavesSpeed != 0.0f)
     {
-        float const newArg = mCurrentWaveTimeArg + mCurrentWavesSpeed * GameParameters::SimulationTimeStepDuration;;
+        float const newArg = mLastWaveTimeArg + mCurrentWavesSpeed * GameParameters::SimulationTimeStepDuration;
         float const rotationAngle = std::sinf(newArg) * mCurrentWavesAmplitude;
         float const deltaRotationAngle = rotationAngle - mLastWaveRotationAngle;
         for (auto p : points)
@@ -313,7 +313,7 @@ void LabController::UpdateShipTransformations()
         }
 
         mLastWaveRotationAngle = rotationAngle;
-        mCurrentWaveTimeArg = newArg;
+        mLastWaveTimeArg = newArg;
     }
 }
 
