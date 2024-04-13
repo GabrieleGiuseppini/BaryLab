@@ -664,7 +664,7 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
                 },
                 std::make_unique<LinearSliderCore>(
                     0.0f,
-                    1.0f));
+                    2.0f));
 
             mWavesAmplitudeSlider->SetValue(0.0f);
 
