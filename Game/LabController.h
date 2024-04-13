@@ -327,6 +327,7 @@ private:
     float mCurrentWavesSpeed;
     float mTargetWavesSpeed;
     float mLastWaveRotationAngle;
+    float mCurrentWaveTimeArg;
 
     int mCurrentVideoStep;
 
