@@ -1008,7 +1008,9 @@ private:
 		bcoords3f const primaryBaryCoords = shipMesh.GetTriangles().ToBarycentricCoordinates(primaryPosition, triangleElementIndex, shipMesh.GetPoints());
 
 		// It's on the other side of the edge if its "edge's" b-coord is negative
-		if (primaryBaryCoords[(edgeOrdinal + 2) % 3] >= -0.0001f)
+		// TODOTEST
+		//if (primaryBaryCoords[(edgeOrdinal + 2) % 3] >= -0.0001f)
+		if (primaryBaryCoords[(edgeOrdinal + 2) % 3] >= -0.01f)
 		{
 			return true;
 		}

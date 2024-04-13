@@ -164,7 +164,7 @@ public:
         ElementIndex triangleElementIndex,
         Points const & points) const
     {
-        vec2f const abBaryCoords = InternalToBarycentricCoordinates(
+        vec2f const abBaryCoords = InternalToBarycentricCoordinates<2, 0, 1>(
             position,
             triangleElementIndex,
             points);
@@ -175,37 +175,67 @@ public:
             1.0f - abBaryCoords.x - abBaryCoords.y);
     }
 
-    bcoords3f ToBarycentricCoordinates(
+    bcoords3f ToBarycentricCoordinatesInsideEdge(
         vec2f const & position,
         ElementIndex triangleElementIndex,
         Points const & points,
-        float epsilon) const
+        int insideEdge) const
     {
-        vec2f abBaryCoords = InternalToBarycentricCoordinates(
-            position,
-            triangleElementIndex,
-            points);
+        //
+        // Calculate bary coords enforcing that the coord wrt the specified edge
+        // is not negative
+        //
+        // - Calculate coords using any of the not-that-edge vertices as anchors (=> that-edge is one of the two coords calc'd)
+        // - Then clamp that-edge and calc 3rd coord via 1-...
+        //
 
-        if (std::abs(abBaryCoords.x) < epsilon)
+        if (insideEdge == 0)
         {
-            abBaryCoords.x = 0.0f;
-        }
+            // Vertex is 2
+            vec2f v1v2BaryCoords = InternalToBarycentricCoordinates<0, 1, 2>(
+                position,
+                triangleElementIndex,
+                points);
 
-        if (std::abs(abBaryCoords.y) < epsilon)
+            v1v2BaryCoords.y = std::max(v1v2BaryCoords.y, 0.0f);
+
+            return bcoords3f(
+                1.0f - v1v2BaryCoords.x - v1v2BaryCoords.y,
+                v1v2BaryCoords.x,
+                v1v2BaryCoords.y);
+        }
+        else if (insideEdge == 1)
         {
-            abBaryCoords.y = 0.0f;
-        }
+            // Vertex is 0
+            vec2f v2v0BaryCoords = InternalToBarycentricCoordinates<1, 2, 0>(
+                position,
+                triangleElementIndex,
+                points);
 
-        float z = 1.0f - abBaryCoords.x - abBaryCoords.y;
-        if (std::abs(z) < epsilon)
+            v2v0BaryCoords.y = std::max(v2v0BaryCoords.y, 0.0f);
+
+            return bcoords3f(
+                v2v0BaryCoords.y,
+                1.0f - v2v0BaryCoords.x - v2v0BaryCoords.y,
+                v2v0BaryCoords.x);
+        }
+        else
         {
-            z = 0.0f;
-        }
+            assert(insideEdge == 2);
 
-        return bcoords3f(
-            abBaryCoords.x,
-            abBaryCoords.y,
-            z);
+            // Vertex is 1
+            vec2f v0v1BaryCoords = InternalToBarycentricCoordinates<2, 0, 1>(
+                position,
+                triangleElementIndex,
+                points);
+
+            v0v1BaryCoords.y = std::max(v0v1BaryCoords.y, 0.0f);
+
+            return bcoords3f(
+                v0v1BaryCoords.x,
+                v0v1BaryCoords.y,
+                1.0f - v0v1BaryCoords.x - v0v1BaryCoords.y);
+        }
     }
 
     bcoords3f ToBarycentricCoordinatesFromWithinTriangle(
@@ -219,7 +249,7 @@ public:
             points.GetPosition(GetPointBIndex(triangleElementIndex)),
             points.GetPosition(GetPointCIndex(triangleElementIndex))));
 
-        vec2f abBaryCoords = InternalToBarycentricCoordinates(
+        vec2f abBaryCoords = InternalToBarycentricCoordinates<2, 0, 1>(
             position,
             triangleElementIndex,
             points).clamp(0.0f, 1.0f, 0.0f, 1.0f);
@@ -328,10 +358,43 @@ public:
 
 private:
 
+    template<unsigned int anchorVertex, unsigned int vertex1, unsigned int vertex2>
     vec2f InternalToBarycentricCoordinates(
         vec2f const & position,
         ElementIndex triangleElementIndex,
-        Points const & points) const;
+        Points const & points) const
+    {
+        vec2f const & positionAnchor = points.GetPosition(mEndpointsBuffer[triangleElementIndex].PointIndices[anchorVertex]);
+
+        vec2f const v1 = points.GetPosition(mEndpointsBuffer[triangleElementIndex].PointIndices[vertex1]) - positionAnchor;
+        vec2f const v2 = points.GetPosition(mEndpointsBuffer[triangleElementIndex].PointIndices[vertex2]) - positionAnchor;
+        vec2f const vp = position - positionAnchor;
+
+        float const denominator = v2.y * v1.x - v2.x * v1.y;
+
+        if (IsAlmostZero(denominator))
+        {
+            // Co-linear, put arbitrarily in center
+            float constexpr l = 0.3333333f;
+            return vec2f(l, l);
+        }
+        else
+        {
+            // See also: https://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates
+
+            float const l1 =
+                ((v2.y * vp.x) - (v2.x * vp.y))
+                / denominator;
+
+            float const l2 =
+                ((v1.x * vp.y) - (v1.y * vp.x))
+                / denominator;
+
+            return vec2f(
+                l1,
+                l2);
+        }
+    }
 
 private:
 

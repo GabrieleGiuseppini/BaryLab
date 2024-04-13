@@ -1709,6 +1709,12 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
     {
         assert(iIter < 5); // Detect and debug-break on infinite loops
 
+        // TODOTEST
+        if (iIter > 5)
+        {
+            LogMessage("FOO!");
+        }
+
         assert(npcParticleConstrainedState.CurrentTriangleBarycentricCoords.is_on_edge_or_internal());
 
         LogNpcDebug("    SegmentTrace ", iIter);
@@ -1944,11 +1950,15 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                 auto const oldSegmentTrajectoryEndBarycentricCoords = segmentTrajectoryEndBarycentricCoords; // For logging
                 // Note: here we introduce a lot of error - the target bary coords are not anymore
                 // guaranteed to lie exactly on the (continuation of the) edge
-                segmentTrajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinates(
+                segmentTrajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinatesInsideEdge(
                     segmentTrajectoryEndAbsolutePosition,
                     oppositeTriangleInfo.TriangleElementIndex,
                     shipMesh.GetPoints(),
-                    1.0e-07f); // Be strict with roundings - there is a tiny region where the trajectory would oscillate between two triangles
+                    oppositeTriangleInfo.EdgeOrdinal
+                    // TODOTEST
+                    ////,
+                    ////1.0e-07f); // Be strict with roundings - there is a tiny region where the trajectory would oscillate between two triangles
+                    );
 
                 LogNpcDebug("      TrajEndB-Coords: ", oldSegmentTrajectoryEndBarycentricCoords, " -> ", segmentTrajectoryEndBarycentricCoords);
 
@@ -1983,6 +1993,12 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         LogNpcDebug("    NavigateVertex: iter=", iIter);
 
         assert(iIter < 5); // Detect and debug-break on infinite loops
+
+        // TODOTEST
+        if (iIter > 5)
+        {
+            LogMessage("FOO!");
+        }
 
         // The two vertices around the vertex we are on - seen in clockwise order
         int const nextVertexOrdinal = (vertexOrdinal + 1) % 3;
@@ -2107,11 +2123,15 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         // Translate target bary coords
         //
 
-        trajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinates(
+        trajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinatesInsideEdge(
             trajectoryEndAbsolutePosition,
-            npcParticle.ConstrainedState->CurrentTriangle,
+            oppositeTriangleInfo.TriangleElementIndex,
             shipMesh.GetPoints(),
-            1.0e-07f); // Be strict with roundings - there is a tiny region where the trajectory would oscillate between two triangles (e.g. {0.998306274, 0.00169372594, -3.49245965e-10} -> {-1.61526414e-09, 0.00169372361, 0.998306274})
+            oppositeTriangleInfo.EdgeOrdinal
+            // TODOTEST
+            ////,
+            ////1.0e-07f); // Be strict with roundings - there is a tiny region where the trajectory would oscillate between two triangles (e.g. {0.998306274, 0.00169372594, -3.49245965e-10} -> {-1.61526414e-09, 0.00169372361, 0.998306274})
+            );
 
         LogNpcDebug("      TrajEndB-Coords: ", trajectoryEndBarycentricCoords);
 
