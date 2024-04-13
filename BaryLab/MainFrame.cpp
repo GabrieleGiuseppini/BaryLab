@@ -762,7 +762,9 @@ void MainFrame::OnViewControlGridToggled(wxCommandEvent & event)
 void MainFrame::OnMeshTransformationChanged(ControlToolbar::meshTransformationChangedEvent & event)
 {
     assert(!!mLabController);
-    mLabController->SetShipVelocity(event.GetVelocity());
+    mLabController->SetShipVelocity(event.GetMeshVelocity());
+    mLabController->SetWavesAmplitude(event.GetWavesAmplitude());
+    mLabController->SetWavesSpeed(event.GetWavesSpeed());
 }
 
 void MainFrame::OnHumanNpcPanicLevelChanged(ControlToolbar::humanNpcPanicLevelChangedEvent & event)
@@ -841,14 +843,14 @@ void MainFrame::OnSimulationTimer(wxTimerEvent & /*event*/)
     mProbeToolbar->Update();
 
     // TODOTEST
-#ifndef _DEBUG
-    static int TODO = 0;
-    ++TODO;
-    if (TODO > 10 * 64)
-    {
-        Close();
-    }
-#endif
+////#ifndef _DEBUG
+////    static int TODO = 0;
+////    ++TODO;
+////    if (TODO > 10 * 64)
+////    {
+////        Close();
+////    }
+////#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

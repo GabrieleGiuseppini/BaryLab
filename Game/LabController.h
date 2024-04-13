@@ -94,6 +94,10 @@ public:
 
     void SetShipVelocity(vec2f const & velocity);
 
+    void SetWavesAmplitude(float wavesAmplitude);
+
+    void SetWavesSpeed(float wavesSpeed);
+
     void DoStepForVideo();
 
     //
@@ -317,6 +321,12 @@ private:
 
     vec2f mCurrentShipTranslationVelocity;
     float mCurrentShipTranslationAccelerationIndicator;
+
+    float mCurrentWavesAmplitude;
+    float mTargetWavesAmplitude;
+    float mCurrentWavesSpeed;
+    float mTargetWavesSpeed;
+    float mLastWaveRotationAngle;
 
     int mCurrentVideoStep;
 

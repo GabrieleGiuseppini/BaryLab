@@ -52,16 +52,22 @@ public:
         meshTransformationChangedEvent(
             wxEventType eventType,
             int winid,
-            vec2f velocity)
+            vec2f meshVelocity,
+            float wavesAmplitude,
+            float wavesSpeed)
             : wxEvent(winid, eventType)
-            , mVelocity(velocity)
+            , mMeshVelocity(meshVelocity)
+            , mWavesAmplitude(wavesAmplitude)
+            , mWavesSpeed(wavesSpeed)
         {
             m_propagationLevel = wxEVENT_PROPAGATE_MAX;
         }
 
         meshTransformationChangedEvent(meshTransformationChangedEvent const & other)
             : wxEvent(other)
-            , mVelocity(other.mVelocity)
+            , mMeshVelocity(other.mMeshVelocity)
+            , mWavesAmplitude(other.mWavesAmplitude)
+            , mWavesSpeed(other.mWavesSpeed)
         {
             m_propagationLevel = wxEVENT_PROPAGATE_MAX;
         }
@@ -71,14 +77,26 @@ public:
             return new meshTransformationChangedEvent(*this);
         }
 
-        vec2f const & GetVelocity() const
+        vec2f const & GetMeshVelocity() const
         {
-            return mVelocity;
+            return mMeshVelocity;
+        }
+
+        float GetWavesAmplitude() const
+        {
+            return mWavesAmplitude;
+        }
+
+        float GetWavesSpeed() const
+        {
+            return mWavesSpeed;
         }
 
     private:
 
-        vec2f const mVelocity;
+        vec2f const mMeshVelocity;
+        float const mWavesAmplitude;
+        float const mWavesSpeed;
     };
 
     class humanNpcPanicLevelChangedEvent : public wxEvent
@@ -167,6 +185,8 @@ private:
 
     SliderControl<float> * mHorizontalMeshVelocitySlider;
     SliderControl<float> * mVerticalMeshVelocitySlider;
+    SliderControl<float> * mWavesAmplitudeSlider;
+    SliderControl<float> * mWavesSpeedSlider;
     SliderControl<float> * mNpcHumanPanicLevelSlider;
 };
 

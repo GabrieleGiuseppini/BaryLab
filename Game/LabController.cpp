@@ -58,6 +58,11 @@ LabController::LabController(
     , mOceanDepth(-7.0f)
     , mCurrentShipTranslationVelocity(vec2f::zero())
     , mCurrentShipTranslationAccelerationIndicator(0.0f)
+    , mCurrentWavesAmplitude(0.0f)
+    , mTargetWavesAmplitude(0.0f)
+    , mCurrentWavesSpeed(0.0f)
+    , mTargetWavesSpeed(0.0f)
+    , mLastWaveRotationAngle(0.0f)
     , mCurrentVideoStep(0)
     // Simulation control
     , mSimulationControlState(SimulationControlStateType::Play)
@@ -273,10 +278,15 @@ void LabController::Reset()
 
 void LabController::UpdateShipTransformations()
 {
+    auto & points = mWorld->GetShip().GetPoints();
+
+    //
+    // Translation
+    //
+
     vec2f const translation = mCurrentShipTranslationVelocity * GameParameters::SimulationTimeStepDuration;
 
     // Update ship
-    auto & points = mWorld->GetShip().GetPoints();
     for (auto p : points)
     {
         points.SetPosition(p, points.GetPosition(p) + translation);
@@ -284,6 +294,25 @@ void LabController::UpdateShipTransformations()
 
     // Update camera pan
     mRenderContext->SetCameraWorldPosition(mRenderContext->GetCameraWorldPosition() + translation);
+
+    //
+    // Waves
+    //
+
+    mCurrentWavesAmplitude += (mTargetWavesAmplitude - mCurrentWavesAmplitude) * 0.05f;
+    mCurrentWavesSpeed += (mTargetWavesSpeed - mCurrentWavesSpeed) * 0.05f;
+    float const arg = mCurrentSimulationTime * mCurrentWavesSpeed;
+    float const rotationAngle = std::sinf(arg) * mCurrentWavesAmplitude;
+    if (rotationAngle != mLastWaveRotationAngle)
+    {
+        float const deltaRotationAngle = rotationAngle - mLastWaveRotationAngle;
+        for (auto p : points)
+        {
+            points.SetPosition(p, points.GetPosition(p).rotate(deltaRotationAngle));
+        }
+
+        mLastWaveRotationAngle = rotationAngle;
+    }
 }
 
 std::optional<ElementIndex> LabController::TryPickVertex(vec2f const & screenCoordinates) const
@@ -557,6 +586,16 @@ void LabController::SetShipVelocity(vec2f const & velocity)
 {
     mCurrentShipTranslationVelocity = velocity;
     mCurrentShipTranslationAccelerationIndicator = 1.0f;
+}
+
+void LabController::SetWavesAmplitude(float wavesAmplitude)
+{
+    mTargetWavesAmplitude = wavesAmplitude;
+}
+
+void LabController::SetWavesSpeed(float wavesSpeed)
+{
+    mTargetWavesSpeed = wavesSpeed;
 }
 
 void LabController::DoStepForVideo()

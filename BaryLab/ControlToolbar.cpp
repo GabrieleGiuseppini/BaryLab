@@ -56,7 +56,7 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
         wxBORDER_SIMPLE)
 {
     int constexpr SliderWidth = 50;
-    int constexpr SliderHeight = 140;
+    int constexpr SliderHeight = 110;
 
     SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE));
 
@@ -346,6 +346,24 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
             gridSizer->Add(mAddFurnitureNpcButton);
         }
 
+        gridSizer->AddStretchSpacer();
+
+        // Grid
+        {
+            mViewControlGridButton = new wxBitmapToggleButton(
+                this,
+                ID_VIEW_CONTROL_GRID,
+                wxBitmap(
+                    (ResourceLocator::GetResourcesFolderPath() / "view_grid.png").string(),
+                    wxBITMAP_TYPE_PNG),
+                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+
+            mViewControlGridButton->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent & /*event*/) { OnViewControlButton(mViewControlGridButton); });
+
+            mViewControlGridButton->SetToolTip("Enable or disable grid");
+
+            gridSizer->Add(mViewControlGridButton);
+        }
 
         vSizer->Add(gridSizer, 0, wxALIGN_CENTER | wxALL, 5);
     }
@@ -500,32 +518,6 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
 
     vSizer->AddSpacer(10);
 
-    // View Control
-    {
-        wxGridSizer * gridSizer = new wxGridSizer(1, 2, 2);
-
-        // Grid
-        {
-            mViewControlGridButton = new wxBitmapToggleButton(
-                this,
-                ID_VIEW_CONTROL_GRID,
-                wxBitmap(
-                    (ResourceLocator::GetResourcesFolderPath() / "view_grid.png").string(),
-                    wxBITMAP_TYPE_PNG),
-                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-
-            mViewControlGridButton->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent & /*event*/) { OnViewControlButton(mViewControlGridButton); });
-
-            mViewControlGridButton->SetToolTip("Enable or disable grid");
-
-            gridSizer->Add(mViewControlGridButton);
-        }
-
-        vSizer->Add(gridSizer, 0, wxALIGN_CENTER | wxALL, 5);
-    }
-
-    vSizer->AddSpacer(10);
-
     // Mesh transformation
     {
         auto * gridSizer = new wxFlexGridSizer(2, 2, 2);
@@ -540,8 +532,12 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
                 "The horizontal velocity of the mesh",
                 [this](float value)
                 {
-                    meshTransformationChangedEvent evt(EVT_MESH_TRANSFORMATION_CHANGED, this->GetId(),
-                        vec2f(value, mVerticalMeshVelocitySlider->GetValue()));
+                    meshTransformationChangedEvent evt(
+                        EVT_MESH_TRANSFORMATION_CHANGED,
+                        this->GetId(),
+                        vec2f(value, mVerticalMeshVelocitySlider->GetValue()),
+                        mWavesAmplitudeSlider->GetValue(),
+                        mWavesSpeedSlider->GetValue());
                     ProcessWindowEvent(evt);
                 },
                 std::make_unique<LinearSliderCore>(
@@ -567,8 +563,12 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
                 "The vertical velocity of the mesh",
                 [this](float value)
                 {
-                    meshTransformationChangedEvent evt(EVT_MESH_TRANSFORMATION_CHANGED, this->GetId(),
-                        vec2f(mHorizontalMeshVelocitySlider->GetValue(), value));
+                    meshTransformationChangedEvent evt(
+                        EVT_MESH_TRANSFORMATION_CHANGED,
+                        this->GetId(),
+                        vec2f(mHorizontalMeshVelocitySlider->GetValue(), value),
+                        mWavesAmplitudeSlider->GetValue(),
+                        mWavesSpeedSlider->GetValue());
                     ProcessWindowEvent(evt);
                 },
                 std::make_unique<LinearSliderCore>(
@@ -596,8 +596,12 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
             button->Bind(wxEVT_BUTTON,
                 [this](wxCommandEvent & /*event*/)
                 {
-                    meshTransformationChangedEvent evt(EVT_MESH_TRANSFORMATION_CHANGED, this->GetId(),
-                        vec2f(0.0f, mVerticalMeshVelocitySlider->GetValue()));
+                    meshTransformationChangedEvent evt(
+                        EVT_MESH_TRANSFORMATION_CHANGED,
+                        this->GetId(),
+                        vec2f(0.0f, mVerticalMeshVelocitySlider->GetValue()),
+                        mWavesAmplitudeSlider->GetValue(),
+                        mWavesSpeedSlider->GetValue());
                     ProcessEvent(evt);
 
                     mHorizontalMeshVelocitySlider->SetValue(0.0f);
@@ -622,8 +626,12 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
             button->Bind(wxEVT_BUTTON,
                 [this](wxCommandEvent & /*event*/)
                 {
-                    meshTransformationChangedEvent evt(EVT_MESH_TRANSFORMATION_CHANGED, this->GetId(),
-                        vec2f(mHorizontalMeshVelocitySlider->GetValue(), 0.0f));
+                    meshTransformationChangedEvent evt(
+                        EVT_MESH_TRANSFORMATION_CHANGED,
+                        this->GetId(),
+                        vec2f(mHorizontalMeshVelocitySlider->GetValue(), 0.0f),
+                        mWavesAmplitudeSlider->GetValue(),
+                        mWavesSpeedSlider->GetValue());
                     ProcessEvent(evt);
 
                     mVerticalMeshVelocitySlider->SetValue(0.0f);
@@ -631,6 +639,67 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
 
             gridSizer->Add(
                 button,
+                0,
+                wxALL,
+                1);
+        }
+
+        // Waves Amplitude
+        {
+            mWavesAmplitudeSlider = new SliderControl<float>(
+                this,
+                SliderWidth,
+                SliderHeight,
+                "Wave A",
+                "The amplitude of waves",
+                [this](float value)
+                {
+                    meshTransformationChangedEvent evt(
+                        EVT_MESH_TRANSFORMATION_CHANGED,
+                        this->GetId(),
+                        vec2f(mHorizontalMeshVelocitySlider->GetValue(), mVerticalMeshVelocitySlider->GetValue()),
+                        value,
+                        mWavesSpeedSlider->GetValue());
+                    ProcessWindowEvent(evt);
+                },
+                std::make_unique<LinearSliderCore>(
+                    0.0f,
+                    1.0f));
+
+            mWavesAmplitudeSlider->SetValue(0.0f);
+
+            gridSizer->Add(
+                mWavesAmplitudeSlider,
+                0,
+                wxALL,
+                1);
+        }
+
+        // Waves Speed
+        {
+            mWavesSpeedSlider = new SliderControl<float>(
+                this,
+                SliderWidth,
+                SliderHeight,
+                "Wave S",
+                "The speed of waves",
+                [this](float value)
+                {
+                    meshTransformationChangedEvent evt(
+                        EVT_MESH_TRANSFORMATION_CHANGED, this->GetId(),
+                        vec2f(mHorizontalMeshVelocitySlider->GetValue(), mVerticalMeshVelocitySlider->GetValue()),
+                        mWavesAmplitudeSlider->GetValue(),
+                        value);
+                    ProcessWindowEvent(evt);
+                },
+                std::make_unique<LinearSliderCore>(
+                    0.0f,
+                    10.0f));
+
+            mWavesSpeedSlider->SetValue(0.0f);
+
+            gridSizer->Add(
+                mWavesSpeedSlider,
                 0,
                 wxALL,
                 1);
