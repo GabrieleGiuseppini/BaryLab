@@ -159,6 +159,10 @@ public:
         vec2f const & position,
         Points const & points) const;
 
+    //
+    // Barycentric coordinates
+    //
+
     bcoords3f ToBarycentricCoordinates(
         vec2f const & position,
         ElementIndex triangleElementIndex,
@@ -183,7 +187,10 @@ public:
     {
         //
         // Calculate bary coords enforcing that the coord wrt the specified edge
-        // is not negative
+        // is not negative; to be used when we know that we're entering this
+        // triangle from that edge. Avoids the infamous "around edge" oscillations
+        // that happen when we cross an edge and we re-cross it again ad infinitum
+        // because of numerical slack issues.
         //
         // - Calculate coords using any of the not-that-edge vertices as anchors (=> that-edge is one of the two coords calc'd)
         // - Then clamp that-edge and calc 3rd coord via 1-...
@@ -192,6 +199,7 @@ public:
         if (insideEdge == 0)
         {
             // Vertex is 2
+
             vec2f v1v2BaryCoords = InternalToBarycentricCoordinates<0, 1, 2>(
                 position,
                 triangleElementIndex,
@@ -207,6 +215,7 @@ public:
         else if (insideEdge == 1)
         {
             // Vertex is 0
+
             vec2f v2v0BaryCoords = InternalToBarycentricCoordinates<1, 2, 0>(
                 position,
                 triangleElementIndex,
@@ -224,6 +233,7 @@ public:
             assert(insideEdge == 2);
 
             // Vertex is 1
+
             vec2f v0v1BaryCoords = InternalToBarycentricCoordinates<2, 0, 1>(
                 position,
                 triangleElementIndex,

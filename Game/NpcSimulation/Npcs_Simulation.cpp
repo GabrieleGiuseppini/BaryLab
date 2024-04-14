@@ -1709,12 +1709,6 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
     {
         assert(iIter < 5); // Detect and debug-break on infinite loops
 
-        // TODOTEST
-        if (iIter > 5)
-        {
-            LogMessage("FOO!");
-        }
-
         assert(npcParticleConstrainedState.CurrentTriangleBarycentricCoords.is_on_edge_or_internal());
 
         LogNpcDebug("    SegmentTrace ", iIter);
@@ -1954,11 +1948,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                     segmentTrajectoryEndAbsolutePosition,
                     oppositeTriangleInfo.TriangleElementIndex,
                     shipMesh.GetPoints(),
-                    oppositeTriangleInfo.EdgeOrdinal
-                    // TODOTEST
-                    ////,
-                    ////1.0e-07f); // Be strict with roundings - there is a tiny region where the trajectory would oscillate between two triangles
-                    );
+                    oppositeTriangleInfo.EdgeOrdinal);
 
                 LogNpcDebug("      TrajEndB-Coords: ", oldSegmentTrajectoryEndBarycentricCoords, " -> ", segmentTrajectoryEndBarycentricCoords);
 
@@ -1993,12 +1983,6 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         LogNpcDebug("    NavigateVertex: iter=", iIter);
 
         assert(iIter < 5); // Detect and debug-break on infinite loops
-
-        // TODOTEST
-        if (iIter > 5)
-        {
-            LogMessage("FOO!");
-        }
 
         // The two vertices around the vertex we are on - seen in clockwise order
         int const nextVertexOrdinal = (vertexOrdinal + 1) % 3;
@@ -2127,11 +2111,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
             trajectoryEndAbsolutePosition,
             oppositeTriangleInfo.TriangleElementIndex,
             shipMesh.GetPoints(),
-            oppositeTriangleInfo.EdgeOrdinal
-            // TODOTEST
-            ////,
-            ////1.0e-07f); // Be strict with roundings - there is a tiny region where the trajectory would oscillate between two triangles (e.g. {0.998306274, 0.00169372594, -3.49245965e-10} -> {-1.61526414e-09, 0.00169372361, 0.998306274})
-            );
+            oppositeTriangleInfo.EdgeOrdinal);
 
         LogNpcDebug("      TrajEndB-Coords: ", trajectoryEndBarycentricCoords);
 

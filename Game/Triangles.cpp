@@ -56,47 +56,4 @@ ElementIndex Triangles::FindContaining(
     return NoneElementIndex;
 }
 
-//////////////////////////////////////////////////////////
-
-////vec2f Triangles::InternalToBarycentricCoordinates(
-////    vec2f const & position,
-////    ElementIndex triangleElementIndex,
-////    Points const & points) const
-////{
-////    vec2f const & positionA = points.GetPosition(mEndpointsBuffer[triangleElementIndex].PointIndices[0]);
-////    vec2f const & positionB = points.GetPosition(mEndpointsBuffer[triangleElementIndex].PointIndices[1]);
-////    vec2f const & positionC = points.GetPosition(mEndpointsBuffer[triangleElementIndex].PointIndices[2]);
-////
-////    float const denominator =
-////        (positionB.y - positionC.y) * (positionA.x - positionC.x)
-////        - (positionB.x - positionC.x) * (positionA.y - positionC.y);
-////
-////    if (IsAlmostZero(denominator))
-////    {
-////        // Co-linear, put arbitrarily in center
-////        float constexpr l = 0.3333333f;
-////        return vec2f(l, l);
-////    }
-////    else
-////    {
-////        // See also: https://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates
-////
-////        float const l1 =
-////            (
-////                (positionB.y - positionC.y) * (position.x - positionC.x)
-////                - (positionB.x - positionC.x) * (position.y - positionC.y)
-////                ) / denominator;
-////
-////        float const l2 =
-////            (
-////                (positionA.x - positionC.x) * (position.y - positionC.y)
-////                - (positionA.y - positionC.y) * (position.x - positionC.x)
-////                ) / denominator;
-////
-////        return vec2f(
-////            l1,
-////            l2);
-////    }
-////}
-
 }
