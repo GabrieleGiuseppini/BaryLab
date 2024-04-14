@@ -525,7 +525,7 @@ void Npcs::UpdateNpcParticlePhysics(
 
         LogNpcDebug("    Constrained: velocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " prelimF=", mParticles.GetPreliminaryForces(npcParticle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos);
 
-        // Loop tracing trajectory from TrajectoryStart (== current bary coords) to TrajectoryEnd (== start absolute pos + deltaPos);
+        // Loop tracing trajectory from TrajectoryStart (== current bary coords in new mesh state) to TrajectoryEnd (== start absolute pos + deltaPos);
         // each step moves the next TrajectoryStart a bit ahead.
         // Each iteration of the loop either exits (completes), or moves current bary coords (and calcs remaining dt) when it wants
         // to "continue" an impact while on edge-moving-against-it, i.e. when it wants to recalculate a new flattened traj.
@@ -536,8 +536,8 @@ void Npcs::UpdateNpcParticlePhysics(
         //          - TrajectoryEnd (== start absolute pos + physicsDeltaPos) is same as before
         //
         // Each iteration of the loop performs either an "inertial ray-tracing step" - i.e. with the particle free to move
-        // inside of a triangle - or a "non-inertial step" - i.e. with the particle pushed against an edge, and thus
-        // moving in a non-inertial frame as the mesh acceleration spawns the appearance of apparent forces.
+        // around the inside of a triangle - or a "non-inertial step" - i.e. with the particle pushed against an edge, and
+        // thus moving in a non-inertial frame as the mesh acceleration spawns the appearance of apparent forces.
         // - After an inertial iteration we won't enter a non-inertial iteration
         // - A non-inertial iteration might be followed by an inertial one
 
