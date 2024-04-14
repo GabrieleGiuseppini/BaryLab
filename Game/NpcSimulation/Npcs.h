@@ -115,7 +115,7 @@ private:
 
 				bcoords3f CurrentTriangleBarycentricCoords;
 
-				int CurrentVirtualEdgeOrdinal; // When set, we are "conceptually" along this edge of the current triangle - might not be really the case e.g. when we're at a vertex
+				std::optional<TriangleAndEdge> CurrentVirtualFloor; // When set, we are "conceptually" along this edge - might not be really the case e.g. when we're at a vertex
 
 				vec2f MeshRelativeVelocity; // Velocity of particle (as in velocity buffer), but relative to mesh (ship) at the moment velocity was calculated
 
@@ -124,7 +124,7 @@ private:
 					bcoords3f const & currentTriangleBarycentricCoords)
 					: CurrentTriangle(currentTriangle)
 					, CurrentTriangleBarycentricCoords(currentTriangleBarycentricCoords)
-					, CurrentVirtualEdgeOrdinal(-1)
+					, CurrentVirtualFloor()
 					, MeshRelativeVelocity(vec2f::zero())
 				{}
 			};

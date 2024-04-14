@@ -137,6 +137,25 @@ struct PickedObjectId
     {}
 };
 
+/*
+ * Identifies the edge of a triangle among all edges on a ship.
+ */
+struct TriangleAndEdge
+{
+    ElementIndex TriangleElementIndex;
+    int EdgeOrdinal;
+
+    TriangleAndEdge(
+        ElementIndex triangleElementIndex,
+        int edgeOrdinal)
+        : TriangleElementIndex(triangleElementIndex)
+        , EdgeOrdinal(edgeOrdinal)
+    {
+        assert(triangleElementIndex != NoneElementIndex);
+        assert(edgeOrdinal >= 0 && edgeOrdinal < 3);
+    }
+};
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Geometry
 ////////////////////////////////////////////////////////////////////////////////////////////////

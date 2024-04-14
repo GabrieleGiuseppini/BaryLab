@@ -1071,16 +1071,20 @@ bool Npcs::IsSpringHostingCurrentlySelectedParticle(ElementIndex springIndex) co
 						|| (state->DipoleState.has_value() && state->DipoleState->SecondaryParticleState.ParticleIndex == *mCurrentlySelectedParticle))
 					{
 						if (state->PrimaryParticleState.ConstrainedState.has_value()
-							&& state->PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal >= 0
-							&& springIndex == ship->ShipMesh.GetTriangles().GetSubSprings(state->PrimaryParticleState.ConstrainedState->CurrentTriangle).SpringIndices[state->PrimaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal])
+							&& state->PrimaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value()
+							&& springIndex == ship->ShipMesh.GetTriangles()
+								.GetSubSprings(state->PrimaryParticleState.ConstrainedState->CurrentVirtualFloor->TriangleElementIndex)
+								.SpringIndices[state->PrimaryParticleState.ConstrainedState->CurrentVirtualFloor->EdgeOrdinal])
 						{
 							return true;
 						}
 
 						if (state->DipoleState.has_value()
 							&& state->DipoleState->SecondaryParticleState.ConstrainedState.has_value()
-							&& state->DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal >= 0
-							&& springIndex == ship->ShipMesh.GetTriangles().GetSubSprings(state->DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangle).SpringIndices[state->DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualEdgeOrdinal])
+							&& state->DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value()
+							&& springIndex == ship->ShipMesh.GetTriangles()
+								.GetSubSprings(state->DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualFloor->TriangleElementIndex)
+								.SpringIndices[state->DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualFloor->EdgeOrdinal])
 						{
 							return true;
 						}

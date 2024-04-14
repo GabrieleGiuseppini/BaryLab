@@ -752,7 +752,21 @@ void Npcs::UpdateNpcParticlePhysics(
                             LogNpcDebug("    ConstrainedNonInertial: triangle=", npcParticle.ConstrainedState->CurrentTriangle, " edgeOrdinal=", edgeOrdinal, " bCoords=", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " trajectory=", trajectory);
                             LogNpcDebug("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
 
-                            npcParticle.ConstrainedState->CurrentVirtualEdgeOrdinal = edgeOrdinal;
+                            // Set now our current edge-ness for the rest of this simulation step, which is
+                            // mostly for animation purposes.
+                            //
+                            // In fact, the subsequent UpdateNpcParticle_ConstrainedNonInertial call has 3 outcomes:
+                            //  - We end up inside the triangle - along this same edge;
+                            //  - We travel up to a vertex, and then:
+                            //      - Ready to continue: in this case we might have reached a new triangle,
+                            //        but we'll go through this again;
+                            //      - Become free: no more constrained state anyways;
+                            //      - Hit floor, with then either continuation (above) or bounce; in the case
+                            //        of bounce, we _do_ want the current virtual floor to be the one _before_ the bounce.
+
+                            npcParticle.ConstrainedState->CurrentVirtualFloor.emplace(
+                                npcParticle.ConstrainedState->CurrentTriangle,
+                                edgeOrdinal);
 
                             //
                             // We're moving against the floor, hence we are in a non-inertial frame...
@@ -1099,7 +1113,8 @@ void Npcs::UpdateNpcParticlePhysics(
                 LogNpcDebug("    ConstrainedInertial: triangle=", npcParticle.ConstrainedState->CurrentTriangle, " bCoords=", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " physicsDeltaPos=", physicsDeltaPos);
                 LogNpcDebug("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
 
-                npcParticle.ConstrainedState->CurrentVirtualEdgeOrdinal = -1;
+                // We are not on an edge floor (nor we'll got on it now)
+                npcParticle.ConstrainedState->CurrentVirtualFloor.reset();
 
                 //
                 // Calculate target barycentric coords
@@ -2265,9 +2280,12 @@ void Npcs::UpdateNpcAnimation(
                 targetAngles.LeftLeg = -HumanNpcStateType::AnimationStateType::InitialLegAngle * 2.0f;
 
                 // Leg and arm that are against floor "help"
-                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualEdgeOrdinal >= 0)
+                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualFloor.has_value())
                 {
-                    vec2f const edgeVector = shipMesh.GetTriangles().GetSubSpringVector(primaryContrainedState->CurrentTriangle, primaryContrainedState->CurrentVirtualEdgeOrdinal, shipMesh.GetPoints());
+                    vec2f const edgeVector = shipMesh.GetTriangles().GetSubSpringVector(
+                        primaryContrainedState->CurrentVirtualFloor->TriangleElementIndex,
+                        primaryContrainedState->CurrentVirtualFloor->EdgeOrdinal,
+                        shipMesh.GetPoints());
                     vec2f const head = mParticles.GetPosition(secondaryParticleIndex);
                     vec2f const feet = mParticles.GetPosition(primaryParticleIndex);
 
@@ -2408,13 +2426,15 @@ void Npcs::UpdateNpcAnimation(
 
                 convergenceRate = 0.25f;
 
-                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualEdgeOrdinal >= 0)
+                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualFloor.has_value())
                 {
                     //
                     // We are walking on an edge - make sure feet don't look weird on sloped edges
                     //
 
-                    ElementIndex const edgeElementIndex = shipMesh.GetTriangles().GetSubSprings(primaryContrainedState->CurrentTriangle).SpringIndices[primaryContrainedState->CurrentVirtualEdgeOrdinal];
+                    ElementIndex const edgeElementIndex =
+                        shipMesh.GetTriangles().GetSubSprings(primaryContrainedState->CurrentVirtualFloor->TriangleElementIndex)
+                        .SpringIndices[primaryContrainedState->CurrentVirtualFloor->EdgeOrdinal];
                     // Note: we do not care if not in CW order
                     edg1 = shipMesh.GetSprings().GetEndpointAPosition(edgeElementIndex, shipMesh.GetPoints());
                     edg2 = shipMesh.GetSprings().GetEndpointBPosition(edgeElementIndex, shipMesh.GetPoints());
@@ -2749,6 +2769,8 @@ void Npcs::UpdateNpcAnimation(
         //
 
         FS_ALIGN16_BEG LimbVector targetLengthMultipliers({ 1.0f, 1.0f, 1.0f, 1.0f }) FS_ALIGN16_END;
+        float limbLengthConvergenceRate = convergenceRate;
+
         float targetLowerExtremityLengthMultiplier = 1.0f;
 
         switch (humanNpcState.CurrentBehavior)
@@ -2758,7 +2780,7 @@ void Npcs::UpdateNpcAnimation(
                 // Take into account that crotch is lower
                 targetLowerExtremityLengthMultiplier = animationState.LimbAnglesCos.RightLeg;
 
-                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualEdgeOrdinal >= 0)
+                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualFloor.has_value())
                 {
                     //
                     // We are walking on an edge - make sure feet don't look weird on sloped edges
@@ -2814,8 +2836,7 @@ void Npcs::UpdateNpcAnimation(
                         }
                     }
 
-                    // Lower convergence rate to cope with "edge problem" (bouncing against vertical wall and causing huge discontinuities in legs)
-                    convergenceRate = 0.09f;
+                    limbLengthConvergenceRate = 0.09f;
                 }
 
                 break;
@@ -2863,7 +2884,7 @@ void Npcs::UpdateNpcAnimation(
         }
 
         // Converge
-        animationState.LimbLengthMultipliers.ConvergeTo(targetLengthMultipliers, convergenceRate);
+        animationState.LimbLengthMultipliers.ConvergeTo(targetLengthMultipliers, limbLengthConvergenceRate);
         animationState.LowerExtremityLengthMultiplier += (targetLowerExtremityLengthMultiplier - animationState.LowerExtremityLengthMultiplier) * convergenceRate;
     }
 }
