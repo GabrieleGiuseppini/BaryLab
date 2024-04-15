@@ -1895,6 +1895,14 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                 currentSimulationTime,
                 gameParameters);
 
+            // Remember that - at least for this frame - we are non-inertial on this floor
+            //
+            // We do this to interrupt long streaks off-floor while we bounce multiple times on the floor
+            // while walking; without interruptions the multiple bounces, with no intervening non-inertial
+            // step, would cause the NPC to stop walking. Afte rall we're not lying as we're really
+            // non-inertial on this floor
+            npcParticleConstrainedState.CurrentVirtualFloor.emplace(npcParticleConstrainedState.CurrentTriangle, intersectionEdgeOrdinal);
+
             // Return (mesh-relative) distance traveled with this move
             return (segmentTrajectoryEndAbsolutePosition - segmentTrajectoryStartAbsolutePosition).length();
         }
@@ -2519,8 +2527,8 @@ void Npcs::UpdateNpcAnimation(
             case HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
             {
                 // Check if both head and feet are on a floor
-                bool const isHeadOnEdge = primaryContrainedState.has_value() && IsOnFloorEdge(*primaryContrainedState, shipMesh);
-                bool const areFootOnEdge = secondaryConstrainedState.has_value() && IsOnFloorEdge(*secondaryConstrainedState, shipMesh);
+                bool const isHeadOnEdge = primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualFloor.has_value();
+                bool const areFootOnEdge = secondaryConstrainedState.has_value() && secondaryConstrainedState->CurrentVirtualFloor.has_value();
                 if (isHeadOnEdge && areFootOnEdge)
                 {
                     // Arms: +/- PI or 0, depending on where they are now
@@ -2573,7 +2581,7 @@ void Npcs::UpdateNpcAnimation(
 
                 float const horizontality = std::abs(actualBodyDir.dot(GameParameters::GravityDir));
 
-                float const armAngle = (primaryContrainedState.has_value() && IsOnFloorEdge(*primaryContrainedState, shipMesh))
+                float const armAngle = (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualFloor.has_value())
                     ? Pi<float> / 2.0f
                     : Pi<float> - (Pi<float> / 2.0f) / std::exp(horizontality * 2.2f);
                 targetAngles.RightArm = armAngle;

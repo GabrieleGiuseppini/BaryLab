@@ -115,9 +115,15 @@ private:
 
 				bcoords3f CurrentTriangleBarycentricCoords;
 
-				std::optional<TriangleAndEdge> CurrentVirtualFloor; // When set, we are "conceptually" along this edge - might not be really the case e.g. when we're at a vertex
+				// The edge on which we're currently non-inertial;
+				// when set, we are "conceptually" along this edge - might not be really the
+				// case e.g. if during non-inertial we've reached a vertex, have navigated
+				// through it, and bumped against a wall
+				std::optional<TriangleAndEdge> CurrentVirtualFloor;
 
-				vec2f MeshRelativeVelocity; // Velocity of particle (as in velocity buffer), but relative to mesh (ship) at the moment velocity was calculated
+				// Velocity of particle (as in velocity buffer), but relative to mesh
+				// (ship) at the moment velocity was calculated
+				vec2f MeshRelativeVelocity;
 
 				ConstrainedStateType(
 					ElementIndex currentTriangle,
@@ -1024,34 +1030,6 @@ private:
 
 		// It's vertical when y is -1.0 (cos of angle)
 		return humanDir.y > -0.8f;
-	}
-
-	static bool IsOnFloorEdge(
-		Npcs::StateType::NpcParticleStateType::ConstrainedStateType const & constrainedState,
-		Ship const & shipMesh)
-	{
-		auto const & baryCoords = constrainedState.CurrentTriangleBarycentricCoords;
-		auto const & triangleIndex = constrainedState.CurrentTriangle;
-
-		if (baryCoords[0] == 0.0f
-			&& shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleIndex, 1) != NpcSurfaceType::Open)
-		{
-			return true;
-		}
-
-		if (baryCoords[1] == 0.0f
-			&& shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleIndex, 2) != NpcSurfaceType::Open)
-		{
-			return true;
-		}
-
-		if (baryCoords[2] == 0.0f
-			&& shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleIndex, 0) != NpcSurfaceType::Open)
-		{
-			return true;
-		}
-
-		return false;
 	}
 
 	static vec2f CalculateDipoleVector(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)

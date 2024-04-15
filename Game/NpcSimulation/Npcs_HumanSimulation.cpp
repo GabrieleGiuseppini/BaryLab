@@ -102,8 +102,8 @@ void Npcs::UpdateHuman(
 
 			// Check conditions for falling/rising
 
-			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, shipMesh);
-			bool const areFeetOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, shipMesh);
+			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && secondaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value();
+			bool const areFeetOnFloor = primaryParticleState.ConstrainedState.has_value() && primaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value();
 
 			vec2f const floorVector = (primaryParticleState.ConstrainedState.has_value() && primaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value())
 				? shipMesh.GetTriangles().GetSubSpringVector(
@@ -230,11 +230,11 @@ void Npcs::UpdateHuman(
 
 			// Check conditions for knocked out
 
-			bool const areFootOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, shipMesh);
+			bool const areFeetOnFloor = primaryParticleState.ConstrainedState.has_value() && primaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value();
 
 			float knockedOutTarget = 0.0f;
 			float constexpr MaxRelativeVelocityForKnockedOut = 1.2f;
-			if (areFootOnFloor
+			if (areFeetOnFloor
 				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityForKnockedOut
 				&& secondaryParticleState.GetApplicableVelocity(mParticles).length() < MaxRelativeVelocityForKnockedOut)
 			{
@@ -271,9 +271,9 @@ void Npcs::UpdateHuman(
 
 			// Check conditions for aerial
 
-			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, shipMesh);
+			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && secondaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value();
 
-			if (!areFootOnFloor && !isHeadOnFloor)
+			if (!areFeetOnFloor && !isHeadOnFloor)
 			{
 				// Advance towards aerial
 
@@ -331,10 +331,10 @@ void Npcs::UpdateHuman(
 
 			// Check conditions for rising
 
-			bool const areFootOnFloor = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, shipMesh);
+			bool const areFeetOnFloor = primaryParticleState.ConstrainedState.has_value() && primaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value();
 
 			float risingTarget = 0.0f;
-			if (areFootOnFloor
+			if (areFeetOnFloor
 				&& primaryParticleState.ConstrainedState->MeshRelativeVelocity.length() < MaxRelativeVelocityMagnitudeForEquilibrium
 				&& secondaryParticleState.GetApplicableVelocity(mParticles).length() < MaxRelativeVelocityMagnitudeForEquilibrium)
 			{
@@ -373,9 +373,9 @@ void Npcs::UpdateHuman(
 
 			// Check conditions for aerial
 
-			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*secondaryParticleState.ConstrainedState, shipMesh);
+			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && secondaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value();
 
-			if (!areFootOnFloor && !isHeadOnFloor)
+			if (!areFeetOnFloor && !isHeadOnFloor)
 			{
 				// Advance towards aerial
 
@@ -432,13 +432,10 @@ void Npcs::UpdateHuman(
 				break;
 			}
 
-			bool const isOnEdge =
-				primaryParticleState.ConstrainedState.has_value()
-				&& IsOnFloorEdge(*primaryParticleState.ConstrainedState, shipMesh);
-
+			bool const areFeetOnFloor = primaryParticleState.ConstrainedState.has_value() && primaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value();
 			if (humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_Equilibrium)
 			{
-				if (isOnEdge)
+				if (areFeetOnFloor)
 				{
 					// Advance towards walking
 
@@ -479,10 +476,10 @@ void Npcs::UpdateHuman(
 			// Check conditions to stay & maintain equilibrium
 			//
 
-			// a. On-edge
+			// a. Feet on-floor
 
 			bool isStateMaintained;
-			if (!isOnEdge)
+			if (!areFeetOnFloor)
 			{
 				float toTerminateEquilibriumConvergenceRate;
 				if (humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_Walking)
@@ -586,7 +583,7 @@ void Npcs::UpdateHuman(
 					primaryParticleState.ParticleIndex,
 					secondaryParticleState.ParticleIndex,
 					humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_Rising,
-					isOnEdge, // doMaintainEquilibrium
+					areFeetOnFloor, // doMaintainEquilibrium
 					mParticles,
 					gameParameters))
 			{
@@ -597,8 +594,7 @@ void Npcs::UpdateHuman(
 					" primary's relative velocity mag: ", primaryParticleState.ConstrainedState.has_value() ? std::to_string(primaryParticleState.ConstrainedState->MeshRelativeVelocity.length()) : "N/A",
 					" (max=", MaxRelativeVelocityMagnitudeForEquilibrium, ")");
 
-				bool const areFootOnEdge = primaryParticleState.ConstrainedState.has_value() && IsOnFloorEdge(*primaryParticleState.ConstrainedState, shipMesh);
-				if (areFootOnEdge)
+				if (areFeetOnFloor)
 				{
 					// Falling
 
@@ -672,7 +668,7 @@ void Npcs::UpdateHuman(
 			{
 				assert(humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_Walking);
 
-				if (isOnEdge) // Note: no need to silence walk as we don't apply walk displacement in inertial (i.e. not-on-edge) case
+				if (areFeetOnFloor) // Note: no need to silence walk as we don't apply walk displacement in inertial (i.e. not-on-edge) case
 				{
 					// Impart walk displacement & run walking state machine
 					RunWalkingHumanStateMachine(
@@ -934,7 +930,7 @@ void Npcs::RunWalkingHumanStateMachine(
 
 	auto & walkingState = humanState.CurrentBehaviorState.Constrained_Walking;
 
-	// 1. Check condition for potentially flipping: actual (relative) velocity opposite of walking direction,
+	// 1. Check condition for growing decision to flip: actual (relative) velocity opposite of walking direction,
 	// or too small
 
 	if (walkingState.CurrentWalkMagnitude != 0.0f)
@@ -946,7 +942,7 @@ void Npcs::RunWalkingHumanStateMachine(
 				0.0f));
 		if (relativeVelocityAgreement < MinRelativeVelocityAgreementToAcceptWalk)
 		{
-			// Flip later
+			// Grow decision to flip
 			FlipHumanWalk(humanState, StrongTypedFalse<_DoImmediate>);
 		}
 		else
