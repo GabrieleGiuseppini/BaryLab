@@ -550,8 +550,8 @@ void Npcs::UpdateNpcParticlePhysics(
             shipMesh.GetPoints());
 
         // Calculate mesh velocity for the whole loop as the pure displacement of the triangle containing this particle
-        // (technically this is the negative of the velocity of the mesh, see sign below)
-        vec2f const meshVelocity = (particleStartAbsolutePosition - trajectoryStartAbsolutePosition) / GameParameters::SimulationTimeStepDuration;
+        // (end in-triangle position - start absolute position)
+        vec2f const meshVelocity = (trajectoryStartAbsolutePosition - particleStartAbsolutePosition) / GameParameters::SimulationTimeStepDuration;
 
         // Machinery to detect 2- or 3-iteration paths that don't move particle (positional well,
         // aka gravity well)
@@ -1016,8 +1016,8 @@ void Npcs::UpdateNpcParticlePhysics(
 
                                         mParticles.SetPosition(npcParticle.ParticleIndex, particleEndAbsolutePosition);
 
-                                        // No (relative) velocity
-                                        mParticles.SetVelocity(npcParticle.ParticleIndex, -meshVelocity);
+                                        // No (relative) velocity (so just mesh velocity)
+                                        mParticles.SetVelocity(npcParticle.ParticleIndex, meshVelocity);
                                         npcParticle.ConstrainedState->MeshRelativeVelocity = vec2f::zero();
 
                                         // Consume the whole time quantum
@@ -1536,7 +1536,7 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
             * edgeTraveledPlanned
             / dt;
 
-        particles.SetVelocity(npcParticle.ParticleIndex, relativeVelocity - meshVelocity);
+        particles.SetVelocity(npcParticle.ParticleIndex, relativeVelocity + meshVelocity);
         npcParticleConstrainedState.MeshRelativeVelocity = relativeVelocity;
 
         LogNpcDebug("        edgeTraveleded (==planned)=", edgeTraveledPlanned, " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
@@ -1751,7 +1751,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
             vec2f const totalAbsoluteTraveledVector = segmentTrajectoryEndAbsolutePosition - particleStartAbsolutePosition;
             vec2f const absoluteVelocity = totalAbsoluteTraveledVector / GameParameters::SimulationTimeStepDuration;
             particles.SetVelocity(npcParticle.ParticleIndex, absoluteVelocity);
-            npcParticleConstrainedState.MeshRelativeVelocity = absoluteVelocity + meshVelocity;
+            npcParticleConstrainedState.MeshRelativeVelocity = absoluteVelocity - meshVelocity;
 
             LogNpcDebug("        totalAbsoluteTraveledVector=", totalAbsoluteTraveledVector, " absoluteVelocity=", particles.GetVelocity(npcParticle.ParticleIndex));
 
@@ -2177,11 +2177,11 @@ void Npcs::BounceConstrainedNpcParticle(
         tangentialVelocity
         * std::max(0.0f, 1.0f - particles.GetPhysicalProperties(npcParticle.ParticleIndex).KineticFriction * gameParameters.KineticFrictionAdjustment);
 
-    // Given that we've been working in *apparent* space (we've calc'd the collision response to *trajectory* which is apparent displacement),
-    // we need to transform velocity to absolute particle velocity
-    vec2f const resultantAbsoluteVelocity = (normalResponse + tangentialResponse) - meshVelocity;
+    // Calculate whole response (which, given that we've been working in *apparent* space (we've calc'd the collision response to *trajectory* which is apparent displacement)),
+    // is a relative velocity (relative to mesh)
+    vec2f const resultantRelativeVelocity = (normalResponse + tangentialResponse);
 
-    LogNpcDebug("        trajectory=", trajectory, " apparentParticleVelocity=", apparentParticleVelocity, " nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantAbsoluteVelocity);
+    LogNpcDebug("        trajectory=", trajectory, " apparentParticleVelocity=", apparentParticleVelocity, " nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantRelativeVelocity);
 
     //
     // Set position and velocity
@@ -2189,8 +2189,8 @@ void Npcs::BounceConstrainedNpcParticle(
 
     particles.SetPosition(npcParticle.ParticleIndex, bouncePosition);
 
-    particles.SetVelocity(npcParticle.ParticleIndex, resultantAbsoluteVelocity);
-    npcParticle.ConstrainedState->MeshRelativeVelocity = resultantAbsoluteVelocity + meshVelocity;
+    particles.SetVelocity(npcParticle.ParticleIndex, resultantRelativeVelocity + meshVelocity);
+    npcParticle.ConstrainedState->MeshRelativeVelocity = resultantRelativeVelocity;
 
     //
     // Publish impact
