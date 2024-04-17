@@ -550,6 +550,7 @@ void Npcs::UpdateNpcParticlePhysics(
             shipMesh.GetPoints());
 
         // Calculate mesh velocity for the whole loop as the pure displacement of the triangle containing this particle
+        // (technically this is the negative of the velocity of the mesh, see sign below)
         vec2f const meshVelocity = (particleStartAbsolutePosition - trajectoryStartAbsolutePosition) / GameParameters::SimulationTimeStepDuration;
 
         // Machinery to detect 2- or 3-iteration paths that don't move particle (positional well,
