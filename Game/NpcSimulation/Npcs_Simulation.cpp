@@ -378,8 +378,6 @@ void Npcs::UpdateNpcs(
     // 5. Update behavioral state machines
     //
 
-    mParticles.ResetEquilibriumTorque();
-
     for (auto & npcState : mStateBuffer)
     {
         if (npcState.has_value())
@@ -1327,9 +1325,7 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
     //
 
     if (npc.Kind == NpcKindType::Human
-        && (npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking
-            || npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium
-            || npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Rising)
+        && npc.KindSpecificState.HumanNpcState.EquilibriumTorque != 0.0f
         && !isPrimaryParticle)
     {
         assert(npc.DipoleState.has_value());
@@ -1386,12 +1382,15 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
             -orthoRelativeVelocity
             * dampCoefficient;
 
+        //
+        // Combine
+        //
+
         vec2f const equilibriumTorqueForce =
             radialDir
             * (force1Magnitude + force2Magnitude)
             / mCurrentHumanNpcBodyLengthAdjustment // Note: we divide by human length adjustment to maintain torque independent from lever length
-            * particleMass / (GameParameters::SimulationTimeStepDuration * GameParameters::SimulationTimeStepDuration)
-            * mParticles.GetEquilibriumTorque(secondaryParticleIndex);
+            * particleMass / (GameParameters::SimulationTimeStepDuration * GameParameters::SimulationTimeStepDuration);
 
         definitiveForces += equilibriumTorqueForce;
     }

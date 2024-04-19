@@ -61,6 +61,12 @@ void Npcs::UpdateHuman(
 	float constexpr MaxRelativeVelocityMagnitudeForEquilibrium = 3.0f; // So high because we slip a lot while we try to stand up, and thus need to be immune to ourselves
 
 	//
+	// Reset equilibrium
+	//
+
+	humanState.EquilibriumTorque = 0.0f;
+
+	//
 	// Update panic
 	//
 
@@ -346,7 +352,7 @@ void Npcs::UpdateHuman(
 			float const toRisingConvergenceRate =
 				0.067f
 				+ std::min(humanState.ResultantPanicLevel, 1.0f) * 0.07f
-				+ npc.RandomNormalizedUniformSeed / 5.0f;
+				+ npc.RandomNormalizedUniformSeed / 9.0f;
 			humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising +=
 				(risingTarget - humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising)
 				* toRisingConvergenceRate;
@@ -582,7 +588,7 @@ void Npcs::UpdateHuman(
 				|| !CheckAndMaintainHumanEquilibrium(
 					primaryParticleState.ParticleIndex,
 					secondaryParticleState.ParticleIndex,
-					humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_Rising,
+					humanState,
 					areFeetOnFloor, // doMaintainEquilibrium
 					mParticles,
 					gameParameters))
@@ -856,7 +862,7 @@ void Npcs::UpdateHuman(
 bool Npcs::CheckAndMaintainHumanEquilibrium(
 	ElementIndex primaryParticleIndex,
 	ElementIndex secondaryParticleIndex,
-	bool isRisingState,
+	StateType::KindSpecificStateType::HumanNpcStateType & humanState,
 	bool doMaintainEquilibrium,
 	NpcParticles & particles,
 	GameParameters const & /*gameParameters*/)
@@ -890,7 +896,7 @@ bool Npcs::CheckAndMaintainHumanEquilibrium(
 		vec2f const relativeVelocity = (particles.GetVelocity(secondaryParticleIndex) - particles.GetVelocity(primaryParticleIndex));
 		float const radialVelocity = relativeVelocity.dot(humanDir.to_perpendicular());
 
-		float const maxRadialVelocityFactor = isRisingState
+		float const maxRadialVelocityFactor = (humanState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Rising)
 			? 1.056f // chord/dt of a human traveling a 0.01 angle
 			: 0.0f;
 
@@ -913,7 +919,7 @@ bool Npcs::CheckAndMaintainHumanEquilibrium(
 
 	if (doMaintainEquilibrium)
 	{
-		particles.SetEquilibriumTorque(secondaryParticleIndex, 1.0f);
+		humanState.EquilibriumTorque = 1.0f;
 	}
 
 	return true;

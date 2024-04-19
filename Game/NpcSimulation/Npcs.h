@@ -338,6 +338,8 @@ private:
 				float TotalDistanceTraveledOnEdgeSinceStateTransition; // [0.0f, +INF] - when we're constrained on an edge (e.g. walking)
 				float TotalDistanceTraveledOffEdgeSinceStateTransition; // [0.0f, +INF] - when we're constrained off an edge or free
 
+				float EquilibriumTorque; // Reset at beginning of each human update state
+
 				float CurrentEquilibriumSoftTerminationDecision; // Cross-state
 
 				float CurrentFaceOrientation; // [-1.0f, 0.0f, 1.0f]
@@ -388,6 +390,7 @@ private:
 					, Height(height)
 					, WidthMultipier(widthMultipier)
 					, WalkingSpeedBase(walkingSpeedBase)
+					, EquilibriumTorque(0.0f)
 					, CurrentEquilibriumSoftTerminationDecision(0.0f)
 					, CurrentFaceOrientation(1.0f)
 					, CurrentFaceDirectionX(0.0f)
@@ -1062,7 +1065,7 @@ private:
 	inline bool CheckAndMaintainHumanEquilibrium(
 		ElementIndex primaryParticleIndex,
 		ElementIndex secondaryParticleIndex,
-		bool isRisingState,
+		StateType::KindSpecificStateType::HumanNpcStateType & humanState,
 		bool doMaintainEquilibrium,
 		NpcParticles & particles,
 		GameParameters const & gameParameters);

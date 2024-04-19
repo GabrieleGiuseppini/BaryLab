@@ -58,7 +58,6 @@ public:
         , mPhysicalPropertiesBuffer(maxParticleCount, PhysicalProperties(0.0f, 0.0f, 0.0f, 0.0f, 0.0f))
         , mPositionBuffer(maxParticleCount, vec2f::zero())
         , mVelocityBuffer(maxParticleCount, vec2f::zero())
-        , mEquilibriumTorqueBuffer(maxParticleCount, 0.0f)
         , mPreliminaryForcesBuffer(maxParticleCount, vec2f::zero())
         , mExternalForcesBuffer(maxParticleCount, vec2f::zero())
         // Render
@@ -148,23 +147,6 @@ public:
         mVelocityBuffer[particleElementIndex] = value;
     }
 
-    float const & GetEquilibriumTorque(ElementIndex particleElementIndex) const noexcept
-    {
-        return mEquilibriumTorqueBuffer[particleElementIndex];
-    }
-
-    void SetEquilibriumTorque(
-        ElementIndex particleElementIndex,
-        float const & value) noexcept
-    {
-        mEquilibriumTorqueBuffer[particleElementIndex] = value;
-    }
-
-    void ResetEquilibriumTorque()
-    {
-        mEquilibriumTorqueBuffer.fill(0.0f);
-    }
-
     vec2f const & GetPreliminaryForces(ElementIndex particleElementIndex) const noexcept
     {
         return mPreliminaryForcesBuffer[particleElementIndex];
@@ -242,7 +224,6 @@ private:
     Buffer<PhysicalProperties> mPhysicalPropertiesBuffer;
     Buffer<vec2f> mPositionBuffer;
     Buffer<vec2f> mVelocityBuffer;
-    Buffer<float> mEquilibriumTorqueBuffer;
     Buffer<vec2f> mPreliminaryForcesBuffer;
     Buffer<vec2f> mExternalForcesBuffer;
 

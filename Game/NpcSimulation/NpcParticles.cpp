@@ -26,7 +26,6 @@ ElementIndex NpcParticles::Add(
     mPhysicalPropertiesBuffer[p] = PhysicalProperties(mass, staticFriction, kineticFriction, elasticity, buoyancyVolumeFill);
     mPositionBuffer[p] = position;
     mVelocityBuffer[p] = vec2f::zero();
-    mEquilibriumTorqueBuffer[p] = 0.0f;
     mPreliminaryForcesBuffer[p] = vec2f::zero();
     mExternalForcesBuffer[p] = vec2f::zero();
 
