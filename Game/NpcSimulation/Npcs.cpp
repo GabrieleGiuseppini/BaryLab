@@ -12,6 +12,11 @@
 
 namespace Physics {
 
+/*
+Main principles:
+	- Global damping: when constrained, we only apply it to velocity *relative* to the mesh ("air moves with the ship")
+*/
+
 void Npcs::Update(
 	float currentSimulationTime,
 	GameParameters const & gameParameters)
