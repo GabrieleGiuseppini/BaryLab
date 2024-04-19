@@ -166,7 +166,7 @@ public:
     bcoords3f ToBarycentricCoordinates(
         vec2f const & position,
         ElementIndex triangleElementIndex,
-        Points const & points) const
+        Points const & points) const noexcept
     {
         vec2f const abBaryCoords = InternalToBarycentricCoordinates<2, 0, 1>(
             position,
@@ -183,7 +183,7 @@ public:
         vec2f const & position,
         ElementIndex triangleElementIndex,
         Points const & points,
-        int insideEdge) const
+        int insideEdge) const noexcept
     {
         //
         // Calculate bary coords enforcing that the coord wrt the specified edge
@@ -251,7 +251,7 @@ public:
     bcoords3f ToBarycentricCoordinatesFromWithinTriangle(
         vec2f const & position,
         ElementIndex triangleElementIndex,
-        Points const & points) const
+        Points const & points) const noexcept
     {
         assert(IsPointInTriangle(
             position,
@@ -273,7 +273,7 @@ public:
     vec2f FromBarycentricCoordinates(
         bcoords3f const & barycentricCoordinates,
         ElementIndex triangleElementIndex,
-        Points const & points) const
+        Points const & points) const noexcept
     {
         vec2f const & positionA = points.GetPosition(mEndpointsBuffer[triangleElementIndex].PointIndices[0]);
         vec2f const & positionB = points.GetPosition(mEndpointsBuffer[triangleElementIndex].PointIndices[1]);
@@ -372,7 +372,7 @@ private:
     vec2f InternalToBarycentricCoordinates(
         vec2f const & position,
         ElementIndex triangleElementIndex,
-        Points const & points) const
+        Points const & points) const noexcept
     {
         vec2f const & positionAnchor = points.GetPosition(mEndpointsBuffer[triangleElementIndex].PointIndices[anchorVertex]);
 
