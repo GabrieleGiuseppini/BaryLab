@@ -28,9 +28,8 @@
 #ifdef IN_BARYLAB
 #ifdef _DEBUG
 #define IN_BARYLAB_DEBUG
+#define BARYLAB_PROBING
 #endif
-// TODOTEST
-//#define BARYLAB_PROBING
 #endif
 
 #ifdef IN_BARYLAB_DEBUG
@@ -121,6 +120,9 @@ private:
 				// (ship) at the moment velocity was calculated
 				vec2f MeshRelativeVelocity;
 
+				// When true, no floor is a floor to this particle
+				bool GhostParticlePulse;
+
 				ConstrainedStateType(
 					ElementIndex currentTriangle,
 					bcoords3f const & currentTriangleBarycentricCoords)
@@ -128,6 +130,7 @@ private:
 					, CurrentTriangleBarycentricCoords(currentTriangleBarycentricCoords)
 					, CurrentVirtualFloor()
 					, MeshRelativeVelocity(vec2f::zero())
+					, GhostParticlePulse(false)
 				{}
 			};
 
@@ -994,6 +997,16 @@ private:
 		}
 
 		// Ok, it's a floor
+
+		// If ghost, not a floor
+		auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
+		if (npcParticle.ConstrainedState.has_value()
+			&& npcParticle.ConstrainedState->GhostParticlePulse)
+		{
+			return false;
+		}
+
+		// Ok, it's a floor and we're not ghosting
 
 		// If it's a primary, then every floor is a floor
 

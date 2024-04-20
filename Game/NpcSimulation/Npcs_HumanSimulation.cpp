@@ -47,8 +47,8 @@ void Npcs::UpdateHuman(
 	GameParameters const & gameParameters)
 {
 	assert(npc.DipoleState.has_value());
-	auto const & primaryParticleState = npc.PrimaryParticleState;
-	auto const & secondaryParticleState = npc.DipoleState->SecondaryParticleState;
+	auto & primaryParticleState = npc.PrimaryParticleState;
+	auto & secondaryParticleState = npc.DipoleState->SecondaryParticleState;
 
 	assert(npc.Kind == NpcKindType::Human);
 	auto & humanState = npc.KindSpecificState.HumanNpcState;
@@ -61,9 +61,14 @@ void Npcs::UpdateHuman(
 	float constexpr MaxRelativeVelocityMagnitudeForEquilibrium = 3.0f; // So high because we slip a lot while we try to stand up, and thus need to be immune to ourselves
 
 	//
-	// Reset equilibrium
+	// Reset pulse state variables - variables that we set here and are meant
+	// to last for one frame only
 	//
 
+	if (primaryParticleState.ConstrainedState.has_value())
+	{
+		primaryParticleState.ConstrainedState->GhostParticlePulse = false;
+	}
 	humanState.EquilibriumTorque = 0.0f;
 
 	//
@@ -338,6 +343,7 @@ void Npcs::UpdateHuman(
 			// Check conditions for rising
 
 			bool const areFeetOnFloor = primaryParticleState.ConstrainedState.has_value() && primaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value();
+			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && secondaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value();
 
 			float risingTarget = 0.0f;
 			if (areFeetOnFloor
@@ -353,6 +359,7 @@ void Npcs::UpdateHuman(
 				0.067f
 				+ std::min(humanState.ResultantPanicLevel, 1.0f) * 0.07f
 				+ npc.RandomNormalizedUniformSeed / 9.0f;
+
 			humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising +=
 				(risingTarget - humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising)
 				* toRisingConvergenceRate;
@@ -363,29 +370,50 @@ void Npcs::UpdateHuman(
 
 			if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToRising, 1.0f))
 			{
-				// Transition
+				// Small hack: given that we've established we can rise (and thus we've been static
+				// for a while in our current position), see if may be we're hanging by the feet onto
+				// a floor, with the head hanging down; if so, free the feet with a ghost pulse
 
-				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Rising, currentSimulationTime);
+				// Feet to head == head - feet
+				vec2f const humanDir = (mParticles.GetPosition(secondaryParticleState.ParticleIndex) - mParticles.GetPosition(primaryParticleState.ParticleIndex)).normalise();
+
+				if (areFeetOnFloor
+					&& !isHeadOnFloor
+					&& humanDir.y < -0.7f) // ~45deg
+				{
+					// Free the feet
+					assert(primaryParticleState.ConstrainedState.has_value()); // Otherwise we'd have become free
+					primaryParticleState.ConstrainedState->GhostParticlePulse = true;
+
+					LogNpcDebug("Pulsed GhostParticle");
+
+					// Since we don't transition out, reset state
+					humanState.CurrentBehaviorState.Constrained_KnockedOut.Reset();
+				}
+				else
+				{
+					// Transition
+
+					humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Rising, currentSimulationTime);
 
 #ifdef BARYLAB_PROBING
-				if (npc.Id == mCurrentlySelectedNpc)
-				{
-					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Rising");
-				}
+					if (npc.Id == mCurrentlySelectedNpc)
+					{
+						mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Rising");
+					}
 #endif
+				}
 
 				break;
 			}
 
 			// Check conditions for aerial
 
-			bool const isHeadOnFloor = secondaryParticleState.ConstrainedState.has_value() && secondaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value();
-
 			if (!areFeetOnFloor && !isHeadOnFloor)
 			{
 				// Advance towards aerial
 
-				float constexpr ToAerialConvergenceRate = 0.15f;
+				float constexpr ToAerialConvergenceRate = 0.2f;
 
 				humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToAerial +=
 					(1.0f - humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToAerial)
@@ -552,11 +580,10 @@ void Npcs::UpdateHuman(
 					humanState.CurrentFaceDirectionX,
 					0.0f);
 				float const idealWalkVelocityMagnitude = CalculateActualHumanWalkingAbsoluteSpeed(humanState);
-				vec2f const idealWalkVelocity = idealWalkVelocityDir * idealWalkVelocityMagnitude;
 
 				float const primaryMeshRelativeVelocityAlongWalkDir = primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(idealWalkVelocityDir);
 
-				LogNpcDebug("idealWalkVelocity=", idealWalkVelocity, " (mag=", idealWalkVelocityMagnitude, ") ",
+				LogNpcDebug("idealWalkVelocity=", idealWalkVelocityDir * idealWalkVelocityMagnitude, " (mag=", idealWalkVelocityMagnitude, ") ",
 					"meshRelativeVelocity=", primaryParticleState.ConstrainedState->MeshRelativeVelocity, " (along dir =", primaryMeshRelativeVelocityAlongWalkDir, ")");
 
 				if (primaryMeshRelativeVelocityAlongWalkDir >= 0.0f)
