@@ -187,12 +187,8 @@ void LogMessage(TArgs&&... args)
 	Logger::Instance.Log(std::forward<TArgs>(args)...);
 }
 
-template<typename... TArgs>
-void LogDebug(TArgs&&... args)
-{
 #ifdef _DEBUG
-	Logger::Instance.Log(std::forward<TArgs>(args)...);
+#define LogDebug(...) Logger::Instance.Log(__VA_ARGS__);
 #else
-    Logger::Instance.LogToNothing(std::forward<TArgs>(args)...);
+#define LogDebug(...)
 #endif
-}

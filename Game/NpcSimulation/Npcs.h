@@ -33,15 +33,11 @@
 //#define BARYLAB_PROBING
 #endif
 
-template<typename... TArgs>
-void LogNpcDebug(TArgs&&... args)
-{
 #ifdef IN_BARYLAB_DEBUG
-	LogDebug(std::forward<TArgs>(args)...);
+#define LogNpcDebug(...) LogDebug(__VA_ARGS__);
 #else
-	Logger::Instance.LogToNothing(std::forward<TArgs>(args)...);
+#define LogNpcDebug(...)
 #endif
-}
 
 namespace Physics {
 
@@ -897,7 +893,6 @@ private:
 		bool isPrimaryParticle,
 		vec2f const & particleStartAbsolutePosition,
 		vec2f const & segmentTrajectoryStartAbsolutePosition,
-		bcoords3f const segmentTrajectoryStartBarycentricCoords,
 		vec2f const & segmentTrajectoryEndAbsolutePosition,
 		bcoords3f segmentTrajectoryEndBarycentricCoords,
 		vec2f const meshVelocity,

@@ -1133,7 +1133,6 @@ void Npcs::UpdateNpcParticlePhysics(
                     isPrimaryParticle,
                     particleStartAbsolutePosition,
                     trajectoryStartAbsolutePosition, // segmentTrajectoryStartAbsolutePosition
-                    npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, // segmentTrajectoryStartBarycentricCoords
                     trajectoryEndAbsolutePosition,
                     trajectoryEndBarycentricCoords,
                     meshVelocity,
@@ -1704,7 +1703,6 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
     bool isPrimaryParticle,
     vec2f const & particleStartAbsolutePosition, // Since beginning of whole time quantum, not just this step
     vec2f const & segmentTrajectoryStartAbsolutePosition,
-    bcoords3f const segmentTrajectoryStartBarycentricCoords, // In current triangle
     vec2f const & segmentTrajectoryEndAbsolutePosition,
     bcoords3f segmentTrajectoryEndBarycentricCoords, // In current triangle; mutable
     vec2f const meshVelocity,
@@ -1733,7 +1731,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
 
         LogNpcDebug("    SegmentTrace ", iIter);
         LogNpcDebug("      triangle=", npcParticleConstrainedState.CurrentTriangle, " bCoords=", npcParticleConstrainedState.CurrentTriangleBarycentricCoords,
-            " segmentTrajStartBCoords=", segmentTrajectoryStartBarycentricCoords, " segmentTrajEndBCoords=", segmentTrajectoryEndBarycentricCoords);
+            " segmentTrajEndBCoords=", segmentTrajectoryEndBarycentricCoords);
 
         //
         // If target is on/in triangle, we move to target
