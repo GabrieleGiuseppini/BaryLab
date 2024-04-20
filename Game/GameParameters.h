@@ -101,7 +101,7 @@ struct GameParameters
     static float constexpr MinHumanNpcWalkingSpeedAdjustment = 0.5f;
     static float constexpr MaxHumanNpcWalkingSpeedAdjustment = 2.5f;
 
-    static float constexpr MaxHumanNpcTotalWalkingSpeedAdjustment = 4.0f; // Absolute cap
+    static float constexpr MaxHumanNpcTotalWalkingSpeedAdjustment = 3.5f; // Absolute cap
 
     struct HumanNpcGeometry
     {

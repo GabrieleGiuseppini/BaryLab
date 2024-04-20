@@ -19,7 +19,7 @@
 	"mass": 34.5,
 	"static_friction": 0.1,
 	"kinetic_friction": 0.1,
-	"elasticity": 0.6,
+	"elasticity": 0.42,
 	"buoyancy_volume_fill": 0.05
     },
 
@@ -31,7 +31,7 @@
 	"mass": 34.5,
 	"static_friction": 1.045,
 	"kinetic_friction": 1.0,
-	"elasticity": 0.6,
+	"elasticity": 0.42,
 	"buoyancy_volume_fill": 0.03
     }
 
