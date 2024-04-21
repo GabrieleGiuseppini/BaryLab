@@ -375,7 +375,7 @@ void Npcs::UpdateHuman(
 				// a floor, with the head hanging down; if so, free the feet with a ghost pulse
 
 				// Feet to head == head - feet
-				vec2f const humanDir = (mParticles.GetPosition(secondaryParticleState.ParticleIndex) - mParticles.GetPosition(primaryParticleState.ParticleIndex)).normalise();
+				vec2f const humanDir = (mParticles.GetPosition(secondaryParticleState.ParticleIndex) - mParticles.GetPosition(primaryParticleState.ParticleIndex)).normalise_approx();
 
 				if (areFeetOnFloor
 					&& !isHeadOnFloor
@@ -473,7 +473,7 @@ void Npcs::UpdateHuman(
 				{
 					// Advance towards walking
 
-					float const toWalkingConvergenceRate = 0.09f + std::min(humanState.ResultantPanicLevel, 1.0f) * 0.15f;
+					float const toWalkingConvergenceRate = 0.12f + std::min(humanState.ResultantPanicLevel, 1.0f) * 0.12f;
 					humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking +=
 						(1.0f - humanState.CurrentBehaviorState.Constrained_Equilibrium.ProgressToWalking)
 						* toWalkingConvergenceRate;
@@ -1003,7 +1003,7 @@ void Npcs::RunWalkingHumanStateMachine(
 	// 4. Advance walking magnitude towards full walk
 	//
 
-	float const walkMagnitudeConvergenceRate = 0.03f + std::min(humanState.ResultantPanicLevel, 1.0f) * 0.15f;
+	float const walkMagnitudeConvergenceRate = 0.10f + std::min(humanState.ResultantPanicLevel, 1.0f) * 0.08f;
 	walkingState.CurrentWalkMagnitude += (1.0f - walkingState.CurrentWalkMagnitude) * walkMagnitudeConvergenceRate;
 
 	LogNpcDebug("        currentWalkMagnitude: ", walkingState.CurrentWalkMagnitude);
