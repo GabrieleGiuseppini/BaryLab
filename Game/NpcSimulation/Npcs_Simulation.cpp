@@ -2317,9 +2317,15 @@ void Npcs::UpdateNpcAnimation(
                         humanEdgeAngle += Pi<float>;
                     }
 
-                    // Angle at which left arm is perpendicular to body and touching edge
+                    // Angle until which left arm is angled to the max
                     float constexpr MaxAngle = 0.40489178628508342331207292900944f;
                     //static_assert(MaxAngle == std::atan(GameParameters::HumanNpcGeometry::ArmLengthFraction / (1.0f - GameParameters::HumanNpcGeometry::HeadLengthFraction)));
+
+                    // Max angle of arm wrt body - kept until MaxAngle
+                    float constexpr MaxArmAngle = Pi<float> / 2.0f * 0.7f;
+
+                    // Rest angle of arm wrt body - reached when fully erect
+                    float constexpr RestArmAngle = HumanNpcStateType::AnimationStateType::InitialArmAngle * 0.3f;
 
                     if (humanEdgeAngle <= Pi<float> / 2.0f)
                     {
@@ -2328,52 +2334,49 @@ void Npcs::UpdateNpcAnimation(
                         //   \
                         // ----
 
-                        // Left arm grows up to PI/2 until max angle, then goes down to rest
+                        // Left arm at MaxArmAngle until max angle, then goes down to rest
 
-                        if (humanEdgeAngle <= MaxAngle)
+                        if (humanEdgeAngle <= MaxAngle) // On the "flat" side
                         {
-                            // Quadratically
-                            targetAngles.LeftArm = -(1.0f - (MaxAngle - humanEdgeAngle) * (MaxAngle - humanEdgeAngle) / (MaxAngle * MaxAngle)) * Pi<float> / 2.0f;
+                            targetAngles.LeftArm = -MaxArmAngle;
                         }
                         else
                         {
-                            targetAngles.LeftArm = -Pi<float> / 2.0f - (MaxAngle - humanEdgeAngle) / (MaxAngle - Pi<float> / 2.0f) * (HumanNpcStateType::AnimationStateType::InitialArmAngle - Pi<float> / 2.0f);
+                            targetAngles.LeftArm = -MaxArmAngle - (MaxAngle - humanEdgeAngle) / (MaxAngle - Pi<float> / 2.0f) * (RestArmAngle - MaxArmAngle);
                         }
 
                         // Right arm helps
                         targetAngles.RightArm = targetAngles.LeftArm + 0.15f;
-
-                        // Right leg slightly more open
-                        targetAngles.RightLeg *= 0.2f;
                     }
                     else
                     {
+
                         // <--  *   PI/2 <-- PI
                         //     /
                         //    /
                         //  ------
 
-                        // Right arm grows up to PI/2 until PI - max angle, then goes down to rest
+                        // Right arm at MaxArmAngle until PI-MaxAngle, then goes down to rest
 
-                        if (humanEdgeAngle >= Pi<float> - MaxAngle)
+                        if (humanEdgeAngle >= Pi<float> - MaxAngle) // On the "flat" side
                         {
-                            // Quadratically
-                            targetAngles.RightArm = Pi<float> / 2.0f - (Pi<float> - MaxAngle - humanEdgeAngle) * (Pi<float> -MaxAngle - humanEdgeAngle) / (MaxAngle * MaxAngle) * (Pi<float> / 2.0f);
+                            targetAngles.RightArm = MaxArmAngle;
                         }
                         else
                         {
-                            targetAngles.RightArm = HumanNpcStateType::AnimationStateType::InitialArmAngle + (humanEdgeAngle - Pi<float> / 2.0f) / (Pi<float> -MaxAngle - Pi<float> / 2.0f) * (Pi<float> / 2.0f - HumanNpcStateType::AnimationStateType::InitialArmAngle);
+                            targetAngles.RightArm = RestArmAngle + (humanEdgeAngle - Pi<float> / 2.0f) / (Pi<float> -MaxAngle - Pi<float> / 2.0f) * (MaxArmAngle - RestArmAngle);
                         }
 
                         // Left arm helps
                         targetAngles.LeftArm = targetAngles.RightArm - 0.15f;
-
-                        // Left leg slightly more open
-                        targetAngles.LeftLeg *= 0.2f;
                     }
+
+                    // Legs closed
+                    targetAngles.RightLeg = 0.0f;
+                    targetAngles.LeftLeg = 0.0f;
                 }
 
-                convergenceRate = 0.1f;
+                convergenceRate = 0.30f;
 
                 break;
             }
