@@ -2340,7 +2340,7 @@ void Npcs::UpdateNpcAnimation(
                     float constexpr OtherLegAlphaAngle = 0.7f;
 
                     // Shortening of angle path for legs becoming straight when closing knees
-                    float const AnglePathShortening = 0.9f;
+                    float const AnglePathShorteningForLegsInLateStage = 0.9f;
 
                     // Legs are closed - unless we're in the early stage of rising and we're L/R
                     targetAngles.LeftLeg = 0.0f;
@@ -2377,7 +2377,7 @@ void Npcs::UpdateNpcAnimation(
                             {
                                 // Late stage
                                 targetAngles.LeftLeg = std::min(
-                                    -MaxArmAngle + (MaxAngle - humanEdgeAngle) / (MaxAngle - Pi<float> / 2.0f * AnglePathShortening) * MaxArmAngle, // -MaxArmAngle @ MaxAngle -> 0 @ PI/2-e
+                                    -MaxArmAngle + (MaxAngle - humanEdgeAngle) / (MaxAngle - Pi<float> / 2.0f * AnglePathShorteningForLegsInLateStage) * MaxArmAngle, // -MaxArmAngle @ MaxAngle -> 0 @ PI/2-e
                                     0.0f);
                                 targetAngles.RightLeg = targetAngles.LeftLeg * OtherLegAlphaAngle;
                                 targetUpperLegLengthFraction = 0.5f;
@@ -2386,7 +2386,6 @@ void Npcs::UpdateNpcAnimation(
                     }
                     else
                     {
-
                         // <--   *   PI/2 <-- PI
                         //    _ /
                         //   | /
@@ -2416,7 +2415,7 @@ void Npcs::UpdateNpcAnimation(
                             {
                                 // Late stage
                                 targetAngles.RightLeg = std::max(
-                                    (humanEdgeAngle - Pi<float> / 2.0f * (2.0f - AnglePathShortening)) / (Pi<float> -MaxAngle - Pi<float> / 2.0f * (2.0f - AnglePathShortening)) * MaxArmAngle, // MaxArmAngle @ Pi-MaxAngle => 0.0 @ PI/2+e
+                                    (humanEdgeAngle - Pi<float> / 2.0f * (2.0f - AnglePathShorteningForLegsInLateStage)) / (Pi<float> -MaxAngle - Pi<float> / 2.0f * (2.0f - AnglePathShorteningForLegsInLateStage)) * MaxArmAngle, // MaxArmAngle @ Pi-MaxAngle => 0.0 @ PI/2+e
                                     0.0f);
                                 targetAngles.LeftLeg = targetAngles.RightLeg * OtherLegAlphaAngle;
                                 targetUpperLegLengthFraction = 0.5f;
