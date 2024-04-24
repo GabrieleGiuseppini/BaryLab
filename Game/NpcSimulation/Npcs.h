@@ -367,6 +367,7 @@ private:
 					static float constexpr InitialLegAngle = 0.2f;
 
 					FS_ALIGN16_BEG LimbVector LimbLengthMultipliers FS_ALIGN16_END;
+					float UpperLegLengthFraction; // When less than 1.0, we have a knee
 					float LowerExtremityLengthMultiplier; // Multiplier for the part of the body from the crotch down to the feet
 
 					AnimationStateType()
@@ -374,6 +375,7 @@ private:
 						, LimbAnglesCos({std::cosf(LimbAngles.RightLeg), std::cosf(LimbAngles.LeftLeg), std::cosf(LimbAngles.RightArm), std::cosf(LimbAngles.LeftArm)})
 						, LimbAnglesSin({ std::sinf(LimbAngles.RightLeg), std::sinf(LimbAngles.LeftLeg), std::sinf(LimbAngles.RightArm), std::sinf(LimbAngles.LeftArm) })
 						, LimbLengthMultipliers({1.0f, 1.0f, 1.0f, 1.0f})
+						, UpperLegLengthFraction(1.0f)
 						, LowerExtremityLengthMultiplier(1.0f)
 					{}
 				} AnimationState;

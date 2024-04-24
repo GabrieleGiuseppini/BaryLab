@@ -2270,6 +2270,12 @@ void Npcs::UpdateNpcAnimation(
         vec2f feetPosition, actualBodyVector, actualBodyDir;
         float periodicValue = 0.0f;
 
+        //
+        // Thigh
+        //
+
+        float targetUpperLegLengthFraction = 1.0f;
+
         switch (humanNpcState.CurrentBehavior)
         {
             case HumanNpcStateType::BehaviorType::BeingPlaced:
@@ -2327,6 +2333,9 @@ void Npcs::UpdateNpcAnimation(
                     // Rest angle of arm wrt body - reached when fully erect
                     float constexpr RestArmAngle = HumanNpcStateType::AnimationStateType::InitialArmAngle * 0.3f;
 
+                    // Target upper leg length fraction, in case we want a knee
+                    float candidateTargetUpperLegLengthFraction;
+
                     if (humanEdgeAngle <= Pi<float> / 2.0f)
                     {
                         // *  0 --> PI/2
@@ -2339,10 +2348,12 @@ void Npcs::UpdateNpcAnimation(
                         if (humanEdgeAngle <= MaxAngle) // On the "flat" side
                         {
                             targetAngles.LeftArm = -MaxArmAngle;
+                            candidateTargetUpperLegLengthFraction = humanEdgeAngle / MaxAngle * 0.5f; // 0.0 @ 0.0 -> 0.5 @ MaxAngle
                         }
                         else
                         {
                             targetAngles.LeftArm = -MaxArmAngle - (MaxAngle - humanEdgeAngle) / (MaxAngle - Pi<float> / 2.0f) * (RestArmAngle - MaxArmAngle);
+                            candidateTargetUpperLegLengthFraction = 0.5f;
                         }
 
                         // Right arm helps
@@ -2351,9 +2362,9 @@ void Npcs::UpdateNpcAnimation(
                     else
                     {
 
-                        // <--  *   PI/2 <-- PI
-                        //     /
-                        //    /
+                        // <--   *   PI/2 <-- PI
+                        //    _ /
+                        //   | /
                         //  ------
 
                         // Right arm at MaxArmAngle until PI-MaxAngle, then goes down to rest
@@ -2361,19 +2372,33 @@ void Npcs::UpdateNpcAnimation(
                         if (humanEdgeAngle >= Pi<float> - MaxAngle) // On the "flat" side
                         {
                             targetAngles.RightArm = MaxArmAngle;
+                            candidateTargetUpperLegLengthFraction = 0.5f - (humanEdgeAngle - (Pi<float> -MaxAngle)) / MaxAngle * 0.5f; // 0.0 @ PI -> 0.5 @ Pi-MaxAngle
                         }
                         else
                         {
                             targetAngles.RightArm = RestArmAngle + (humanEdgeAngle - Pi<float> / 2.0f) / (Pi<float> -MaxAngle - Pi<float> / 2.0f) * (MaxArmAngle - RestArmAngle);
+                            candidateTargetUpperLegLengthFraction = 0.5f;
                         }
 
                         // Left arm helps
                         targetAngles.LeftArm = targetAngles.RightArm - 0.15f;
                     }
 
-                    // Legs closed
-                    targetAngles.RightLeg = 0.0f;
-                    targetAngles.LeftLeg = 0.0f;
+                    // If we're L/R, do knee
+                    if (humanNpcState.CurrentFaceOrientation == 0.0f)
+                    {
+                        targetUpperLegLengthFraction = candidateTargetUpperLegLengthFraction;
+
+                        // Legs have same angles as arms
+                        targetAngles.RightLeg = targetAngles.RightArm;
+                        targetAngles.LeftLeg = targetAngles.LeftArm;
+                    }
+                    else
+                    {
+                        // Legs are closed
+                        targetAngles.RightLeg = 0.0f;
+                        targetAngles.LeftLeg = 0.0f;
+                    }
                 }
 
                 convergenceRate = 0.30f;
@@ -2785,6 +2810,7 @@ void Npcs::UpdateNpcAnimation(
 
         // Converge
         animationState.LimbAngles.ConvergeTo(targetAngles, convergenceRate);
+        animationState.UpperLegLengthFraction = targetUpperLegLengthFraction;
 
         // Calculate sins and coss
         SinCos4(animationState.LimbAngles.fptr(), animationState.LimbAnglesSin.fptr(), animationState.LimbAnglesCos.fptr());

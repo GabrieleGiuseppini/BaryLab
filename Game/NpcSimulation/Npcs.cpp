@@ -113,7 +113,7 @@ void Npcs::RenderUpload(
 
 	assert(renderContext.GetNpcRenderMode() == NpcRenderModeType::Limbs);
 
-	renderContext.UploadNpcQuadsStart(mFurnitureNpcCount + mHumanNpcCount * 6);
+	renderContext.UploadNpcQuadsStart(mFurnitureNpcCount + mHumanNpcCount * 8);
 
 #ifdef IN_BARYLAB
 	// For furniture
@@ -1629,25 +1629,52 @@ void Npcs::RenderNpc(
 					shoulderPosition + rightArmVector - rightArmTraverseVector,
 					shoulderPosition + rightArmVector + rightArmTraverseVector);
 
-				vec2f const leftLegDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftLeg, animationState.LimbAnglesSin.LeftLeg);
-				vec2f const leftLegVector = leftLegDir * leftLegLength;
-				vec2f const leftLegTraverseVector = leftLegDir.to_perpendicular() * halfLegD;
-				Quadf leftLegQuad(
-					crotchPosition - leftLegTraverseVector,
-					crotchPosition + leftLegTraverseVector,
-					crotchPosition + leftLegVector - leftLegTraverseVector,
-					crotchPosition + leftLegVector + leftLegTraverseVector);
+				vec2f const leftUpperLegDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftLeg, animationState.LimbAnglesSin.LeftLeg);
+				vec2f const leftUpperLegVector = leftUpperLegDir * leftLegLength * animationState.UpperLegLengthFraction;
+				vec2f const leftUpperLegTraverseVector = leftUpperLegDir.to_perpendicular() * halfLegD;
+				vec2f const leftKneePosition = crotchPosition + leftUpperLegVector;
+				Quadf leftUpperLegQuad = Quadf(
+					crotchPosition - leftUpperLegTraverseVector,
+					crotchPosition + leftUpperLegTraverseVector,
+					leftKneePosition - leftUpperLegTraverseVector,
+					leftKneePosition + leftUpperLegTraverseVector);
 
-				vec2f const rightLegDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.RightLeg, animationState.LimbAnglesSin.RightLeg);
-				vec2f const rightLegVector = rightLegDir * rightLegLength;
-				vec2f const rightLegTraverseVector = rightLegDir.to_perpendicular() * halfLegD;
-				Quadf rightLegQuad(
-					crotchPosition - rightLegTraverseVector,
-					crotchPosition + rightLegTraverseVector,
-					crotchPosition + rightLegVector - rightLegTraverseVector,
-					crotchPosition + rightLegVector + rightLegTraverseVector);
+				vec2f const rightUpperLegDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.RightLeg, animationState.LimbAnglesSin.RightLeg);
+				vec2f const rightUpperLegVector = rightUpperLegDir * rightLegLength * animationState.UpperLegLengthFraction;
+				vec2f const rightUpperLegTraverseVector = rightUpperLegDir.to_perpendicular() * halfLegD;
+				vec2f const rightKneePosition = crotchPosition + rightUpperLegVector;
+				Quadf rightUpperLegQuad = Quadf(
+					crotchPosition - rightUpperLegTraverseVector,
+					crotchPosition + rightUpperLegTraverseVector,
+					rightKneePosition - rightUpperLegTraverseVector,
+					rightKneePosition + rightUpperLegTraverseVector);
 
-				// Arm and legs far
+				std::optional<Quadf> leftLowerLegQuad;
+				std::optional<Quadf> rightLowerLegQuad;
+
+				float const lowerLegLengthFraction = 1.0f - animationState.UpperLegLengthFraction;
+				if (lowerLegLengthFraction != 0.0f)
+				{
+					vec2f const leftLowerLegDir = (feetPosition - leftKneePosition).normalise_approx();
+					vec2f const leftLowerLegVector = leftLowerLegDir * leftLegLength * lowerLegLengthFraction;
+					vec2f const leftLowerLegTraverseVector = leftLowerLegDir.to_perpendicular() * halfLegD;
+					leftLowerLegQuad = Quadf(
+						leftKneePosition - leftLowerLegTraverseVector,
+						leftKneePosition + leftLowerLegTraverseVector,
+						leftKneePosition + leftLowerLegVector - leftLowerLegTraverseVector,
+						leftKneePosition + leftLowerLegVector + leftLowerLegTraverseVector);
+
+					vec2f const rightLowerLegDir = (feetPosition - rightKneePosition).normalise_approx();
+					vec2f const rightLowerLegVector = rightLowerLegDir * rightLegLength * lowerLegLengthFraction;
+					vec2f const rightLowerLegTraverseVector = rightLowerLegDir.to_perpendicular() * halfLegD;
+					rightLowerLegQuad = Quadf(
+						rightKneePosition - rightLowerLegTraverseVector,
+						rightKneePosition + rightLowerLegTraverseVector,
+						rightKneePosition + rightLowerLegVector - rightLowerLegTraverseVector,
+						rightKneePosition + rightLowerLegVector + rightLowerLegTraverseVector);
+				}
+
+				// Arm and leg far
 
 				if (humanNpcState.CurrentFaceDirectionX > 0.0f)
 				{
@@ -1662,10 +1689,19 @@ void Npcs::RenderNpc(
 					// Left leg
 					shipRenderContext.UploadNpcQuad(
 						planeId,
-						leftLegQuad,
+						leftUpperLegQuad,
 						humanNpcState.CurrentFaceOrientation,
 						humanNpcState.CurrentFaceDirectionX,
 						npc.Highlight);
+					if (leftLowerLegQuad.has_value())
+					{
+						shipRenderContext.UploadNpcQuad(
+							planeId,
+							*leftLowerLegQuad,
+							humanNpcState.CurrentFaceOrientation,
+							humanNpcState.CurrentFaceDirectionX,
+							npc.Highlight);
+					}
 				}
 				else
 				{
@@ -1680,10 +1716,19 @@ void Npcs::RenderNpc(
 					// Right leg
 					shipRenderContext.UploadNpcQuad(
 						planeId,
-						rightLegQuad,
+						rightUpperLegQuad,
 						humanNpcState.CurrentFaceOrientation,
 						humanNpcState.CurrentFaceDirectionX,
 						npc.Highlight);
+					if (rightLowerLegQuad.has_value())
+					{
+						shipRenderContext.UploadNpcQuad(
+							planeId,
+							*rightLowerLegQuad,
+							humanNpcState.CurrentFaceOrientation,
+							humanNpcState.CurrentFaceDirectionX,
+							npc.Highlight);
+					}
 				}
 
 				// Head
@@ -1712,7 +1757,7 @@ void Npcs::RenderNpc(
 					humanNpcState.CurrentFaceDirectionX,
 					npc.Highlight);
 
-				// Arms and legs near
+				// Arm and leg near
 
 				if (humanNpcState.CurrentFaceDirectionX > 0.0f)
 				{
@@ -1727,10 +1772,19 @@ void Npcs::RenderNpc(
 					// Right leg
 					shipRenderContext.UploadNpcQuad(
 						planeId,
-						rightLegQuad,
+						rightUpperLegQuad,
 						humanNpcState.CurrentFaceOrientation,
 						humanNpcState.CurrentFaceDirectionX,
 						npc.Highlight);
+					if (rightLowerLegQuad.has_value())
+					{
+						shipRenderContext.UploadNpcQuad(
+							planeId,
+							*rightLowerLegQuad,
+							humanNpcState.CurrentFaceOrientation,
+							humanNpcState.CurrentFaceDirectionX,
+							npc.Highlight);
+					}
 				}
 				else
 				{
@@ -1745,10 +1799,19 @@ void Npcs::RenderNpc(
 					// Left leg
 					shipRenderContext.UploadNpcQuad(
 						planeId,
-						leftLegQuad,
+						leftUpperLegQuad,
 						humanNpcState.CurrentFaceOrientation,
 						humanNpcState.CurrentFaceDirectionX,
 						npc.Highlight);
+					if (leftLowerLegQuad.has_value())
+					{
+						shipRenderContext.UploadNpcQuad(
+							planeId,
+							*leftLowerLegQuad,
+							humanNpcState.CurrentFaceOrientation,
+							humanNpcState.CurrentFaceDirectionX,
+							npc.Highlight);
+					}
 				}
 			}
 
