@@ -2357,7 +2357,7 @@ void Npcs::UpdateNpcAnimation(
                         }
 
                         // Right arm helps
-                        targetAngles.RightArm = targetAngles.LeftArm + 0.15f;
+                        targetAngles.RightArm = targetAngles.LeftArm + 0.3f;
                     }
                     else
                     {
@@ -2381,7 +2381,7 @@ void Npcs::UpdateNpcAnimation(
                         }
 
                         // Left arm helps
-                        targetAngles.LeftArm = targetAngles.RightArm - 0.15f;
+                        targetAngles.LeftArm = targetAngles.RightArm - 0.3f;
                     }
 
                     // If we're L/R, do knee
