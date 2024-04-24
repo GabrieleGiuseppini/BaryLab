@@ -2333,8 +2333,12 @@ void Npcs::UpdateNpcAnimation(
                     // Rest angle of arm wrt body - reached when fully erect
                     float constexpr RestArmAngle = HumanNpcStateType::AnimationStateType::InitialArmAngle * 0.3f;
 
-                    // Target upper leg length fraction, in case we want a knee
-                    float candidateTargetUpperLegLengthFraction;
+                    // DeltaAngle of other arm
+                    float constexpr OtherArmDeltaAngle = 0.3f;
+
+                    // Legs are closed - unless we're in the early stage of rising and we're L/R
+                    targetAngles.LeftLeg = 0.0f;
+                    targetAngles.RightLeg = 0.0f;
 
                     if (humanEdgeAngle <= Pi<float> / 2.0f)
                     {
@@ -2348,16 +2352,31 @@ void Npcs::UpdateNpcAnimation(
                         if (humanEdgeAngle <= MaxAngle) // On the "flat" side
                         {
                             targetAngles.LeftArm = -MaxArmAngle;
-                            candidateTargetUpperLegLengthFraction = humanEdgeAngle / MaxAngle * 0.5f; // 0.0 @ 0.0 -> 0.5 @ MaxAngle
+                            targetAngles.RightArm = targetAngles.LeftArm + OtherArmDeltaAngle;
+
+                            if (humanNpcState.CurrentFaceOrientation == 0.0f)
+                            {
+                                // Early stage - we want a knee
+                                targetAngles.LeftLeg = targetAngles.LeftArm;
+                                targetAngles.RightLeg = targetAngles.RightArm;
+                                targetUpperLegLengthFraction = humanEdgeAngle / MaxAngle * 0.5f; // 0.0 @ 0.0 -> 0.5 @ MaxAngle
+                            }
                         }
                         else
                         {
-                            targetAngles.LeftArm = -MaxArmAngle - (MaxAngle - humanEdgeAngle) / (MaxAngle - Pi<float> / 2.0f) * (RestArmAngle - MaxArmAngle);
-                            candidateTargetUpperLegLengthFraction = 0.5f;
-                        }
+                            targetAngles.LeftArm = -MaxArmAngle - (MaxAngle - humanEdgeAngle) / (MaxAngle - Pi<float> / 2.0f) * (RestArmAngle - MaxArmAngle); // -MaxArmAngle @ MaxAngle -> -RestArmAngle * PI/2
+                            targetAngles.RightArm = targetAngles.LeftArm + OtherArmDeltaAngle;
 
-                        // Right arm helps
-                        targetAngles.RightArm = targetAngles.LeftArm + 0.3f;
+                            if (humanNpcState.CurrentFaceOrientation == 0.0f)
+                            {
+                                // Late stage
+                                targetAngles.LeftLeg = std::min(
+                                    -MaxArmAngle + (MaxAngle - humanEdgeAngle) / (MaxAngle - Pi<float> / 2.0f * 0.9f) * MaxArmAngle, // -MaxArmAngle @ MaxAngle -> 0 @ PI/2-e
+                                    0.0f);
+                                targetAngles.RightLeg = targetAngles.LeftLeg;
+                                targetUpperLegLengthFraction = 0.5f;
+                            }
+                        }
                     }
                     else
                     {
@@ -2372,32 +2391,31 @@ void Npcs::UpdateNpcAnimation(
                         if (humanEdgeAngle >= Pi<float> - MaxAngle) // On the "flat" side
                         {
                             targetAngles.RightArm = MaxArmAngle;
-                            candidateTargetUpperLegLengthFraction = 0.5f - (humanEdgeAngle - (Pi<float> -MaxAngle)) / MaxAngle * 0.5f; // 0.0 @ PI -> 0.5 @ Pi-MaxAngle
+                            targetAngles.LeftArm = targetAngles.RightArm - OtherArmDeltaAngle;
+
+                            if (humanNpcState.CurrentFaceOrientation == 0.0f)
+                            {
+                                // Early stage - we want a knee
+                                targetAngles.RightLeg = targetAngles.RightArm;
+                                targetAngles.LeftLeg = targetAngles.LeftArm;
+                                targetUpperLegLengthFraction = 0.5f - (humanEdgeAngle - (Pi<float> -MaxAngle)) / MaxAngle * 0.5f; // 0.0 @ PI -> 0.5 @ Pi-MaxAngle
+                            }
                         }
                         else
                         {
-                            targetAngles.RightArm = RestArmAngle + (humanEdgeAngle - Pi<float> / 2.0f) / (Pi<float> -MaxAngle - Pi<float> / 2.0f) * (MaxArmAngle - RestArmAngle);
-                            candidateTargetUpperLegLengthFraction = 0.5f;
+                            targetAngles.RightArm = RestArmAngle + (humanEdgeAngle - Pi<float> / 2.0f) / (Pi<float> -MaxAngle - Pi<float> / 2.0f) * (MaxArmAngle - RestArmAngle); // MaxArmAngle @ Pi-MaxAngle => RestArmAngle @ PI/2
+                            targetAngles.LeftArm = targetAngles.RightArm - OtherArmDeltaAngle;
+
+                            if (humanNpcState.CurrentFaceOrientation == 0.0f)
+                            {
+                                // Late stage
+                                targetAngles.RightLeg = std::max(
+                                    (humanEdgeAngle - Pi<float> / 2.0f * 1.1f) / (Pi<float> -MaxAngle - Pi<float> / 2.0f * 1.1f) * MaxArmAngle, // MaxArmAngle @ Pi-MaxAngle => 0.0 @ PI/2+e
+                                    0.0f);
+                                targetAngles.LeftLeg = targetAngles.RightLeg;
+                                targetUpperLegLengthFraction = 0.5f;
+                            }
                         }
-
-                        // Left arm helps
-                        targetAngles.LeftArm = targetAngles.RightArm - 0.3f;
-                    }
-
-                    // If we're L/R, do knee
-                    if (humanNpcState.CurrentFaceOrientation == 0.0f)
-                    {
-                        targetUpperLegLengthFraction = candidateTargetUpperLegLengthFraction;
-
-                        // Legs have same angles as arms
-                        targetAngles.RightLeg = targetAngles.RightArm;
-                        targetAngles.LeftLeg = targetAngles.LeftArm;
-                    }
-                    else
-                    {
-                        // Legs are closed
-                        targetAngles.RightLeg = 0.0f;
-                        targetAngles.LeftLeg = 0.0f;
                     }
                 }
 
