@@ -2328,13 +2328,19 @@ void Npcs::UpdateNpcAnimation(
                     //static_assert(MaxAngle == std::atan(GameParameters::HumanNpcGeometry::ArmLengthFraction / (1.0f - GameParameters::HumanNpcGeometry::HeadLengthFraction)));
 
                     // Max angle of arm wrt body - kept until MaxAngle
-                    float constexpr MaxArmAngle = Pi<float> / 2.0f * 0.7f;
+                    float constexpr MaxArmAngle = Pi<float> / 2.0f * 0.85f;
 
                     // Rest angle of arm wrt body - reached when fully erect
                     float constexpr RestArmAngle = HumanNpcStateType::AnimationStateType::InitialArmAngle * 0.3f;
 
                     // DeltaAngle of other arm
                     float constexpr OtherArmDeltaAngle = 0.3f;
+
+                    // AngleMultiplier of other leg when closing knees
+                    float constexpr OtherLegAlphaAngle = 0.7f;
+
+                    // Shortening of angle path for legs becoming straight when closing knees
+                    float const AnglePathShortening = 0.9f;
 
                     // Legs are closed - unless we're in the early stage of rising and we're L/R
                     targetAngles.LeftLeg = 0.0f;
@@ -2371,9 +2377,9 @@ void Npcs::UpdateNpcAnimation(
                             {
                                 // Late stage
                                 targetAngles.LeftLeg = std::min(
-                                    -MaxArmAngle + (MaxAngle - humanEdgeAngle) / (MaxAngle - Pi<float> / 2.0f * 0.9f) * MaxArmAngle, // -MaxArmAngle @ MaxAngle -> 0 @ PI/2-e
+                                    -MaxArmAngle + (MaxAngle - humanEdgeAngle) / (MaxAngle - Pi<float> / 2.0f * AnglePathShortening) * MaxArmAngle, // -MaxArmAngle @ MaxAngle -> 0 @ PI/2-e
                                     0.0f);
-                                targetAngles.RightLeg = targetAngles.LeftLeg;
+                                targetAngles.RightLeg = targetAngles.LeftLeg * OtherLegAlphaAngle;
                                 targetUpperLegLengthFraction = 0.5f;
                             }
                         }
@@ -2410,9 +2416,9 @@ void Npcs::UpdateNpcAnimation(
                             {
                                 // Late stage
                                 targetAngles.RightLeg = std::max(
-                                    (humanEdgeAngle - Pi<float> / 2.0f * 1.1f) / (Pi<float> -MaxAngle - Pi<float> / 2.0f * 1.1f) * MaxArmAngle, // MaxArmAngle @ Pi-MaxAngle => 0.0 @ PI/2+e
+                                    (humanEdgeAngle - Pi<float> / 2.0f * (2.0f - AnglePathShortening)) / (Pi<float> -MaxAngle - Pi<float> / 2.0f * (2.0f - AnglePathShortening)) * MaxArmAngle, // MaxArmAngle @ Pi-MaxAngle => 0.0 @ PI/2+e
                                     0.0f);
-                                targetAngles.LeftLeg = targetAngles.RightLeg;
+                                targetAngles.LeftLeg = targetAngles.RightLeg * OtherLegAlphaAngle;
                                 targetUpperLegLengthFraction = 0.5f;
                             }
                         }
