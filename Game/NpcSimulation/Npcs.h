@@ -214,6 +214,7 @@ private:
 					Constrained_Aerial, // Clueless, does nothing; with feet in air
 					Constrained_KnockedOut, // Clueless, does nothing, not relevant where; waits until can rise
 
+					Constrained_PreRising, // Prepares to stand up
 					Constrained_Rising, // Tries to stand up (appliying torque)
 					Constrained_Equilibrium, // Stands up; continues to adjust alignment with torque
 					Constrained_Walking, // Walks; continues to adjust alignment with torque
@@ -262,6 +263,18 @@ private:
 
 					struct Constrained_KnockedOutStateType
 					{
+						float ProgressToPreRising;
+						float ProgressToAerial;
+
+						void Reset()
+						{
+							ProgressToPreRising = 0.0f;
+							ProgressToAerial = 0.0f;
+						}
+					} Constrained_KnockedOut;
+
+					struct Constrained_PreRisingType
+					{
 						float ProgressToRising;
 						float ProgressToAerial;
 
@@ -270,7 +283,7 @@ private:
 							ProgressToRising = 0.0f;
 							ProgressToAerial = 0.0f;
 						}
-					} Constrained_KnockedOut;
+					} Constrained_PreRising;
 
 					struct Constrained_RisingStateType
 					{
@@ -441,6 +454,12 @@ private:
 						case BehaviorType::Constrained_KnockedOut:
 						{
 							CurrentBehaviorState.Constrained_KnockedOut.Reset();
+							break;
+						}
+
+						case BehaviorType::Constrained_PreRising:
+						{
+							CurrentBehaviorState.Constrained_PreRising.Reset();
 							break;
 						}
 

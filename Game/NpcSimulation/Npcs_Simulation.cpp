@@ -2257,7 +2257,7 @@ void Npcs::UpdateNpcAnimation(
         auto const & secondaryConstrainedState = npc.DipoleState->SecondaryParticleState.ConstrainedState;
 
         //
-        // Angles
+        // Angles and thigh
         //
 
         FS_ALIGN16_BEG LimbVector targetAngles(animationState.LimbAngles) FS_ALIGN16_END;
@@ -2265,16 +2265,18 @@ void Npcs::UpdateNpcAnimation(
         float convergenceRate = 0.0f;
 
         // Stuff we calc in some cases and which we need again later for lengths
+        float humanEdgeAngle = 0.0f;
         float adjustedStandardHumanHeight = 0.0f;
         vec2f edg1, edg2, edgVector, edgDir;
         vec2f feetPosition, actualBodyVector, actualBodyDir;
         float periodicValue = 0.0f;
 
-        //
-        // Thigh
-        //
-
         float targetUpperLegLengthFraction = 1.0f;
+
+        // Angle of human wrt edge until which arm is angled to the max
+        // (extent of early stage during rising)
+        float constexpr MaxHumanEdgeAngleForArms = 0.40489178628508342331207292900944f;
+        //static_assert(MaxHumanEdgeAngleForArms == std::atan(GameParameters::HumanNpcGeometry::ArmLengthFraction / (1.0f - GameParameters::HumanNpcGeometry::HeadLengthFraction)));
 
         switch (humanNpcState.CurrentBehavior)
         {
@@ -2297,16 +2299,50 @@ void Npcs::UpdateNpcAnimation(
                 break;
             }
 
+            case HumanNpcStateType::BehaviorType::Constrained_PreRising:
+            {
+                // Move arms against floor (PI/2 wrt body)
+
+                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualFloor.has_value())
+                {
+                    vec2f const edgeVector = shipMesh.GetTriangles().GetSubSpringVector(
+                        primaryContrainedState->CurrentVirtualFloor->TriangleElementIndex,
+                        primaryContrainedState->CurrentVirtualFloor->EdgeOrdinal,
+                        shipMesh.GetPoints());
+                    vec2f const head = mParticles.GetPosition(secondaryParticleIndex);
+                    vec2f const feet = mParticles.GetPosition(primaryParticleIndex);
+
+                    // TODO: replace with dot edge<>0
+                    humanEdgeAngle = edgeVector.angleCw(head - feet);
+                    if (humanEdgeAngle < 0.0f)
+                    {
+                        humanEdgeAngle += Pi<float>;
+                    }
+
+                    float constexpr MaxArmAngle = Pi<float> / 2.0f;
+
+                    float constexpr OtherArmDeltaAngle = 0.3f;
+                    if (humanEdgeAngle <= Pi<float> / 2.0f)
+                    {
+                        targetAngles.LeftArm = -MaxArmAngle;
+                        targetAngles.RightArm = -MaxArmAngle + OtherArmDeltaAngle;
+                    }
+                    else
+                    {
+                        targetAngles.RightArm = MaxArmAngle;
+                        targetAngles.LeftArm = MaxArmAngle - OtherArmDeltaAngle;
+                    }
+                }
+
+                // Legs stay
+
+                convergenceRate = 0.09f;
+
+                break;
+            }
+
             case HumanNpcStateType::BehaviorType::Constrained_Rising:
             {
-                // Arms slightly open
-                targetAngles.RightArm = HumanNpcStateType::AnimationStateType::InitialArmAngle;
-                targetAngles.LeftArm = -HumanNpcStateType::AnimationStateType::InitialArmAngle;
-
-                // Legs slightly open
-                targetAngles.RightLeg = HumanNpcStateType::AnimationStateType::InitialLegAngle * 2.0f;
-                targetAngles.LeftLeg = -HumanNpcStateType::AnimationStateType::InitialLegAngle * 2.0f;
-
                 // Leg and arm that are against floor "help"
                 if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualFloor.has_value())
                 {
@@ -2317,18 +2353,14 @@ void Npcs::UpdateNpcAnimation(
                     vec2f const head = mParticles.GetPosition(secondaryParticleIndex);
                     vec2f const feet = mParticles.GetPosition(primaryParticleIndex);
 
-                    float humanEdgeAngle = edgeVector.angleCw(head - feet);
+                    humanEdgeAngle = edgeVector.angleCw(head - feet);
                     if (humanEdgeAngle < 0.0f)
                     {
                         humanEdgeAngle += Pi<float>;
                     }
 
-                    // Angle until which left arm is angled to the max
-                    float constexpr MaxAngle = 0.40489178628508342331207292900944f;
-                    //static_assert(MaxAngle == std::atan(GameParameters::HumanNpcGeometry::ArmLengthFraction / (1.0f - GameParameters::HumanNpcGeometry::HeadLengthFraction)));
-
                     // Max angle of arm wrt body - kept until MaxAngle
-                    float constexpr MaxArmAngle = Pi<float> / 2.0f * 0.85f;
+                    float constexpr MaxArmAngle = Pi<float> / 2.0f;
 
                     // Rest angle of arm wrt body - reached when fully erect
                     float constexpr RestArmAngle = HumanNpcStateType::AnimationStateType::InitialArmAngle * 0.3f;
@@ -2353,31 +2385,38 @@ void Npcs::UpdateNpcAnimation(
                         //   \
                         // ----
 
-                        // Left arm at MaxArmAngle until max angle, then goes down to rest
+                        // Left arm at MaxArmAngle until MaxHumanEdgeAngleForArms, then goes down to rest
 
-                        if (humanEdgeAngle <= MaxAngle) // On the "flat" side
+                        if (humanEdgeAngle <= MaxHumanEdgeAngleForArms) // On the "flat" side
                         {
-                            targetAngles.LeftArm = -MaxArmAngle;
-                            targetAngles.RightArm = targetAngles.LeftArm + OtherArmDeltaAngle;
+                            // Early stage
+
+                            // Arms: leave them where they are (MaxArmAngle)
+
+                            // Legs: we want a knee
 
                             if (humanNpcState.CurrentFaceOrientation == 0.0f)
                             {
-                                // Early stage - we want a knee
-                                targetAngles.LeftLeg = targetAngles.LeftArm;
-                                targetAngles.RightLeg = targetAngles.RightArm;
-                                targetUpperLegLengthFraction = humanEdgeAngle / MaxAngle * 0.5f; // 0.0 @ 0.0 -> 0.5 @ MaxAngle
+                                targetAngles.LeftLeg = -MaxArmAngle;
+                                targetAngles.RightLeg = targetAngles.LeftLeg + OtherArmDeltaAngle;
+                                targetUpperLegLengthFraction = humanEdgeAngle / MaxHumanEdgeAngleForArms * 0.5f; // 0.0 @ 0.0 -> 0.5 @ MaxHumanEdgeAngleForArms
                             }
                         }
                         else
                         {
-                            targetAngles.LeftArm = -MaxArmAngle - (MaxAngle - humanEdgeAngle) / (MaxAngle - Pi<float> / 2.0f) * (RestArmAngle - MaxArmAngle); // -MaxArmAngle @ MaxAngle -> -RestArmAngle * PI/2
+                            // Late stage
+
+                            // Arms: towards rest
+
+                            targetAngles.LeftArm = -MaxArmAngle - (MaxHumanEdgeAngleForArms - humanEdgeAngle) / (MaxHumanEdgeAngleForArms - Pi<float> / 2.0f) * (RestArmAngle - MaxArmAngle); // -MaxArmAngle @ MaxHumanEdgeAngleForArms -> -RestArmAngle * PI/2
                             targetAngles.RightArm = targetAngles.LeftArm + OtherArmDeltaAngle;
+
+                            // Legs: towards zero
 
                             if (humanNpcState.CurrentFaceOrientation == 0.0f)
                             {
-                                // Late stage
                                 targetAngles.LeftLeg = std::min(
-                                    -MaxArmAngle + (MaxAngle - humanEdgeAngle) / (MaxAngle - Pi<float> / 2.0f * AnglePathShorteningForLegsInLateStage) * MaxArmAngle, // -MaxArmAngle @ MaxAngle -> 0 @ PI/2-e
+                                    -MaxArmAngle + (MaxHumanEdgeAngleForArms - humanEdgeAngle) / (MaxHumanEdgeAngleForArms - Pi<float> / 2.0f * AnglePathShorteningForLegsInLateStage) * MaxArmAngle, // -MaxArmAngle @ MaxHumanEdgeAngleForArms -> 0 @ PI/2-e
                                     0.0f);
                                 targetAngles.RightLeg = targetAngles.LeftLeg * OtherLegAlphaAngle;
                                 targetUpperLegLengthFraction = 0.5f;
@@ -2391,37 +2430,54 @@ void Npcs::UpdateNpcAnimation(
                         //   | /
                         //  ------
 
-                        // Right arm at MaxArmAngle until PI-MaxAngle, then goes down to rest
+                        // Right arm at MaxArmAngle until PI-MaxHumanEdgeAngleForArms, then goes down to rest
 
-                        if (humanEdgeAngle >= Pi<float> - MaxAngle) // On the "flat" side
+                        if (humanEdgeAngle >= Pi<float> - MaxHumanEdgeAngleForArms) // On the "flat" side
                         {
-                            targetAngles.RightArm = MaxArmAngle;
-                            targetAngles.LeftArm = targetAngles.RightArm - OtherArmDeltaAngle;
+                            // Early stage
+
+                            // Arms: leave them where they are (MaxArmAngle)
+
+                            // Legs: we want a knee
 
                             if (humanNpcState.CurrentFaceOrientation == 0.0f)
                             {
-                                // Early stage - we want a knee
-                                targetAngles.RightLeg = targetAngles.RightArm;
-                                targetAngles.LeftLeg = targetAngles.LeftArm;
-                                targetUpperLegLengthFraction = 0.5f - (humanEdgeAngle - (Pi<float> -MaxAngle)) / MaxAngle * 0.5f; // 0.0 @ PI -> 0.5 @ Pi-MaxAngle
+                                targetAngles.RightLeg = MaxArmAngle;
+                                targetAngles.LeftLeg = targetAngles.RightLeg - OtherArmDeltaAngle;
+                                targetUpperLegLengthFraction = 0.5f - (humanEdgeAngle - (Pi<float> - MaxHumanEdgeAngleForArms)) / MaxHumanEdgeAngleForArms * 0.5f; // 0.0 @ PI -> 0.5 @ Pi-MaxHumanEdgeAngleForArms
                             }
                         }
                         else
                         {
-                            targetAngles.RightArm = RestArmAngle + (humanEdgeAngle - Pi<float> / 2.0f) / (Pi<float> -MaxAngle - Pi<float> / 2.0f) * (MaxArmAngle - RestArmAngle); // MaxArmAngle @ Pi-MaxAngle => RestArmAngle @ PI/2
+                            // Late stage
+
+                            // Arms: towards rest
+
+                            targetAngles.RightArm = RestArmAngle + (humanEdgeAngle - Pi<float> / 2.0f) / (Pi<float> - MaxHumanEdgeAngleForArms - Pi<float> / 2.0f) * (MaxArmAngle - RestArmAngle); // MaxArmAngle @ Pi-MaxHumanEdgeAngleForArms => RestArmAngle @ PI/2
                             targetAngles.LeftArm = targetAngles.RightArm - OtherArmDeltaAngle;
+
+                            // Legs: towards zero
 
                             if (humanNpcState.CurrentFaceOrientation == 0.0f)
                             {
-                                // Late stage
                                 targetAngles.RightLeg = std::max(
-                                    (humanEdgeAngle - Pi<float> / 2.0f * (2.0f - AnglePathShorteningForLegsInLateStage)) / (Pi<float> -MaxAngle - Pi<float> / 2.0f * (2.0f - AnglePathShorteningForLegsInLateStage)) * MaxArmAngle, // MaxArmAngle @ Pi-MaxAngle => 0.0 @ PI/2+e
+                                    (humanEdgeAngle - Pi<float> / 2.0f * (2.0f - AnglePathShorteningForLegsInLateStage)) / (Pi<float> - MaxHumanEdgeAngleForArms - Pi<float> / 2.0f * (2.0f - AnglePathShorteningForLegsInLateStage)) * MaxArmAngle, // MaxArmAngle @ Pi-MaxHumanEdgeAngleForArms => 0.0 @ PI/2+e
                                     0.0f);
                                 targetAngles.LeftLeg = targetAngles.RightLeg * OtherLegAlphaAngle;
                                 targetUpperLegLengthFraction = 0.5f;
                             }
                         }
                     }
+                }
+                else
+                {
+                    // Arms slightly open
+                    targetAngles.RightArm = HumanNpcStateType::AnimationStateType::InitialArmAngle;
+                    targetAngles.LeftArm = -HumanNpcStateType::AnimationStateType::InitialArmAngle;
+
+                    // Legs slightly open
+                    targetAngles.RightLeg = HumanNpcStateType::AnimationStateType::InitialLegAngle * 2.0f;
+                    targetAngles.LeftLeg = -HumanNpcStateType::AnimationStateType::InitialLegAngle * 2.0f;
                 }
 
                 convergenceRate = 0.30f;
@@ -2849,6 +2905,35 @@ void Npcs::UpdateNpcAnimation(
 
         switch (humanNpcState.CurrentBehavior)
         {
+            case HumanNpcStateType::BehaviorType::Constrained_PreRising:
+            {
+                // Retract arms
+                targetLengthMultipliers.RightArm = 0.2f;
+                targetLengthMultipliers.LeftArm = 0.2f;
+
+                break;
+            }
+
+            case HumanNpcStateType::BehaviorType::Constrained_Rising:
+            {
+                // Recoil arms
+
+                if (humanEdgeAngle < 0.0f)
+                {
+                    assert(false);
+                }
+
+                float const targetArmLength = Clamp(
+                    humanEdgeAngle / MaxHumanEdgeAngleForArms,
+                    0.0f,
+                    1.0f);
+
+                targetLengthMultipliers.RightArm = targetArmLength;
+                targetLengthMultipliers.LeftArm = targetArmLength;
+
+                break;
+            }
+
             case HumanNpcStateType::BehaviorType::Constrained_Walking:
             {
                 // Take into account that crotch is lower
@@ -2943,7 +3028,6 @@ void Npcs::UpdateNpcAnimation(
             }
 
             case HumanNpcStateType::BehaviorType::BeingPlaced:
-            case HumanNpcStateType::BehaviorType::Constrained_Rising:
             case HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
             case HumanNpcStateType::BehaviorType::Constrained_Falling:
             case HumanNpcStateType::BehaviorType::Constrained_KnockedOut:

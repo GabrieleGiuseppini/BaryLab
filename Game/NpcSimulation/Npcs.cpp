@@ -1203,6 +1203,12 @@ void Npcs::Publish() const
 					break;
 				}
 
+				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_PreRising:
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_PreRising");
+					break;
+				}
+
 				case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Rising:
 				{
 					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Rising");
