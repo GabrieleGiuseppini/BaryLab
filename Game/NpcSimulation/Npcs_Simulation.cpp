@@ -2312,17 +2312,12 @@ void Npcs::UpdateNpcAnimation(
                     vec2f const head = mParticles.GetPosition(secondaryParticleIndex);
                     vec2f const feet = mParticles.GetPosition(primaryParticleIndex);
 
-                    // TODO: replace with dot edge<>0
-                    humanEdgeAngle = edgeVector.angleCw(head - feet);
-                    if (humanEdgeAngle < 0.0f)
-                    {
-                        humanEdgeAngle += Pi<float>;
-                    }
+                    float const humanFloorAlignment = (head - feet).dot(edgeVector);
 
                     float constexpr MaxArmAngle = Pi<float> / 2.0f;
-
                     float constexpr OtherArmDeltaAngle = 0.3f;
-                    if (humanEdgeAngle <= Pi<float> / 2.0f)
+
+                    if (humanFloorAlignment >= 0.0f)
                     {
                         targetAngles.LeftArm = -MaxArmAngle;
                         targetAngles.RightArm = -MaxArmAngle + OtherArmDeltaAngle;
@@ -2353,9 +2348,10 @@ void Npcs::UpdateNpcAnimation(
                     vec2f const head = mParticles.GetPosition(secondaryParticleIndex);
                     vec2f const feet = mParticles.GetPosition(primaryParticleIndex);
 
-                    humanEdgeAngle = edgeVector.angleCw(head - feet);
+                    humanEdgeAngle = edgeVector.angleCw(head - feet); // [0.0 ... PI]
                     if (humanEdgeAngle < 0.0f)
                     {
+                        // Fix inaccuracies
                         humanEdgeAngle += Pi<float>;
                     }
 
@@ -2391,7 +2387,7 @@ void Npcs::UpdateNpcAnimation(
                         {
                             // Early stage
 
-                            // Arms: leave them where they are (MaxArmAngle)
+                            // Arms: leave them where they are (almost at MaxArmAngle)
 
                             // Legs: we want a knee
 
@@ -2408,7 +2404,7 @@ void Npcs::UpdateNpcAnimation(
 
                             // Arms: towards rest
 
-                            targetAngles.LeftArm = -MaxArmAngle - (MaxHumanEdgeAngleForArms - humanEdgeAngle) / (MaxHumanEdgeAngleForArms - Pi<float> / 2.0f) * (RestArmAngle - MaxArmAngle); // -MaxArmAngle @ MaxHumanEdgeAngleForArms -> -RestArmAngle * PI/2
+                            targetAngles.LeftArm = -MaxArmAngle - (MaxHumanEdgeAngleForArms - humanEdgeAngle) / (MaxHumanEdgeAngleForArms - Pi<float> / 2.0f) * (RestArmAngle - MaxArmAngle); // -MaxArmAngle @ MaxHumanEdgeAngleForArms -> -RestArmAngle @ PI/2
                             targetAngles.RightArm = targetAngles.LeftArm + OtherArmDeltaAngle;
 
                             // Legs: towards zero
@@ -2436,7 +2432,7 @@ void Npcs::UpdateNpcAnimation(
                         {
                             // Early stage
 
-                            // Arms: leave them where they are (MaxArmAngle)
+                            // Arms: leave them where they are (almost at MaxArmAngle)
 
                             // Legs: we want a knee
 
@@ -2903,13 +2899,15 @@ void Npcs::UpdateNpcAnimation(
 
         float targetLowerExtremityLengthMultiplier = 1.0f;
 
+        float constexpr MinPrerisingArmLengthMultiplier = 0.2f;
+
         switch (humanNpcState.CurrentBehavior)
         {
             case HumanNpcStateType::BehaviorType::Constrained_PreRising:
             {
                 // Retract arms
-                targetLengthMultipliers.RightArm = 0.2f;
-                targetLengthMultipliers.LeftArm = 0.2f;
+                targetLengthMultipliers.RightArm = MinPrerisingArmLengthMultiplier;
+                targetLengthMultipliers.LeftArm = MinPrerisingArmLengthMultiplier;
 
                 break;
             }
@@ -2918,14 +2916,9 @@ void Npcs::UpdateNpcAnimation(
             {
                 // Recoil arms
 
-                if (humanEdgeAngle < 0.0f)
-                {
-                    assert(false);
-                }
-
                 float const targetArmLength = Clamp(
                     humanEdgeAngle / MaxHumanEdgeAngleForArms,
-                    0.0f,
+                    MinPrerisingArmLengthMultiplier,
                     1.0f);
 
                 targetLengthMultipliers.RightArm = targetArmLength;
