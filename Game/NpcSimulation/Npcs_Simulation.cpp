@@ -2389,7 +2389,7 @@ void Npcs::UpdateNpcAnimation(
 
                             // Arms: leave them where they are (almost at MaxArmAngle)
 
-                            // Legs: we want a knee
+                            // Legs: we want a knee (iff we're facing L/R)
 
                             if (humanNpcState.CurrentFaceOrientation == 0.0f)
                             {
@@ -2434,7 +2434,7 @@ void Npcs::UpdateNpcAnimation(
 
                             // Arms: leave them where they are (almost at MaxArmAngle)
 
-                            // Legs: we want a knee
+                            // Legs: we want a knee (iff we're facing L/R)
 
                             if (humanNpcState.CurrentFaceOrientation == 0.0f)
                             {
