@@ -2462,7 +2462,7 @@ void Npcs::UpdateNpcAnimation(
                     targetAngles.LeftLeg = -HumanNpcStateType::AnimationStateType::InitialLegAngle * 2.0f;
                 }
 
-                convergenceRate = 0.30f;
+                convergenceRate = 0.45f;
 
                 break;
             }
