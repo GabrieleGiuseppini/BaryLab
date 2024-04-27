@@ -51,7 +51,7 @@ void main()
 
     // 1.0 when in direction X, 0.0 otherwise
     #define MIN_SHADE 0.3
-    float x2 = (-vertexSpacePosition.x - vertexOrientationDepth);
+    float x2 = (vertexSpacePosition.x - vertexOrientationDepth);
     float oppositeDirShade = MIN_SHADE + (1.0 - MIN_SHADE) * (1.0 - x2 * x2 / (2.0 * (vertexOrientationDepth + 1)));
     
     vec3 cInner = vec3(0.560, 0.788, 0.950) * (1.0 - vertexBackDepth / 2.0);

@@ -167,24 +167,40 @@ struct TriangleAndEdge
  */
 using Octant = std::int32_t;
 
-struct Quadf
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Rendering
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+struct TextureQuad
 {
-    vec2f TopRight;
-    vec2f TopLeft;
-    vec2f BottomRight;
-    vec2f BottomLeft;
+    vec2f TopLeftPosition;
+    vec2f TopLeftTexture;
+    vec2f TopRightPosition;
+    vec2f TopRightTexture;
+    vec2f BottomLeftPosition;
+    vec2f BottomLeftTexture;
+    vec2f BottomRightPosition;
+    vec2f BottomRightTexture;
 
-    Quadf() = default;
+    TextureQuad() = default;
 
-    Quadf(
-        vec2f topRight,
-        vec2f topLeft,
-        vec2f bottomRight,
-        vec2f bottomLeft)
-        : TopRight(topRight)
-        , TopLeft(topLeft)
-        , BottomRight(bottomRight)
-        , BottomLeft(bottomLeft)
+    TextureQuad(
+        vec2f topLeftPosition,
+        vec2f topLeftTexture,
+        vec2f topRightPosition,
+        vec2f topRightTexture,
+        vec2f bottomLeftPosition,
+        vec2f bottomLeftTexture,
+        vec2f bottomRightPosition,
+        vec2f bottomRightTexture)
+        : TopLeftPosition(topLeftPosition)
+        , TopLeftTexture(topLeftTexture)
+        , TopRightPosition(topRightPosition)
+        , TopRightTexture(topRightTexture)
+        , BottomLeftPosition(bottomLeftPosition)
+        , BottomLeftTexture(bottomLeftTexture)
+        , BottomRightPosition(bottomRightPosition)
+        , BottomRightTexture(bottomRightTexture)
     {}
 };
 

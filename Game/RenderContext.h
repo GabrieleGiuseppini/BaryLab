@@ -185,47 +185,42 @@ public:
 
     inline void UploadNpcQuad(
         PlaneId /*planeId*/,
-        Quadf const & quad,
+        TextureQuad const & quad,
         float faceOrientation,
-        float faceDirectionX,
         NpcHighlightType highlight)
     {
         float const backDepth = std::max(-faceOrientation, 0.0f);
-        float const orientationDepth = std::abs(faceDirectionX);
-
-        if (faceDirectionX == 0.0f)
-            faceDirectionX = 1.0f; // Front/Back are different textures altogether
-
+        float const orientationDepth = 1.0f - std::abs(faceOrientation);
         vec4f const overlayColor = NpcHighlightToOverlayColor(highlight);
 
-        // Left, bottom
+        // TopLeft
         mNpcQuadVertexBuffer.emplace_back(
-            quad.BottomLeft,
-            vec2f(-faceDirectionX, -1.0f),
+            quad.TopLeftPosition,
+            quad.TopLeftTexture,
             backDepth,
             orientationDepth,
             overlayColor);
 
-        // Left, top
+        // BottomLeft
         mNpcQuadVertexBuffer.emplace_back(
-            quad.TopLeft,
-            vec2f(-faceDirectionX, 1.0f),
+            quad.BottomLeftPosition,
+            quad.BottomLeftTexture,
             backDepth,
             orientationDepth,
             overlayColor);
 
-        // Right, bottom
+        // TopRight
         mNpcQuadVertexBuffer.emplace_back(
-            quad.BottomRight,
-            vec2f(faceDirectionX, -1.0f),
+            quad.TopRightPosition,
+            quad.TopRightTexture,
             backDepth,
             orientationDepth,
             overlayColor);
 
-        // Right, top
+        // BottomRight
         mNpcQuadVertexBuffer.emplace_back(
-            quad.TopRight,
-            vec2f(faceDirectionX, 1.0f),
+            quad.BottomRightPosition,
+            quad.BottomRightTexture,
             backDepth,
             orientationDepth,
             overlayColor);
