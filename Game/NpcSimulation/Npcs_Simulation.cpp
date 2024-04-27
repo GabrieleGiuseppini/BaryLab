@@ -2427,6 +2427,13 @@ void Npcs::UpdateNpcAnimation(
                         }
                     }
 
+                    // Knees cannot bend backwards!
+                    if ((humanNpcState.CurrentFaceDirectionX > 0.0f && isOnLeftSide)
+                        || (humanNpcState.CurrentFaceDirectionX < 0.0f && !isOnLeftSide))
+                    {
+                        targetLeg *= -1.0f;
+                    }
+
                     if (isOnLeftSide)
                     {
                         targetAngles.LeftArm = -targetArm;
