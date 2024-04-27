@@ -2878,7 +2878,7 @@ void Npcs::UpdateNpcAnimation(
 
         float targetLowerExtremityLengthMultiplier = 1.0f;
 
-        float constexpr MinPrerisingArmLengthMultiplier = 0.2f;
+        float constexpr MinPrerisingArmLengthMultiplier = 0.4f;
 
         switch (humanNpcState.CurrentBehavior)
         {
