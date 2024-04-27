@@ -2283,15 +2283,17 @@ void Npcs::UpdateNpcAnimation(
             case HumanNpcStateType::BehaviorType::BeingPlaced:
             {
                 float const arg =
-                    (currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp) * 1.0f
-                    + humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition * 0.2f;
+                    (
+                        (currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp) * 1.0f
+                        + humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition * 0.2f
+                    ) * (1.0f + humanNpcState.ResultantPanicLevel * 0.2f);
 
                 float const yArms = std::sin(arg * Pi<float> * 2.0f);
-                targetAngles.RightArm = Pi<float> / 2.0f + Pi<float> / 2.0f * 0.8f * yArms;
+                targetAngles.RightArm = Pi<float> / 2.0f + Pi<float> / 2.0f * 0.7f * yArms;
                 targetAngles.LeftArm = -targetAngles.RightArm;
 
                 float const yLegs = std::sin(arg * Pi<float> * 2.0f + npc.RandomNormalizedUniformSeed * Pi<float> * 2.0f);
-                targetAngles.RightLeg = (1.0f + yLegs) / 2.0f * Pi<float> / 2.0f * 0.45f;
+                targetAngles.RightLeg = (1.0f + yLegs) / 2.0f * Pi<float> / 2.0f * 0.3f;
                 targetAngles.LeftLeg = -targetAngles.RightLeg;
 
                 convergenceRate = 0.3f;
