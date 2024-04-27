@@ -2349,10 +2349,21 @@ void Npcs::UpdateNpcAnimation(
                     vec2f const feet = mParticles.GetPosition(primaryParticleIndex);
 
                     humanEdgeAngle = edgeVector.angleCw(head - feet); // [0.0 ... PI]
-                    if (humanEdgeAngle < 0.0f)
+                    bool isOnLeftSide;
+                    if (humanEdgeAngle <= Pi<float> / 2.0f)
                     {
-                        // Fix inaccuracies
-                        humanEdgeAngle += Pi<float>;
+                        isOnLeftSide = true;
+
+                        if (humanEdgeAngle < 0.0f)
+                        {
+                            // Fix inaccuracies
+                            humanEdgeAngle += Pi<float>;
+                        }
+                    }
+                    else
+                    {
+                        isOnLeftSide = false;
+                        humanEdgeAngle = Pi<float> - humanEdgeAngle;
                     }
 
                     // Max angle of arm wrt body - kept until MaxAngle
@@ -2374,7 +2385,7 @@ void Npcs::UpdateNpcAnimation(
                     targetAngles.LeftLeg = 0.0f;
                     targetAngles.RightLeg = 0.0f;
 
-                    if (humanEdgeAngle <= Pi<float> / 2.0f)
+                    if (isOnLeftSide)
                     {
                         // *  0 --> PI/2
                         //  \
@@ -2421,14 +2432,12 @@ void Npcs::UpdateNpcAnimation(
                     }
                     else
                     {
-                        // <--   *   PI/2 <-- PI
-                        //    _ /
-                        //   | /
-                        //  ------
+                        // <--  *   PI/2 <-- 0
+                        //     /
+                        //    /
+                        //  -----
 
-                        // Right arm at MaxArmAngle until PI-MaxHumanEdgeAngleForArms, then goes down to rest
-
-                        if (humanEdgeAngle >= Pi<float> - MaxHumanEdgeAngleForArms) // On the "flat" side
+                        if (humanEdgeAngle <= MaxHumanEdgeAngleForArms) // On the "flat" side
                         {
                             // Early stage
 
@@ -2440,7 +2449,7 @@ void Npcs::UpdateNpcAnimation(
                             {
                                 targetAngles.RightLeg = MaxArmAngle;
                                 targetAngles.LeftLeg = targetAngles.RightLeg - OtherArmDeltaAngle;
-                                targetUpperLegLengthFraction = 0.5f - (humanEdgeAngle - (Pi<float> - MaxHumanEdgeAngleForArms)) / MaxHumanEdgeAngleForArms * 0.5f; // 0.0 @ PI -> 0.5 @ Pi-MaxHumanEdgeAngleForArms
+                                targetUpperLegLengthFraction = humanEdgeAngle / MaxHumanEdgeAngleForArms * 0.5f; // 0.0 @ 0.0 -> 0.5 @ MaxHumanEdgeAngleForArms
                             }
                         }
                         else
@@ -2449,7 +2458,7 @@ void Npcs::UpdateNpcAnimation(
 
                             // Arms: towards rest
 
-                            targetAngles.RightArm = RestArmAngle + (humanEdgeAngle - Pi<float> / 2.0f) / (Pi<float> - MaxHumanEdgeAngleForArms - Pi<float> / 2.0f) * (MaxArmAngle - RestArmAngle); // MaxArmAngle @ Pi-MaxHumanEdgeAngleForArms => RestArmAngle @ PI/2
+                            targetAngles.RightArm = MaxArmAngle + (MaxHumanEdgeAngleForArms - humanEdgeAngle) / (MaxHumanEdgeAngleForArms - Pi<float> / 2.0f) * (RestArmAngle - MaxArmAngle); // MaxArmAngle @ MaxHumanEdgeAngleForArms -> RestArmAngle @ PI/2
                             targetAngles.LeftArm = targetAngles.RightArm - OtherArmDeltaAngle;
 
                             // Legs: towards zero
@@ -2457,7 +2466,7 @@ void Npcs::UpdateNpcAnimation(
                             if (humanNpcState.CurrentFaceOrientation == 0.0f)
                             {
                                 targetAngles.RightLeg = std::max(
-                                    (humanEdgeAngle - Pi<float> / 2.0f * (2.0f - AnglePathShorteningForLegsInLateStage)) / (Pi<float> - MaxHumanEdgeAngleForArms - Pi<float> / 2.0f * (2.0f - AnglePathShorteningForLegsInLateStage)) * MaxArmAngle, // MaxArmAngle @ Pi-MaxHumanEdgeAngleForArms => 0.0 @ PI/2+e
+                                    MaxArmAngle - (MaxHumanEdgeAngleForArms - humanEdgeAngle) / (MaxHumanEdgeAngleForArms - Pi<float> / 2.0f * AnglePathShorteningForLegsInLateStage) * MaxArmAngle, // MaxArmAngle @ MaxHumanEdgeAngleForArms -> 0 @ PI/2-e
                                     0.0f);
                                 targetAngles.LeftLeg = targetAngles.RightLeg * OtherLegAlphaAngle;
                                 targetUpperLegLengthFraction = 0.5f;
