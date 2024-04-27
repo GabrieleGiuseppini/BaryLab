@@ -2878,7 +2878,7 @@ void Npcs::UpdateNpcAnimation(
 
         float targetLowerExtremityLengthMultiplier = 1.0f;
 
-        float constexpr MinPrerisingArmLengthMultiplier = 0.4f;
+        float constexpr MinPrerisingArmLengthMultiplier = 0.35f;
 
         switch (humanNpcState.CurrentBehavior)
         {
@@ -2895,13 +2895,13 @@ void Npcs::UpdateNpcAnimation(
             {
                 // Recoil arms
 
-                float const targetArmLength = Clamp(
-                    humanEdgeAngle / MaxHumanEdgeAngleForArms,
-                    MinPrerisingArmLengthMultiplier,
-                    1.0f);
+                // For such a small angle, tan(x) ~= x
+                float const targetArmLengthMultiplier =
+                    MinPrerisingArmLengthMultiplier
+                    + Clamp(humanEdgeAngle / MaxHumanEdgeAngleForArms, 0.0f, 1.0f) * (1.0f - MinPrerisingArmLengthMultiplier);
 
-                targetLengthMultipliers.RightArm = targetArmLength;
-                targetLengthMultipliers.LeftArm = targetArmLength;
+                targetLengthMultipliers.RightArm = targetArmLengthMultiplier;
+                targetLengthMultipliers.LeftArm = targetArmLengthMultiplier;
 
                 break;
             }
