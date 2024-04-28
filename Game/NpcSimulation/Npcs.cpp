@@ -1681,29 +1681,29 @@ void Npcs::RenderNpc(
 				vec2f const leftUpperLegDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftLeg, animationState.LimbAnglesSin.LeftLeg);
 				vec2f const leftUpperLegVector = leftUpperLegDir * leftLegLength * animationState.UpperLegLengthFraction;
 				vec2f const leftUpperLegTraverseVector = leftUpperLegDir.to_perpendicular() * halfLegD;
-				vec2f const leftKneePosition = crotchPosition + leftUpperLegVector;
+				vec2f const leftKneeOrFootPosition = crotchPosition + leftUpperLegVector; // When UpperLegLengthFraction is 1.0 (whole leg), this is the (virtual) foot
 				TextureQuad leftUpperLegQuad(
 					crotchPosition - leftUpperLegTraverseVector,
 					topLeftTexture,
 					crotchPosition + leftUpperLegTraverseVector,
 					topRightTexture,
-					leftKneePosition - leftUpperLegTraverseVector,
+					leftKneeOrFootPosition - leftUpperLegTraverseVector,
 					bottomLeftTexture,
-					leftKneePosition + leftUpperLegTraverseVector,
+					leftKneeOrFootPosition + leftUpperLegTraverseVector,
 					bottomRightTexture);
 
 				vec2f const rightUpperLegDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.RightLeg, animationState.LimbAnglesSin.RightLeg);
 				vec2f const rightUpperLegVector = rightUpperLegDir * rightLegLength * animationState.UpperLegLengthFraction;
 				vec2f const rightUpperLegTraverseVector = rightUpperLegDir.to_perpendicular() * halfLegD;
-				vec2f const rightKneePosition = crotchPosition + rightUpperLegVector;
+				vec2f const rightKneeOrFootPosition = crotchPosition + rightUpperLegVector; // When UpperLegLengthFraction is 1.0 (whole leg), this is the (virtual) foot
 				TextureQuad rightUpperLegQuad(
 					crotchPosition - rightUpperLegTraverseVector,
 					topLeftTexture,
 					crotchPosition + rightUpperLegTraverseVector,
 					topRightTexture,
-					rightKneePosition - rightUpperLegTraverseVector,
+					rightKneeOrFootPosition - rightUpperLegTraverseVector,
 					bottomLeftTexture,
-					rightKneePosition + rightUpperLegTraverseVector,
+					rightKneeOrFootPosition + rightUpperLegTraverseVector,
 					bottomRightTexture);
 
 				std::optional<TextureQuad> leftLowerLegQuad;
@@ -1719,30 +1719,30 @@ void Npcs::RenderNpc(
 					rightUpperLegQuad.BottomLeftTexture.y = kneeTextureY;
 					rightUpperLegQuad.BottomRightTexture.y = kneeTextureY;
 
-					vec2f const leftLowerLegDir = (feetPosition - leftKneePosition).normalise_approx();
+					vec2f const leftLowerLegDir = (feetPosition - leftKneeOrFootPosition).normalise_approx();
 					vec2f const leftLowerLegVector = leftLowerLegDir * leftLegLength * lowerLegLengthFraction;
 					vec2f const leftLowerLegTraverseVector = leftLowerLegDir.to_perpendicular() * halfLegD;
 					leftLowerLegQuad = TextureQuad(
-						leftKneePosition - leftLowerLegTraverseVector,
+						leftKneeOrFootPosition - leftLowerLegTraverseVector,
 						vec2f(topLeftTexture.x, kneeTextureY),
-						leftKneePosition + leftLowerLegTraverseVector,
+						leftKneeOrFootPosition + leftLowerLegTraverseVector,
 						vec2f(topRightTexture.x, kneeTextureY),
-						leftKneePosition + leftLowerLegVector - leftLowerLegTraverseVector,
+						leftKneeOrFootPosition + leftLowerLegVector - leftLowerLegTraverseVector,
 						bottomLeftTexture,
-						leftKneePosition + leftLowerLegVector + leftLowerLegTraverseVector,
+						leftKneeOrFootPosition + leftLowerLegVector + leftLowerLegTraverseVector,
 						bottomRightTexture);
 
-					vec2f const rightLowerLegDir = (feetPosition - rightKneePosition).normalise_approx();
+					vec2f const rightLowerLegDir = (feetPosition - rightKneeOrFootPosition).normalise_approx();
 					vec2f const rightLowerLegVector = rightLowerLegDir * rightLegLength * lowerLegLengthFraction;
 					vec2f const rightLowerLegTraverseVector = rightLowerLegDir.to_perpendicular() * halfLegD;
 					rightLowerLegQuad = TextureQuad(
-						rightKneePosition - rightLowerLegTraverseVector,
+						rightKneeOrFootPosition - rightLowerLegTraverseVector,
 						vec2f(topLeftTexture.x, kneeTextureY),
-						rightKneePosition + rightLowerLegTraverseVector,
+						rightKneeOrFootPosition + rightLowerLegTraverseVector,
 						vec2f(topRightTexture.x, kneeTextureY),
-						rightKneePosition + rightLowerLegVector - rightLowerLegTraverseVector,
+						rightKneeOrFootPosition + rightLowerLegVector - rightLowerLegTraverseVector,
 						bottomLeftTexture,
-						rightKneePosition + rightLowerLegVector + rightLowerLegTraverseVector,
+						rightKneeOrFootPosition + rightLowerLegVector + rightLowerLegTraverseVector,
 						bottomRightTexture);
 				}
 
