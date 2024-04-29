@@ -1709,11 +1709,13 @@ void Npcs::RenderNpc(
 					//  * The magnitude of the extrusion is (W/2) / cos(alpha), where alpha is
 					//    the angle between a normal and the direction of the extrusion
 
+					float constexpr MinJ = 0.9f;
+
 					vec2f const leftLowerLegDir = (feetPosition - leftKneeOrFootPosition).normalise_approx();
 					vec2f const leftLowerLegVector = leftLowerLegDir * leftLegLength * lowerLegLengthFraction;
 					vec2f const leftLowerLegTraverseDir = leftLowerLegDir.to_perpendicular();
 					vec2f const leftLegResultantNormal = leftUpperLegTraverseDir + leftLowerLegTraverseDir;
-					vec2f const leftLegJ = leftLegResultantNormal / std::max(0.01f, leftUpperLegTraverseDir.dot(leftLegResultantNormal)) * halfLegD;
+					vec2f const leftLegJ = leftLegResultantNormal / std::max(MinJ, leftUpperLegTraverseDir.dot(leftLegResultantNormal)) * halfLegD;
 
 					leftUpperLegQuad = TextureQuad(
 						crotchPosition - leftUpperLegTraverseDir * halfLegD,
@@ -1739,7 +1741,7 @@ void Npcs::RenderNpc(
 					vec2f const rightLowerLegVector = rightLowerLegDir * rightLegLength * lowerLegLengthFraction;
 					vec2f const rightLowerLegTraverseDir = rightLowerLegDir.to_perpendicular();
 					vec2f const rightLegResultantNormal = rightUpperLegTraverseDir + rightLowerLegTraverseDir;
-					vec2f const rightLegJ = rightLegResultantNormal / std::max(0.01f, rightUpperLegTraverseDir.dot(rightLegResultantNormal)) * halfLegD;
+					vec2f const rightLegJ = rightLegResultantNormal / std::max(MinJ, rightUpperLegTraverseDir.dot(rightLegResultantNormal)) * halfLegD;
 
 					rightUpperLegQuad = TextureQuad(
 						crotchPosition - rightUpperLegTraverseDir * halfLegD,
