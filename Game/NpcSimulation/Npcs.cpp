@@ -113,7 +113,7 @@ void Npcs::RenderUpload(
 
 	assert(renderContext.GetNpcRenderMode() == NpcRenderModeType::Limbs);
 
-	renderContext.UploadNpcQuadsStart(mFurnitureNpcCount + mHumanNpcCount * 8);
+	renderContext.UploadNpcQuadsStart(mFurnitureNpcCount + mHumanNpcCount * (6 + 2));
 
 #ifdef IN_BARYLAB
 	// For furniture
