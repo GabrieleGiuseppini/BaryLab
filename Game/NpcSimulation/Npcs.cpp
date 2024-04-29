@@ -1680,69 +1680,109 @@ void Npcs::RenderNpc(
 
 				vec2f const leftUpperLegDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftLeg, animationState.LimbAnglesSin.LeftLeg);
 				vec2f const leftUpperLegVector = leftUpperLegDir * leftLegLength * animationState.UpperLegLengthFraction;
-				vec2f const leftUpperLegTraverseVector = leftUpperLegDir.to_perpendicular() * halfLegD;
+				vec2f const leftUpperLegTraverseDir = leftUpperLegDir.to_perpendicular();
 				vec2f const leftKneeOrFootPosition = crotchPosition + leftUpperLegVector; // When UpperLegLengthFraction is 1.0 (whole leg), this is the (virtual) foot
-				TextureQuad leftUpperLegQuad(
-					crotchPosition - leftUpperLegTraverseVector,
-					topLeftTexture,
-					crotchPosition + leftUpperLegTraverseVector,
-					topRightTexture,
-					leftKneeOrFootPosition - leftUpperLegTraverseVector,
-					bottomLeftTexture,
-					leftKneeOrFootPosition + leftUpperLegTraverseVector,
-					bottomRightTexture);
+				TextureQuad leftUpperLegQuad;
+				std::optional<TextureQuad> leftLowerLegQuad;
 
 				vec2f const rightUpperLegDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.RightLeg, animationState.LimbAnglesSin.RightLeg);
 				vec2f const rightUpperLegVector = rightUpperLegDir * rightLegLength * animationState.UpperLegLengthFraction;
-				vec2f const rightUpperLegTraverseVector = rightUpperLegDir.to_perpendicular() * halfLegD;
+				vec2f const rightUpperLegTraverseDir = rightUpperLegDir.to_perpendicular();
 				vec2f const rightKneeOrFootPosition = crotchPosition + rightUpperLegVector; // When UpperLegLengthFraction is 1.0 (whole leg), this is the (virtual) foot
-				TextureQuad rightUpperLegQuad(
-					crotchPosition - rightUpperLegTraverseVector,
-					topLeftTexture,
-					crotchPosition + rightUpperLegTraverseVector,
-					topRightTexture,
-					rightKneeOrFootPosition - rightUpperLegTraverseVector,
-					bottomLeftTexture,
-					rightKneeOrFootPosition + rightUpperLegTraverseVector,
-					bottomRightTexture);
-
-				std::optional<TextureQuad> leftLowerLegQuad;
+				TextureQuad rightUpperLegQuad;
 				std::optional<TextureQuad> rightLowerLegQuad;
 
 				float const lowerLegLengthFraction = 1.0f - animationState.UpperLegLengthFraction;
 				if (lowerLegLengthFraction != 0.0f)
 				{
+					//
+					// Both upper and lower legs
+					//
+
 					float const kneeTextureY = 1.0f - 2.0f * animationState.UpperLegLengthFraction;
 
-					leftUpperLegQuad.BottomLeftTexture.y = kneeTextureY;
-					leftUpperLegQuad.BottomRightTexture.y = kneeTextureY;
-					rightUpperLegQuad.BottomLeftTexture.y = kneeTextureY;
-					rightUpperLegQuad.BottomRightTexture.y = kneeTextureY;
+					// We extrude the corners to make them join nicely to the previous
+					// and next segments. The calculation of the extrusion (J) between two
+					// segments is based on these observations:
+					//  * The direction of the extrusion is along the resultant of the normals
+					//    to the two segments
+					//  * The magnitude of the extrusion is (W/2) / cos(alpha), where alpha is
+					//    the angle between a normal and the direction of the extrusion
 
 					vec2f const leftLowerLegDir = (feetPosition - leftKneeOrFootPosition).normalise_approx();
 					vec2f const leftLowerLegVector = leftLowerLegDir * leftLegLength * lowerLegLengthFraction;
-					vec2f const leftLowerLegTraverseVector = leftLowerLegDir.to_perpendicular() * halfLegD;
+					vec2f const leftLowerLegTraverseDir = leftLowerLegDir.to_perpendicular();
+					vec2f const leftLegResultantNormal = leftUpperLegTraverseDir + leftLowerLegTraverseDir;
+					vec2f const leftLegJ = leftLegResultantNormal / std::max(0.01f, leftUpperLegTraverseDir.dot(leftLegResultantNormal)) * halfLegD;
+
+					leftUpperLegQuad = TextureQuad(
+						crotchPosition - leftUpperLegTraverseDir * halfLegD,
+						topLeftTexture,
+						crotchPosition + leftUpperLegTraverseDir * halfLegD,
+						topRightTexture,
+						leftKneeOrFootPosition - leftLegJ,
+						vec2f(bottomLeftTexture.x, kneeTextureY),
+						leftKneeOrFootPosition + leftLegJ,
+						vec2f(bottomRightTexture.x, kneeTextureY));
+
 					leftLowerLegQuad = TextureQuad(
-						leftKneeOrFootPosition - leftLowerLegTraverseVector,
-						vec2f(topLeftTexture.x, kneeTextureY),
-						leftKneeOrFootPosition + leftLowerLegTraverseVector,
-						vec2f(topRightTexture.x, kneeTextureY),
-						leftKneeOrFootPosition + leftLowerLegVector - leftLowerLegTraverseVector,
+						leftKneeOrFootPosition - leftLegJ,
+						vec2f(bottomLeftTexture.x, kneeTextureY),
+						leftKneeOrFootPosition + leftLegJ,
+						vec2f(bottomRightTexture.x, kneeTextureY),
+						leftKneeOrFootPosition + leftLowerLegVector - leftLowerLegTraverseDir * halfLegD,
 						bottomLeftTexture,
-						leftKneeOrFootPosition + leftLowerLegVector + leftLowerLegTraverseVector,
+						leftKneeOrFootPosition + leftLowerLegVector + leftLowerLegTraverseDir * halfLegD,
 						bottomRightTexture);
 
 					vec2f const rightLowerLegDir = (feetPosition - rightKneeOrFootPosition).normalise_approx();
 					vec2f const rightLowerLegVector = rightLowerLegDir * rightLegLength * lowerLegLengthFraction;
-					vec2f const rightLowerLegTraverseVector = rightLowerLegDir.to_perpendicular() * halfLegD;
+					vec2f const rightLowerLegTraverseDir = rightLowerLegDir.to_perpendicular();
+					vec2f const rightLegResultantNormal = rightUpperLegTraverseDir + rightLowerLegTraverseDir;
+					vec2f const rightLegJ = rightLegResultantNormal / std::max(0.01f, rightUpperLegTraverseDir.dot(rightLegResultantNormal)) * halfLegD;
+
+					rightUpperLegQuad = TextureQuad(
+						crotchPosition - rightUpperLegTraverseDir * halfLegD,
+						topLeftTexture,
+						crotchPosition + rightUpperLegTraverseDir * halfLegD,
+						topRightTexture,
+						rightKneeOrFootPosition - rightLegJ,
+						vec2f(bottomLeftTexture.x, kneeTextureY),
+						rightKneeOrFootPosition + rightLegJ,
+						vec2f(bottomRightTexture.x, kneeTextureY));
+
 					rightLowerLegQuad = TextureQuad(
-						rightKneeOrFootPosition - rightLowerLegTraverseVector,
-						vec2f(topLeftTexture.x, kneeTextureY),
-						rightKneeOrFootPosition + rightLowerLegTraverseVector,
-						vec2f(topRightTexture.x, kneeTextureY),
-						rightKneeOrFootPosition + rightLowerLegVector - rightLowerLegTraverseVector,
+						rightKneeOrFootPosition - rightLegJ,
+						vec2f(bottomLeftTexture.x, kneeTextureY),
+						rightKneeOrFootPosition + rightLegJ,
+						vec2f(bottomRightTexture.x, kneeTextureY),
+						rightKneeOrFootPosition + rightLowerLegVector - rightLowerLegTraverseDir * halfLegD,
 						bottomLeftTexture,
-						rightKneeOrFootPosition + rightLowerLegVector + rightLowerLegTraverseVector,
+						rightKneeOrFootPosition + rightLowerLegVector + rightLowerLegTraverseDir * halfLegD,
+						bottomRightTexture);
+				}
+				else
+				{
+					// Just upper leg
+
+					leftUpperLegQuad = TextureQuad(
+						crotchPosition - leftUpperLegTraverseDir * halfLegD,
+						topLeftTexture,
+						crotchPosition + leftUpperLegTraverseDir * halfLegD,
+						topRightTexture,
+						leftKneeOrFootPosition - leftUpperLegTraverseDir * halfLegD,
+						bottomLeftTexture,
+						leftKneeOrFootPosition + leftUpperLegTraverseDir * halfLegD,
+						bottomRightTexture);
+
+					rightUpperLegQuad = TextureQuad(
+						crotchPosition - rightUpperLegTraverseDir * halfLegD,
+						topLeftTexture,
+						crotchPosition + rightUpperLegTraverseDir * halfLegD,
+						topRightTexture,
+						rightKneeOrFootPosition - rightUpperLegTraverseDir * halfLegD,
+						bottomLeftTexture,
+						rightKneeOrFootPosition + rightUpperLegTraverseDir * halfLegD,
 						bottomRightTexture);
 				}
 
