@@ -2351,20 +2351,32 @@ void Npcs::UpdateNpcAnimation(
                     vec2f const feet = mParticles.GetPosition(primaryParticleIndex);
 
                     humanEdgeAngle = edgeVector.angleCw(head - feet); // [0.0 ... PI]
+                    if (humanEdgeAngle < 0.0f)
+                    {
+                        // Two possible inaccuracies here:
+                        // o -8.11901e-06: this is basically 0.0
+                        // o -3.14159: this is basically +PI
+
+                        if (humanEdgeAngle >= -Pi<float> / 2.0f)
+                        {
+                            humanEdgeAngle = 0.0f;
+                        }
+                        else
+                        {
+                            humanEdgeAngle = Pi<float>;
+                        }
+                    }
+
                     bool isOnLeftSide;
                     if (humanEdgeAngle <= Pi<float> / 2.0f)
                     {
                         isOnLeftSide = true;
-
-                        if (humanEdgeAngle < 0.0f)
-                        {
-                            // Fix inaccuracies
-                            humanEdgeAngle += Pi<float>;
-                        }
                     }
                     else
                     {
                         isOnLeftSide = false;
+
+                        // Normalize to simplify math below
                         humanEdgeAngle = Pi<float> - humanEdgeAngle;
                     }
 
