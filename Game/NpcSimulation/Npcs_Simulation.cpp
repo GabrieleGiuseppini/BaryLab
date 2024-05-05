@@ -2260,6 +2260,7 @@ void Npcs::UpdateNpcAnimation(
         // Angles and thigh
         //
 
+        // Target: begin with current
         FS_ALIGN16_BEG LimbVector targetAngles(animationState.LimbAngles) FS_ALIGN16_END;
 
         float convergenceRate = 0.0f;
