@@ -2351,6 +2351,11 @@ void Npcs::UpdateNpcAnimation(
                     vec2f const head = mParticles.GetPosition(secondaryParticleIndex);
                     vec2f const feet = mParticles.GetPosition(primaryParticleIndex);
 
+                    // First off, we calculate the max possible human-edge vector, considering that
+                    // human converges towards full vertical (gravity-only :-( )
+                    float maxHumanEdgeAngle = edgeVector.angleCw(vec2f(0.0f, 1.0f)); // Also angle between edge and vertical
+
+                    // Calculate angle between human and edge (angle that we need to rotate human CW to get onto edge)
                     humanEdgeAngle = edgeVector.angleCw(head - feet); // [0.0 ... PI]
                     if (humanEdgeAngle < 0.0f)
                     {
@@ -2358,7 +2363,7 @@ void Npcs::UpdateNpcAnimation(
                         // o -8.11901e-06: this is basically 0.0
                         // o -3.14159: this is basically +PI
 
-                        if (humanEdgeAngle >= -Pi<float> / 2.0f)
+                        if (humanEdgeAngle >= -Pi<float> / 2.0f) // Just sentinel for side of inaccuracy
                         {
                             humanEdgeAngle = 0.0f;
                         }
@@ -2368,8 +2373,8 @@ void Npcs::UpdateNpcAnimation(
                         }
                     }
 
-                    bool isOnLeftSide;
-                    if (humanEdgeAngle <= Pi<float> / 2.0f)
+                    bool isOnLeftSide; // Of screen - i.e. head to the left side of the edge (exploiting CWness of edge)
+                    if (humanEdgeAngle <= maxHumanEdgeAngle)
                     {
                         isOnLeftSide = true;
                     }
@@ -2379,6 +2384,7 @@ void Npcs::UpdateNpcAnimation(
 
                         // Normalize to simplify math below
                         humanEdgeAngle = Pi<float> - humanEdgeAngle;
+                        maxHumanEdgeAngle = Pi<float> - maxHumanEdgeAngle;
                     }
 
                     // Max angle of arm wrt body - kept until MaxAngle
@@ -2398,7 +2404,7 @@ void Npcs::UpdateNpcAnimation(
 
                     //
 
-                    //  *  0 --> PI/2
+                    //  *  0 --> maxHumanEdgeAngle (which is PI/2 when edge is flat)
                     //   \
                     //   |\
                     // -----
@@ -2425,18 +2431,18 @@ void Npcs::UpdateNpcAnimation(
                     }
                     else
                     {
-                        // Late stage: -> towards PI/2
+                        // Late stage: -> towards maxHumanEdgeAngle
 
-                        // Arms: towards rest
+                        // Arms: MaxArmAngle -> RestArmAngle
 
-                        targetArm = MaxArmAngle + (MaxHumanEdgeAngleForArms - humanEdgeAngle) / (MaxHumanEdgeAngleForArms - Pi<float> / 2.0f) * (RestArmAngle - MaxArmAngle); // MaxArmAngle @ MaxHumanEdgeAngleForArms -> RestArmAngle @ PI/2
+                        targetArm = MaxArmAngle + (MaxHumanEdgeAngleForArms - humanEdgeAngle) / (MaxHumanEdgeAngleForArms - maxHumanEdgeAngle) * (RestArmAngle - MaxArmAngle); // MaxArmAngle @ MaxHumanEdgeAngleForArms -> RestArmAngle @ maxHumanEdgeAngle
 
                         // Legs: towards zero
 
                         if (humanNpcState.CurrentFaceOrientation == 0.0f)
                         {
                             targetLeg = std::max(
-                                MaxArmAngle - (MaxHumanEdgeAngleForArms - humanEdgeAngle) / (MaxHumanEdgeAngleForArms - Pi<float> / 2.0f * AnglePathShorteningForLegsInLateStage) * MaxArmAngle, // MaxArmAngle @ MaxHumanEdgeAngleForArms -> 0 @ PI/2-e
+                                MaxArmAngle - (MaxHumanEdgeAngleForArms - humanEdgeAngle) / (MaxHumanEdgeAngleForArms - maxHumanEdgeAngle * AnglePathShorteningForLegsInLateStage) * MaxArmAngle, // MaxArmAngle @ MaxHumanEdgeAngleForArms -> 0 @ maxHumanEdgeAngle-e
                                 0.0f);
                             targetUpperLegLengthFraction = 0.5f;
                         }
@@ -2468,6 +2474,8 @@ void Npcs::UpdateNpcAnimation(
                 }
                 else
                 {
+                    // TODOHERE: if we lose contact with floor in a small burst, this goes berserk
+
                     // Arms slightly open
                     targetAngles.RightArm = HumanNpcStateType::AnimationStateType::InitialArmAngle;
                     targetAngles.LeftArm = -HumanNpcStateType::AnimationStateType::InitialArmAngle;
