@@ -2342,12 +2342,23 @@ void Npcs::UpdateNpcAnimation(
 
             case HumanNpcStateType::BehaviorType::Constrained_Rising:
             {
+                //
                 // Leg and arm that are against floor "help"
+                //
+
                 if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualFloor.has_value())
                 {
+                    // Remember the virtual edge that we're rising against, so we can survive
+                    // small bursts of being off the edge
+                    humanNpcState.CurrentBehaviorState.Constrained_Rising.VirtualEdgeRisingAgainst = *primaryContrainedState->CurrentVirtualFloor;
+                }
+
+                if (humanNpcState.CurrentBehaviorState.Constrained_Rising.VirtualEdgeRisingAgainst.TriangleElementIndex != NoneElementIndex)
+                {
+
                     vec2f const edgeVector = shipMesh.GetTriangles().GetSubSpringVector(
-                        primaryContrainedState->CurrentVirtualFloor->TriangleElementIndex,
-                        primaryContrainedState->CurrentVirtualFloor->EdgeOrdinal,
+                        humanNpcState.CurrentBehaviorState.Constrained_Rising.VirtualEdgeRisingAgainst.TriangleElementIndex,
+                        humanNpcState.CurrentBehaviorState.Constrained_Rising.VirtualEdgeRisingAgainst.EdgeOrdinal,
                         shipMesh.GetPoints());
                     vec2f const head = mParticles.GetPosition(secondaryParticleIndex);
                     vec2f const feet = mParticles.GetPosition(primaryParticleIndex);
@@ -2919,7 +2930,7 @@ void Npcs::UpdateNpcAnimation(
 
             case HumanNpcStateType::BehaviorType::Constrained_Rising:
             {
-                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualFloor.has_value())
+                if (humanNpcState.CurrentBehaviorState.Constrained_Rising.VirtualEdgeRisingAgainst.TriangleElementIndex != NoneElementIndex) // Locals guaranteed to be calc'd
                 {
                     // Recoil arms
 

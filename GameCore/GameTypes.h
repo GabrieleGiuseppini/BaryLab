@@ -145,6 +145,8 @@ struct TriangleAndEdge
     ElementIndex TriangleElementIndex;
     int EdgeOrdinal;
 
+    TriangleAndEdge() = default;
+
     TriangleAndEdge(
         ElementIndex triangleElementIndex,
         int edgeOrdinal)

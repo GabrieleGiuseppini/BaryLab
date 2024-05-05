@@ -287,10 +287,15 @@ private:
 
 					struct Constrained_RisingStateType
 					{
+						// The virtual edge we're rising against, remembered in order to survive small bursts
+						// of being off the edge
+						TriangleAndEdge VirtualEdgeRisingAgainst;
+
 						float CurrentSoftTerminationDecision; // [0.0f, 1.0f]
 
 						void Reset()
 						{
+							VirtualEdgeRisingAgainst.TriangleElementIndex = NoneElementIndex; // Can't use optional here as it does not have a trivial cctor
 							CurrentSoftTerminationDecision = 0.0f;
 						}
 					} Constrained_Rising;
