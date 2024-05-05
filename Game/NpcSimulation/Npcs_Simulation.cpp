@@ -2286,13 +2286,14 @@ void Npcs::UpdateNpcAnimation(
                     (
                         (currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp) * 1.0f
                         + humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition * 0.2f
-                    ) * (1.0f + humanNpcState.ResultantPanicLevel * 0.2f);
+                    ) * (1.0f + humanNpcState.ResultantPanicLevel * 0.2f)
+                    * (Pi<float> * 2.0f + npc.RandomNormalizedUniformSeed * 4.0f);
 
-                float const yArms = std::sin(arg * Pi<float> * 2.0f);
+                float const yArms = std::sin(arg);
                 targetAngles.RightArm = Pi<float> / 2.0f + Pi<float> / 2.0f * 0.7f * yArms;
                 targetAngles.LeftArm = -targetAngles.RightArm;
 
-                float const yLegs = std::sin(arg * Pi<float> * 2.0f + npc.RandomNormalizedUniformSeed * Pi<float> * 2.0f);
+                float const yLegs = std::sin(arg + npc.RandomNormalizedUniformSeed * Pi<float> * 2.0f);
                 targetAngles.RightLeg = (1.0f + yLegs) / 2.0f * Pi<float> / 2.0f * 0.3f;
                 targetAngles.LeftLeg = -targetAngles.RightLeg;
 
@@ -2860,7 +2861,7 @@ void Npcs::UpdateNpcAnimation(
                 // Arms: one arm around around a large angle; the other fixed around a small angle
                 float const angle1 = (Pi<float> -StateType::KindSpecificStateType::HumanNpcStateType::AnimationStateType::InitialArmAngle) + (periodicValue - 0.5f) * Pi<float> / 8.0f;
                 float const angle2 = -StateType::KindSpecificStateType::HumanNpcStateType::AnimationStateType::InitialArmAngle;
-                if (npc.RandomNormalizedUniformSeed < 0.5f)
+                if (npc.RandomNormalizedUniformSeed >= 0.0f)
                 {
                     targetAngles.RightArm = angle1;
                     targetAngles.LeftArm = angle2;

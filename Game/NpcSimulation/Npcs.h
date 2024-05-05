@@ -547,7 +547,7 @@ private:
 		NpcHighlightType Highlight;
 
 		// Randomness specific to this NPC.
-		float RandomNormalizedUniformSeed;
+		float RandomNormalizedUniformSeed; // [-1.0f ... +1.0f]
 
 		StateType(
 			NpcId id,
@@ -567,7 +567,7 @@ private:
 			, DipoleState(std::move(dipoleState))
 			, KindSpecificState(std::move(kindSpecificState))
 			, Highlight(NpcHighlightType::None)
-			, RandomNormalizedUniformSeed(GameRandomEngine::GetInstance().GenerateNormalizedUniformReal())
+			, RandomNormalizedUniformSeed(GameRandomEngine::GetInstance().GenerateUniformReal(-1.0f, 1.0f))
 		{}
 	};
 

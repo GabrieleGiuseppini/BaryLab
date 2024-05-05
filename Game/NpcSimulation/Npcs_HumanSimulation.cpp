@@ -356,9 +356,10 @@ void Npcs::UpdateHuman(
 			// Advance towards pre-rising
 
 			float const toPreRisingConvergenceRate =
-				0.067f
+				0.075f
+				+ npc.RandomNormalizedUniformSeed * 0.035f // Range with randomness: 0.04-0.11
 				+ std::min(humanState.ResultantPanicLevel, 1.0f) * 0.07f
-				+ npc.RandomNormalizedUniformSeed / 9.0f;
+				;
 
 			humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToPreRising +=
 				(preRisingTarget - humanState.CurrentBehaviorState.Constrained_KnockedOut.ProgressToPreRising)
@@ -480,9 +481,10 @@ void Npcs::UpdateHuman(
 			// Advance towards rising
 
 			float const toRisingConvergenceRate =
-				0.2f
+				0.3f
+				+ npc.RandomNormalizedUniformSeed * 0.1f // Range with randomness: 0.2-0.4
 				+ std::min(humanState.ResultantPanicLevel, 1.0f) * 0.12f
-				+ npc.RandomNormalizedUniformSeed / 9.0f;
+				;
 
 			humanState.CurrentBehaviorState.Constrained_PreRising.ProgressToRising +=
 				(risingTarget - humanState.CurrentBehaviorState.Constrained_PreRising.ProgressToRising)
