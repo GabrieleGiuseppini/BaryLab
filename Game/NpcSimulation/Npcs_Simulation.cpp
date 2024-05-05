@@ -2425,7 +2425,7 @@ void Npcs::UpdateNpcAnimation(
                     }
                     else
                     {
-                        // Late stage
+                        // Late stage: -> towards PI/2
 
                         // Arms: towards rest
 
