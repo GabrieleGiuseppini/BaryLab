@@ -2475,15 +2475,10 @@ void Npcs::UpdateNpcAnimation(
                 }
                 else
                 {
-                    // TODOHERE: if we lose contact with floor in a small burst, this goes berserk
+                    // Let's survive small bursts and keep current angles; after all we'll lose
+                    // this state very quickly if the burst is too long
 
-                    // Arms slightly open
-                    targetAngles.RightArm = HumanNpcStateType::AnimationStateType::InitialArmAngle;
-                    targetAngles.LeftArm = -HumanNpcStateType::AnimationStateType::InitialArmAngle;
-
-                    // Legs slightly open
-                    targetAngles.RightLeg = HumanNpcStateType::AnimationStateType::InitialLegAngle * 2.0f;
-                    targetAngles.LeftLeg = -HumanNpcStateType::AnimationStateType::InitialLegAngle * 2.0f;
+                    targetUpperLegLengthFraction = animationState.UpperLegLengthFraction;
                 }
 
                 convergenceRate = 0.45f;
@@ -2924,15 +2919,24 @@ void Npcs::UpdateNpcAnimation(
 
             case HumanNpcStateType::BehaviorType::Constrained_Rising:
             {
-                // Recoil arms
+                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualFloor.has_value())
+                {
+                    // Recoil arms
 
-                // For such a small angle, tan(x) ~= x
-                float const targetArmLengthMultiplier =
-                    MinPrerisingArmLengthMultiplier
-                    + Clamp(humanEdgeAngle / MaxHumanEdgeAngleForArms, 0.0f, 1.0f) * (1.0f - MinPrerisingArmLengthMultiplier);
+                    // For such a small angle, tan(x) ~= x
+                    float const targetArmLengthMultiplier =
+                        MinPrerisingArmLengthMultiplier
+                        + Clamp(humanEdgeAngle / MaxHumanEdgeAngleForArms, 0.0f, 1.0f) * (1.0f - MinPrerisingArmLengthMultiplier);
 
-                targetLengthMultipliers.RightArm = targetArmLengthMultiplier;
-                targetLengthMultipliers.LeftArm = targetArmLengthMultiplier;
+                    targetLengthMultipliers.RightArm = targetArmLengthMultiplier;
+                    targetLengthMultipliers.LeftArm = targetArmLengthMultiplier;
+                }
+                else
+                {
+                    // Survive small bursts of losing the edge
+                    targetLengthMultipliers.RightArm = animationState.LimbLengthMultipliers.RightArm;
+                    targetLengthMultipliers.LeftArm = animationState.LimbLengthMultipliers.LeftArm;
+                }
 
                 break;
             }
