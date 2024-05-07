@@ -12,6 +12,10 @@ std::vector<ShipFactoryFloor> ShipFloorplanizer::BuildFloorplan(
 	//
 	// Naive implementation: follows spring hullness
 	//
+	// Note: the floorplan will not necessarily match triangle edges
+	// (as we might have suppressed triangles in a quad); this floorplan
+	// will anyway be a *superset* of the floor edges
+	//
 
 	std::vector<ShipFactoryFloor> floors;
 	floors.reserve(springInfos.size());
