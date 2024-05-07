@@ -655,6 +655,9 @@ void Npcs::UpdateNpcParticlePhysics(
             //  - Trajectory points *inside* triangle
             //  - Particle becomes free
             //
+            // We do this so that if we're after a bounce we don't see the triangle of the vertical wall that we've bounced off, but the
+            // triangle of the floor
+            //
 
             std::optional<int> vertexOrdinal = npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords.try_get_vertex();
             if (vertexOrdinal.has_value())
