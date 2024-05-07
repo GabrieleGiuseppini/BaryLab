@@ -16,13 +16,12 @@ StructuralMaterial StructuralMaterial::Create(
 
     try
     {
-        std::string const npcSurfaceStr = Utils::GetMandatoryJsonMember<std::string>(structuralMaterialJson, "npc_surface");
-        NpcSurfaceType const npcSurface = StrToNpcSurfaceType(npcSurfaceStr);
+        bool const isHull = Utils::GetMandatoryJsonMember<bool>(structuralMaterialJson, "is_hull");
 
         return StructuralMaterial(
             name,
             renderColor,
-            npcSurface);
+            isHull);
     }
     catch (GameException const & ex)
     {

@@ -169,6 +169,272 @@ struct TriangleAndEdge
  */
 using Octant = std::int32_t;
 
+/*
+ * Integral system
+ */
+
+#pragma pack(push, 1)
+
+template<typename TIntegralTag>
+struct _IntegralSize
+{
+    using integral_type = int;
+
+    integral_type width;
+    integral_type height;
+
+    constexpr _IntegralSize(
+        integral_type _width,
+        integral_type _height)
+        : width(_width)
+        , height(_height)
+    {}
+
+    static _IntegralSize<TIntegralTag> FromFloatRound(vec2f const & vec)
+    {
+        return _IntegralSize<TIntegralTag>(
+            static_cast<integral_type>(std::round(vec.x)),
+            static_cast<integral_type>(std::round(vec.y)));
+    }
+
+    static _IntegralSize<TIntegralTag> FromFloatFloor(vec2f const & vec)
+    {
+        return _IntegralSize<TIntegralTag>(
+            static_cast<integral_type>(std::floor(vec.x)),
+            static_cast<integral_type>(std::floor(vec.y)));
+    }
+
+    inline bool operator==(_IntegralSize<TIntegralTag> const & other) const
+    {
+        return this->width == other.width
+            && this->height == other.height;
+    }
+
+    inline bool operator!=(_IntegralSize<TIntegralTag> const & other) const
+    {
+        return !(*this == other);
+    }
+
+    inline _IntegralSize<TIntegralTag> operator+(_IntegralSize<TIntegralTag> const & sz) const
+    {
+        return _IntegralSize<TIntegralTag>(
+            this->width + sz.width,
+            this->height + sz.height);
+    }
+
+    inline void operator+=(_IntegralSize<TIntegralTag> const & sz)
+    {
+        this->width += sz.width;
+        this->height += sz.height;
+    }
+
+    inline _IntegralSize<TIntegralTag> operator*(integral_type factor) const
+    {
+        return _IntegralSize<TIntegralTag>(
+            this->width * factor,
+            this->height * factor);
+    }
+
+    inline size_t GetLinearSize() const
+    {
+        return this->width * this->height;
+    }
+
+    inline void Rotate90()
+    {
+        std::swap(width, height);
+    }
+
+    inline _IntegralSize<TIntegralTag> Union(_IntegralSize<TIntegralTag> const & other) const
+    {
+        return _IntegralSize<TIntegralTag>(
+            std::max(this->width, other.width),
+            std::max(this->height, other.height));
+    }
+
+    inline _IntegralSize<TIntegralTag> Intersection(_IntegralSize<TIntegralTag> const & other) const
+    {
+        return _IntegralSize<TIntegralTag>(
+            std::min(this->width, other.width),
+            std::min(this->height, other.height));
+    }
+
+    vec2f ToFloat() const
+    {
+        return vec2f(
+            static_cast<float>(width),
+            static_cast<float>(height));
+    }
+
+    template<typename TCoordsRatio>
+    vec2f ToFractionalCoords(TCoordsRatio const & coordsRatio) const
+    {
+        assert(coordsRatio.inputUnits != 0.0f);
+
+        return vec2f(
+            static_cast<float>(width) / coordsRatio.inputUnits * coordsRatio.outputUnits,
+            static_cast<float>(height) / coordsRatio.inputUnits * coordsRatio.outputUnits);
+    }
+
+    std::string ToString() const
+    {
+        std::stringstream ss;
+        ss << "(" << width << " x " << height << ")";
+        return ss.str();
+    }
+};
+
+#pragma pack(pop)
+
+template<typename TTag>
+inline std::basic_ostream<char> & operator<<(std::basic_ostream<char> & os, _IntegralSize<TTag> const & is)
+{
+    os << is.ToString();
+    return os;
+}
+
+using ImageSize = _IntegralSize<struct ImageTag>;
+
+#pragma pack(push, 1)
+
+template<typename TIntegralTag>
+struct _IntegralCoordinates
+{
+    using integral_type = int;
+
+    integral_type x;
+    integral_type y;
+
+    constexpr _IntegralCoordinates(
+        integral_type _x,
+        integral_type _y)
+        : x(_x)
+        , y(_y)
+    {}
+
+    static _IntegralCoordinates<TIntegralTag> FromFloatRound(vec2f const & vec)
+    {
+        return _IntegralCoordinates<TIntegralTag>(
+            static_cast<integral_type>(std::round(vec.x)),
+            static_cast<integral_type>(std::round(vec.y)));
+    }
+
+    static _IntegralCoordinates<TIntegralTag> FromFloatFloor(vec2f const & vec)
+    {
+        return _IntegralCoordinates<TIntegralTag>(
+            static_cast<integral_type>(std::floor(vec.x)),
+            static_cast<integral_type>(std::floor(vec.y)));
+    }
+
+    inline bool operator==(_IntegralCoordinates<TIntegralTag> const & other) const
+    {
+        return this->x == other.x
+            && this->y == other.y;
+    }
+
+    inline bool operator!=(_IntegralCoordinates<TIntegralTag> const & other) const
+    {
+        return !(*this == other);
+    }
+
+    inline _IntegralCoordinates<TIntegralTag> operator+(_IntegralSize<TIntegralTag> const & sz) const
+    {
+        return _IntegralCoordinates<TIntegralTag>(
+            this->x + sz.width,
+            this->y + sz.height);
+    }
+
+    inline void operator+=(_IntegralSize<TIntegralTag> const & sz)
+    {
+        this->x += sz.width;
+        this->y += sz.height;
+    }
+
+    inline _IntegralCoordinates<TIntegralTag> operator-() const
+    {
+        return _IntegralCoordinates<TIntegralTag>(
+            -this->x,
+            -this->y);
+    }
+
+    inline _IntegralSize<TIntegralTag> operator-(_IntegralCoordinates<TIntegralTag> const & other) const
+    {
+        return _IntegralSize<TIntegralTag>(
+            this->x - other.x,
+            this->y - other.y);
+    }
+
+    inline _IntegralCoordinates<TIntegralTag> operator-(_IntegralSize<TIntegralTag> const & offset) const
+    {
+        return _IntegralCoordinates<TIntegralTag>(
+            this->x - offset.width,
+            this->y - offset.height);
+    }
+
+    inline _IntegralCoordinates<TIntegralTag> scale(_IntegralCoordinates<TIntegralTag> const & multiplier) const
+    {
+        return _IntegralCoordinates<TIntegralTag>(
+            this->x * multiplier.x,
+            this->y * multiplier.y);
+    }
+
+    template<typename TSize>
+    bool IsInSize(TSize const & size) const
+    {
+        return x >= 0 && x < size.width && y >= 0 && y < size.height;
+    }
+
+    template<typename TRect>
+    bool IsInRect(TRect const & rect) const
+    {
+        return x >= rect.origin.x && x < rect.origin.x + rect.size.width
+            && y >= rect.origin.y && y < rect.origin.y + rect.size.height;
+    }
+
+    vec2f ToFloat() const
+    {
+        return vec2f(
+            static_cast<float>(x),
+            static_cast<float>(y));
+    }
+
+    template<typename TCoordsRatio>
+    vec2f ToFractionalCoords(TCoordsRatio const & coordsRatio) const
+    {
+        assert(coordsRatio.inputUnits != 0.0f);
+
+        return vec2f(
+            static_cast<float>(x) / coordsRatio.inputUnits * coordsRatio.outputUnits,
+            static_cast<float>(y) / coordsRatio.inputUnits * coordsRatio.outputUnits);
+    }
+
+    std::string ToString() const
+    {
+        std::stringstream ss;
+        ss << "(" << x << ", " << y << ")";
+        return ss.str();
+    }
+};
+
+#pragma pack(pop)
+
+template<typename TTag>
+inline bool operator<(_IntegralCoordinates<TTag> const & l, _IntegralCoordinates<TTag> const & r)
+{
+    return l.x < r.x
+        || (l.x == r.x && l.y < r.y);
+}
+
+template<typename TTag>
+inline std::basic_ostream<char> & operator<<(std::basic_ostream<char> & os, _IntegralCoordinates<TTag> const & p)
+{
+    os << p.ToString();
+    return os;
+}
+
+using IntegralCoordinates = _IntegralCoordinates<struct IntegralTag>; // Generic integer
+using ShipSpaceCoordinates = _IntegralCoordinates<struct ShipSpaceTag>; // Y=0 at bottom
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Rendering
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -284,13 +550,12 @@ enum class HumanNpcKindType
 
 // Futurework: FurnitureNpcKind
 
-enum class NpcSurfaceType
+enum class NpcFloorType
 {
-    Floor,
-    Open
+    Open,
+    FloorPlane1, // Planes N: a category of Horiz|Vert or Diag
+    FloorPlane2
 };
-
-NpcSurfaceType StrToNpcSurfaceType(std::string const & str);
 
 /*
  * Types of hightlight for NPCs.

@@ -3,7 +3,9 @@
 * Created:				2020-05-16
 * Copyright:			Gabriele Giuseppini  (https://github.com/GabrieleGiuseppini)
 ***************************************************************************************/
-#include "ShipBuilder.h"
+#include "ShipFactory.h"
+
+#include "ShipFloorplanizer.h"
 
 #include <GameCore/Log.h>
 
@@ -29,13 +31,13 @@ static int const TessellationCircularOrderDirections[8][2] = {
 
 rgbColor constexpr EmptyMaterialColorKey = rgbColor(255, 255, 255);
 
-std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
+std::unique_ptr<Physics::Ship> ShipFactory::BuildShip(
     ShipDefinition && shipDefinition,
     MaterialDatabase const & materialDatabase)
 {
     //
     // Process structural layer and:
-    // - Create ShipBuildPoint's for each point
+    // - Create ShipFactoryPoint's for each point
     // - Build a 2D matrix containing indices to the points
     //
 
@@ -48,16 +50,16 @@ std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
     auto const & structuralLayerBuffer = shipDefinition.StructuralLayerImage.Data;
 
     // Points
-    std::vector<ShipBuildPoint> pointInfos;
+    std::vector<ShipFactoryPoint> pointInfos;
 
     // Springs
-    std::vector<ShipBuildSpring> springInfos;
+    std::vector<ShipFactorySpring> springInfos;
 
     // Triangles
-    std::vector<ShipBuildTriangle> triangleInfos;
+    std::vector<ShipFactoryTriangle> triangleInfos;
 
     // Matrix of points - we allocate 2 extra dummy rows and cols - around - to avoid checking for boundaries
-    ShipBuildPointIndexMatrix pointIndexMatrix(shipWidth + 2, shipHeight + 2);
+    ShipFactoryPointIndexMatrix pointIndexMatrix(shipWidth + 2, shipHeight + 2);
 
     // Region of actual content
     int minX = shipWidth;
@@ -79,11 +81,14 @@ std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
                 // Make a point
                 //
 
+                ShipSpaceCoordinates const coords = ShipSpaceCoordinates(x, y);
+
                 ElementIndex const pointIndex = static_cast<ElementIndex>(pointInfos.size());
 
                 pointIndexMatrix[{x + 1, y + 1}] = static_cast<ElementIndex>(pointIndex);
 
                 pointInfos.emplace_back(
+                    coords,
                     vec2f(
                         static_cast<float>(x) - halfShipWidth,
                         static_cast<float>(y) - halfShipHeight),
@@ -109,9 +114,9 @@ std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
 
     //
     // Visit point matrix and:
-    //  - Detect edges and create ShipBuildSpring's for them
+    //  - Detect edges and create ShipFactorySpring's for them
     //      - And populate the point pair -> edge index 1 map
-    //  - Do tessellation and create ShipBuildTriangle's
+    //  - Do tessellation and create ShipFactoryTriangle's
     //
 
     CreateElementInfos(
@@ -138,36 +143,45 @@ std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
         triangleInfos);
 
     //
-    // Visit all ShipBuildPoint's and create Points, i.e. the entire set of points
+    // Create floorplan
+    //
+
+    ShipFloorplanizer shipFloorplanizer;
+
+    std::vector<ShipFactoryFloor> floorInfos = shipFloorplanizer.BuildFloorplan(
+        pointInfos,
+        springInfos);
+
+    //
+    // Visit all ShipFactoryPoint's and create Points, i.e. the entire set of points
     //
 
     Physics::Points points = CreatePoints(
         pointInfos);
 
     //
-    // Create Springs for all ShipBuildSpring's
+    // Create Springs for all ShipFactorySpring's
     //
 
     Physics::Springs springs = CreateSprings(
         springInfos,
-        pointInfos,
         points);
 
     //
-    // Create Triangles for all ShipBuildTriangle's
+    // Create Triangles for all ShipFactoryTriangle's
     //
 
     Physics::Triangles triangles = CreateTriangles(
         triangleInfos,
         points,
         springInfos,
-        springs);
+        floorInfos);
 
     //
     // We're done!
     //
 
-    LogMessage("ShipBuilder: Created ship: W=", shipWidth, ", H=", shipHeight, ", ",
+    LogMessage("ShipFactory: Created ship: W=", shipWidth, ", H=", shipHeight, ", ",
         points.GetBufferElementCount(), "buf vertices, ",
         springs.GetElementCount(), " edges, ",
         triangles.GetElementCount(), " triangles.");
@@ -181,16 +195,16 @@ std::unique_ptr<Physics::Ship> ShipBuilder::BuildShip(
     return ship;
 }
 
-void ShipBuilder::CreateElementInfos(
-    ShipBuildPointIndexMatrix const & pointIndexMatrix,
-    std::vector<ShipBuildPoint> & pointInfos,
-    std::vector<ShipBuildSpring> & springInfos,
-    std::vector<ShipBuildTriangle> & triangleInfos)
+void ShipFactory::CreateElementInfos(
+    ShipFactoryPointIndexMatrix const & pointIndexMatrix,
+    std::vector<ShipFactoryPoint> & pointInfos,
+    std::vector<ShipFactorySpring> & springInfos,
+    std::vector<ShipFactoryTriangle> & triangleInfos)
 {
     //
     // Visit point matrix and:
-    //  - Detect edges and create ShipBuildSpring's for them
-    //  - Do tessellation and create ShipBuildTriangle's
+    //  - Detect edges and create ShipFactorySpring's for them
+    //  - Do tessellation and create ShipFactoryTriangle's
     //
 
     // From bottom to top - excluding extras at boundaries
@@ -226,7 +240,7 @@ void ShipBuilder::CreateElementInfos(
                         // This point is adjacent to the first point at one of E, SE, S, SW
 
                         //
-                        // Create ShipBuildSpring
+                        // Create ShipFactorySpring
                         //
 
                         ElementIndex const otherEndpointIndex = *pointIndexMatrix[{adjx1, adjy1}];
@@ -260,7 +274,7 @@ void ShipBuilder::CreateElementInfos(
                             // This point is adjacent to the first point at one of SE, S, SW, W
 
                             //
-                            // Create ShipBuildTriangle
+                            // Create ShipFactoryTriangle
                             //
 
                             triangleInfos.emplace_back(
@@ -285,7 +299,7 @@ void ShipBuilder::CreateElementInfos(
                             assert(!!pointIndexMatrix[vec2i(x + TessellationCircularOrderDirections[0][0], y + TessellationCircularOrderDirections[0][1])]);
 
                             //
-                            // Create ShipBuildTriangle
+                            // Create ShipFactoryTriangle
                             //
 
                             triangleInfos.emplace_back(
@@ -315,9 +329,9 @@ void ShipBuilder::CreateElementInfos(
     }
 }
 
-void ShipBuilder::ConnectPointsToTriangles(
-    std::vector<ShipBuildPoint> & pointInfos,
-    std::vector<ShipBuildTriangle> const & triangleInfos)
+void ShipFactory::ConnectPointsToTriangles(
+    std::vector<ShipFactoryPoint> & pointInfos,
+    std::vector<ShipFactoryTriangle> const & triangleInfos)
 {
     for (ElementIndex t = 0; t < triangleInfos.size(); ++t)
     {
@@ -328,9 +342,9 @@ void ShipBuilder::ConnectPointsToTriangles(
     }
 }
 
-void ShipBuilder::ConnectSpringsToTriangles(
-    std::vector<ShipBuildSpring> & springInfos,
-    std::vector<ShipBuildTriangle> & triangleInfos)
+void ShipFactory::ConnectSpringsToTriangles(
+    std::vector<ShipFactorySpring> & springInfos,
+    std::vector<ShipFactoryTriangle> & triangleInfos)
 {
     //
     // 1. Build Point Pair -> Spring table
@@ -378,15 +392,15 @@ void ShipBuilder::ConnectSpringsToTriangles(
     }
 }
 
-Physics::Points ShipBuilder::CreatePoints(
-    std::vector<ShipBuildPoint> const & pointInfos)
+Physics::Points ShipFactory::CreatePoints(
+    std::vector<ShipFactoryPoint> const & pointInfos)
 {
     Physics::Points points(
         static_cast<ElementIndex>(pointInfos.size()));
 
     for (size_t v = 0; v < pointInfos.size(); ++v)
     {
-        ShipBuildPoint const & pointInfo = pointInfos[v];
+        ShipFactoryPoint const & pointInfo = pointInfos[v];
 
         //
         // Create point
@@ -399,27 +413,20 @@ Physics::Points ShipBuilder::CreatePoints(
     return points;
 }
 
-Physics::Springs ShipBuilder::CreateSprings(
-    std::vector<ShipBuildSpring> const & springInfos,
-    std::vector<ShipBuildPoint> & pointInfos,
+Physics::Springs ShipFactory::CreateSprings(
+    std::vector<ShipFactorySpring> const & springInfos,
     Physics::Points & points)
 {
     Physics::Springs springs(static_cast<ElementIndex>(springInfos.size()));
 
     for (ElementIndex e = 0; e < springInfos.size(); ++e)
     {
-        // Determine surface type
-        NpcSurfaceType const npcSurface =
-            (pointInfos[springInfos[e].PointAIndex].Material.NpcSurface == NpcSurfaceType::Floor && pointInfos[springInfos[e].PointBIndex].Material.NpcSurface == NpcSurfaceType::Floor)
-            ? NpcSurfaceType::Floor : NpcSurfaceType::Open;
-
         // Create spring
         springs.Add(
             springInfos[e].PointAIndex,
             springInfos[e].PointBIndex,
             springInfos[e].PointAAngle,
             springInfos[e].PointBAngle,
-            npcSurface,
             springInfos[e].Triangles);
 
         // Add spring to its endpoints
@@ -436,12 +443,31 @@ Physics::Springs ShipBuilder::CreateSprings(
     return springs;
 }
 
-Physics::Triangles ShipBuilder::CreateTriangles(
-    std::vector<ShipBuildTriangle> const & triangleInfos,
+Physics::Triangles ShipFactory::CreateTriangles(
+    std::vector<ShipFactoryTriangle> const & triangleInfos,
     Physics::Points & points,
-    std::vector<ShipBuildSpring> const & springInfos,
-    Physics::Springs const & springs)
+    std::vector<ShipFactorySpring> const & springInfos,
+    std::vector<ShipFactoryFloor> const & floorInfos)
 {
+    //
+    // Prepare floorplan: map of pairs of points that are a floor
+    //
+
+    std::unordered_map<PointPair, NpcFloorType, PointPair::Hasher> floorPointPairMap;
+    for (auto const & factoryFloor : floorInfos)
+    {
+        auto const [_, isInserted] = floorPointPairMap.try_emplace(
+            { factoryFloor.Endpoint1Index, factoryFloor.Endpoint2Index },
+            factoryFloor.FloorType);
+
+        assert(isInserted);
+        (void)isInserted;
+    }
+
+    //
+    // Build triangles
+    //
+
     Physics::Triangles triangles(static_cast<ElementIndex>(triangleInfos.size()));
 
     for (ElementIndex t = 0; t < triangleInfos.size(); ++t)
@@ -452,12 +478,18 @@ Physics::Triangles ShipBuilder::CreateTriangles(
         bool isSealedTriangle = true;
         for (int iEdge = 0; iEdge < 3; ++iEdge)
         {
-            isSealedTriangle = isSealedTriangle && (springs.GetNpcSurfaceType(triangleInfos[t].Springs[iEdge]) != NpcSurfaceType::Open);
+            ElementIndex const springElementIndex = triangleInfos[t].Springs[iEdge];
+
+            ElementIndex const edgePointA = springInfos[springElementIndex].PointAIndex;
+            ElementIndex const edgePointB = springInfos[springElementIndex].PointBIndex;
+
+            //isSealedTriangle = isSealedTriangle && (floorPointPairMap.find({ edgePointA, edgePointB }) != floorPointPairMap.end());
+            isSealedTriangle = isSealedTriangle && (floorPointPairMap.find({ edgePointA, edgePointB }) != floorPointPairMap.end());
         }
 
-        // Calculate opposite triangles and surface types
+        // Calculate opposite triangles and floor types
         std::array<std::pair<ElementIndex, int>, 3> subSpringsOppositeTriangle;
-        std::array<NpcSurfaceType, 3> subSpringsSurfaceType;
+        std::array<NpcFloorType, 3> subSpringsFloorType;
         for (int iEdge = 0; iEdge < 3; ++iEdge)
         {
             ElementIndex const springElementIndex = triangleInfos[t].Springs[iEdge];
@@ -505,23 +537,26 @@ Physics::Triangles ShipBuilder::CreateTriangles(
 
             //
             // Triangle's subedge is floor if:
-            //  - Edge is floor, AND
+            //  - Spring is floor, AND
             //  - NOT is sealed, OR (is sealed and) there's no triangle on the other side of this subedge
             //
 
-            NpcSurfaceType surface;
-            if (springs.GetNpcSurfaceType(triangleInfos[t].Springs[iEdge]) == NpcSurfaceType::Open
-                || !isSealedTriangle
-                || subSpringsOppositeTriangle[iEdge].first == NoneElementIndex)
+            ElementIndex const edgePointA = springInfos[springElementIndex].PointAIndex;
+            ElementIndex const edgePointB = springInfos[springElementIndex].PointBIndex;
+
+            NpcFloorType floorType;
+            if (const auto floorIt = floorPointPairMap.find({ edgePointA, edgePointB });
+                floorIt != floorPointPairMap.cend()
+                && (!isSealedTriangle || subSpringsOppositeTriangle[iEdge].first == NoneElementIndex))
             {
-                surface = springs.GetNpcSurfaceType(triangleInfos[t].Springs[iEdge]);
+                floorType = floorIt->second;
             }
             else
             {
-                surface = NpcSurfaceType::Open;
+                floorType = NpcFloorType::Open;
             }
 
-            subSpringsSurfaceType[iEdge] = surface;
+            subSpringsFloorType[iEdge] = floorType;
         }
 
         // Create triangle
@@ -538,9 +573,9 @@ Physics::Triangles ShipBuilder::CreateTriangles(
             subSpringsOppositeTriangle[1].second,
             subSpringsOppositeTriangle[2].first,
             subSpringsOppositeTriangle[2].second,
-            subSpringsSurfaceType[0],
-            subSpringsSurfaceType[1],
-            subSpringsSurfaceType[2]);
+            subSpringsFloorType[0],
+            subSpringsFloorType[1],
+            subSpringsFloorType[2]);
 
         // Add triangle to its endpoints
         points.AddConnectedTriangle(triangleInfos[t].PointIndices[0], t, true); // Owner

@@ -5,7 +5,7 @@
 ***************************************************************************************/
 #include "LabController.h"
 
-#include "ShipBuilder.h"
+#include "ShipFactory.h"
 
 #include <GameCore/AABB.h>
 #include <GameCore/GameRandomEngine.h>
@@ -93,7 +93,7 @@ void LabController::LoadShip(std::filesystem::path const & shipDefinitionFilepat
 
     // Make ship
 
-    std::unique_ptr<Physics::Ship> ship = ShipBuilder::BuildShip(
+    std::unique_ptr<Physics::Ship> ship = ShipFactory::BuildShip(
         std::move(shipDefinition),
         mMaterialDatabase);
 
@@ -180,9 +180,36 @@ void LabController::Render()
 
         mRenderContext->UploadEdgesStart();
 
+        auto const colorChooser = [](NpcFloorType floorType) -> rgbaColor
+            {
+                switch (floorType)
+                {
+                    case NpcFloorType::Open:
+                    {
+                        return { 0xba, 0xba, 0xba, 0xa0 };
+                    }
+
+                    case NpcFloorType::FloorPlane1:
+                    {
+                        return { 0x12, 0x1b, 0x54, 0xff };
+                    }
+
+                    case NpcFloorType::FloorPlane2:
+                    {
+                        return { 0x12, 0x54, 0x1b, 0xff };
+                    }
+                }
+
+                assert(false);
+                return { 0x00, 0x00, 0x00, 0xff };
+            };
+
+        float constexpr FloorThicknessAdjustment = 3.0f;
+
         for (auto t : triangles)
         {
-            rgbaColor color = springs.GetRenderColor(triangles.GetSubSpringAIndex(t));
+            rgbaColor color = colorChooser(triangles.GetSubSpringNpcFloorType(t, 0));
+            float thicknessAdjustment = triangles.GetSubSpringNpcFloorType(t, 0) == NpcFloorType::Open ? 1.0f : FloorThicknessAdjustment;
             if (mWorld->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringAIndex(t)))
             {
                 color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
@@ -190,9 +217,11 @@ void LabController::Render()
             mRenderContext->UploadEdge(
                 points.GetPosition(triangles.GetPointAIndex(t)),
                 points.GetPosition(triangles.GetPointBIndex(t)),
-                color);
+                color,
+                thicknessAdjustment);
 
-            color = springs.GetRenderColor(triangles.GetSubSpringBIndex(t));
+            color = colorChooser(triangles.GetSubSpringNpcFloorType(t, 1));
+            thicknessAdjustment = triangles.GetSubSpringNpcFloorType(t, 1) == NpcFloorType::Open ? 1.0f : FloorThicknessAdjustment;
             if (mWorld->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringBIndex(t)))
             {
                 color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
@@ -200,9 +229,11 @@ void LabController::Render()
             mRenderContext->UploadEdge(
                 points.GetPosition(triangles.GetPointBIndex(t)),
                 points.GetPosition(triangles.GetPointCIndex(t)),
-                color);
+                color,
+                thicknessAdjustment);
 
-            color = springs.GetRenderColor(triangles.GetSubSpringCIndex(t));
+            color = colorChooser(triangles.GetSubSpringNpcFloorType(t, 2));
+            thicknessAdjustment = triangles.GetSubSpringNpcFloorType(t, 2) == NpcFloorType::Open ? 1.0f : FloorThicknessAdjustment;
             if (mWorld->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringCIndex(t)))
             {
                 color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
@@ -210,7 +241,8 @@ void LabController::Render()
             mRenderContext->UploadEdge(
                 points.GetPosition(triangles.GetPointCIndex(t)),
                 points.GetPosition(triangles.GetPointAIndex(t)),
-                color);
+                color,
+                thicknessAdjustment);
         }
 
         mRenderContext->UploadEdgesEnd();
@@ -234,9 +266,9 @@ void LabController::Render()
                 color = rgbaColor(227, 107, 107, 77);
             }
             else if (
-                springs.GetNpcSurfaceType(triangles.GetSubSpringAIndex(t)) == NpcSurfaceType::Floor
-                && springs.GetNpcSurfaceType(triangles.GetSubSpringBIndex(t)) == NpcSurfaceType::Floor
-                && springs.GetNpcSurfaceType(triangles.GetSubSpringCIndex(t)) == NpcSurfaceType::Floor)
+                triangles.GetSubSpringNpcFloorType(t, 0) != NpcFloorType::Open
+                && triangles.GetSubSpringNpcFloorType(t, 1) != NpcFloorType::Open
+                && triangles.GetSubSpringNpcFloorType(t, 2) != NpcFloorType::Open)
             {
                 color = rgbaColor(35, 35, 35, 77);
             }

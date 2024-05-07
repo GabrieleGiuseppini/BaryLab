@@ -17,11 +17,13 @@ set  (GAME_SOURCES
 	Materials.h
 	PerfStats.h
 	ResourceLocator.h
-	ShipBuilder.cpp
-	ShipBuilder.h
-	ShipBuilderTypes.h
 	ShipDefinition.cpp
 	ShipDefinition.h
+	ShipFactory.cpp
+	ShipFactory.h
+	ShipFactoryTypes.h
+	ShipFloorplanizer.cpp
+	ShipFloorplanizer.h
 )
 
 set  (PHYSICS_SOURCES

@@ -7,8 +7,8 @@
 
 #include "MaterialDatabase.h"
 #include "Physics.h"
-#include "ShipBuilderTypes.h"
 #include "ShipDefinition.h"
+#include "ShipFactoryTypes.h"
 
 #include <GameCore/GameTypes.h>
 
@@ -17,7 +17,7 @@
 /*
  * This class contains all the logic for building a ship out of a Definition.
  */
-class ShipBuilder
+class ShipFactory
 {
 public:
 
@@ -28,30 +28,29 @@ public:
 private:
 
     static void CreateElementInfos(
-        ShipBuildPointIndexMatrix const & pointIndexMatrix,
-        std::vector<ShipBuildPoint> & pointInfos,
-        std::vector<ShipBuildSpring> & springInfos,
-        std::vector<ShipBuildTriangle> & triangleInfos);
+        ShipFactoryPointIndexMatrix const & pointIndexMatrix,
+        std::vector<ShipFactoryPoint> & pointInfos,
+        std::vector<ShipFactorySpring> & springInfos,
+        std::vector<ShipFactoryTriangle> & triangleInfos);
 
     static void ConnectPointsToTriangles(
-        std::vector<ShipBuildPoint> & pointInfos,
-        std::vector<ShipBuildTriangle> const & triangleInfos);
+        std::vector<ShipFactoryPoint> & pointInfos,
+        std::vector<ShipFactoryTriangle> const & triangleInfos);
 
     static void ConnectSpringsToTriangles(
-        std::vector<ShipBuildSpring> & springInfos,
-        std::vector<ShipBuildTriangle> & triangleInfos);
+        std::vector<ShipFactorySpring> & springInfos,
+        std::vector<ShipFactoryTriangle> & triangleInfos);
 
     static Physics::Points CreatePoints(
-        std::vector<ShipBuildPoint> const & pointInfos);
+        std::vector<ShipFactoryPoint> const & pointInfos);
 
     static Physics::Springs CreateSprings(
-        std::vector<ShipBuildSpring> const & springInfos,
-        std::vector<ShipBuildPoint> & pointInfos,
+        std::vector<ShipFactorySpring> const & springInfos,
         Physics::Points & points);
 
     static Physics::Triangles CreateTriangles(
-        std::vector<ShipBuildTriangle> const & triangleInfos,
+        std::vector<ShipFactoryTriangle> const & triangleInfos,
         Physics::Points & points,
-        std::vector<ShipBuildSpring> const & springInfos,
-        Physics::Springs const & springs);
+        std::vector<ShipFactorySpring> const & springInfos,
+        std::vector<ShipFactoryFloor> const & floorInfos);
 };

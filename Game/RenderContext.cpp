@@ -389,10 +389,11 @@ void RenderContext::UploadEdgesStart()
 void RenderContext::UploadEdge(
     vec2f const & edgeEndpointAPosition,
     vec2f const & edgeEndpointBPosition,
-    rgbaColor const & edgeColor)
+    rgbaColor const & edgeColor,
+    float thicknessAdjustment)
 {
     vec2f const edgeVector = edgeEndpointBPosition - edgeEndpointAPosition;
-    vec2f const edgeNormal = edgeVector.to_perpendicular().normalise() * GameParameters::EdgeThickness / 2.0f;
+    vec2f const edgeNormal = edgeVector.to_perpendicular().normalise() * thicknessAdjustment * GameParameters::EdgeThickness / 2.0f;
 
     vec2f const bottomLeft = edgeEndpointAPosition - edgeNormal;
     vec2f const bottomRight = edgeEndpointAPosition + edgeNormal;

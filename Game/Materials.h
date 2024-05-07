@@ -19,7 +19,7 @@ public:
     std::string Name;
     rgbaColor RenderColor;
 
-    NpcSurfaceType NpcSurface;
+    bool IsHull;
 
 public:
 
@@ -30,10 +30,10 @@ public:
     StructuralMaterial(
         std::string name,
         rgbaColor const & renderColor,
-        NpcSurfaceType npcSurface)
+        bool isHull)
         : Name(name)
         , RenderColor(renderColor)
-        , NpcSurface(npcSurface)
+        , IsHull(isHull)
     {}
 };
 

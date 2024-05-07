@@ -1017,7 +1017,7 @@ private:
 	{
 		// First off: if not a floor, it's not a floor
 
-		if (shipMesh.GetTriangles().GetSubSpringNpcSurfaceType(triangleElementIndex, edgeOrdinal) == NpcSurfaceType::Open)
+		if (shipMesh.GetTriangles().GetSubSpringNpcFloorType(triangleElementIndex, edgeOrdinal) == NpcFloorType::Open)
 		{
 			return false;
 		}

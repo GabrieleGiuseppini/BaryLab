@@ -21,10 +21,11 @@
  * Types describing the intermediate ship structure.
  */
 
-using ShipBuildPointIndexMatrix = Matrix2<std::optional<ElementIndex>>;
+using ShipFactoryPointIndexMatrix = Matrix2<std::optional<ElementIndex>>;
 
-struct ShipBuildPoint
+struct ShipFactoryPoint
 {
+    std::optional<ShipSpaceCoordinates> DefinitionCoordinates; // From any of the layers that provide points
     vec2f Position;
     rgbColor RenderColor;
     StructuralMaterial const & Material;
@@ -32,11 +33,13 @@ struct ShipBuildPoint
     std::vector<ElementIndex> ConnectedSprings;
     std::vector<ElementIndex> ConnectedTriangles;
 
-    ShipBuildPoint(
+    ShipFactoryPoint(
+        std::optional<ShipSpaceCoordinates> definitionCoordinates,
         vec2f position,
         rgbColor renderColor,
         StructuralMaterial const & material)
-        : Position(position)
+        : DefinitionCoordinates(definitionCoordinates)
+        , Position(position)
         , RenderColor(renderColor)
         , Material(material)
         , ConnectedSprings()
@@ -62,7 +65,7 @@ private:
     }
 };
 
-struct ShipBuildSpring
+struct ShipFactorySpring
 {
     ElementIndex PointAIndex;
     uint32_t PointAAngle;
@@ -72,7 +75,7 @@ struct ShipBuildSpring
 
     FixedSizeVector<ElementIndex, 2> Triangles; // Triangles that have this spring as an edge
 
-    ShipBuildSpring(
+    ShipFactorySpring(
         ElementIndex pointAIndex,
         uint32_t pointAAngle,
         ElementIndex pointBIndex,
@@ -85,16 +88,33 @@ struct ShipBuildSpring
     }
 };
 
-struct ShipBuildTriangle
+struct ShipFactoryTriangle
 {
     std::array<ElementIndex, 3> PointIndices;
 
     FixedSizeVector<ElementIndex, 3> Springs;
 
-    ShipBuildTriangle(
+    ShipFactoryTriangle(
         std::array<ElementIndex, 3> const & pointIndices)
         : PointIndices(pointIndices)
         , Springs()
+    {
+    }
+};
+
+struct ShipFactoryFloor
+{
+    ElementIndex Endpoint1Index;
+    ElementIndex Endpoint2Index;
+    NpcFloorType FloorType;
+
+    ShipFactoryFloor(
+        ElementIndex endpoint1Index,
+        ElementIndex endpoint2Index,
+        NpcFloorType floorType)
+        : Endpoint1Index(endpoint1Index)
+        , Endpoint2Index(endpoint2Index)
+        , FloorType(floorType)
     {
     }
 };

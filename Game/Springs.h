@@ -71,10 +71,6 @@ public:
         , mEndpointsBuffer(mBufferElementCount, mElementCount, Endpoints(NoneElementIndex, NoneElementIndex))
         , mEndpointOctantsBuffer(mBufferElementCount, mElementCount, EndpointOctants(0, 4))
         , mTrianglesBuffer(mBufferElementCount, mElementCount, TrianglesVector())
-        // Properties
-        , mNpcSurfaceTypeBuffer(mBufferElementCount, mElementCount, NpcSurfaceType::Open)
-        // Render
-        , mRenderColorBuffer(mBufferElementCount, mElementCount, rgbaColor::zero())
     {
     }
 
@@ -85,7 +81,6 @@ public:
         ElementIndex pointBIndex,
         Octant pointAOctant,
         Octant pointBOctant,
-        NpcSurfaceType npcSurface,
         TrianglesVector const & triangles);
 
 public:
@@ -220,25 +215,6 @@ public:
         (void)found;
     }
 
-    //
-    // Properties
-    //
-
-    // This is only used in BaryLab - for ShipBuilder and for Rendering
-    NpcSurfaceType GetNpcSurfaceType(ElementIndex springElementIndex) const
-    {
-        return mNpcSurfaceTypeBuffer[springElementIndex];
-    }
-
-    //
-    // Render
-    //
-
-    rgbaColor const & GetRenderColor(ElementIndex springElementIndex) const
-    {
-        return mRenderColorBuffer[springElementIndex];
-    }
-
 private:
 
     //////////////////////////////////////////////////////////
@@ -252,18 +228,6 @@ private:
     Buffer<Endpoints> mEndpointsBuffer;
     Buffer<EndpointOctants> mEndpointOctantsBuffer;
     Buffer<TrianglesVector> mTrianglesBuffer;
-
-    //
-    // Properties
-    //
-
-    Buffer<NpcSurfaceType> mNpcSurfaceTypeBuffer;
-
-    //
-    // Render
-    //
-
-    Buffer<rgbaColor> mRenderColorBuffer;
 };
 
 }

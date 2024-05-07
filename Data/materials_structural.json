@@ -2,12 +2,12 @@
     {
         "color_key": "#0A0A0A", 
 	"name": "Floor",
-	"npc_surface": "Floor"
+	"is_hull": true
     }, 
 
     {
         "color_key": "#BABABA", 
 	"name": "Open",
-	"npc_surface": "Open"
+	"is_hull": false
     }
 ]
