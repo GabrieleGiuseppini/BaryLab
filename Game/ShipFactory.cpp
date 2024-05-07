@@ -614,7 +614,6 @@ Physics::Triangles ShipFactory::CreateTriangles(
             ElementIndex const edgePointA = springInfos[springElementIndex].PointAIndex;
             ElementIndex const edgePointB = springInfos[springElementIndex].PointBIndex;
 
-            //isSealedTriangle = isSealedTriangle && (floorPointPairMap.find({ edgePointA, edgePointB }) != floorPointPairMap.end());
             isSealedTriangle = isSealedTriangle && (floorPointPairMap.find({ edgePointA, edgePointB }) != floorPointPairMap.end());
         }
 
