@@ -149,8 +149,10 @@ std::unique_ptr<Physics::Ship> ShipFactory::BuildShip(
     ShipFloorplanizer shipFloorplanizer;
 
     std::vector<ShipFactoryFloor> floorInfos = shipFloorplanizer.BuildFloorplan(
+        pointIndexMatrix,
         pointInfos,
-        springInfos);
+        springInfos,
+        triangleInfos);
 
     //
     // Visit all ShipFactoryPoint's and create Points, i.e. the entire set of points

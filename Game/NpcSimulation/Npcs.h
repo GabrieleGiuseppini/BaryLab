@@ -33,6 +33,10 @@
 #endif
 
 #ifdef IN_BARYLAB_DEBUG
+//#define BARYLAB_LOG_DEBUG
+#endif
+
+#ifdef BARYLAB_LOG_DEBUG
 #define LogNpcDebug(...) LogDebug(__VA_ARGS__);
 #else
 #define LogNpcDebug(...)

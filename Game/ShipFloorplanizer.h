@@ -18,9 +18,42 @@ public:
 	ShipFloorplanizer() = default;
 
 	std::vector<ShipFactoryFloor> BuildFloorplan(
-		std::vector<ShipFactoryPoint> & pointInfos,
-		std::vector<ShipFactorySpring> & springInfos);
+		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
+		std::vector<ShipFactoryPoint> const & pointInfos,
+		std::vector<ShipFactorySpring> const & springInfos,
+		std::vector<ShipFactoryTriangle> & triangleInfos) const;
 
 private:
 
+	bool IsRedundantFloorSpring(
+		ElementIndex s,
+		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
+		std::vector<ShipFactoryPoint> const & pointInfos,
+		std::vector<ShipFactorySpring> const & springInfos,
+		std::vector<ShipFactoryTriangle> & triangleInfos) const;
+
+	bool IsRedundantFloorSpringTriangle1(
+		ShipFactoryTriangle const & triangle,
+		ElementIndex s,
+		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
+		std::vector<ShipFactoryPoint> const & pointInfos) const;
+
+	bool IsRedundantFloorSpringTriangle2(
+		ShipFactoryTriangle const & triangle,
+		std::vector<ShipFactoryPoint> const & pointInfos) const;
+
+	bool DoesTriangleEdgeExtendViaHullSpring(
+		int vertexOrdinal1, // Edge from 1 to 2
+		int vertexOrdinal2,
+		ShipFactoryTriangle const & triangle,
+		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
+		std::vector<ShipFactoryPoint> const & pointInfos) const;
+
+	size_t CountTriangleHullSides(
+		ShipFactoryTriangle const & triangle,
+		std::vector<ShipFactoryPoint> const & pointInfos) const;
+
+	bool AreBothEndpointsHull(
+		ShipFactorySpring const & spring,
+		std::vector<ShipFactoryPoint> const & pointInfos) const;
 };

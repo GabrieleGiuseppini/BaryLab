@@ -98,6 +98,8 @@ public:
 
     void SetWavesSpeed(float wavesSpeed);
 
+    void QueryPointAt(vec2f const & screenCoordinates) const;
+
     void DoStepForVideo();
 
     //

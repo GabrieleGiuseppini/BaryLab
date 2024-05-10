@@ -91,10 +91,8 @@ public:
     {
     }
 
-
     FixedSizeVector(FixedSizeVector const & other) = default;
     FixedSizeVector & operator=(FixedSizeVector const & other) = default;
-
 
     //
     // Visitors

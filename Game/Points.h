@@ -128,6 +128,8 @@ public:
         return box;
     }
 
+    bool QueryAt(vec2f const & worldCoordinates) const;
+
     void Query(ElementIndex pointElementIndex) const;
 
 public:

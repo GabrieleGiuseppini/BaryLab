@@ -82,6 +82,17 @@ public:
 		return *mNpcs;
 	}
 
+	void QueryPointAt(vec2f const & worldCoordinates) const
+	{
+		for (auto const & ship : mAllShips)
+		{
+			if (ship->QueryPointAt(worldCoordinates))
+			{
+				break;
+			}
+		}
+	}
+
 	//
 
 	void SetOriginTriangle(ElementIndex triangleIndex)

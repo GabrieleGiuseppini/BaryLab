@@ -294,6 +294,7 @@ inline std::basic_ostream<char> & operator<<(std::basic_ostream<char> & os, _Int
 }
 
 using ImageSize = _IntegralSize<struct ImageTag>;
+using ShipSpaceSize = _IntegralSize<struct ShipSpaceTag>;
 
 #pragma pack(push, 1)
 

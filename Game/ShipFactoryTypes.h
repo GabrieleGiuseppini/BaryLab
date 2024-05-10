@@ -13,6 +13,7 @@
 #include <GameCore/Matrix.h>
 #include <GameCore/Vectors.h>
 
+#include <cassert>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -90,8 +91,10 @@ struct ShipFactorySpring
 
 struct ShipFactoryTriangle
 {
+    // In CW order
     std::array<ElementIndex, 3> PointIndices;
 
+    // In CW order
     FixedSizeVector<ElementIndex, 3> Springs;
 
     ShipFactoryTriangle(
@@ -99,6 +102,17 @@ struct ShipFactoryTriangle
         : PointIndices(pointIndices)
         , Springs()
     {
+    }
+
+    int GetSpringOrdinal(ElementIndex spring) const
+    {
+        int s = 0;
+        for (; s < 3; ++s)
+            if (Springs[s] == spring)
+                break;
+
+        assert(s < 3);
+        return s;
     }
 };
 

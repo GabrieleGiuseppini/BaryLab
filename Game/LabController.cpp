@@ -632,6 +632,14 @@ void LabController::SetWavesSpeed(float wavesSpeed)
     mTargetWavesSpeed = wavesSpeed;
 }
 
+void LabController::QueryPointAt(vec2f const & screenCoordinates) const
+{
+    assert(!!mWorld);
+
+    vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
+    mWorld->QueryPointAt(worldCoordinates);
+}
+
 void LabController::DoStepForVideo()
 {
     assert(mWorld);

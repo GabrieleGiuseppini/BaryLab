@@ -392,7 +392,8 @@ void MainFrame::OnKeyDown(wxKeyEvent & event)
 
         LogMessage(worldCoords.toString(), ":");
 
-        mLabController->QueryNearestNpcParticleAt(screenCoords);
+        //mLabController->QueryNearestNpcParticleAt(screenCoords);
+        mLabController->QueryPointAt(screenCoords);
     }
     else if (event.GetKeyCode() == 'V')
     {

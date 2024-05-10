@@ -67,6 +67,13 @@ public:
         return mTriangles;
     }
 
+public:
+
+    bool QueryPointAt(vec2f const & worldCoordinates) const
+    {
+        return mPoints.QueryAt(worldCoordinates);
+    }
+
 private:
 
     ShipId const mId;
