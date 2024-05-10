@@ -169,6 +169,10 @@ struct TriangleAndEdge
  */
 using Octant = std::int32_t;
 
+// This is our local circular order (clockwise, starting from E), indexes by Octant.
+// Note: cardinal directions are labeled according to x growing to the right and y growing upwards
+extern int const TessellationCircularOrderDirections[8][2];
+
 /*
  * Integral system
  */
