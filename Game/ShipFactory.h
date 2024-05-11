@@ -52,5 +52,5 @@ private:
         std::vector<ShipFactoryTriangle> const & triangleInfos,
         Physics::Points & points,
         std::vector<ShipFactorySpring> const & springInfos,
-        std::vector<ShipFactoryFloor> const & floorInfos);
+        ShipFactoryFloorPlan const & floorPlan);
 };

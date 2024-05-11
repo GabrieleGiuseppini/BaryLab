@@ -69,18 +69,18 @@ private:
 struct ShipFactorySpring
 {
     ElementIndex PointAIndex;
-    uint32_t PointAAngle;
+    Octant PointAAngle; // Octant from the point of view of PointA
 
     ElementIndex PointBIndex;
-    uint32_t PointBAngle;
+    Octant PointBAngle; // Octant from the point of view of PointA
 
     FixedSizeVector<ElementIndex, 2> Triangles; // Triangles that have this spring as an edge
 
     ShipFactorySpring(
         ElementIndex pointAIndex,
-        uint32_t pointAAngle,
+        Octant pointAAngle,
         ElementIndex pointBIndex,
-        uint32_t pointBAngle)
+        Octant pointBAngle)
         : PointAIndex(pointAIndex)
         , PointAAngle(pointAAngle)
         , PointBIndex(pointBIndex)
@@ -104,7 +104,7 @@ struct ShipFactoryTriangle
     {
     }
 
-    int GetSpringOrdinal(ElementIndex spring) const
+    int FindSpringOrdinal(ElementIndex spring) const
     {
         int s = 0;
         for (; s < 3; ++s)
@@ -116,43 +116,24 @@ struct ShipFactoryTriangle
     }
 };
 
-struct ShipFactoryFloor
-{
-    ElementIndex Endpoint1Index;
-    ElementIndex Endpoint2Index;
-    NpcFloorType FloorType;
-
-    ShipFactoryFloor(
-        ElementIndex endpoint1Index,
-        ElementIndex endpoint2Index,
-        NpcFloorType floorType)
-        : Endpoint1Index(endpoint1Index)
-        , Endpoint2Index(endpoint2Index)
-        , FloorType(floorType)
-    {
-    }
-};
-
-// Utilities for navigating object's structure
-
-struct PointPair
+struct ShipFactoryPointPair
 {
     ElementIndex Endpoint1Index;
     ElementIndex Endpoint2Index;
 
-    PointPair()
+    ShipFactoryPointPair()
         : Endpoint1Index(NoneElementIndex)
         , Endpoint2Index(NoneElementIndex)
     {}
 
-    PointPair(
+    ShipFactoryPointPair(
         ElementIndex endpoint1Index,
         ElementIndex endpoint2Index)
         : Endpoint1Index(std::min(endpoint1Index, endpoint2Index))
         , Endpoint2Index(std::max(endpoint1Index, endpoint2Index))
     {}
 
-    bool operator==(PointPair const & other) const
+    bool operator==(ShipFactoryPointPair const & other) const
     {
         return this->Endpoint1Index == other.Endpoint1Index
             && this->Endpoint2Index == other.Endpoint2Index;
@@ -160,7 +141,7 @@ struct PointPair
 
     struct Hasher
     {
-        size_t operator()(PointPair const & p) const
+        size_t operator()(ShipFactoryPointPair const & p) const
         {
             return p.Endpoint1Index * 23
                 + p.Endpoint2Index;
@@ -168,4 +149,6 @@ struct PointPair
     };
 };
 
-using PointPairToIndexMap = std::unordered_map<PointPair, ElementIndex, PointPair::Hasher>;
+using ShipFactoryFloorPlan = std::unordered_map<ShipFactoryPointPair, NpcFloorType, ShipFactoryPointPair::Hasher>;
+
+using ShipFactoryPointPairToIndexMap = std::unordered_map<ShipFactoryPointPair, ElementIndex, ShipFactoryPointPair::Hasher>;

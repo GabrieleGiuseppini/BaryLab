@@ -9,15 +9,13 @@
 
 #include <GameCore/GameTypes.h>
 
-#include <vector>
-
 class ShipFloorplanizer
 {
 public:
 
 	ShipFloorplanizer() = default;
 
-	std::vector<ShipFactoryFloor> BuildFloorplan(
+	ShipFactoryFloorPlan BuildFloorplan(
 		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
 		std::vector<ShipFactoryPoint> const & pointInfos,
 		std::vector<ShipFactorySpring> const & springInfos,
@@ -33,8 +31,9 @@ private:
 		std::vector<ShipFactoryTriangle> & triangleInfos) const;
 
 	bool IsRedundantFloorSpringTriangle1(
-		ShipFactoryTriangle const & triangle,
 		ElementIndex s,
+		ShipFactorySpring const & spring,
+		ShipFactoryTriangle const & triangle,
 		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
 		std::vector<ShipFactoryPoint> const & pointInfos) const;
 
@@ -42,10 +41,17 @@ private:
 		ShipFactoryTriangle const & triangle,
 		std::vector<ShipFactoryPoint> const & pointInfos) const;
 
-	bool DoesTriangleEdgeExtendViaHullSpring(
-		int vertexOrdinal1, // Edge from 1 to 2
-		int vertexOrdinal2,
-		ShipFactoryTriangle const & triangle,
+	bool HasTriangleSteepHullExtensions(
+		ElementIndex startPoint,
+		ShipFactorySpring const & spring,
+		Octant direction,
+		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
+		std::vector<ShipFactoryPoint> const & pointInfos) const;
+
+	Octant FindNextHullSpringOctant(
+		ElementIndex startPoint,
+		Octant startOctant,
+		Octant direction,
 		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
 		std::vector<ShipFactoryPoint> const & pointInfos) const;
 

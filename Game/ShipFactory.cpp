@@ -133,7 +133,7 @@ std::unique_ptr<Physics::Ship> ShipFactory::BuildShip(
 
     ShipFloorplanizer shipFloorplanizer;
 
-    std::vector<ShipFactoryFloor> floorInfos = shipFloorplanizer.BuildFloorplan(
+    ShipFactoryFloorPlan floorPlan = shipFloorplanizer.BuildFloorplan(
         pointIndexMatrix,
         pointInfos,
         springInfos,
@@ -162,7 +162,7 @@ std::unique_ptr<Physics::Ship> ShipFactory::BuildShip(
         triangleInfos,
         points,
         springInfos,
-        floorInfos);
+        floorPlan);
 
     //
     // We're done!
@@ -468,7 +468,7 @@ void ShipFactory::ConnectSpringsToTriangles(
     // 1. Build Point Pair -> Spring table
     //
 
-    PointPairToIndexMap pointPairToSpringMap;
+    ShipFactoryPointPairToIndexMap pointPairToSpringMap;
 
     for (ElementIndex s = 0; s < springInfos.size(); ++s)
     {
@@ -565,23 +565,8 @@ Physics::Triangles ShipFactory::CreateTriangles(
     std::vector<ShipFactoryTriangle> const & triangleInfos,
     Physics::Points & points,
     std::vector<ShipFactorySpring> const & springInfos,
-    std::vector<ShipFactoryFloor> const & floorInfos)
+    ShipFactoryFloorPlan const & floorPlan)
 {
-    //
-    // Prepare floorplan: map of pairs of points that are a floor
-    //
-
-    std::unordered_map<PointPair, NpcFloorType, PointPair::Hasher> floorPointPairMap;
-    for (auto const & factoryFloor : floorInfos)
-    {
-        auto const [_, isInserted] = floorPointPairMap.try_emplace(
-            { factoryFloor.Endpoint1Index, factoryFloor.Endpoint2Index },
-            factoryFloor.FloorType);
-
-        assert(isInserted);
-        (void)isInserted;
-    }
-
     //
     // Build triangles
     //
@@ -601,7 +586,7 @@ Physics::Triangles ShipFactory::CreateTriangles(
             ElementIndex const edgePointA = springInfos[springElementIndex].PointAIndex;
             ElementIndex const edgePointB = springInfos[springElementIndex].PointBIndex;
 
-            isSealedTriangle = isSealedTriangle && (floorPointPairMap.find({ edgePointA, edgePointB }) != floorPointPairMap.end());
+            isSealedTriangle = isSealedTriangle && (floorPlan.find({ edgePointA, edgePointB }) != floorPlan.end());
         }
 
         // Calculate opposite triangles and floor types
@@ -662,8 +647,8 @@ Physics::Triangles ShipFactory::CreateTriangles(
             ElementIndex const edgePointB = springInfos[springElementIndex].PointBIndex;
 
             NpcFloorType floorType;
-            if (const auto floorIt = floorPointPairMap.find({ edgePointA, edgePointB });
-                floorIt != floorPointPairMap.cend()
+            if (const auto floorIt = floorPlan.find({ edgePointA, edgePointB });
+                floorIt != floorPlan.cend()
                 && (!isSealedTriangle || subSpringsOppositeTriangle[iEdge].first == NoneElementIndex))
             {
                 floorType = floorIt->second;

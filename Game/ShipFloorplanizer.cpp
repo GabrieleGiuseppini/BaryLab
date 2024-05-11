@@ -9,7 +9,7 @@
 
 #include <cassert>
 
-std::vector<ShipFactoryFloor> ShipFloorplanizer::BuildFloorplan(
+ShipFactoryFloorPlan ShipFloorplanizer::BuildFloorplan(
 	ShipFactoryPointIndexMatrix const & pointIndexMatrix,
 	std::vector<ShipFactoryPoint> const & pointInfos,
 	std::vector<ShipFactorySpring> const & springInfos,
@@ -23,8 +23,8 @@ std::vector<ShipFactoryFloor> ShipFloorplanizer::BuildFloorplan(
 	// will anyway be a *superset* of the floor edges
 	//
 
-	std::vector<ShipFactoryFloor> floors;
-	floors.reserve(springInfos.size());
+	ShipFactoryFloorPlan floorPlan;
+	floorPlan.reserve(springInfos.size());
 
 	//
 	// Visit all "hull springs" that derive from structure (e.g. not rope springs)
@@ -41,6 +41,11 @@ std::vector<ShipFactoryFloor> ShipFloorplanizer::BuildFloorplan(
 			// Make sure it's a "hull spring" (i.e. that both endpoints are hull)
 			if (AreBothEndpointsHull(springInfo, pointInfos))
 			{
+				if (s == 22)
+				{
+					LogMessage("HERE");
+				}
+
 				// Make sure it's not redundant
 				////// TODOTEST
 				////(void)triangleInfos;
@@ -73,16 +78,18 @@ std::vector<ShipFactoryFloor> ShipFloorplanizer::BuildFloorplan(
 						floorType = NpcFloorType::FloorPlane2;
 					}
 
-					floors.emplace_back(
-						springInfo.PointAIndex,
-						springInfo.PointBIndex,
+					auto const [_, isInserted] = floorPlan.try_emplace(
+						{ springInfo.PointAIndex, springInfo.PointBIndex },
 						floorType);
+
+					assert(isInserted);
+					(void)isInserted;
 				}
 			}
 		}
 	}
 
-	return floors;
+	return floorPlan;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -101,17 +108,17 @@ bool ShipFloorplanizer::IsRedundantFloorSpring(
 	//	- It's connected to two triangles
 	//	- One of the two triangles (T):
 	//		- Has all hull sides
-	//		- The other two sides (other than S) "continue" (to Psa' and Psb') via hull springs
+	//		- From both of the two vertices of S we encounter (in CW or CCW order, depending on vertex) hull springs at "steep" slopes (delta octant neither 4 nor 5)
 	//	- The other triangle (T'):
 	//		- Has no hull sides (other than S)
 	//
-	//                  Psb`
-	//                   |
-	//                   |
-	//                   |
+	//                  Psb`    /Psb'
+	//                   |    /
+	//                   |  /
+	//                   |/
 	//           Pc-----Psb
 	//           | T'   /|
-	//           |    /  |
+	//           |   S/  |
 	//           |  /    |
 	//	         |/   T  |
 	// Psa'-----Psa------Ps
@@ -130,12 +137,12 @@ bool ShipFloorplanizer::IsRedundantFloorSpring(
 
 	// The two triangles meet the criteria
 	if ((
-			IsRedundantFloorSpringTriangle1(triangleInfos[springInfo.Triangles[0]], s, pointIndexMatrix, pointInfos)
+			IsRedundantFloorSpringTriangle1(s, springInfo, triangleInfos[springInfo.Triangles[0]], pointIndexMatrix, pointInfos)
 			&& IsRedundantFloorSpringTriangle2(triangleInfos[springInfo.Triangles[1]], pointInfos)
 		)
 		||
 		(
-			IsRedundantFloorSpringTriangle1(triangleInfos[springInfo.Triangles[1]], s, pointIndexMatrix, pointInfos)
+			IsRedundantFloorSpringTriangle1(s, springInfo, triangleInfos[springInfo.Triangles[1]], pointIndexMatrix, pointInfos)
 			&& IsRedundantFloorSpringTriangle2(triangleInfos[springInfo.Triangles[0]], pointInfos)
 		))
 	{
@@ -146,8 +153,9 @@ bool ShipFloorplanizer::IsRedundantFloorSpring(
 }
 
 bool ShipFloorplanizer::IsRedundantFloorSpringTriangle1(
-	ShipFactoryTriangle const & triangle,
 	ElementIndex s,
+	ShipFactorySpring const & spring,
+	ShipFactoryTriangle const & triangle,
 	ShipFactoryPointIndexMatrix const & pointIndexMatrix,
 	std::vector<ShipFactoryPoint> const & pointInfos) const
 {
@@ -162,31 +170,33 @@ bool ShipFloorplanizer::IsRedundantFloorSpringTriangle1(
 		return false;
 	}
 
-	//	- The other two sides (other than S) "continue" (to Psa' and Psb') via hull springs
+	// - From both of the two vertices of S we encounter(in CW or CCW order, depending on vertex) hull springs at "steep" slopes(delta octant neither 4 nor 5)
 
-	int const sOrdinal = triangle.GetSpringOrdinal(s);
-	int const psVertexOrdinal = (sOrdinal + 2) % 3;
+	int const sOrdinal = triangle.FindSpringOrdinal(s);
 
-	if (!DoesTriangleEdgeExtendViaHullSpring(
-		psVertexOrdinal,
-		(sOrdinal + 1) % 3, // Psb
-		triangle,
+	if (!HasTriangleSteepHullExtensions(
+		triangle.PointIndices[sOrdinal], // Psa
+		spring,
+		7, // CCW
 		pointIndexMatrix,
 		pointInfos))
 	{
+		// One smooth path
 		return false;
 	}
 
-	if (!DoesTriangleEdgeExtendViaHullSpring(
-		psVertexOrdinal,
-		sOrdinal, // Psa
-		triangle,
+	if (!HasTriangleSteepHullExtensions(
+		triangle.PointIndices[(sOrdinal + 1) % 3], // Psb
+		spring,
+		1, // CW
 		pointIndexMatrix,
 		pointInfos))
 	{
+		// One smooth path
 		return false;
 	}
 
+	// No smooth paths
 	return true;
 }
 
@@ -201,27 +211,59 @@ bool ShipFloorplanizer::IsRedundantFloorSpringTriangle2(
 	return hullSideCount == 1;
 }
 
-bool ShipFloorplanizer::DoesTriangleEdgeExtendViaHullSpring(
-	int vertexOrdinal1,
-	int vertexOrdinal2,
-	ShipFactoryTriangle const & triangle,
+bool ShipFloorplanizer::HasTriangleSteepHullExtensions(
+	ElementIndex startPoint,
+	ShipFactorySpring const & spring,
+	Octant direction,
 	ShipFactoryPointIndexMatrix const & pointIndexMatrix,
 	std::vector<ShipFactoryPoint> const & pointInfos) const
 {
-	ElementIndex p1 = triangle.PointIndices[vertexOrdinal1];
-	assert(pointInfos[p1].DefinitionCoordinates.has_value());
+	Octant startOctant;
+	if (startPoint == spring.PointAIndex)
+	{
+		startOctant = spring.PointAAngle;
+	}
+	else
+	{
+		assert(startPoint == spring.PointBIndex);
+		startOctant = spring.PointBAngle;
+	}
 
-	ElementIndex p2 = triangle.PointIndices[vertexOrdinal2];
-	assert(pointInfos[p2].DefinitionCoordinates.has_value());
+	Octant const deltaOctant = FindNextHullSpringOctant(
+		startPoint,
+		startOctant,
+		direction,
+		pointIndexMatrix,
+		pointInfos);
 
-	ShipSpaceCoordinates const targetP =
-		*(pointInfos[p2].DefinitionCoordinates)
-		+ (*(pointInfos[p2].DefinitionCoordinates) - *(pointInfos[p1].DefinitionCoordinates));
+	return deltaOctant != 4 && deltaOctant != 5;
+}
 
-	auto const extensionP = pointIndexMatrix[{targetP.x + 1, targetP.y + 1}];
-	return
-		extensionP.has_value()
-		&& pointInfos[*extensionP].Material.IsHull;
+Octant ShipFloorplanizer::FindNextHullSpringOctant(
+	ElementIndex startPoint,
+	Octant startOctant,
+	Octant direction,
+	ShipFactoryPointIndexMatrix const & pointIndexMatrix,
+	std::vector<ShipFactoryPoint> const & pointInfos) const
+{
+	assert(pointInfos[startPoint].DefinitionCoordinates.has_value());
+	auto const startCoords = *(pointInfos[startPoint].DefinitionCoordinates);
+	Octant distanceOctant = 1;
+	Octant deltaOctant = direction;
+	for (; ; deltaOctant = (deltaOctant + direction) % 8, ++distanceOctant)
+	{
+		auto const destCoords = vec2i(
+			startCoords.x + 1 + TessellationCircularOrderDirections[(startOctant + deltaOctant) % 8][0],
+			startCoords.y + 1 + TessellationCircularOrderDirections[(startOctant + deltaOctant) % 8][1]);
+		if (pointIndexMatrix[destCoords].has_value()
+			&& pointInfos[*pointIndexMatrix[destCoords]].Material.IsHull)
+		{
+			// Found hull spring
+			break;
+		}
+	}
+
+	return distanceOctant;
 }
 
 size_t ShipFloorplanizer::CountTriangleHullSides(
