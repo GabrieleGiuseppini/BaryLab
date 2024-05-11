@@ -651,7 +651,7 @@ Physics::Triangles ShipFactory::CreateTriangles(
                 floorIt != floorPlan.cend()
                 && (!isSealedTriangle || subSpringsOppositeTriangle[iEdge].first == NoneElementIndex))
             {
-                floorType = floorIt->second;
+                floorType = floorIt->second.FloorType;
             }
             else
             {

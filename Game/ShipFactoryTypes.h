@@ -116,6 +116,19 @@ struct ShipFactoryTriangle
     }
 };
 
+struct ShipFactoryFloorInfo
+{
+    NpcFloorType FloorType;
+    ElementIndex SpringIndex;
+
+    ShipFactoryFloorInfo(
+        NpcFloorType floorType,
+        ElementIndex springIndex)
+        : FloorType(floorType)
+        , SpringIndex(springIndex)
+    {}
+};
+
 struct ShipFactoryPointPair
 {
     ElementIndex Endpoint1Index;
@@ -149,6 +162,6 @@ struct ShipFactoryPointPair
     };
 };
 
-using ShipFactoryFloorPlan = std::unordered_map<ShipFactoryPointPair, NpcFloorType, ShipFactoryPointPair::Hasher>;
-
 using ShipFactoryPointPairToIndexMap = std::unordered_map<ShipFactoryPointPair, ElementIndex, ShipFactoryPointPair::Hasher>;
+
+using ShipFactoryFloorPlan = std::unordered_map<ShipFactoryPointPair, ShipFactoryFloorInfo, ShipFactoryPointPair::Hasher>;

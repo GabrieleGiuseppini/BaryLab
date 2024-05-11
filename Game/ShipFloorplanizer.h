@@ -23,8 +23,16 @@ public:
 
 private:
 
+	ShipFactoryFloorPlan RemoveRedundantFloors(
+		ShipFactoryFloorPlan && hullSprings,
+		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
+		std::vector<ShipFactoryPoint> const & pointInfos,
+		std::vector<ShipFactorySpring> const & springInfos,
+		std::vector<ShipFactoryTriangle> & triangleInfos) const;
+
 	bool IsRedundantFloorSpring(
 		ElementIndex s,
+		ShipFactoryFloorPlan const & hullSprings,
 		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
 		std::vector<ShipFactoryPoint> const & pointInfos,
 		std::vector<ShipFactorySpring> const & springInfos,
@@ -34,17 +42,19 @@ private:
 		ElementIndex s,
 		ShipFactorySpring const & spring,
 		ShipFactoryTriangle const & triangle,
+		ShipFactoryFloorPlan const & hullSprings,
 		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
 		std::vector<ShipFactoryPoint> const & pointInfos) const;
 
 	bool IsRedundantFloorSpringTriangle2(
 		ShipFactoryTriangle const & triangle,
-		std::vector<ShipFactoryPoint> const & pointInfos) const;
+		ShipFactoryFloorPlan const & hullSprings) const;
 
 	bool HasTriangleSteepHullExtensions(
 		ElementIndex startPoint,
 		ShipFactorySpring const & spring,
 		Octant direction,
+		ShipFactoryFloorPlan const & hullSprings,
 		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
 		std::vector<ShipFactoryPoint> const & pointInfos) const;
 
@@ -52,14 +62,11 @@ private:
 		ElementIndex startPoint,
 		Octant startOctant,
 		Octant direction,
+		ShipFactoryFloorPlan const & hullSprings,
 		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
 		std::vector<ShipFactoryPoint> const & pointInfos) const;
 
 	size_t CountTriangleHullSides(
 		ShipFactoryTriangle const & triangle,
-		std::vector<ShipFactoryPoint> const & pointInfos) const;
-
-	bool AreBothEndpointsHull(
-		ShipFactorySpring const & spring,
-		std::vector<ShipFactoryPoint> const & pointInfos) const;
+		ShipFactoryFloorPlan const & hullSprings) const;
 };
