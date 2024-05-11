@@ -329,18 +329,16 @@ Octant ShipFloorplanizer::FindNextHullSpringOctant(
 	ShipFactoryPointIndexMatrix const & pointIndexMatrix,
 	std::vector<ShipFactoryPoint> const & pointInfos) const
 {
-	// TODOHERE: cleanup
 	assert(pointInfos[startPoint].DefinitionCoordinates.has_value());
 	auto const startCoords = *(pointInfos[startPoint].DefinitionCoordinates);
 	Octant distanceOctant = 1;
-	Octant deltaOctant = direction;
-	for (; ; deltaOctant = (deltaOctant + direction) % 8, ++distanceOctant)
+	for (Octant octant = (startOctant + direction) % 8; ; octant = (octant + direction) % 8, ++distanceOctant)
 	{
 		auto const destCoords = vec2i(
-			startCoords.x + 1 + TessellationCircularOrderDirections[(startOctant + deltaOctant) % 8][0],
-			startCoords.y + 1 + TessellationCircularOrderDirections[(startOctant + deltaOctant) % 8][1]);
+			startCoords.x + 1 + TessellationCircularOrderDirections[octant][0],
+			startCoords.y + 1 + TessellationCircularOrderDirections[octant][1]);
 		if (pointIndexMatrix[destCoords].has_value()
-			&& hullSprings.count({startPoint, *pointIndexMatrix[destCoords] }) > 0)
+			&& hullSprings.count({ startPoint, *pointIndexMatrix[destCoords] }) > 0)
 		{
 			// Found hull spring
 			break;
