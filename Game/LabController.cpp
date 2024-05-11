@@ -180,13 +180,22 @@ void LabController::Render()
 
         mRenderContext->UploadEdgesStart();
 
-        auto const colorChooser = [](NpcFloorType floorType) -> rgbaColor
+        auto const colorChooser = [&](ElementIndex t, int e) -> rgbaColor
             {
+                NpcFloorType floorType = triangles.GetSubSpringNpcFloorType(t, e);
                 switch (floorType)
                 {
                     case NpcFloorType::Open:
                     {
-                        return { 0xba, 0xba, 0xba, 0xa0 };
+                        if (points.GetMaterial(springs.GetEndpointAIndex(triangles.GetSubSprings(t).SpringIndices[e]))->IsHull
+                            && points.GetMaterial(springs.GetEndpointBIndex(triangles.GetSubSprings(t).SpringIndices[e]))->IsHull)
+                        {
+                            return { 0x6a, 0x6a, 0x6a, 0x80 };
+                        }
+                        else
+                        {
+                            return { 0xca, 0xca, 0xca, 0xc0 };
+                        }
                     }
 
                     case NpcFloorType::FloorPlane1:
@@ -208,7 +217,7 @@ void LabController::Render()
 
         for (auto t : triangles)
         {
-            rgbaColor color = colorChooser(triangles.GetSubSpringNpcFloorType(t, 0));
+            rgbaColor color = colorChooser(t, 0);
             float thicknessAdjustment = triangles.GetSubSpringNpcFloorType(t, 0) == NpcFloorType::Open ? 1.0f : FloorThicknessAdjustment;
             if (mWorld->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringAIndex(t)))
             {
@@ -220,7 +229,7 @@ void LabController::Render()
                 color,
                 thicknessAdjustment);
 
-            color = colorChooser(triangles.GetSubSpringNpcFloorType(t, 1));
+            color = colorChooser(t, 1);
             thicknessAdjustment = triangles.GetSubSpringNpcFloorType(t, 1) == NpcFloorType::Open ? 1.0f : FloorThicknessAdjustment;
             if (mWorld->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringBIndex(t)))
             {
@@ -232,7 +241,7 @@ void LabController::Render()
                 color,
                 thicknessAdjustment);
 
-            color = colorChooser(triangles.GetSubSpringNpcFloorType(t, 2));
+            color = colorChooser(t, 2);
             thicknessAdjustment = triangles.GetSubSpringNpcFloorType(t, 2) == NpcFloorType::Open ? 1.0f : FloorThicknessAdjustment;
             if (mWorld->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringCIndex(t)))
             {

@@ -6,6 +6,7 @@
 #pragma once
 
 #include "GameParameters.h"
+#include "Materials.h"
 #include "Physics.h"
 
 #include <GameCore/AABB.h>
@@ -108,6 +109,7 @@ public:
         // Buffers
         //////////////////////////////////
         , mPositionBuffer(mBufferElementCount, pointCount, vec2f::zero())
+        , mMaterialBuffer(mBufferElementCount, pointCount, nullptr)
         , mConnectedSpringsBuffer(mBufferElementCount, pointCount, ConnectedSpringsVector())
         , mConnectedTrianglesBuffer(mBufferElementCount, pointCount, ConnectedTrianglesVector())
     {
@@ -115,7 +117,9 @@ public:
 
     Points(Points && other) = default;
 
-    void Add(vec2f const & position);
+    void Add(
+        vec2f const & position,
+        StructuralMaterial const * material);
 
     AABB GetAABB() const
     {
@@ -154,6 +158,11 @@ public:
         vec2f const & value) noexcept
     {
         mPositionBuffer[pointElementIndex] = value;
+    }
+
+    StructuralMaterial const * GetMaterial(ElementIndex pointElementIndex) const noexcept
+    {
+        return mMaterialBuffer[pointElementIndex];
     }
 
     PlaneId GetPlaneId(ElementIndex /*pointElementIndex*/) const
@@ -207,6 +216,7 @@ public:
 private:
 
     Buffer<vec2f> mPositionBuffer;
+    Buffer<StructuralMaterial const *> mMaterialBuffer;
     Buffer<ConnectedSpringsVector> mConnectedSpringsBuffer;
     Buffer<ConnectedTrianglesVector> mConnectedTrianglesBuffer;
 };

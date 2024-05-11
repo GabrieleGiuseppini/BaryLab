@@ -525,7 +525,8 @@ Physics::Points ShipFactory::CreatePoints(
         //
 
         points.Add(
-            pointInfo.Position);
+            pointInfo.Position,
+            &pointInfo.Material);
     }
 
     return points;

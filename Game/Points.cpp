@@ -11,9 +11,12 @@
 
 namespace Physics {
 
-void Points::Add(vec2f const & position)
+void Points::Add(
+    vec2f const & position,
+    StructuralMaterial const * material)
 {
     mPositionBuffer.emplace_back(position);
+    mMaterialBuffer.emplace_back(material);
     mConnectedSpringsBuffer.emplace_back();
     mConnectedTrianglesBuffer.emplace_back();
 }
