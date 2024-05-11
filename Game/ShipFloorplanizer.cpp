@@ -74,6 +74,11 @@ ShipFactoryFloorPlan ShipFloorplanizer::BuildFloorplan(
 		}
 	}
 
+	////// TODOTEST
+	////(void)pointIndexMatrix;
+	////(void)triangleInfos;
+	////return hullSprings;
+
 	//
 	// 2. Do a first pass removing redundant springs
 	//
@@ -182,7 +187,7 @@ bool ShipFloorplanizer::IsRedundantFloorSpring(
 	//		- Has all hull sides
 	//		- From both of the two vertices of S we encounter (in CW or CCW order, depending on vertex) hull springs at "steep" slopes (delta octant neither 4 nor 5)
 	//	- The other triangle (T'):
-	//		- Has no hull sides (other than S)
+	//		- Has at least one non-hull side (at least one is open) (obviously not S)
 	//
 	//                  Psb`    /Psb'
 	//                   |    /
@@ -283,7 +288,7 @@ bool ShipFloorplanizer::IsRedundantFloorSpringTriangle2(
 
 	size_t hullSideCount = CountTriangleHullSides(triangle, hullSprings);
 	assert(hullSideCount >= 1 && hullSideCount <= 3);
-	return hullSideCount == 1;
+	return hullSideCount != 3;
 }
 
 bool ShipFloorplanizer::HasTriangleSteepHullExtensions(
