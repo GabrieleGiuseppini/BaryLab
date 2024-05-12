@@ -180,8 +180,10 @@ void LabController::Render()
 
         mRenderContext->UploadEdgesStart();
 
-        auto const colorChooser = [&](ElementIndex t, int e) -> rgbaColor
+        auto const colorChooser = [&](ElementIndex t, int e) -> std::tuple<rgbaColor, float>
             {
+                float constexpr FloorThicknessAdjustment = 3.0f;
+
                 NpcFloorType floorType = triangles.GetSubSpringNpcFloorType(t, e);
                 switch (floorType)
                 {
@@ -190,68 +192,69 @@ void LabController::Render()
                         if (points.GetMaterial(springs.GetEndpointAIndex(triangles.GetSubSprings(t).SpringIndices[e]))->IsHull
                             && points.GetMaterial(springs.GetEndpointBIndex(triangles.GetSubSprings(t).SpringIndices[e]))->IsHull)
                         {
-                            return { 0x6a, 0x6a, 0x6a, 0x80 };
+                            return { { 0x6a, 0x6a, 0x6a, 0x80 }, 1.5f };
                         }
                         else
                         {
-                            return { 0xca, 0xca, 0xca, 0xc0 };
+                            return { { 0xca, 0xca, 0xca, 0xc0 }, 1.0f };
                         }
                     }
 
                     case NpcFloorType::FloorPlane1:
                     {
-                        return { 0x12, 0x1b, 0x54, 0xff };
+                        return { { 0x12, 0x1b, 0x54, 0xff }, FloorThicknessAdjustment };
                     }
 
                     case NpcFloorType::FloorPlane2:
                     {
-                        return { 0x12, 0x54, 0x1b, 0xff };
+                        return { { 0x12, 0x54, 0x1b, 0xff }, FloorThicknessAdjustment };
                     }
                 }
 
                 assert(false);
-                return { 0x00, 0x00, 0x00, 0xff };
+                return {{ 0x00, 0x00, 0x00, 0xff }, 0.0f};
             };
-
-        float constexpr FloorThicknessAdjustment = 3.0f;
 
         for (auto t : triangles)
         {
-            rgbaColor color = colorChooser(t, 0);
-            float thicknessAdjustment = triangles.GetSubSpringNpcFloorType(t, 0) == NpcFloorType::Open ? 1.0f : FloorThicknessAdjustment;
-            if (mWorld->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringAIndex(t)))
             {
-                color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
+                auto [color, thicknessAdjustment] = colorChooser(t, 0);
+                if (mWorld->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringAIndex(t)))
+                {
+                    color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
+                }
+                mRenderContext->UploadEdge(
+                    points.GetPosition(triangles.GetPointAIndex(t)),
+                    points.GetPosition(triangles.GetPointBIndex(t)),
+                    color,
+                    thicknessAdjustment);
             }
-            mRenderContext->UploadEdge(
-                points.GetPosition(triangles.GetPointAIndex(t)),
-                points.GetPosition(triangles.GetPointBIndex(t)),
-                color,
-                thicknessAdjustment);
 
-            color = colorChooser(t, 1);
-            thicknessAdjustment = triangles.GetSubSpringNpcFloorType(t, 1) == NpcFloorType::Open ? 1.0f : FloorThicknessAdjustment;
-            if (mWorld->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringBIndex(t)))
             {
-                color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
+                auto [color, thicknessAdjustment] = colorChooser(t, 1);
+                if (mWorld->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringBIndex(t)))
+                {
+                    color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
+                }
+                mRenderContext->UploadEdge(
+                    points.GetPosition(triangles.GetPointBIndex(t)),
+                    points.GetPosition(triangles.GetPointCIndex(t)),
+                    color,
+                    thicknessAdjustment);
             }
-            mRenderContext->UploadEdge(
-                points.GetPosition(triangles.GetPointBIndex(t)),
-                points.GetPosition(triangles.GetPointCIndex(t)),
-                color,
-                thicknessAdjustment);
 
-            color = colorChooser(t, 2);
-            thicknessAdjustment = triangles.GetSubSpringNpcFloorType(t, 2) == NpcFloorType::Open ? 1.0f : FloorThicknessAdjustment;
-            if (mWorld->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringCIndex(t)))
             {
-                color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
+                auto [color, thicknessAdjustment] = colorChooser(t, 2);
+                if (mWorld->GetNpcs().IsSpringHostingCurrentlySelectedParticle(triangles.GetSubSpringCIndex(t)))
+                {
+                    color.r = static_cast<rgbaColor::data_type>(std::min(color.r + 0x90, static_cast<int>(rgbaColor::data_type_max)));
+                }
+                mRenderContext->UploadEdge(
+                    points.GetPosition(triangles.GetPointCIndex(t)),
+                    points.GetPosition(triangles.GetPointAIndex(t)),
+                    color,
+                    thicknessAdjustment);
             }
-            mRenderContext->UploadEdge(
-                points.GetPosition(triangles.GetPointCIndex(t)),
-                points.GetPosition(triangles.GetPointAIndex(t)),
-                color,
-                thicknessAdjustment);
         }
 
         mRenderContext->UploadEdgesEnd();

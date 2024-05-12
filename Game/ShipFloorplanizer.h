@@ -21,7 +21,33 @@ public:
 		std::vector<ShipFactorySpring> const & springInfos,
 		std::vector<ShipFactoryTriangle> & triangleInfos) const;
 
+	ShipFactoryFloorPlan BuildFloorplan_Old(
+		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
+		std::vector<ShipFactoryPoint> const & pointInfos,
+		std::vector<ShipFactorySpring> const & springInfos,
+		std::vector<ShipFactoryTriangle> & triangleInfos) const;
+
 private:
+
+	bool IsSealedTriangle(
+		ElementIndex t,
+		std::vector<ShipFactoryPoint> const & pointInfos,
+		std::vector<ShipFactoryTriangle> & triangleInfos) const;
+
+	bool IsIsolatedFloor(
+		ShipFactorySpring const & spring,
+		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
+		std::vector<ShipFactoryPoint> const & pointInfos,
+		ShipFactoryFloorPlan const & hullSprings) const;
+
+	bool DoesFloorContinue(
+		ElementIndex pointIndex,
+		Octant direction,
+		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
+		std::vector<ShipFactoryPoint> const & pointInfos,
+		ShipFactoryFloorPlan const & hullSprings) const;
+
+	// TODOOLD
 
 	ShipFactoryFloorPlan RemoveRedundantFloors(
 		ShipFactoryFloorPlan && hullSprings,
