@@ -29,6 +29,7 @@ public:
 
 private:
 
+	// TODO:needed?
 	bool IsSealedTriangle(
 		ElementIndex t,
 		std::vector<ShipFactoryPoint> const & pointInfos,
@@ -37,15 +38,13 @@ private:
 	bool IsIsolatedFloor(
 		ShipFactorySpring const & spring,
 		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
-		std::vector<ShipFactoryPoint> const & pointInfos,
-		ShipFactoryFloorPlan const & hullSprings) const;
+		std::vector<ShipFactoryPoint> const & pointInfos) const;
 
 	bool DoesFloorContinue(
 		ElementIndex pointIndex,
 		Octant direction,
 		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
-		std::vector<ShipFactoryPoint> const & pointInfos,
-		ShipFactoryFloorPlan const & hullSprings) const;
+		std::vector<ShipFactoryPoint> const & pointInfos) const;
 
 	// TODOOLD
 
