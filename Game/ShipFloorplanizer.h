@@ -36,15 +36,48 @@ private:
 		std::vector<ShipFactoryTriangle> & triangleInfos) const;
 
 	bool IsIsolatedFloor(
-		ShipFactorySpring const & spring,
-		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
-		std::vector<ShipFactoryPoint> const & pointInfos) const;
+		ShipFactorySpring const & springInfo,
+		std::vector<ShipFactoryPoint> const & pointInfos,
+		std::vector<ShipFactorySpring> const & springInfos,
+		std::vector<ShipFactoryTriangle> & triangleInfos) const;
 
 	bool DoesFloorContinue(
 		ElementIndex pointIndex,
 		Octant direction,
-		ShipFactoryPointIndexMatrix const & pointIndexMatrix,
+		std::vector<ShipFactoryPoint> const & pointInfos,
+		std::vector<ShipFactorySpring> const & springInfos,
+		std::vector<ShipFactoryTriangle> & triangleInfos) const;
+
+	bool IsFloorTwiceIncidentOnLongFloors(
+		ShipFactorySpring const & springInfo,
+		ElementIndex springIndex,
+		std::vector<ShipFactoryPoint> const & pointInfos,
+		std::vector<ShipFactorySpring> const & springInfos,
+		std::vector<ShipFactoryTriangle> & triangleInfos) const;
+
+	bool IsFloorIncidentOnLongFloors(
+		ElementIndex endpointIndex,
+		ElementIndex floorSpringIndex,
+		std::vector<ShipFactoryPoint> const & pointInfos,
+		std::vector<ShipFactorySpring> const & springInfos,
+		std::vector<ShipFactoryTriangle> & triangleInfos) const;
+
+	std::optional<ElementIndex> FindSpringAtPointAndDirection(
+		ElementIndex pointIndex,
+		Octant direction,
+		std::vector<ShipFactoryPoint> const & pointInfos,
+		std::vector<ShipFactorySpring> const & springInfos) const;
+
+	bool IsSpringViableForFloor(
+		ShipFactorySpring const & springInfo,
+		std::vector<ShipFactoryPoint> const & pointInfos,
+		std::vector<ShipFactoryTriangle> & triangleInfos) const;
+
+	bool IsSpringEndpointViableForFloor(
+		ElementIndex pointIndex,
+		ShipFactorySpring const & springInfo,
 		std::vector<ShipFactoryPoint> const & pointInfos) const;
+
 
 	// TODOOLD
 

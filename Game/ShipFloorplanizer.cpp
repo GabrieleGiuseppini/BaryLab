@@ -5,6 +5,8 @@
  ***************************************************************************************/
 #include "ShipFloorplanizer.h"
 
+#include "GameParameters.h"
+
 #include <GameCore/Log.h>
 
 #include <cassert>
@@ -20,7 +22,8 @@ ShipFactoryFloorPlan ShipFloorplanizer::BuildFloorplan(
 	//	- All and only "hull" springs - directly derived from structure - which are on the side of a triangle
 	//	AND is NOT:
 	//	- One single spring long (i.e. there is nothing before or after them along their exact direction), and
-	//	- // TODOHERE
+	//	- Incident on "long" floors (i.e. with two aligned floors on both sides of both endpoints)
+	//		- So we keep traverse one-spring in U patterns
 	//
 
 	ShipFactoryFloorPlan floorPlan;
@@ -30,63 +33,56 @@ ShipFactoryFloorPlan ShipFloorplanizer::BuildFloorplan(
 	{
 		auto const & springInfo = springInfos[s];
 
-		////// TODOTEST
-		////if (s == 406)
-		////	LogMessage("TODOTEST");
+		// TODOTEST
+		if (s == 23)
+			LogMessage("TODOTEST");
 
-		// Make sure it derives from structure
-		if (pointInfos[springInfo.PointAIndex].DefinitionCoordinates.has_value()
-			&& pointInfos[springInfo.PointBIndex].DefinitionCoordinates.has_value())
+		// Make sure it's viable as a floor
+		if (IsSpringViableForFloor(springInfo, pointInfos, triangleInfos))
 		{
-			// Make sure it's a "hull spring" (i.e. that both endpoints are hull)
-			// and that it's the side of a triangle
-			if (pointInfos[springInfo.PointAIndex].Material.IsHull
-				&& pointInfos[springInfo.PointBIndex].Material.IsHull
-				&& springInfo.Triangles.size() > 0) // If it has at least one triangle, it's the side of a triangle
+			// Make sure it's not a one-spring floor, and if it is,
+			// it's not incident on long floors
+			if (!IsIsolatedFloor(springInfo, pointInfos, springInfos, triangleInfos)
+				|| !IsFloorTwiceIncidentOnLongFloors(springInfo, static_cast<ElementIndex>(s), pointInfos, springInfos, triangleInfos))
 			{
-				// Make sure it's not a one-spring floor, and if it is, it's not TODOHERE: other condition
-				if (!IsIsolatedFloor(springInfo, pointIndexMatrix, pointInfos))
-					// TODOHERE: other condition
+				//
+				// Take this hull spring
+				//
+
+				NpcFloorType floorType;
+				if (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x == pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x)
 				{
-					//
-					// Take this hull spring
-					//
-
-					NpcFloorType floorType;
-					if (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x == pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x)
-					{
-						// Horizontal
-						assert(std::abs(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y) == 1);
-						floorType = NpcFloorType::FloorPlane1;
-					}
-					else if (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y == pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y)
-					{
-						// Vertical
-						assert(std::abs(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == 1);
-						floorType = NpcFloorType::FloorPlane1;
-					}
-					else
-					{
-						// Diagonal
-						assert(std::abs(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == 1);
-						assert(std::abs(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y) == 1);
-						floorType = NpcFloorType::FloorPlane2;
-					}
-
-					auto const [_, isInserted] = floorPlan.try_emplace(
-						{ springInfo.PointAIndex, springInfo.PointBIndex },
-						floorType,
-						static_cast<ElementIndex>(s));
-
-					assert(isInserted);
-					(void)isInserted;
+					// Horizontal
+					assert(std::abs(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y) == 1);
+					floorType = NpcFloorType::FloorPlane1;
 				}
+				else if (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y == pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y)
+				{
+					// Vertical
+					assert(std::abs(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == 1);
+					floorType = NpcFloorType::FloorPlane1;
+				}
+				else
+				{
+					// Diagonal
+					assert(std::abs(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == 1);
+					assert(std::abs(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y) == 1);
+					floorType = NpcFloorType::FloorPlane2;
+				}
+
+				auto const [_, isInserted] = floorPlan.try_emplace(
+					{ springInfo.PointAIndex, springInfo.PointBIndex },
+					floorType,
+					static_cast<ElementIndex>(s));
+
+				assert(isInserted);
+				(void)isInserted;
 			}
 		}
 	}
 
 	// TODOTEST
-	(void)triangleInfos;
+	(void)pointIndexMatrix;
 
 	return floorPlan;
 }
@@ -112,27 +108,32 @@ bool ShipFloorplanizer::IsSealedTriangle(
 
 bool ShipFloorplanizer::IsIsolatedFloor(
 	ShipFactorySpring const & spring,
-	ShipFactoryPointIndexMatrix const & pointIndexMatrix,
-	std::vector<ShipFactoryPoint> const & pointInfos) const
+	std::vector<ShipFactoryPoint> const & pointInfos,
+	std::vector<ShipFactorySpring> const & springInfos,
+	std::vector<ShipFactoryTriangle> & triangleInfos) const
 {
 	//
 	// Check whether it's a one-long floor
 	//
 
+	// Before A
 	if (DoesFloorContinue(
 		spring.PointAIndex,
 		spring.PointBAngle,
-		pointIndexMatrix,
-		pointInfos))
+		pointInfos,
+		springInfos,
+		triangleInfos))
 	{
 		return false;
 	}
 
+	// After B
 	if (DoesFloorContinue(
 		spring.PointBIndex,
 		spring.PointAAngle,
-		pointIndexMatrix,
-		pointInfos))
+		pointInfos,
+		springInfos,
+		triangleInfos))
 	{
 		return false;
 	}
@@ -143,29 +144,244 @@ bool ShipFloorplanizer::IsIsolatedFloor(
 bool ShipFloorplanizer::DoesFloorContinue(
 	ElementIndex pointIndex,
 	Octant direction,
-	ShipFactoryPointIndexMatrix const & pointIndexMatrix,
-	std::vector<ShipFactoryPoint> const & pointInfos) const
+	std::vector<ShipFactoryPoint> const & pointInfos,
+	std::vector<ShipFactorySpring> const & springInfos,
+	std::vector<ShipFactoryTriangle> & triangleInfos) const
 {
 	//
-	// Check whether the springs continues from the specified point in the specified direction
+	// Check whether the spring continues from the specified point in the specified direction
 	//
 
 	assert(pointInfos[pointIndex].DefinitionCoordinates.has_value());
 	assert(pointInfos[pointIndex].Material.IsHull);
 
-	auto const pointCoords = vec2i(pointInfos[pointIndex].DefinitionCoordinates->x, pointInfos[pointIndex].DefinitionCoordinates->y);
-	auto const targetCoords = pointCoords + vec2i(TessellationCircularOrderDirections[direction][0], TessellationCircularOrderDirections[direction][1]);
-	if (pointIndexMatrix[{targetCoords.x + 1, targetCoords.y + 1}].has_value()) // Does point exist?
+	// Check whether there is a spring in the specified direction
+	auto const floorContinuationSpring = FindSpringAtPointAndDirection(
+		pointIndex,
+		direction,
+		pointInfos,
+		springInfos);
+
+	if (!floorContinuationSpring.has_value())
 	{
-		ElementIndex const targetPointIndex = *pointIndexMatrix[{targetCoords.x + 1, targetCoords.y + 1}];
-		if (pointInfos[targetPointIndex].DefinitionCoordinates.has_value() // Is point derived directly from structure?
-			&& pointInfos[targetPointIndex].Material.IsHull) // Is point hull?
+		return false;
+	}
+
+	// Check whether this spring we've found is a viable spring
+	if (!IsSpringViableForFloor(
+			springInfos[*floorContinuationSpring],
+			pointInfos,
+			triangleInfos))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool ShipFloorplanizer::IsFloorTwiceIncidentOnLongFloors(
+	ShipFactorySpring const & springInfo,
+	ElementIndex springIndex,
+	std::vector<ShipFactoryPoint> const & pointInfos,
+	std::vector<ShipFactorySpring> const & springInfos,
+	std::vector<ShipFactoryTriangle> & triangleInfos) const
+{
+	if (!IsFloorIncidentOnLongFloors(
+		springInfo.PointAIndex,
+		springIndex,
+		pointInfos,
+		springInfos,
+		triangleInfos))
+	{
+		return false;
+	}
+
+	if (!IsFloorIncidentOnLongFloors(
+		springInfo.PointBIndex,
+		springIndex,
+		pointInfos,
+		springInfos,
+		triangleInfos))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool ShipFloorplanizer::IsFloorIncidentOnLongFloors(
+	ElementIndex endpointIndex,
+	ElementIndex floorSpringIndex,
+	std::vector<ShipFactoryPoint> const & pointInfos,
+	std::vector<ShipFactorySpring> const & springInfos,
+	std::vector<ShipFactoryTriangle> & triangleInfos) const
+{
+	assert(pointInfos[endpointIndex].DefinitionCoordinates.has_value());
+	assert(pointInfos[endpointIndex].Material.IsHull);
+
+	// Find all other floors incident to this point
+	ElementIndex otherFloorSprings[GameParameters::MaxSpringsPerPoint];
+	int floorSpringCount = 0;
+	for (auto const s : pointInfos[endpointIndex].ConnectedSprings)
+	{
+		if (s != floorSpringIndex
+			&& IsSpringViableForFloor(springInfos[s], pointInfos, triangleInfos))
 		{
-			return true;
+			otherFloorSprings[floorSpringCount] = s;
+			++floorSpringCount;
 		}
 	}
 
-	return false;
+	// A bit fuzzy here: at this moment we consider floors that are incident *ONLY* to
+	// a long floor (thus with only 2 hull springs connected to the endpoint)
+	if (floorSpringCount != 2)
+	{
+		return false;
+	}
+
+	// Check if the second spring is in the same direction as the first spring - but
+	// on the other side of the endpoint
+
+	auto const & firstSpringInfo = springInfos[otherFloorSprings[0]];
+	Octant checkDirection;
+	if (firstSpringInfo.PointAIndex == endpointIndex)
+	{
+		checkDirection = firstSpringInfo.PointBAngle;
+	}
+	else
+	{
+		assert(firstSpringInfo.PointBIndex == endpointIndex);
+		checkDirection = firstSpringInfo.PointAAngle;
+	}
+
+	auto const & secondSpringInfo = springInfos[otherFloorSprings[1]];
+	Octant secondSpringDirection; // From the point of view of endpointIndex
+	if (secondSpringInfo.PointAIndex == endpointIndex)
+	{
+		secondSpringDirection = firstSpringInfo.PointAAngle;
+	}
+	else
+	{
+		assert(secondSpringInfo.PointBIndex == endpointIndex);
+		secondSpringDirection = firstSpringInfo.PointBAngle;
+	}
+
+	if (checkDirection != secondSpringDirection)
+	{
+		// Not aligned
+		return false;
+	}
+
+	return true;
+
+	////// TODOOLD
+	////// TODOHERE: hull springs only
+	////if (pointInfos[endpointIndex].ConnectedSprings.size() != 3
+	////	|| !IsSpringViableForFloor(springInfos[pointInfos[endpointIndex].ConnectedSprings[0]], pointInfos)
+	////	|| !IsSpringViableForFloor(springInfos[pointInfos[endpointIndex].ConnectedSprings[0]], pointInfos)
+	////{
+	////	return false;
+	////}
+
+	////// Find indices of springs that are not self
+	////int otherFloorSpringIndices[2] = { -1, -1 };
+	////for (int search = 0, target = 0; search < 3; ++search)
+	////{
+	////	if (pointInfos[endpointIndex].ConnectedSprings[search] != floorSpringIndex)
+	////	{
+	////		otherFloorSpringIndices[target] = pointInfos[endpointIndex].ConnectedSprings[search];
+	////		++target;
+	////	}
+	////}
+	////assert(otherFloorSpringIndices[0] >= 0 && otherFloorSpringIndices[1] >= 0);
+
+	////ElementIndex firstSpringOtherEndpoint;
+	////Octant secondSpringCheckDirection; // From endpointIndex
+	////ShipFactorySpring const & firstSpring = springInfos[otherFloorSpringIndices[0]];
+	////if (endpointIndex == firstSpring.PointAIndex)
+	////{
+	////	firstSpringOtherEndpoint = firstSpring.PointBIndex;
+	////	secondSpringCheckDirection = firstSpring.PointBAngle;
+	////}
+	////else
+	////{
+	////	assert(endpointIndex == firstSpring.PointBIndex);
+	////	firstSpringOtherEndpoint = firstSpring.PointAIndex;
+	////	secondSpringCheckDirection = firstSpring.PointAAngle;
+	////}
+
+	////// Make sure first spring is a floor
+	////if (!IsViableSpringEndpointForFloor(firstSpringOtherEndpoint, firstSpring, pointIndexMatrix, pointInfos))
+	////{
+	////	return false;
+	////}
+
+	////// Check if the second spring is in the same direction as the first spring - but
+	////// on the other side of the endpoint
+	////// TODOHERE: use FindSpringAtPointAndDirection
+
+	////// Check if the second spring is viable
+	////// TODOHERE: IsViable
+
+	////(void)floorSpring;
+	////return false;
+}
+
+std::optional<ElementIndex> ShipFloorplanizer::FindSpringAtPointAndDirection(
+	ElementIndex pointIndex,
+	Octant direction,
+	std::vector<ShipFactoryPoint> const & pointInfos,
+	std::vector<ShipFactorySpring> const & springInfos) const
+{
+	// Visit all springs at this point
+	for (ElementIndex s : pointInfos[pointIndex].ConnectedSprings)
+	{
+		auto const & springInfo = springInfos[s];
+		if ((springInfo.PointAIndex == pointIndex && springInfo.PointAAngle == direction)
+			|| (springInfo.PointBIndex == pointIndex && springInfo.PointBAngle == direction))
+		{
+			return s;
+		}
+	}
+
+	return std::nullopt;
+}
+
+bool ShipFloorplanizer::IsSpringViableForFloor(
+	ShipFactorySpring const & springInfo,
+	std::vector<ShipFactoryPoint> const & pointInfos,
+	std::vector<ShipFactoryTriangle> & triangleInfos) const
+{
+	return
+		pointInfos[springInfo.PointAIndex].DefinitionCoordinates.has_value() // Is point derived directly from structure?
+		&& pointInfos[springInfo.PointAIndex].Material.IsHull // Is point hull?
+		&& pointInfos[springInfo.PointBIndex].DefinitionCoordinates.has_value() // Is point derived directly from structure?
+		&& pointInfos[springInfo.PointBIndex].Material.IsHull // Is point hull?
+		&& (springInfo.Triangles.size() == 1 // Is it a non-internal edge of a triangle?
+			|| (springInfo.Triangles.size() == 2 &&
+				(!IsSealedTriangle(springInfo.Triangles[0], pointInfos, triangleInfos) || !IsSealedTriangle(springInfo.Triangles[1], pointInfos, triangleInfos))))
+		;
+
+	// TODOOLD
+	////return
+	////	pointInfos[spring.PointAIndex].DefinitionCoordinates.has_value() // Is point derived directly from structure?
+	////	&& pointInfos[spring.PointAIndex].Material.IsHull // Is point hull?
+	////	&& pointInfos[spring.PointBIndex].DefinitionCoordinates.has_value() // Is point derived directly from structure?
+	////	&& pointInfos[spring.PointBIndex].Material.IsHull // Is point hull?
+	////	&& spring.Triangles.size() > 0 // Is it an edge of a triangle?
+	////	;
+}
+
+bool ShipFloorplanizer::IsSpringEndpointViableForFloor(
+	ElementIndex pointIndex,
+	ShipFactorySpring const & spring,
+	std::vector<ShipFactoryPoint> const & pointInfos) const
+{
+	return
+		pointInfos[pointIndex].DefinitionCoordinates.has_value() // Is point derived directly from structure?
+		&& pointInfos[pointIndex].Material.IsHull // Is point hull?
+		&& spring.Triangles.size() > 0 // Is it an edge of a triangle?
+		;
 }
 
 // TODOOLD

@@ -72,7 +72,7 @@ struct ShipFactorySpring
     Octant PointAAngle; // Octant from the point of view of PointA
 
     ElementIndex PointBIndex;
-    Octant PointBAngle; // Octant from the point of view of PointA
+    Octant PointBAngle; // Octant from the point of view of PointB
 
     FixedSizeVector<ElementIndex, 2> Triangles; // Triangles that have this spring as an edge
 
