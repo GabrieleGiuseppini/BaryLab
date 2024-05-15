@@ -234,6 +234,23 @@ void ShipFloorplanizer::ProcessVertexBlockPatterns(
 	{
 		springExclusionSet.insert({ vertexBlock[{0, 1}] , vertexBlock[{1, 0}] });
 	}
+
+	//
+	// Pattern 5: "TODO" (_||): take care of redundant /
+	//
+	//  o**
+	//  o**
+	//  ***
+	//
+
+	if (vertexBlock[{0, 0}] != NoneElementIndex && vertexBlock[{1, 0}] != NoneElementIndex && vertexBlock[{2, 0}] != NoneElementIndex
+		&& vertexBlock[{0, 1}] == NoneElementIndex && vertexBlock[{1, 1}] != NoneElementIndex && vertexBlock[{2, 1}] != NoneElementIndex
+		&& vertexBlock[{0, 2}] == NoneElementIndex && vertexBlock[{1, 2}] != NoneElementIndex && vertexBlock[{2, 2}] != NoneElementIndex)
+	{
+		springExclusionSet.insert({ vertexBlock[{0, 0}] , vertexBlock[{1, 1}] });
+		springExclusionSet.insert({ vertexBlock[{2, 0}] , vertexBlock[{1, 1}] });
+	}
+
 }
 
 // TODOOLD
