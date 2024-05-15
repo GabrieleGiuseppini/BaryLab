@@ -7,9 +7,9 @@
 
 #include "ShipFactoryTypes.h"
 
-#include <GameCore/Buffer2D.h>
 #include <GameCore/GameTypes.h>
 
+#include <array>
 #include <unordered_set>
 
 class ShipFloorplanizer
@@ -29,7 +29,7 @@ private:
 		ShipFactorySpring const & springInfo,
 		std::vector<ShipFactoryPoint> const & pointInfos) const;
 
-	using VertexBlock = Buffer2D<ElementIndex, struct IntegralTag>;
+	using VertexBlock = std::array<std::array<ElementIndex, 3>, 3>;
 	using SpringExclusionSet = std::unordered_set<ShipFactoryPointPair, ShipFactoryPointPair::Hasher>;
 
 	void ProcessVertexBlock(
@@ -39,4 +39,7 @@ private:
 	void ProcessVertexBlockPatterns(
 		VertexBlock const & vertexBlock,
 		/*out*/ SpringExclusionSet & springExclusionSet) const;
+
+	void Rotate90CW(VertexBlock & vertexBlock) const;
+	void FlipV(VertexBlock & vertexBlock) const;
 };

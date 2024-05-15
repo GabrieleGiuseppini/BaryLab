@@ -24,7 +24,7 @@ ShipFactoryFloorPlan ShipFloorplanizer::BuildFloorplan(
 	SpringExclusionSet springExclusionSet;
 
 	// Process all 3x3 blocks - including the 1-wide "borders"
-	VertexBlock vertexBlock(IntegralRectSize(3, 3));
+	VertexBlock vertexBlock;
 	for (int y = 0; y < pointIndexMatrix.height - 2; ++y)
 	{
 		for (int x = 0; x < pointIndexMatrix.width - 2; ++x)
@@ -37,11 +37,11 @@ ShipFactoryFloorPlan ShipFloorplanizer::BuildFloorplan(
 					if (pointIndexMatrix[{x + xb, y + yb}].has_value()
 						&& pointInfos[*pointIndexMatrix[{x + xb, y + yb}]].Material.IsHull)
 					{
-						vertexBlock[{xb, yb}] = *pointIndexMatrix[{x + xb, y + yb}];
+						vertexBlock[xb][yb] = *pointIndexMatrix[{x + xb, y + yb}];
 					}
 					else
 					{
-						vertexBlock[{xb, yb}] = NoneElementIndex;
+						vertexBlock[xb][yb] = NoneElementIndex;
 					}
 				}
 			}
@@ -134,22 +134,27 @@ void ShipFloorplanizer::ProcessVertexBlock(
 			vertexBlock,
 			springExclusionSet);
 
-		vertexBlock.Rotate90(RotationDirectionType::Clockwise);
+		Rotate90CW(vertexBlock);
 
 	}
 
 	// 2. All rotations of symmetry 2
 
-	vertexBlock.Flip(DirectionType::Vertical);
+	FlipV(vertexBlock);
 
-	for (int i = 0; i < 4; ++i)
+	for (int i = 0; ; ++i)
 	{
 		ProcessVertexBlockPatterns(
 			vertexBlock,
 			springExclusionSet);
 
-		vertexBlock.Rotate90(RotationDirectionType::Clockwise);
+		// Save one rotation
+		if (i == 3)
+		{
+			break;
+		}
 
+		Rotate90CW(vertexBlock);
 	}
 }
 
@@ -170,11 +175,11 @@ void ShipFloorplanizer::ProcessVertexBlockPatterns(
 	//   ***
 	//
 
-	if (vertexBlock[{0, 0}] != NoneElementIndex && vertexBlock[{1, 0}] != NoneElementIndex && vertexBlock[{2, 0}] != NoneElementIndex
-		&& vertexBlock[{0, 1}] == NoneElementIndex && vertexBlock[{1, 1}] != NoneElementIndex
-		&& vertexBlock[{0, 2}] != NoneElementIndex && vertexBlock[{2, 2}] == NoneElementIndex)
+	if (vertexBlock[0][0] != NoneElementIndex && vertexBlock[1][0] != NoneElementIndex && vertexBlock[2][0] != NoneElementIndex
+		&& vertexBlock[0][1] == NoneElementIndex && vertexBlock[1][1] != NoneElementIndex
+		&& vertexBlock[0][2] != NoneElementIndex && vertexBlock[2][2] == NoneElementIndex)
 	{
-		springExclusionSet.insert({ vertexBlock[{0, 0}] , vertexBlock[{1, 1}] });
+		springExclusionSet.insert({ vertexBlock[0][0] , vertexBlock[1][1] });
 	}
 
 	//
@@ -185,11 +190,11 @@ void ShipFloorplanizer::ProcessVertexBlockPatterns(
 	//   ***
 	//
 
-	if (vertexBlock[{0, 0}] != NoneElementIndex && vertexBlock[{1, 0}] != NoneElementIndex && vertexBlock[{2, 0}] != NoneElementIndex
-		&& vertexBlock[{0, 1}] == NoneElementIndex && vertexBlock[{1, 1}] != NoneElementIndex
-		&& vertexBlock[{0, 2}] != NoneElementIndex && vertexBlock[{1, 2}] == NoneElementIndex && vertexBlock[{2, 2}] == NoneElementIndex)
+	if (vertexBlock[0][0] != NoneElementIndex && vertexBlock[1][0] != NoneElementIndex && vertexBlock[2][0] != NoneElementIndex
+		&& vertexBlock[0][1] == NoneElementIndex && vertexBlock[1][1] != NoneElementIndex
+		&& vertexBlock[0][2] != NoneElementIndex && vertexBlock[1][2] == NoneElementIndex && vertexBlock[2][2] == NoneElementIndex)
 	{
-		springExclusionSet.insert({ vertexBlock[{1, 0}] , vertexBlock[{1, 1}] });
+		springExclusionSet.insert({ vertexBlock[1][0] , vertexBlock[1][1] });
 	}
 
 	//
@@ -200,12 +205,12 @@ void ShipFloorplanizer::ProcessVertexBlockPatterns(
 	//  ***
 	//
 
-	if (vertexBlock[{0, 0}] != NoneElementIndex && vertexBlock[{1, 0}] != NoneElementIndex && vertexBlock[{2, 0}] != NoneElementIndex
-		&& vertexBlock[{0, 1}] == NoneElementIndex && vertexBlock[{1, 1}] != NoneElementIndex && vertexBlock[{2, 1}] == NoneElementIndex
-		&& vertexBlock[{0, 2}] == NoneElementIndex && vertexBlock[{2, 2}] == NoneElementIndex)
+	if (vertexBlock[0][0] != NoneElementIndex && vertexBlock[1][0] != NoneElementIndex && vertexBlock[2][0] != NoneElementIndex
+		&& vertexBlock[0][1] == NoneElementIndex && vertexBlock[1][1] != NoneElementIndex && vertexBlock[2][1] == NoneElementIndex
+		&& vertexBlock[0][2] == NoneElementIndex && vertexBlock[2][2] == NoneElementIndex)
 	{
-		springExclusionSet.insert({ vertexBlock[{0, 0}] , vertexBlock[{1, 1}] });
-		springExclusionSet.insert({ vertexBlock[{2, 0}] , vertexBlock[{1, 1}] });
+		springExclusionSet.insert({ vertexBlock[0][0] , vertexBlock[1][1] });
+		springExclusionSet.insert({ vertexBlock[2][0] , vertexBlock[1][1] });
 	}
 
 	//
@@ -216,25 +221,47 @@ void ShipFloorplanizer::ProcessVertexBlockPatterns(
 	//  ***
 	//
 
-	if (vertexBlock[{0, 0}] != NoneElementIndex && vertexBlock[{1, 0}] != NoneElementIndex && vertexBlock[{2, 0}] != NoneElementIndex
-		&& vertexBlock[{0, 1}] != NoneElementIndex && vertexBlock[{1, 1}] == NoneElementIndex
-		&& vertexBlock[{0, 2}] != NoneElementIndex && vertexBlock[{1, 2}] == NoneElementIndex)
+	if (vertexBlock[0][0] != NoneElementIndex && vertexBlock[1][0] != NoneElementIndex && vertexBlock[2][0] != NoneElementIndex
+		&& vertexBlock[0][1] != NoneElementIndex && vertexBlock[1][1] == NoneElementIndex
+		&& vertexBlock[0][2] != NoneElementIndex && vertexBlock[1][2] == NoneElementIndex)
 	{
-		springExclusionSet.insert({ vertexBlock[{0, 1}] , vertexBlock[{1, 0}] });
+		springExclusionSet.insert({ vertexBlock[0][1] , vertexBlock[1][0] });
 	}
 
 	//
-	// Pattern 5: "TODO" (_||): take care of redundant /
+	// Pattern 5: "floor-meets-high-wall" (_||): take care of redundant /
 	//
 	//  o**
 	//  o**
 	//  ***
 	//
 
-	if (vertexBlock[{0, 0}] != NoneElementIndex && vertexBlock[{1, 0}] != NoneElementIndex && vertexBlock[{2, 0}] != NoneElementIndex
-		&& vertexBlock[{0, 1}] == NoneElementIndex && vertexBlock[{1, 1}] != NoneElementIndex && vertexBlock[{2, 1}] != NoneElementIndex
-		&& vertexBlock[{0, 2}] == NoneElementIndex && vertexBlock[{1, 2}] != NoneElementIndex && vertexBlock[{2, 2}] != NoneElementIndex)
+	if (vertexBlock[0][0] != NoneElementIndex && vertexBlock[1][0] != NoneElementIndex && vertexBlock[2][0] != NoneElementIndex
+		&& vertexBlock[0][1] == NoneElementIndex && vertexBlock[1][1] != NoneElementIndex && vertexBlock[2][1] != NoneElementIndex
+		&& vertexBlock[0][2] == NoneElementIndex && vertexBlock[1][2] != NoneElementIndex && vertexBlock[2][2] != NoneElementIndex)
 	{
-		springExclusionSet.insert({ vertexBlock[{0, 0}] , vertexBlock[{1, 1}] });
+		springExclusionSet.insert({ vertexBlock[0][0] , vertexBlock[1][1] });
 	}
+}
+
+void ShipFloorplanizer::Rotate90CW(VertexBlock & vertexBlock) const
+{
+	auto const tmp1 = vertexBlock[0][0];
+	vertexBlock[0][0] = vertexBlock[2][0];
+	vertexBlock[2][0] = vertexBlock[2][2];
+	vertexBlock[2][2] = vertexBlock[0][2];
+	vertexBlock[0][2] = tmp1;
+
+	auto const tmp2 = vertexBlock[1][0];
+	vertexBlock[1][0] = vertexBlock[2][1];
+	vertexBlock[2][1] = vertexBlock[1][2];
+	vertexBlock[1][2] = vertexBlock[0][1];
+	vertexBlock[0][1] = tmp2;
+}
+
+void ShipFloorplanizer::FlipV(VertexBlock & vertexBlock) const
+{
+	std::swap(vertexBlock[0][0], vertexBlock[0][2]);
+	std::swap(vertexBlock[1][0], vertexBlock[1][2]);
+	std::swap(vertexBlock[2][0], vertexBlock[2][2]);
 }
