@@ -9,6 +9,7 @@ set  (SOURCES
 	BarycentricCoords.h
 	BoundedVector.h
 	Buffer.h
+	Buffer2D.h
 	CircularList.h
 	Colors.cpp
 	Colors.h

@@ -174,6 +174,26 @@ using Octant = std::int32_t;
 extern int const TessellationCircularOrderDirections[8][2];
 
 /*
+ * Generic directions.
+ */
+enum class DirectionType
+{
+    Horizontal = 1,
+    Vertical = 2
+};
+
+//template <> struct is_flag<DirectionType> : std::true_type {};
+
+/*
+ * Generic rotation directions.
+ */
+enum class RotationDirectionType
+{
+    Clockwise,
+    CounterClockwise
+};
+
+/*
  * Integral system
  */
 
@@ -297,6 +317,7 @@ inline std::basic_ostream<char> & operator<<(std::basic_ostream<char> & os, _Int
     return os;
 }
 
+using IntegralRectSize = _IntegralSize<struct IntegralTag>;
 using ImageSize = _IntegralSize<struct ImageTag>;
 using ShipSpaceSize = _IntegralSize<struct ShipSpaceTag>;
 
@@ -396,6 +417,39 @@ struct _IntegralCoordinates
             && y >= rect.origin.y && y < rect.origin.y + rect.size.height;
     }
 
+    _IntegralCoordinates<TIntegralTag> FlipX(integral_type width) const
+    {
+        assert(width > x);
+        return _IntegralCoordinates<TIntegralTag>(width - 1 - x, y);
+    }
+
+    _IntegralCoordinates<TIntegralTag> FlipY(integral_type height) const
+    {
+        assert(height > y);
+        return _IntegralCoordinates<TIntegralTag>(x, height - 1 - y);
+    }
+
+    // Returns coords of this point after being rotated (and assuming
+    // the size will also get rotated).
+    template<RotationDirectionType TDirection>
+    _IntegralCoordinates<TIntegralTag> Rotate90(_IntegralSize<TIntegralTag> const & sz) const
+    {
+        if constexpr (TDirection == RotationDirectionType::Clockwise)
+        {
+            return _IntegralCoordinates<TIntegralTag>(
+                this->y,
+                sz.width - 1 - this->x);
+        }
+        else
+        {
+            static_assert(TDirection == RotationDirectionType::CounterClockwise);
+
+            return _IntegralCoordinates<TIntegralTag>(
+                sz.height - 1 - this->y,
+                this->x);
+        }
+    }
+
     vec2f ToFloat() const
     {
         return vec2f(
@@ -439,6 +493,184 @@ inline std::basic_ostream<char> & operator<<(std::basic_ostream<char> & os, _Int
 
 using IntegralCoordinates = _IntegralCoordinates<struct IntegralTag>; // Generic integer
 using ShipSpaceCoordinates = _IntegralCoordinates<struct ShipSpaceTag>; // Y=0 at bottom
+
+#pragma pack(push)
+
+template<typename TIntegralTag>
+struct _IntegralRect
+{
+    _IntegralCoordinates<TIntegralTag> origin;
+    _IntegralSize<TIntegralTag> size;
+
+    constexpr _IntegralRect()
+        : origin(0, 0)
+        , size(0, 0)
+    {}
+
+    constexpr _IntegralRect(
+        _IntegralCoordinates<TIntegralTag> const & _origin,
+        _IntegralSize<TIntegralTag> const & _size)
+        : origin(_origin)
+        , size(_size)
+    {}
+
+    explicit constexpr _IntegralRect(_IntegralCoordinates<TIntegralTag> const & _origin)
+        : origin(_origin)
+        , size(1, 1)
+    {}
+
+    constexpr _IntegralRect(
+        _IntegralCoordinates<TIntegralTag> const & _origin,
+        _IntegralCoordinates<TIntegralTag> const & _oppositeCorner)
+        : origin(
+            std::min(_origin.x, _oppositeCorner.x),
+            std::min(_origin.y, _oppositeCorner.y))
+        , size(
+            std::abs(_oppositeCorner.x - _origin.x),
+            std::abs(_oppositeCorner.y - _origin.y))
+    {
+    }
+
+    /*
+     * Makes a rectangle from {0, 0} of the specified size.
+     */
+    explicit constexpr _IntegralRect(_IntegralSize<TIntegralTag> const & _size)
+        : origin(0, 0)
+        , size(_size)
+    {}
+
+    _IntegralCoordinates<TIntegralTag> MinMin() const
+    {
+        return origin;
+    }
+
+    _IntegralCoordinates<TIntegralTag> MaxMin() const
+    {
+        return _IntegralCoordinates<TIntegralTag>(
+            origin.x + size.width,
+            origin.y);
+    }
+
+    _IntegralCoordinates<TIntegralTag> MaxMax() const
+    {
+        return _IntegralCoordinates<TIntegralTag>(
+            origin.x + size.width,
+            origin.y + size.height);
+    }
+
+    _IntegralCoordinates<TIntegralTag> MinMax() const
+    {
+        return _IntegralCoordinates<TIntegralTag>(
+            origin.x,
+            origin.y + size.height);
+    }
+
+    _IntegralCoordinates<TIntegralTag> Center() const
+    {
+        return _IntegralCoordinates<TIntegralTag>(
+            origin.x + size.width / 2,
+            origin.y + size.height / 2);
+    }
+
+    inline bool operator==(_IntegralRect<TIntegralTag> const & other) const
+    {
+        return origin == other.origin
+            && size == other.size;
+    }
+
+    inline bool operator!=(_IntegralRect<TIntegralTag> const & other) const
+    {
+        return !(*this == other);
+    }
+
+    bool IsEmpty() const
+    {
+        return size.width == 0 || size.height == 0;
+    }
+
+    bool IsContainedInRect(_IntegralRect<TIntegralTag> const & container) const
+    {
+        return origin.x >= container.origin.x
+            && origin.y >= container.origin.y
+            && origin.x + size.width <= container.origin.x + container.size.width
+            && origin.y + size.height <= container.origin.y + container.size.height;
+    }
+
+    void UnionWith(_IntegralCoordinates<TIntegralTag> const & other)
+    {
+        auto const newOrigin = _IntegralCoordinates<TIntegralTag>(
+            std::min(origin.x, other.x),
+            std::min(origin.y, other.y));
+
+        auto const newSize = _IntegralSize<TIntegralTag>(
+            std::max(origin.x + size.width, other.x + 1) - newOrigin.x,
+            std::max(origin.y + size.height, other.y + 1) - newOrigin.y);
+
+        assert(newSize.width >= 0 && newSize.height >= 0);
+
+        origin = newOrigin;
+        size = newSize;
+    }
+
+    void UnionWith(_IntegralRect<TIntegralTag> const & other)
+    {
+        auto const newOrigin = _IntegralCoordinates<TIntegralTag>(
+            std::min(origin.x, other.origin.x),
+            std::min(origin.y, other.origin.y));
+
+        auto const newSize = _IntegralSize<TIntegralTag>(
+            std::max(origin.x + size.width, other.origin.x + other.size.width) - newOrigin.x,
+            std::max(origin.y + size.height, other.origin.y + other.size.height) - newOrigin.y);
+
+        assert(newSize.width >= 0 && newSize.height >= 0);
+
+        origin = newOrigin;
+        size = newSize;
+    }
+
+    std::optional<_IntegralRect<TIntegralTag>> MakeIntersectionWith(_IntegralRect<TIntegralTag> const & other) const
+    {
+        auto const newOrigin = _IntegralCoordinates<TIntegralTag>(
+            std::max(origin.x, other.origin.x),
+            std::max(origin.y, other.origin.y));
+
+        auto const newSize = _IntegralSize<TIntegralTag>(
+            std::min(size.width - (newOrigin.x - origin.x), other.size.width - (newOrigin.x - other.origin.x)),
+            std::min(size.height - (newOrigin.y - origin.y), other.size.height - (newOrigin.y - other.origin.y)));
+
+        if (newSize.width <= 0 || newSize.height <= 0)
+        {
+            return std::nullopt;
+        }
+        else
+        {
+            return _IntegralRect<TIntegralTag>(
+                newOrigin,
+                newSize);
+        }
+    }
+
+    std::string ToString() const
+    {
+        std::stringstream ss;
+        ss << "(" << origin.x << ", " << origin.y << " -> " << size.width << " x " << size.height << ")";
+        return ss.str();
+    }
+};
+
+#pragma pack(pop)
+
+template<typename TTag>
+inline std::basic_ostream<char> & operator<<(std::basic_ostream<char> & os, _IntegralRect<TTag> const & p)
+{
+    os << p.origin.ToString() << "x" << p.size.ToString();
+    return os;
+}
+
+
+using IntegralRect = _IntegralRect<struct IntegralTag>;
+using ImageRect = _IntegralRect<struct ImageTag>;
+using ShipSpaceRect = _IntegralRect<struct ShipSpaceTag>;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Rendering
