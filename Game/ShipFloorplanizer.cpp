@@ -30,6 +30,10 @@ ShipFactoryFloorPlan ShipFloorplanizer::BuildFloorplan(
 	{
 		for (int x = 0; x < pointIndexMatrix.width - 2; ++x)
 		{
+			// TODOTEST
+			if (x == 5 && y == 9)
+				LogMessage("TODOTEST");
+
 			// Build block
 			for (int yb = 0; yb < 3; ++yb)
 			{
@@ -72,9 +76,9 @@ ShipFactoryFloorPlan ShipFloorplanizer::BuildFloorplan(
 		////if (s == 23)
 		////	LogMessage("TODOTEST");
 
-		// Make sure it's viable as a floor and it's not in the exclusion list
+		// Make sure it's viable as a floor and, if it's a non-external edge, it's not in the exclusion list
 		if (IsSpringViableForFloor(springInfo, pointInfos)
-			&& springExclusionSet.count({springInfo.PointAIndex, springInfo.PointBIndex}) == 0)
+			&& (springInfo.Triangles.size() == 1 || springExclusionSet.count({springInfo.PointAIndex, springInfo.PointBIndex}) == 0))
 		{
 			//
 			// Take this spring
