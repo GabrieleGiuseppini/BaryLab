@@ -158,6 +158,26 @@ struct TriangleAndEdge
     }
 };
 
+/*
+ * Barycentric coordinates in a specific triangle.
+ */
+struct AbsoluteTriangleBCoords
+{
+    ElementIndex TriangleElementIndex;
+    bcoords3f BCoords;
+
+    AbsoluteTriangleBCoords() = default;
+
+    AbsoluteTriangleBCoords(
+        ElementIndex triangleElementIndex,
+        bcoords3f bCoords)
+        : TriangleElementIndex(triangleElementIndex)
+        , BCoords(bCoords)
+    {
+        assert(triangleElementIndex != NoneElementIndex);
+    }
+};
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Geometry
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -790,7 +810,8 @@ enum class HumanNpcKindType
 enum class NpcFloorType
 {
     Open,
-    FloorPlane1, // Planes N: a category of Horiz|Vert or Diag
+    FloorPlane1H,
+    FloorPlane1V,
     FloorPlane2
 };
 

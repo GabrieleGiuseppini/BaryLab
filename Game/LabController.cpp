@@ -200,7 +200,8 @@ void LabController::Render()
                         }
                     }
 
-                    case NpcFloorType::FloorPlane1:
+                    case NpcFloorType::FloorPlane1H:
+                    case NpcFloorType::FloorPlane1V:
                     {
                         return { { 0x12, 0x1b, 0x54, 0xff }, FloorThicknessAdjustment };
                     }

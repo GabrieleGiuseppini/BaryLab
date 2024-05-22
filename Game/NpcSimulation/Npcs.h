@@ -935,6 +935,16 @@ private:
 		float currentSimulationTime,
 		GameParameters const & gameParameters);
 
+	// Returns true if need to stop (ConvertedToFree or Bounced)
+	inline bool NavigateVertex_Walking(
+		StateType::NpcParticleStateType & npcParticle,
+		int vertexOrdinal,
+		vec2f const & trajectoryEndAbsolutePosition,
+		bcoords3f trajectoryEndBarycentricCoords,
+		Ship const & shipMesh,
+		NpcParticles & particles,
+		GameParameters const & gameParameters);
+
 	struct NavigateVertexOutcome
 	{
 		enum class OutcomeType
