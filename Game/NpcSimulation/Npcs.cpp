@@ -533,7 +533,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 			{
 				assert(mShips[state.CurrentShipId].has_value());
 				candidateNpcPlane = mShips[state.CurrentShipId]->ShipMesh.GetPoints().GetPlaneId(
-					mShips[state.CurrentShipId]->ShipMesh.GetTriangles().GetPointAIndex(candidateNpcConstrainedState->value().CurrentTriangle));
+					mShips[state.CurrentShipId]->ShipMesh.GetTriangles().GetPointAIndex(candidateNpcConstrainedState->value().CurrentBCoords.TriangleElementIndex));
 			}
 			else
 			{
@@ -992,8 +992,8 @@ void Npcs::RotateParticleWithShip(
 		// Simply set position from current bary coords
 
 		newPosition = shipMesh.GetTriangles().FromBarycentricCoordinates(
-			npcParticleState.ConstrainedState->CurrentTriangleBarycentricCoords,
-			npcParticleState.ConstrainedState->CurrentTriangle,
+			npcParticleState.ConstrainedState->CurrentBCoords.BCoords,
+			npcParticleState.ConstrainedState->CurrentBCoords.TriangleElementIndex,
 			shipMesh.GetPoints());
 	}
 	else
@@ -1040,7 +1040,7 @@ bool Npcs::IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangle
 			{
 				if (state->PrimaryParticleState.ParticleIndex == *mCurrentlySelectedParticle
 					&& state->PrimaryParticleState.ConstrainedState.has_value()
-					&& triangleIndex == state->PrimaryParticleState.ConstrainedState->CurrentTriangle)
+					&& triangleIndex == state->PrimaryParticleState.ConstrainedState->CurrentBCoords.TriangleElementIndex)
 				{
 					return true;
 				}
@@ -1048,7 +1048,7 @@ bool Npcs::IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangle
 				if (state->DipoleState.has_value()
 					&& state->DipoleState->SecondaryParticleState.ParticleIndex == *mCurrentlySelectedParticle
 					&& state->DipoleState->SecondaryParticleState.ConstrainedState.has_value()
-					&& triangleIndex == state->DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangle)
+					&& triangleIndex == state->DipoleState->SecondaryParticleState.ConstrainedState->CurrentBCoords.TriangleElementIndex)
 				{
 					return true;
 				}
@@ -1104,7 +1104,7 @@ bool Npcs::IsSpringHostingCurrentlySelectedParticle(ElementIndex springIndex) co
 
 void Npcs::Publish() const
 {
-	std::optional<ConstrainedRegimeParticleProbe> constrainedRegimeParticleProbe;
+	std::optional<AbsoluteTriangleBCoords> constrainedRegimeParticleProbe;
 	std::optional<bcoords3f> subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged;
 	std::optional<PhysicsParticleProbe> physicsParticleProbe;
 
@@ -1123,9 +1123,7 @@ void Npcs::Publish() const
 				{
 					if (state.PrimaryParticleState.ConstrainedState.has_value())
 					{
-						constrainedRegimeParticleProbe.emplace(
-							state.PrimaryParticleState.ConstrainedState->CurrentTriangle,
-							state.PrimaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords);
+						constrainedRegimeParticleProbe.emplace(state.PrimaryParticleState.ConstrainedState->CurrentBCoords);
 
 						if (mCurrentOriginTriangle.has_value())
 						{
@@ -1143,9 +1141,7 @@ void Npcs::Publish() const
 				{
 					if (state.DipoleState->SecondaryParticleState.ConstrainedState.has_value())
 					{
-						constrainedRegimeParticleProbe.emplace(
-							state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangle,
-							state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords);
+						constrainedRegimeParticleProbe.emplace(state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentBCoords);
 
 						if (mCurrentOriginTriangle.has_value())
 						{

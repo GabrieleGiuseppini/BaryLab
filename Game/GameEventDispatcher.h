@@ -36,7 +36,7 @@ public:
         }
     }
 
-    void OnSubjectParticleConstrainedRegimeUpdated(std::optional<ConstrainedRegimeParticleProbe> const & constrainedRegimeParticleProbe) override
+    void OnSubjectParticleConstrainedRegimeUpdated(std::optional<AbsoluteTriangleBCoords> const & constrainedRegimeParticleProbe) override
     {
         for (auto sink : mBLabSinks)
         {

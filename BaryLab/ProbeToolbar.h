@@ -41,7 +41,7 @@ public:
 
     void OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(std::optional<bcoords3f> const & coordinates) override;
 
-    void OnSubjectParticleConstrainedRegimeUpdated(std::optional<ConstrainedRegimeParticleProbe> const & constrainedRegimeParticleProbe) override;
+    void OnSubjectParticleConstrainedRegimeUpdated(std::optional<AbsoluteTriangleBCoords> const & constrainedRegimeParticleProbe) override;
 
     void OnSubjectParticlePhysicsUpdated(std::optional<PhysicsParticleProbe> const & probe) override;
 

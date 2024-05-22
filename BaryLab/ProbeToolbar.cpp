@@ -508,7 +508,7 @@ void ProbeToolbar::OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChang
     mOriginTriangleBarycentricCoordinateL3TextCtrl->SetValue(l3);
 }
 
-void ProbeToolbar::OnSubjectParticleConstrainedRegimeUpdated(std::optional<ConstrainedRegimeParticleProbe> const & constrainedRegimeParticleProbe)
+void ProbeToolbar::OnSubjectParticleConstrainedRegimeUpdated(std::optional<AbsoluteTriangleBCoords> const & constrainedRegimeParticleProbe)
 {
     std::string tIndex;
     std::string l1;
@@ -519,7 +519,7 @@ void ProbeToolbar::OnSubjectParticleConstrainedRegimeUpdated(std::optional<Const
     {
         {
             std::ostringstream ss;
-            ss << constrainedRegimeParticleProbe->CurrentTriangle;
+            ss << constrainedRegimeParticleProbe->TriangleElementIndex;
 
             tIndex = ss.str();
         }
@@ -527,7 +527,7 @@ void ProbeToolbar::OnSubjectParticleConstrainedRegimeUpdated(std::optional<Const
         {
             std::ostringstream ss;
             ss.fill('0');
-            ss << std::fixed << std::setprecision(2) << constrainedRegimeParticleProbe->CurrentTriangleBarycentricCoords[0];
+            ss << std::fixed << std::setprecision(2) << constrainedRegimeParticleProbe->BCoords[0];
 
             l1 = ss.str();
         }
@@ -535,7 +535,7 @@ void ProbeToolbar::OnSubjectParticleConstrainedRegimeUpdated(std::optional<Const
         {
             std::ostringstream ss;
             ss.fill('0');
-            ss << std::fixed << std::setprecision(2) << constrainedRegimeParticleProbe->CurrentTriangleBarycentricCoords[1];
+            ss << std::fixed << std::setprecision(2) << constrainedRegimeParticleProbe->BCoords[1];
 
             l2 = ss.str();
         }
@@ -543,7 +543,7 @@ void ProbeToolbar::OnSubjectParticleConstrainedRegimeUpdated(std::optional<Const
         {
             std::ostringstream ss;
             ss.fill('0');
-            ss << std::fixed << std::setprecision(2) << constrainedRegimeParticleProbe->CurrentTriangleBarycentricCoords[2];
+            ss << std::fixed << std::setprecision(2) << constrainedRegimeParticleProbe->BCoords[2];
 
             l3 = ss.str();
         }

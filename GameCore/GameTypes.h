@@ -176,6 +176,12 @@ struct AbsoluteTriangleBCoords
     {
         assert(triangleElementIndex != NoneElementIndex);
     }
+
+    bool operator==(AbsoluteTriangleBCoords const & other) const
+    {
+        return this->TriangleElementIndex == other.TriangleElementIndex
+            && this->BCoords == other.BCoords;
+    }
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -737,19 +743,6 @@ enum class SimulationControlStateType
 {
     Paused = 0,
     Play
-};
-
-struct ConstrainedRegimeParticleProbe
-{
-    ElementIndex CurrentTriangle;
-    bcoords3f CurrentTriangleBarycentricCoords;
-
-    ConstrainedRegimeParticleProbe(
-        ElementIndex currentTriangle,
-        bcoords3f const & currentTriangleBarycentricCoords)
-        : CurrentTriangle(currentTriangle)
-        , CurrentTriangleBarycentricCoords(currentTriangleBarycentricCoords)
-    {}
 };
 
 struct PhysicsParticleProbe

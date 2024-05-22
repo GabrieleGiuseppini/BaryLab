@@ -32,7 +32,7 @@ struct IBLabEventHandler
         // Default implemented
     }
 
-    virtual void OnSubjectParticleConstrainedRegimeUpdated(std::optional<ConstrainedRegimeParticleProbe> const & /*constrainedRegimeParticleProbe*/)
+    virtual void OnSubjectParticleConstrainedRegimeUpdated(std::optional<AbsoluteTriangleBCoords> const & /*constrainedRegimeParticleProbe*/)
     {
         // Default implemented
     }

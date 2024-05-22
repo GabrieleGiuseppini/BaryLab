@@ -110,9 +110,7 @@ private:
 
 			struct ConstrainedStateType final
 			{
-				ElementIndex CurrentTriangle;
-
-				bcoords3f CurrentTriangleBarycentricCoords;
+				AbsoluteTriangleBCoords CurrentBCoords;
 
 				// The edge on which we're currently non-inertial;
 				// when set, we are "conceptually" along this edge - might not be really the
@@ -130,8 +128,7 @@ private:
 				ConstrainedStateType(
 					ElementIndex currentTriangle,
 					bcoords3f const & currentTriangleBarycentricCoords)
-					: CurrentTriangle(currentTriangle)
-					, CurrentTriangleBarycentricCoords(currentTriangleBarycentricCoords)
+					: CurrentBCoords(currentTriangle, currentTriangleBarycentricCoords)
 					, CurrentVirtualFloor()
 					, MeshRelativeVelocity(vec2f::zero())
 					, GhostParticlePulse(false)
