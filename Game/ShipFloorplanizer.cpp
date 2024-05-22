@@ -78,15 +78,15 @@ ShipFactoryFloorPlan ShipFloorplanizer::BuildFloorplan(
 			NpcFloorType floorType;
 			if (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x == pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x)
 			{
-				// Horizontal
+				// Vertical
 				assert(std::abs(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y) == 1);
-				floorType = NpcFloorType::FloorPlane1H;
+				floorType = NpcFloorType::FloorPlane1V;
 			}
 			else if (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y == pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y)
 			{
-				// Vertical
+				// Horizontal
 				assert(std::abs(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == 1);
-				floorType = NpcFloorType::FloorPlane1V;
+				floorType = NpcFloorType::FloorPlane1H;
 			}
 			else
 			{

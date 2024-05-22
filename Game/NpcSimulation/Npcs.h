@@ -934,8 +934,10 @@ private:
 
 	// Returns true if need to stop (ConvertedToFree or Bounced)
 	inline bool NavigateVertex_Walking(
-		StateType::NpcParticleStateType & npcParticle,
+		StateType & npc,
+		int initialEdgeOrdinal,
 		int vertexOrdinal,
+		vec2f const & particleStartAbsolutePosition,
 		vec2f const & trajectoryEndAbsolutePosition,
 		bcoords3f trajectoryEndBarycentricCoords,
 		Ship const & shipMesh,
