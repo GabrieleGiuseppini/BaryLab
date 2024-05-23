@@ -594,7 +594,7 @@ void Npcs::UpdateNpcParticlePhysics(
             assert(remainingDt > 0.0f);
 
             LogNpcDebug("    ------------------------");
-            LogNpcDebug("    Triangle=", npcParticle.ConstrainedState->CurrentTriangle, " B-Coords=", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " RemainingDt=", remainingDt);
+            LogNpcDebug("    Triangle=", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, " B-Coords=", npcParticle.ConstrainedState->CurrentBCoords.BCoords, " RemainingDt=", remainingDt);
 
             //
             // We ray-trace the particle along a trajectory that starts at the position at which the particle
@@ -710,7 +710,7 @@ void Npcs::UpdateNpcParticlePhysics(
 
                     assert(isPrimaryParticle || npc.DipoleState.has_value());
 
-                    LogNpcDebug("      edge ", edgeOrdinal, ": isFloor=", IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentTriangle, edgeOrdinal, npc, isPrimaryParticle, mParticles, shipMesh));
+                    LogNpcDebug("      edge ", edgeOrdinal, ": isFloor=", IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, edgeOrdinal, npc, isPrimaryParticle, mParticles, shipMesh));
 
                     // Check if this is really a floor to this particle
                     if (IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, edgeOrdinal, npc, isPrimaryParticle, mParticles, shipMesh))
@@ -733,7 +733,7 @@ void Npcs::UpdateNpcParticlePhysics(
                             // Case 1: Non-inertial: on edge and moving against (or along) it, pushed by it
                             //
 
-                            LogNpcDebug("    ConstrainedNonInertial: triangle=", npcParticle.ConstrainedState->CurrentTriangle, " edgeOrdinal=", edgeOrdinal, " bCoords=", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " trajectory=", trajectory);
+                            LogNpcDebug("    ConstrainedNonInertial: triangle=", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, " edgeOrdinal=", edgeOrdinal, " bCoords=", npcParticle.ConstrainedState->CurrentBCoords.BCoords, " trajectory=", trajectory);
                             LogNpcDebug("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
 
                             // Set now our current edge-ness for the rest of this simulation step, which is
@@ -852,11 +852,13 @@ void Npcs::UpdateNpcParticlePhysics(
 
                                 // Apply gravity resistance: too steep slopes (wrt vertical) are gently clamped to zero,
                                 // to prevent walking on floors that are too steep
-                                float constexpr ResistanceSlopeStart = 0.50f; // Start slightly before expected 45-degree ramp
-                                float constexpr ResistanceSlopeEnd = 0.85f; // Max slope we're willing to climb
-                                if (walkDir.y >= ResistanceSlopeStart) // walkDir.y is component along vertical, pointing up
+                                //
+                                // Note: walkDir.y is sin(slope angle between horiz and dir)
+                                float constexpr ResistanceSinSlopeStart = 0.50f; // Start slightly before expected 45-degree ramp
+                                static_assert(ResistanceSinSlopeStart <= GameParameters::MaxHumanNpcWalkSinSlope);
+                                if (walkDir.y >= ResistanceSinSlopeStart) // walkDir.y is component along vertical, pointing up
                                 {
-                                    float const y2 = (walkDir.y - ResistanceSlopeStart) / (ResistanceSlopeEnd - ResistanceSlopeStart);
+                                    float const y2 = (walkDir.y - ResistanceSinSlopeStart) / (GameParameters::MaxHumanNpcWalkSinSlope - ResistanceSinSlopeStart);
                                     float const gravityResistance = std::max(1.0f - (y2 * y2), 0.0f);
 
                                     edgeWalkedPlanned *= gravityResistance;
@@ -1094,7 +1096,7 @@ void Npcs::UpdateNpcParticlePhysics(
                 // Case 2: Inertial: not on edge or on edge but not moving against (nor along) it
                 //
 
-                LogNpcDebug("    ConstrainedInertial: triangle=", npcParticle.ConstrainedState->CurrentTriangle, " bCoords=", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " physicsDeltaPos=", physicsDeltaPos);
+                LogNpcDebug("    ConstrainedInertial: CurrentBCoords=", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, ":", npcParticle.ConstrainedState->CurrentBCoords.BCoords, " physicsDeltaPos=", physicsDeltaPos);
                 LogNpcDebug("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
 
                 // We are not on an edge floor (nor we'll got on it now)
@@ -1662,8 +1664,6 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
                 // We might have hit a tiny bump (e.g. because of triangles slightly bent); in this case we don't want to bounce
                 //
 
-                float const flattenedTrajectoryLength = flattenedTrajectory.length();
-
                 vec2f const floorEdgeDir =
                     shipMesh.GetTriangles().GetSubSpringVector(
                         npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex,
@@ -1986,7 +1986,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                 newBarycentricCoords[oppositeTriangleInfo.EdgeOrdinal] = npcParticleConstrainedState.CurrentBCoords.BCoords[(intersectionEdgeOrdinal + 1) % 3];
                 newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 1) % 3] = npcParticleConstrainedState.CurrentBCoords.BCoords[intersectionEdgeOrdinal];
 
-                LogNpcDebug("      B-Coords: ", npcParticleConstrainedState.CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
+                LogNpcDebug("      B-Coords: ", npcParticleConstrainedState.CurrentBCoords.BCoords, " -> ", newBarycentricCoords);
 
                 assert(newBarycentricCoords.is_on_edge_or_internal());
 
@@ -2050,7 +2050,7 @@ inline bool Npcs::NavigateVertex_Walking(
         : RotationDirectionType::CounterClockwise;
 
     // Remember floor type of starting edge
-    NpcFloorType const startFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(currentAbsoluteBCoords.TriangleElementIndex, initialEdgeOrdinal);
+    NpcFloorType const initialFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(currentAbsoluteBCoords.TriangleElementIndex, initialEdgeOrdinal);
 
     for (int iIter = 0; ; ++iIter)
     {
@@ -2074,11 +2074,13 @@ inline bool Npcs::NavigateVertex_Walking(
         if (trajectoryEndBarycentricCoords[prevVertexOrdinal] >= 0.0f
             && trajectoryEndBarycentricCoords[nextVertexOrdinal] >= 0.0f)
         {
-            LogNpcDebug("      Trajectory extends inside triangle");
+            LogNpcDebug("      Trajectory extends inside triangle, remembering");
 
-            // Remember this absolute BCoords as we'll go there if we don't have any candidates nor we bounce on a floor
-            assert(!firstTriangleInterior.has_value()); // TODO: might fail for numerical slack
-            firstTriangleInterior = currentAbsoluteBCoords;
+            // Remember these absolute BCoords as we'll go there if we don't have any candidates nor we bounce on a floor
+            if (!firstTriangleInterior.has_value()) // Might have found already one due to numerical slack; we honor the first in the case
+            {
+                firstTriangleInterior = currentAbsoluteBCoords;
+            }
 
             // Continue, so that we may find candidates at a lower slope
         }
@@ -2103,13 +2105,16 @@ inline bool Npcs::NavigateVertex_Walking(
             // Encountered floor
             //
 
-            LogNpcDebug("        Crossed edge is floor (type:", shipMesh.GetTriangles().GetSubSpringNpcFloorType(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal),
+            LogNpcDebug("        Crossed edge is floor (type:", int(shipMesh.GetTriangles().GetSubSpringNpcFloorType(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal)),
                 ")");
 
-            // Check if HonV or VonH
+            //
+            // Check if HonV or VonH (impenetrable floor regardless of viability)
+            //
+
             auto const crossedEdgeFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
-            if ((crossedEdgeFloorType == NpcFloorType::FloorPlane1H && startFloorType == NpcFloorType::FloorPlane1V)
-                || (crossedEdgeFloorType == NpcFloorType::FloorPlane1V && startFloorType == NpcFloorType::FloorPlane1H))
+            if ((crossedEdgeFloorType == NpcFloorType::FloorPlane1H && initialFloorType == NpcFloorType::FloorPlane1V)
+                || (crossedEdgeFloorType == NpcFloorType::FloorPlane1V && initialFloorType == NpcFloorType::FloorPlane1H))
             {
                 // This floor is to be considered impenetrable - stop here and, if no candidates exist, bounce on it
                 LogNpcDebug("          Impenetrable, stopping here");
@@ -2117,8 +2122,66 @@ inline bool Npcs::NavigateVertex_Walking(
                 break;
             }
 
+            //
             // Check whether it's a viable floor
-            // TODOHERE
+            //
+            // Note: here we check viability wrt *actual* (resultant physical) movement, rather than *intended* (walkdir) movement
+            //
+
+            vec2f const edgeVector = shipMesh.GetTriangles().GetSubSpringVector(
+                currentAbsoluteBCoords.TriangleElementIndex,
+                crossedEdgeOrdinal,
+                shipMesh.GetPoints());
+
+            vec2f const edgeDirWrtMovement = (orientation == RotationDirectionType::Clockwise)
+                ? edgeVector.normalise()
+                : -edgeVector.normalise();
+
+            bool const isViable = (edgeDirWrtMovement.y >= 0.0f)
+                ? (edgeDirWrtMovement.y <= GameParameters::MaxHumanNpcWalkSinSlope) // Slope up
+                : ((orientation == RotationDirectionType::Clockwise)
+                    ? edgeDirWrtMovement.x < 0.0f
+                    : edgeDirWrtMovement.x > 0.0f
+                  );
+
+            if (isViable)
+            {
+                //
+                // Viable floor - add to candidates
+                //
+
+                LogNpcDebug("          Viable, adding to candidates");
+
+                floorCandidates[floorCandidatesCount++] = currentAbsoluteBCoords;
+
+                // Continue
+            }
+            else
+            {
+                //
+                // Non-viable floor
+                //
+
+                LogNpcDebug("          Non-viable");
+
+                // Remember it if it's the first obstacle or if its depth trumps current first obstacle
+                // (same depth as the edge we're walking on trumps different depth)
+
+                auto const nonViableFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
+
+                if (!firstBounceableFloor.has_value()
+                    || (shipMesh.GetTriangles().GetSubSpringNpcFloorType(firstBounceableFloor->TriangleElementIndex, firstBounceableFloor->EdgeOrdinal) != initialFloorType
+                        && nonViableFloorType == initialFloorType))
+                {
+                    firstBounceableFloor = TriangleAndEdge(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
+                }
+
+                // If we've found a (non-viable) impenetrable wall, stop search
+                if (nonViableFloorType == initialFloorType)
+                {
+                    break;
+                }
+            }
         }
 
         //
@@ -2147,7 +2210,7 @@ inline bool Npcs::NavigateVertex_Walking(
             {
                 // Become free
 
-                LogNpcDebug("        Free region before anything else - becoming free");
+                LogNpcDebug("        Free region before anything else, becoming free");
 
                 TransitionParticleToFreeState(npc, true);
 
@@ -2169,7 +2232,7 @@ inline bool Npcs::NavigateVertex_Walking(
         {
             // Time to stop
 
-            LogNpcDebug("        Opposite triangle is self (done full round); stopping search");
+            LogNpcDebug("        Opposite triangle is self (done full round), stopping search");
 
             // We must have found a triangle into which we go
             assert(firstTriangleInterior.has_value());
@@ -2230,8 +2293,44 @@ inline bool Npcs::NavigateVertex_Walking(
     // Process results
     //
 
-    // TODOHERE
-    return false;
+    if (floorCandidatesCount > 0)
+    {
+        // Choose candidate
+
+        // TODOHERE
+        size_t chosenCandidate = 0;
+
+        LogNpcDebug("  Chosen candidate ", chosenCandidate, " (", floorCandidates[chosenCandidate].TriangleElementIndex, ":", floorCandidates[chosenCandidate].BCoords,
+            ") out of ", floorCandidatesCount);
+
+        // Move to candidate
+        npcParticle.ConstrainedState->CurrentBCoords = floorCandidates[chosenCandidate];
+
+        return false; // Continue trajectory
+    }
+    else if (firstBounceableFloor.has_value())
+    {
+        // "Bump" on this floor
+
+        LogNpcDebug("  Bumping on floor ", firstBounceableFloor->TriangleElementIndex, ":", firstBounceableFloor->EdgeOrdinal);
+
+        // TODOHERE: flip walk
+
+        return true; // Stop here
+    }
+    else
+    {
+        // Inside triangle
+
+        assert(firstTriangleInterior.has_value());
+
+        LogNpcDebug("  Going inside triangle ", firstTriangleInterior->TriangleElementIndex, ":", firstTriangleInterior->BCoords);
+
+        // Move to triangle
+        npcParticle.ConstrainedState->CurrentBCoords = *firstTriangleInterior;
+
+        return false; // Continue with trajectory
+    }
 }
 
 Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
@@ -2269,7 +2368,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         assert(npcParticle.ConstrainedState->CurrentBCoords.BCoords[nextVertexOrdinal] == 0.0f);
         assert(npcParticle.ConstrainedState->CurrentBCoords.BCoords[prevVertexOrdinal] == 0.0f);
 
-        LogNpcDebug("      Triangle=", npcParticle.ConstrainedState->CurrentTriangle, " Vertex=", vertexOrdinal, " TrajectoryEndBarycentricCoords=", trajectoryEndBarycentricCoords);
+        LogNpcDebug("      Triangle=", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, " Vertex=", vertexOrdinal, " TrajectoryEndBarycentricCoords=", trajectoryEndBarycentricCoords);
 
         if (isInitialStateUnknown)
         {
@@ -2358,7 +2457,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         newBarycentricCoords[oppositeTriangleInfo.EdgeOrdinal] = npcParticle.ConstrainedState->CurrentBCoords.BCoords[(crossedEdgeOrdinal + 1) % 3];
         newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 1) % 3] = npcParticle.ConstrainedState->CurrentBCoords.BCoords[crossedEdgeOrdinal];
 
-        LogNpcDebug("      B-Coords: ", npcParticle.ConstrainedState->CurrentTriangleBarycentricCoords, " -> ", newBarycentricCoords);
+        LogNpcDebug("      B-Coords: ", npcParticle.ConstrainedState->CurrentBCoords.BCoords, " -> ", newBarycentricCoords);
 
         assert(newBarycentricCoords.is_on_edge_or_internal());
 

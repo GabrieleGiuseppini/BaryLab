@@ -33,7 +33,7 @@
 #endif
 
 #ifdef IN_BARYLAB_DEBUG
-//#define BARYLAB_LOG_DEBUG
+#define BARYLAB_LOG_DEBUG
 #endif
 
 #ifdef BARYLAB_LOG_DEBUG

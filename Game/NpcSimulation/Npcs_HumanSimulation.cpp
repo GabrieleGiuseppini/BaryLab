@@ -726,7 +726,7 @@ void Npcs::UpdateHuman(
 				// Transition to aerial/falling, depending on whether we're on an edge
 
 				LogNpcDebug("Going to Constrained_X; primary's barycentric coords: ",
-					primaryParticleState.ConstrainedState.has_value() ? primaryParticleState.ConstrainedState->CurrentTriangleBarycentricCoords.toString() : "N/A",
+					primaryParticleState.ConstrainedState.has_value() ? primaryParticleState.ConstrainedState->CurrentBCoords.BCoords.toString() : "N/A",
 					" primary's relative velocity mag: ", primaryParticleState.ConstrainedState.has_value() ? std::to_string(primaryParticleState.ConstrainedState->MeshRelativeVelocity.length()) : "N/A",
 					" (max=", MaxRelativeVelocityMagnitudeForEquilibrium, ")");
 
