@@ -2300,7 +2300,7 @@ inline bool Npcs::NavigateVertex_Walking(
         // TODOHERE
         size_t chosenCandidate = 0;
 
-        LogNpcDebug("  Chosen candidate ", chosenCandidate, " (", floorCandidates[chosenCandidate].TriangleElementIndex, ":", floorCandidates[chosenCandidate].BCoords,
+        LogNpcDebug("    Chosen candidate ", chosenCandidate, " (", floorCandidates[chosenCandidate].TriangleElementIndex, ":", floorCandidates[chosenCandidate].BCoords,
             ") out of ", floorCandidatesCount);
 
         // Move to candidate
@@ -2312,9 +2312,14 @@ inline bool Npcs::NavigateVertex_Walking(
     {
         // "Bump" on this floor
 
-        LogNpcDebug("  Bumping on floor ", firstBounceableFloor->TriangleElementIndex, ":", firstBounceableFloor->EdgeOrdinal);
+        LogNpcDebug("    Bumping on floor ", firstBounceableFloor->TriangleElementIndex, ":", firstBounceableFloor->EdgeOrdinal, ", flipping walk");
 
-        // TODOHERE: flip walk
+        // Flip walk
+        FlipHumanWalk(npc.KindSpecificState.HumanNpcState, StrongTypedTrue<_DoImmediate>);
+
+        // Move to bump
+        // TODO: or not? After all we can stay in initial place and avoid a new NavigateVertex,
+        // after all walk direction is opposite now and we'd re-navigate back if we moved now
 
         return true; // Stop here
     }
@@ -2324,7 +2329,7 @@ inline bool Npcs::NavigateVertex_Walking(
 
         assert(firstTriangleInterior.has_value());
 
-        LogNpcDebug("  Going inside triangle ", firstTriangleInterior->TriangleElementIndex, ":", firstTriangleInterior->BCoords);
+        LogNpcDebug("    Going inside triangle ", firstTriangleInterior->TriangleElementIndex, ":", firstTriangleInterior->BCoords);
 
         // Move to triangle
         npcParticle.ConstrainedState->CurrentBCoords = *firstTriangleInterior;
