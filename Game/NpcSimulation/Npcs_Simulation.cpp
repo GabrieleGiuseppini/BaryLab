@@ -861,6 +861,8 @@ void Npcs::UpdateNpcParticlePhysics(
                                     float const y2 = (walkDir.y - ResistanceSinSlopeStart) / (GameParameters::MaxHumanNpcWalkSinSlope - ResistanceSinSlopeStart);
                                     float const gravityResistance = std::max(1.0f - (y2 * y2), 0.0f);
 
+                                    LogNpcDebug("        gravityResistance=", gravityResistance, " (walkDir.y=", walkDir.y, ")");
+
                                     edgeWalkedPlanned *= gravityResistance;
                                 }
 
@@ -2117,20 +2119,6 @@ inline bool Npcs::NavigateVertex_Walking(
                 ")");
 
             //
-            // Check if HonV or VonH (impenetrable floor regardless of viability)
-            //
-
-            auto const crossedEdgeFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
-            if ((crossedEdgeFloorType == NpcFloorType::FloorPlane1H && initialFloorType == NpcFloorType::FloorPlane1V)
-                || (crossedEdgeFloorType == NpcFloorType::FloorPlane1V && initialFloorType == NpcFloorType::FloorPlane1H))
-            {
-                // This floor is to be considered impenetrable - stop here and, if no candidates exist, bounce on it
-                LogNpcDebug("          Impenetrable, stopping here");
-                firstBounceableFloor = TriangleAndEdge(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
-                break;
-            }
-
-            //
             // Check whether it's a viable floor
             //
             // Note: here we check viability wrt *actual* (resultant physical) movement, rather than *intended* (walkdir) movement
@@ -2161,10 +2149,25 @@ inline bool Npcs::NavigateVertex_Walking(
                 LogNpcDebug("          Viable, adding to candidates");
 
                 floorCandidates[floorCandidatesCount++] = currentAbsoluteBCoords;
-
-                // Continue
             }
-            else
+
+            //
+            // Decide whether to bounce or not, and continue or not
+            //
+
+            auto const crossedEdgeFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
+            if ((crossedEdgeFloorType == NpcFloorType::FloorPlane1H && initialFloorType == NpcFloorType::FloorPlane1V)
+                || (crossedEdgeFloorType == NpcFloorType::FloorPlane1V && initialFloorType == NpcFloorType::FloorPlane1H))
+            {
+                //
+                // If HonV or VonH: impenetrable floor (regardless of viability); stop here
+                //
+
+                LogNpcDebug("          Impenetrable, stopping here");
+                firstBounceableFloor = TriangleAndEdge(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
+                break;
+            }
+            else if (!isViable)
             {
                 //
                 // Non-viable floor
