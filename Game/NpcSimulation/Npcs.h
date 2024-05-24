@@ -940,8 +940,12 @@ private:
 		vec2f const & particleStartAbsolutePosition,
 		vec2f const & trajectoryEndAbsolutePosition,
 		bcoords3f trajectoryEndBarycentricCoords,
+		vec2f const & trajectory,
+		vec2f const meshVelocity,
+		float dt,
 		Ship const & shipMesh,
 		NpcParticles & particles,
+		float currentSimulationTime,
 		GameParameters const & gameParameters);
 
 	struct NavigateVertexOutcome

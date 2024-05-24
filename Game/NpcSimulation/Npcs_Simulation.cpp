@@ -1618,8 +1618,12 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
             particleStartAbsolutePosition,
             flattenedTrajectoryEndAbsolutePosition,
             flattenedTrajectoryEndBarycentricCoords,
+            flattenedTrajectory,
+            meshVelocity,
+            dt,
             shipMesh,
             particles,
+            currentSimulationTime,
             gameParameters);
 
         return std::make_tuple(edgeTraveled, isStop);
@@ -2018,8 +2022,12 @@ inline bool Npcs::NavigateVertex_Walking(
     vec2f const & particleStartAbsolutePosition,
     vec2f const & trajectoryEndAbsolutePosition,
     bcoords3f trajectoryEndBarycentricCoords, // Mutable
+    vec2f const & trajectory,
+    vec2f const meshVelocity,
+    float dt,
     Ship const & shipMesh,
     NpcParticles & particles,
+    float currentSimulationTime,
     GameParameters const & gameParameters)
 {
     StateType::NpcParticleStateType & npcParticle = npc.PrimaryParticleState; // This is a primary particle
@@ -2055,7 +2063,7 @@ inline bool Npcs::NavigateVertex_Walking(
     for (int iIter = 0; ; ++iIter)
     {
         LogNpcDebug("    NavigateVertex_Walking: iter=", iIter, " nCandidates=", floorCandidatesCount, " hasBounceableFloor=", firstBounceableFloor.has_value() ? "T" : "F",
-            " hasFirstTriangleInteriot=", firstTriangleInterior.has_value() ? "T" : "F");
+            " hasFirstTriangleInterior=", firstTriangleInterior.has_value() ? "T" : "F");
 
         assert(iIter < GameParameters::MaxSpringsPerPoint); // Detect and debug-break on infinite loops
 
@@ -2310,16 +2318,38 @@ inline bool Npcs::NavigateVertex_Walking(
     }
     else if (firstBounceableFloor.has_value())
     {
-        // "Bump" on this floor
+        // Bounce on this floor
 
-        LogNpcDebug("    Bumping on floor ", firstBounceableFloor->TriangleElementIndex, ":", firstBounceableFloor->EdgeOrdinal, ", flipping walk");
+        LogNpcDebug("    Bouncing on floor ", firstBounceableFloor->TriangleElementIndex, ":", firstBounceableFloor->EdgeOrdinal, ", flipping walk");
 
-        // Flip walk
-        FlipHumanWalk(npc.KindSpecificState.HumanNpcState, StrongTypedTrue<_DoImmediate>);
+        // Note: we don't move to intersection position for lazyness: after all we can stay
+        // in initial place and avoid a new NavigateVertex, now that we gain opposite
+        // velocity anyway
 
-        // Move to bump
-        // TODO: or not? After all we can stay in initial place and avoid a new NavigateVertex,
-        // after all walk direction is opposite now and we'd re-navigate back if we moved now
+        vec2f const floorEdgeDir =
+            shipMesh.GetTriangles().GetSubSpringVector(
+                firstBounceableFloor->TriangleElementIndex,
+                firstBounceableFloor->EdgeOrdinal,
+                shipMesh.GetPoints())
+            .normalise();
+        vec2f const floorEdgeNormal = floorEdgeDir.to_perpendicular();
+
+        vec2f const bounceAbsolutePosition = shipMesh.GetTriangles().FromBarycentricCoordinates(
+            currentAbsoluteBCoords.BCoords, // Same as initial - in absolute coords
+            currentAbsoluteBCoords.TriangleElementIndex,
+            shipMesh.GetPoints());
+
+        BounceConstrainedNpcParticle(
+            npc,
+            true,
+            trajectory,
+            bounceAbsolutePosition,
+            floorEdgeNormal,
+            meshVelocity,
+            dt,
+            particles,
+            currentSimulationTime,
+            gameParameters);
 
         return true; // Stop here
     }
