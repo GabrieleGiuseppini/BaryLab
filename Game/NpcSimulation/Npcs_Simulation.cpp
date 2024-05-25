@@ -2410,12 +2410,12 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
 
         if (isInitialStateUnknown)
         {
-            // Check whether we are directed towards the *interior* of this triangle
+            // Check whether we are directed towards the *interior* of this triangle - including its edges
             if (trajectoryEndBarycentricCoords[prevVertexOrdinal] >= 0.0f
                 && trajectoryEndBarycentricCoords[nextVertexOrdinal] >= 0.0f)
             {
                 //
-                // We go inside this triangle - stop where we are, we'll then check trajectory in new situation
+                // We go inside (or on) this triangle - stop where we are, we'll then check trajectory in new situation
                 //
 
                 LogNpcDebug("      Trajectory extends inside triangle - CompletedNavigation");
