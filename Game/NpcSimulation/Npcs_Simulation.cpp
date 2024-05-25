@@ -631,19 +631,27 @@ void Npcs::UpdateNpcParticlePhysics(
                 " => TrajectoryEndAbsolutePosition=", trajectoryEndAbsolutePosition, " Trajectory=", trajectory);
 
             //
-            // Check if we are at a corner; if we are, travel through corners - according to trajectory - until
-            // any of the following:
-            //  - Trajectory points towards a floor
-            //  - Trajectory points *inside* triangle
-            //  - Particle becomes free
-            //
-            // We do this so that if we're after a bounce we don't see the triangle of the vertical wall that we've bounced off, but the
-            // triangle of the floor
+            // Check whether we are insisting on an edge - i.e. whether we're non-inertial:
+            //  - If we are on no edge: then we are... not on a edge; go ahead as inertial
+            //  - If we are on *one* edge: check if it's a floor and we are insisting on it, and depending on that, we are either inertial or non-inertial (on that edge)
+            //  - If we are on a vertex (i.e. *two* edges): use NavigateVertex to see what should happen next:
+            //      - EncounteredFloor: this tells us that our trajectory points us towards this edge which is a floor: we are non-inertial on this floor;
+            //      - CompletedNavigation: this tells us we're moving into triangle or along an edge of it, but not against it;
+            //                             TODO: assume inertial? After all we're not _against_ the floor
+            //                              - Assert dot-with- normal is practically <= 0
+            //      - ConvertedToFree: this tells us we've gone free, can stop here for good
             //
 
-            std::optional<int> vertexOrdinal = npcParticle.ConstrainedState->CurrentBCoords.BCoords.try_get_vertex();
-            if (vertexOrdinal.has_value())
+            int nonInertialEdgeOrdinal = -1; // Of the triangle @ npcParticle.ConstrainedState->CurrentBCoords; this is a floor
+
+            if (std::optional<int> const vertexOrdinal = npcParticle.ConstrainedState->CurrentBCoords.BCoords.try_get_vertex();
+                vertexOrdinal.has_value())
             {
+                // On a vertex (*two* edges)
+                LogNpcDebug("    On a vertex: ", *vertexOrdinal, " of triangle ", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex);
+
+                // Check what comes next
+
                 bcoords3f const trajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinates(
                     trajectoryEndAbsolutePosition,
                     npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
@@ -666,433 +674,485 @@ void Npcs::UpdateNpcParticlePhysics(
                 {
                     case NavigateVertexOutcome::OutcomeType::CompletedNavigation:
                     {
-                        // Continue with ray-tracing
+                        //
+                        // This tells us we're moving into triangle or along an edge of it, but not against it;
+                        // TODO: assume inertial? After all we're not _against_ the floor
+                        // - Assert dot-with- normal is practically <= 0
+
+                        for (int vi = 0; vi < 3; ++vi)
+                        {
+                            if (npcParticle.ConstrainedState->CurrentBCoords.BCoords[vi] == 0.0f)
+                            {
+                                int const edgeOrdinal = (vi + 1) % 3;
+
+                                vec2f const edgeVector = shipMesh.GetTriangles().GetSubSpringVector(
+                                    npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
+                                    edgeOrdinal,
+                                    shipMesh.GetPoints());
+                                vec2f const edgeDir = edgeVector.normalise();
+                                vec2f const edgeNormal = edgeDir.to_perpendicular(); // Points outside of triangle (i.e. towards floor)
+                                assert(trajectory.dot(edgeNormal) < 0.0001f);
+                            }
+                        }
+
                         break;
                     }
 
                     case NavigateVertexOutcome::OutcomeType::ConvertedToFree:
                     {
-                        // Done
+                        //
+                        // This tells us we've gone free, can stop here for good
+                        //
+
                         remainingDt = 0.0f;
+
                         break;
                     }
 
                     case NavigateVertexOutcome::OutcomeType::EncounteredFloor:
                     {
-                        // Continue with ray-tracing, handling impact using "flattening" algorithm
+                        //
+                        // This tells us that our trajectory points us towards this edge which is a floor: we are non-inertial on this floor
+                        //
+
+                        nonInertialEdgeOrdinal = outcome.EncounteredFloorEdgeOrdinal;
+
+                        {
+                            vec2f const edgeVector = shipMesh.GetTriangles().GetSubSpringVector(
+                                npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
+                                nonInertialEdgeOrdinal,
+                                shipMesh.GetPoints());
+                            vec2f const edgeDir = edgeVector.normalise();
+                            vec2f const edgeNormal = edgeDir.to_perpendicular(); // Points outside of triangle (i.e. towards floor)
+                            assert(trajectory.dot(edgeNormal) > -0.0001f);
+                        }
+
+                        break;
+                    }
+                }
+
+                // Follow-up free conversion
+                if (remainingDt == 0.0f)
+                {
+                    break;
+                }
+            }
+            else
+            {
+                // Either on an edge (but not a vertex), or just inside the triangle (on no edge)
+                for (int vi = 0; vi < 3; ++vi)
+                {
+                    if (npcParticle.ConstrainedState->CurrentBCoords.BCoords[vi] == 0.0f)
+                    {
+                        // We are on this edge
+
+                        int const edgeOrdinal = (vi + 1) % 3;
+
+                        LogNpcDebug("    On an edge: ", edgeOrdinal, " of triangle ", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex);
+
+                        // Check if this is really a floor to this particle
+                        if (IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, edgeOrdinal, npc, isPrimaryParticle, mParticles, shipMesh))
+                        {
+                            // The edge is a floor
+
+                            LogNpcDebug("      The edge is a floor");
+
+                            // Check now whether we're moving *against* the floor
+
+                            vec2f const edgeVector = shipMesh.GetTriangles().GetSubSpringVector(
+                                npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
+                                edgeOrdinal,
+                                shipMesh.GetPoints());
+                            //vec2f const edgeDir = edgeVector.normalise();
+                            vec2f const edgeNormal = edgeVector.to_perpendicular(); // Points outside of triangle (i.e. towards floor)
+                            if (trajectory.dot(edgeNormal) >= 0.0f) // If 0, no normal force - hence no friction; however we want to take this codepath anyways for consistency
+                            {
+                                //
+                                // We are insisting against this edge floor
+                                //
+
+                                LogNpcDebug("      We are moving against this floor (alignment=", trajectory.dot(edgeNormal), ")");
+
+                                nonInertialEdgeOrdinal = edgeOrdinal;
+                            }
+                            else
+                            {
+                                LogNpcDebug("      We are not moving against this floor (alignment=", trajectory.dot(edgeNormal), ")");
+                            }
+                        }
+                        else
+                        {
+                            LogNpcDebug("      The edge is not a floor");
+                        }
+
+                        // Since we know we are not on a vertex, and we know we are on this edge, then there are no more edges to check
+                        assert(vi == 2
+                            || (vi == 1 && npcParticle.ConstrainedState->CurrentBCoords.BCoords[vi + 1] != 0.0f)
+                            || (vi == 0 && npcParticle.ConstrainedState->CurrentBCoords.BCoords[vi + 1] != 0.0f && npcParticle.ConstrainedState->CurrentBCoords.BCoords[vi + 2] != 0.0f));
                         break;
                     }
                 }
             }
 
-            if (remainingDt == 0.0f)
+            if (nonInertialEdgeOrdinal >= 0)
             {
-                break;
-            }
+                //
+                // Case 1: Non-inertial: on edge and moving against (or along) it, pushed by it
+                //
 
-            //
-            // Check which of two cases applies at this moment:
-            // 1. On edge and moving against (or along) it (i.e. in a non-inertial frame)
-            // 2. Not on edge, or on edge but not moving against (nor along) it
-            //
+                LogNpcDebug("    ConstrainedNonInertial: triangle=", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, " nonInertialEdgeOrdinal=", nonInertialEdgeOrdinal, " bCoords=", npcParticle.ConstrainedState->CurrentBCoords.BCoords, " trajectory=", trajectory);
+                LogNpcDebug("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
 
-            LogNpcDebug("    Checking edges");
+                // Set now our current edge-ness for the rest of this simulation step, which is
+                // mostly for animation purposes.
+                //
+                // In fact, the subsequent UpdateNpcParticle_ConstrainedNonInertial call has 3 outcomes:
+                //  - We end up inside the triangle - along this same edge;
+                //  - We travel up to a vertex, and then:
+                //      - Ready to continue: in this case we might have reached a new triangle,
+                //        but we'll go through this again;
+                //      - Become free: no more constrained state anyways;
+                //      - Hit floor, with then either continuation (above) or bounce; in the case
+                //        of bounce, we _do_ want the current virtual floor to be the one _before_ the bounce.
 
-            // Check all edges, stop at first one that is floor and against which we're moving
-            bool hasFoundNonInertial = false;
-            for (int vi = 0; vi < 3; ++vi)
-            {
-                if (npcParticle.ConstrainedState->CurrentBCoords.BCoords[vi] == 0.0f)
+                npcParticle.ConstrainedState->CurrentVirtualFloor.emplace(
+                    npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
+                    nonInertialEdgeOrdinal);
+
+                //
+                // We're moving against the floor, hence we are in a non-inertial frame...
+                // ...take friction into account and flaten trajectory
+                //
+
+                //
+                // Calculate magnitude of flattened trajectory - i.e. component of trajectory
+                // along (i.e. tangent) edge, positive when in the direction of the edge
+                //
+
+                vec2f const edgeDir = shipMesh.GetTriangles().GetSubSpringVector(
+                    npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
+                    nonInertialEdgeOrdinal,
+                    shipMesh.GetPoints()).normalise();
+
+                float trajectoryT = trajectory.dot(edgeDir);
+
+                //
+                // Update tangential component of trajectory with friction
+                //
+
                 {
-                    // We are on this edge
+                    // Normal trajectory: apparent (integrated) force against the floor;
+                    // positive when against the floor
 
-                    int const edgeOrdinal = (vi + 1) % 3;
+                    float const trajectoryN = trajectory.dot(edgeDir.to_perpendicular());
 
-                    assert(isPrimaryParticle || npc.DipoleState.has_value());
+                    //
+                    // Choose between kinetic and static friction
+                    //
+                    // Note that we want to check actual velocity here, not
+                    // *intention* to move (which is trajectory)
+                    //
 
-                    LogNpcDebug("      edge ", edgeOrdinal, ": isFloor=", IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, edgeOrdinal, npc, isPrimaryParticle, mParticles, shipMesh));
-
-                    // Check if this is really a floor to this particle
-                    if (IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, edgeOrdinal, npc, isPrimaryParticle, mParticles, shipMesh))
+                    float frictionCoefficient;
+                    if (std::abs(npcParticle.ConstrainedState->MeshRelativeVelocity.dot(edgeDir)) > 0.01f) // Magic number
                     {
-                        // On floor edge - so potentially in a non-inertial frame
+                        // Kinetic friction
+                        frictionCoefficient = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).KineticFriction * gameParameters.KineticFrictionAdjustment;
+                    }
+                    else
+                    {
+                        // Static friction
+                        frictionCoefficient = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).StaticFriction * gameParameters.StaticFrictionAdjustment;
+                    }
 
-                        // Check now whether we're moving *against* the floor
+                    // Calculate friction (integrated) force magnitude (along edgeDir),
+                    // which is the same as apparent force, up to max friction threshold
+                    float tFriction = std::min(std::abs(trajectoryT), frictionCoefficient * std::max(trajectoryN, 0.0f));
+                    if (trajectoryT >= 0.0f)
+                    {
+                        tFriction *= -1.0f;
+                    }
 
-                        vec2f const edgeVector = shipMesh.GetTriangles().GetSubSpringVector(
-                            npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
-                            edgeOrdinal,
-                            shipMesh.GetPoints());
+                    LogNpcDebug("        friction: trajectoryN=", trajectoryN, " relVel=", npcParticle.ConstrainedState->MeshRelativeVelocity,
+                        " trajectoryT=", trajectoryT, " tFriction=", tFriction);
 
-                        vec2f const edgeDir = edgeVector.normalise();
-                        vec2f const edgeNormal = edgeDir.to_perpendicular(); // Points outside of triangle (i.e. towards floor)
+                    // Update trajectory with friction
+                    trajectoryT += tFriction;
+                }
 
-                        if (trajectory.dot(edgeNormal) >= 0.0f) // If 0, no normal force - hence no friction; however we want to take this codepath anyways for consistency
+                // The (signed) edge length that we plan to travel independently from walking
+                float const edgePhysicalTraveledPlanned = trajectoryT;
+
+                //
+                // Calculate displacement due to walking, if any
+                //
+
+                // The (signed) edge length that we plan to travel exclusively via walking
+                float edgeWalkedPlanned = 0.0f;
+
+                if (npc.Kind == NpcKindType::Human
+                    && npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking
+                    && isPrimaryParticle)
+                {
+                    //
+                    // Walking displacement projected along edge - what's needed to reach total desired walking
+                    // displacement, together with physical
+                    // - Never reduces physical
+                    // - Never adds to physical so much as to cause resultant to be faster than walking speed
+                    //
+
+                    vec2f const idealWalkDir = vec2f(npc.KindSpecificState.HumanNpcState.CurrentFaceDirectionX, 0.0f);
+                    assert(idealWalkDir.length() == 1.0f);
+
+                    float const idealWalkMagnitude = CalculateActualHumanWalkingAbsoluteSpeed(npc.KindSpecificState.HumanNpcState) * remainingDt;
+
+                    vec2f walkDir; // Actual absolute direction of walk - along the edge
+                    if (idealWalkDir.dot(edgeDir) >= 0.0f)
+                    {
+                        // Same direction as edge (ahead is towards larger)
+
+                        walkDir = edgeDir;
+                        edgeWalkedPlanned = Clamp(idealWalkMagnitude - edgePhysicalTraveledPlanned, 0.0f, idealWalkMagnitude);
+                    }
+                    else
+                    {
+                        // Opposite direction as edge (ahead is towards smaller)
+
+                        walkDir = -edgeDir;
+                        edgeWalkedPlanned = Clamp(-idealWalkMagnitude - edgePhysicalTraveledPlanned, -idealWalkMagnitude, 0.0f);
+                    }
+
+                    // Apply gravity resistance: too steep slopes (wrt vertical) are gently clamped to zero,
+                    // to prevent walking on floors that are too steep
+                    //
+                    // Note: walkDir.y is sin(slope angle between horiz and dir)
+                    float constexpr ResistanceSinSlopeStart = 0.50f; // Start slightly before expected 45-degree ramp
+                    static_assert(ResistanceSinSlopeStart <= GameParameters::MaxHumanNpcWalkSinSlope);
+                    if (walkDir.y >= ResistanceSinSlopeStart) // walkDir.y is component along vertical, pointing up
+                    {
+                        float const y2 = (walkDir.y - ResistanceSinSlopeStart) / (GameParameters::MaxHumanNpcWalkSinSlope - ResistanceSinSlopeStart);
+                        float const gravityResistance = std::max(1.0f - (y2 * y2), 0.0f);
+
+                        LogNpcDebug("        gravityResistance=", gravityResistance, " (walkDir.y=", walkDir.y, ")");
+
+                        edgeWalkedPlanned *= gravityResistance;
+                    }
+
+                    if (npc.KindSpecificState.HumanNpcState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
+                    {
+                        LogNpcDebug("        idealWalkMagnitude=", idealWalkMagnitude, " => edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.KindSpecificState.HumanNpcState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude, ")");
+                    }
+                }
+
+                //
+                // Calculate total (signed) displacement we plan on undergoing
+                //
+
+                float const edgeTraveledPlanned = edgePhysicalTraveledPlanned + edgeWalkedPlanned; // Resultant
+
+                if (!edgeDistanceToTravelMax)
+                {
+                    edgeDistanceToTravelMax = std::abs(edgeTraveledPlanned);
+
+                    LogNpcDebug("        initialized distance budget: edgeDistanceToTravelMax=", *edgeDistanceToTravelMax);
+                }
+
+                // Make sure we don't travel more than what we're willing to
+
+                float adjustedEdgeTraveledPlanned;
+
+                float const remainingDistanceBudget = *edgeDistanceToTravelMax - edgeDistanceTraveledTotal;
+                assert(remainingDistanceBudget >= 0.0f);
+                if (std::abs(edgeTraveledPlanned) > remainingDistanceBudget)
+                {
+                    if (edgeTraveledPlanned >= 0.0f)
+                    {
+                        adjustedEdgeTraveledPlanned = std::min(edgeTraveledPlanned, remainingDistanceBudget);
+                    }
+                    else
+                    {
+                        adjustedEdgeTraveledPlanned = std::max(edgeTraveledPlanned, -remainingDistanceBudget);
+                    }
+
+                    LogNpcDebug("        travel exceeds budget (edgeTraveledPlanned=", edgeTraveledPlanned, " budget=", remainingDistanceBudget,
+                        " => adjustedEdgeTraveledPlanned=", adjustedEdgeTraveledPlanned);
+                }
+                else
+                {
+                    adjustedEdgeTraveledPlanned = edgeTraveledPlanned;
+                }
+
+                //
+                // Recover flattened trajectory as a vector
+                //
+
+                vec2f const flattenedTrajectory = edgeDir * adjustedEdgeTraveledPlanned;
+
+                //
+                // Calculate trajectory target
+                //
+
+                vec2f flattenedTrajectoryEndAbsolutePosition = trajectoryStartAbsolutePosition + flattenedTrajectory;
+
+                bcoords3f flattenedTrajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinates(
+                    flattenedTrajectoryEndAbsolutePosition,
+                    npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
+                    shipMesh.GetPoints());
+
+                //
+                // Due to numerical slack, ensure target barycentric coords are still along edge
+                //
+
+                int const edgeVertexOrdinal = (nonInertialEdgeOrdinal + 2) % 3;
+                flattenedTrajectoryEndBarycentricCoords[edgeVertexOrdinal] = 0.0f;
+                flattenedTrajectoryEndBarycentricCoords[(edgeVertexOrdinal + 1) % 3] = 1.0f - flattenedTrajectoryEndBarycentricCoords[(edgeVertexOrdinal + 2) % 3];
+
+                LogNpcDebug("        flattenedTrajectory=", flattenedTrajectory, " flattenedTrajectoryEndAbsolutePosition=", flattenedTrajectoryEndAbsolutePosition, " flattenedTrajectoryEndBarycentricCoords=", flattenedTrajectoryEndBarycentricCoords);
+
+                //
+                // Ray-trace using non-inertial physics;
+                // will return when completed or when current edge is over
+                //
+                // If needs to continue, returns the (signed) actual edge traveled, which is implicitly the
+                // (signed) actual edge physically traveled plus the (signed) actual edge walked during the
+                // consumed dt portion of the remaning dt
+                //
+                // Fact: at each iteration, the actual movement of the particle will be the result of phys traj and imposed walk displacement
+                // Fact: phys traj displacement (planned) is itself dependant from remaining_dt, because of advancement of particle's current bary coords
+                // Fat: walk displacement (planned) is also dependant from remaining_dt, because we use walk velocity
+                // Fact: so, the actual movement includes the consumed_dt's portion (fraction) of both phys traj and imposed walk
+                //
+
+                LogNpcDebug("        edgePhysicalTraveledPlanned=", edgePhysicalTraveledPlanned, " edgeWalkedPlanned=", edgeWalkedPlanned);
+
+                auto const [edgeTraveledActual, doStop] = UpdateNpcParticle_ConstrainedNonInertial(
+                    npc,
+                    isPrimaryParticle,
+                    nonInertialEdgeOrdinal,
+                    edgeDir,
+                    particleStartAbsolutePosition,
+                    trajectoryStartAbsolutePosition,
+                    flattenedTrajectoryEndAbsolutePosition,
+                    flattenedTrajectoryEndBarycentricCoords,
+                    flattenedTrajectory,
+                    adjustedEdgeTraveledPlanned,
+                    meshVelocity,
+                    remainingDt,
+                    shipMesh,
+                    mParticles,
+                    currentSimulationTime,
+                    gameParameters);
+
+                LogNpcDebug("    Actual edge traveled in non-inertial step: ", edgeTraveledActual);
+
+                if (doStop)
+                {
+                    // Completed
+                    remainingDt = 0.0f;
+                }
+                else
+                {
+                    if (edgeTraveledActual == 0.0f)
+                    {
+                        // No movement
+
+                        // Check if we're in a well
+                        if (pastBarycentricPositions[0] == npcParticle.ConstrainedState->CurrentBCoords
+                            || pastBarycentricPositions[1] == npcParticle.ConstrainedState->CurrentBCoords)
                         {
                             //
-                            // Case 1: Non-inertial: on edge and moving against (or along) it, pushed by it
+                            // Well - stop here
                             //
 
-                            LogNpcDebug("    ConstrainedNonInertial: triangle=", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, " edgeOrdinal=", edgeOrdinal, " bCoords=", npcParticle.ConstrainedState->CurrentBCoords.BCoords, " trajectory=", trajectory);
-                            LogNpcDebug("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
+                            LogNpcDebug("    Detected well - stopping here");
 
-                            // Set now our current edge-ness for the rest of this simulation step, which is
-                            // mostly for animation purposes.
-                            //
-                            // In fact, the subsequent UpdateNpcParticle_ConstrainedNonInertial call has 3 outcomes:
-                            //  - We end up inside the triangle - along this same edge;
-                            //  - We travel up to a vertex, and then:
-                            //      - Ready to continue: in this case we might have reached a new triangle,
-                            //        but we'll go through this again;
-                            //      - Become free: no more constrained state anyways;
-                            //      - Hit floor, with then either continuation (above) or bounce; in the case
-                            //        of bounce, we _do_ want the current virtual floor to be the one _before_ the bounce.
+                            // Update particle's physics, considering that we are in a well and thus still (wrt mesh)
 
-                            npcParticle.ConstrainedState->CurrentVirtualFloor.emplace(
-                                npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
-                                edgeOrdinal);
-
-                            //
-                            // We're moving against the floor, hence we are in a non-inertial frame...
-                            // ...take friction into account and flaten trajectory
-                            //
-
-                            //
-                            // Calculate magnitude of flattened trajectory - i.e. component of trajectory
-                            // along (i.e. tangent) edge, positive when in the direction of the edge
-                            //
-
-                            float trajectoryT = trajectory.dot(edgeDir);
-
-                            //
-                            // Update tangential component of trajectory with friction
-                            //
-
-                            {
-                                // Normal trajectory: apparent (integrated) force against the floor;
-                                // positive when against the floor
-
-                                float const trajectoryN = trajectory.dot(edgeDir.to_perpendicular());
-
-                                //
-                                // Choose between kinetic and static friction
-                                //
-                                // Note that we want to check actual velocity here, not
-                                // *intention* to move (which is trajectory)
-                                //
-
-                                float frictionCoefficient;
-                                if (std::abs(npcParticle.ConstrainedState->MeshRelativeVelocity.dot(edgeDir)) > 0.01f) // Magic number
-                                {
-                                    // Kinetic friction
-                                    frictionCoefficient = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).KineticFriction * gameParameters.KineticFrictionAdjustment;
-                                }
-                                else
-                                {
-                                    // Static friction
-                                    frictionCoefficient = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).StaticFriction * gameParameters.StaticFrictionAdjustment;
-                                }
-
-                                // Calculate friction (integrated) force magnitude (along edgeDir),
-                                // which is the same as apparent force, up to max friction threshold
-                                float tFriction = std::min(std::abs(trajectoryT), frictionCoefficient * std::max(trajectoryN, 0.0f));
-                                if (trajectoryT >= 0.0f)
-                                {
-                                    tFriction *= -1.0f;
-                                }
-
-                                LogNpcDebug("        friction: trajectoryN=", trajectoryN, " relVel=", npcParticle.ConstrainedState->MeshRelativeVelocity,
-                                    " trajectoryT=", trajectoryT, " tFriction=", tFriction);
-
-                                // Update trajectory with friction
-                                trajectoryT += tFriction;
-                            }
-
-                            // The (signed) edge length that we plan to travel independently from walking
-                            float const edgePhysicalTraveledPlanned = trajectoryT;
-
-                            //
-                            // Calculate displacement due to walking, if any
-                            //
-
-                            // The (signed) edge length that we plan to travel exclusively via walking
-                            float edgeWalkedPlanned = 0.0f;
-
-                            if (npc.Kind == NpcKindType::Human
-                                && npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking
-                                && isPrimaryParticle)
-                            {
-                                //
-                                // Walking displacement projected along edge - what's needed to reach total desired walking
-                                // displacement, together with physical
-                                // - Never reduces physical
-                                // - Never adds to physical so much as to cause resultant to be faster than walking speed
-                                //
-
-                                vec2f const idealWalkDir = vec2f(npc.KindSpecificState.HumanNpcState.CurrentFaceDirectionX, 0.0f);
-                                assert(idealWalkDir.length() == 1.0f);
-
-                                float const idealWalkMagnitude = CalculateActualHumanWalkingAbsoluteSpeed(npc.KindSpecificState.HumanNpcState) * remainingDt;
-
-                                vec2f walkDir; // Actual absolute direction of walk - along the edge
-                                if (idealWalkDir.dot(edgeDir) >= 0.0f)
-                                {
-                                    // Same direction as edge (ahead is towards larger)
-
-                                    walkDir = edgeDir;
-                                    edgeWalkedPlanned = Clamp(idealWalkMagnitude - edgePhysicalTraveledPlanned, 0.0f, idealWalkMagnitude);
-                                }
-                                else
-                                {
-                                    // Opposite direction as edge (ahead is towards smaller)
-
-                                    walkDir = -edgeDir;
-                                    edgeWalkedPlanned = Clamp(-idealWalkMagnitude - edgePhysicalTraveledPlanned, -idealWalkMagnitude, 0.0f);
-                                }
-
-                                // Apply gravity resistance: too steep slopes (wrt vertical) are gently clamped to zero,
-                                // to prevent walking on floors that are too steep
-                                //
-                                // Note: walkDir.y is sin(slope angle between horiz and dir)
-                                float constexpr ResistanceSinSlopeStart = 0.50f; // Start slightly before expected 45-degree ramp
-                                static_assert(ResistanceSinSlopeStart <= GameParameters::MaxHumanNpcWalkSinSlope);
-                                if (walkDir.y >= ResistanceSinSlopeStart) // walkDir.y is component along vertical, pointing up
-                                {
-                                    float const y2 = (walkDir.y - ResistanceSinSlopeStart) / (GameParameters::MaxHumanNpcWalkSinSlope - ResistanceSinSlopeStart);
-                                    float const gravityResistance = std::max(1.0f - (y2 * y2), 0.0f);
-
-                                    LogNpcDebug("        gravityResistance=", gravityResistance, " (walkDir.y=", walkDir.y, ")");
-
-                                    edgeWalkedPlanned *= gravityResistance;
-                                }
-
-                                if (npc.KindSpecificState.HumanNpcState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
-                                {
-                                    LogNpcDebug("        idealWalkMagnitude=", idealWalkMagnitude, " => edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.KindSpecificState.HumanNpcState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude, ")");
-                                }
-                            }
-
-                            //
-                            // Calculate total (signed) displacement we plan on undergoing
-                            //
-
-                            float const edgeTraveledPlanned = edgePhysicalTraveledPlanned + edgeWalkedPlanned; // Resultant
-
-                            if (!edgeDistanceToTravelMax)
-                            {
-                                edgeDistanceToTravelMax = std::abs(edgeTraveledPlanned);
-
-                                LogNpcDebug("        initialized distance budget: edgeDistanceToTravelMax=", *edgeDistanceToTravelMax);
-                            }
-
-                            // Make sure we don't travel more than what we're willing to
-
-                            float adjustedEdgeTraveledPlanned;
-
-                            float const remainingDistanceBudget = *edgeDistanceToTravelMax - edgeDistanceTraveledTotal;
-                            assert(remainingDistanceBudget >= 0.0f);
-                            if (std::abs(edgeTraveledPlanned) > remainingDistanceBudget)
-                            {
-                                if (edgeTraveledPlanned >= 0.0f)
-                                {
-                                    adjustedEdgeTraveledPlanned = std::min(edgeTraveledPlanned, remainingDistanceBudget);
-                                }
-                                else
-                                {
-                                    adjustedEdgeTraveledPlanned = std::max(edgeTraveledPlanned, -remainingDistanceBudget);
-                                }
-
-                                LogNpcDebug("        travel exceeds budget (edgeTraveledPlanned=", edgeTraveledPlanned, " budget=", remainingDistanceBudget,
-                                    " => adjustedEdgeTraveledPlanned=", adjustedEdgeTraveledPlanned);
-                            }
-                            else
-                            {
-                                adjustedEdgeTraveledPlanned = edgeTraveledPlanned;
-                            }
-
-                            //
-                            // Recover flattened trajectory as a vector
-                            //
-
-                            vec2f const flattenedTrajectory = edgeDir * adjustedEdgeTraveledPlanned;
-
-                            //
-                            // Calculate trajectory target
-                            //
-
-                            vec2f flattenedTrajectoryEndAbsolutePosition = trajectoryStartAbsolutePosition + flattenedTrajectory;
-
-                            bcoords3f flattenedTrajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinates(
-                                flattenedTrajectoryEndAbsolutePosition,
+                            vec2f const particleEndAbsolutePosition = shipMesh.GetTriangles().FromBarycentricCoordinates(
+                                npcParticle.ConstrainedState->CurrentBCoords.BCoords,
                                 npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
                                 shipMesh.GetPoints());
 
-                            //
-                            // Due to numerical slack, ensure target barycentric coords are still along edge
-                            //
+                            mParticles.SetPosition(npcParticle.ParticleIndex, particleEndAbsolutePosition);
 
-                            int const edgeVertexOrdinal = (edgeOrdinal + 2) % 3;
-                            flattenedTrajectoryEndBarycentricCoords[edgeVertexOrdinal] = 0.0f;
-                            flattenedTrajectoryEndBarycentricCoords[(edgeVertexOrdinal + 1) % 3] = 1.0f - flattenedTrajectoryEndBarycentricCoords[(edgeVertexOrdinal + 2) % 3];
+                            // No (relative) velocity (so just mesh velocity, and no global damping)
+                            mParticles.SetVelocity(npcParticle.ParticleIndex, meshVelocity);
+                            npcParticle.ConstrainedState->MeshRelativeVelocity = vec2f::zero();
 
-                            LogNpcDebug("        flattenedTrajectory=", flattenedTrajectory, " flattenedTrajectoryEndAbsolutePosition=", flattenedTrajectoryEndAbsolutePosition, " flattenedTrajectoryEndBarycentricCoords=", flattenedTrajectoryEndBarycentricCoords);
-
-                            //
-                            // Ray-trace using non-inertial physics;
-                            // will return when completed or when current edge is over
-                            //
-                            // If needs to continue, returns the (signed) actual edge traveled, which is implicitly the
-                            // (signed) actual edge physically traveled plus the (signed) actual edge walked during the
-                            // consumed dt portion of the remaning dt
-                            //
-                            // Fact: at each iteration, the actual movement of the particle will be the result of phys traj and imposed walk displacement
-                            // Fact: phys traj displacement (planned) is itself dependant from remaining_dt, because of advancement of particle's current bary coords
-                            // Fat: walk displacement (planned) is also dependant from remaining_dt, because we use walk velocity
-                            // Fact: so, the actual movement includes the consumed_dt's portion (fraction) of both phys traj and imposed walk
-                            //
-
-                            LogNpcDebug("        edgePhysicalTraveledPlanned=", edgePhysicalTraveledPlanned, " edgeWalkedPlanned=", edgeWalkedPlanned);
-
-                            auto const [edgeTraveledActual, doStop] = UpdateNpcParticle_ConstrainedNonInertial(
-                                npc,
-                                isPrimaryParticle,
-                                edgeOrdinal,
-                                edgeDir,
-                                particleStartAbsolutePosition,
-                                trajectoryStartAbsolutePosition,
-                                flattenedTrajectoryEndAbsolutePosition,
-                                flattenedTrajectoryEndBarycentricCoords,
-                                flattenedTrajectory,
-                                adjustedEdgeTraveledPlanned,
-                                meshVelocity,
-                                remainingDt,
-                                shipMesh,
-                                mParticles,
-                                currentSimulationTime,
-                                gameParameters);
-
-                            LogNpcDebug("    Actual edge traveled in non-inertial step: ", edgeTraveledActual);
-
-                            if (doStop)
-                            {
-                                // Completed
-                                remainingDt = 0.0f;
-                            }
-                            else
-                            {
-                                if (edgeTraveledActual == 0.0f)
-                                {
-                                    // No movement
-
-                                    // Check if we're in a well
-                                    if (pastBarycentricPositions[0] == npcParticle.ConstrainedState->CurrentBCoords
-                                        || pastBarycentricPositions[1] == npcParticle.ConstrainedState->CurrentBCoords)
-                                    {
-                                        //
-                                        // Well - stop here
-                                        //
-
-                                        LogNpcDebug("    Detected well - stopping here");
-
-                                        // Update particle's physics, considering that we are in a well and thus still (wrt mesh)
-
-                                        vec2f const particleEndAbsolutePosition = shipMesh.GetTriangles().FromBarycentricCoordinates(
-                                            npcParticle.ConstrainedState->CurrentBCoords.BCoords,
-                                            npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
-                                            shipMesh.GetPoints());
-
-                                        mParticles.SetPosition(npcParticle.ParticleIndex, particleEndAbsolutePosition);
-
-                                        // No (relative) velocity (so just mesh velocity, and no global damping)
-                                        mParticles.SetVelocity(npcParticle.ParticleIndex, meshVelocity);
-                                        npcParticle.ConstrainedState->MeshRelativeVelocity = vec2f::zero();
-
-                                        // Consume the whole time quantum
-                                        remainingDt = 0.0f;
-                                    }
-                                    else
-                                    {
-                                        // Resultant of physical and walked is zero => no movement at all
-                                        // Note: either physical and/or walked could individually be non-zero
-                                        //
-                                        // For now, assume no dt consumed and continue
-                                    }
-                                }
-                                else
-                                {
-                                    // We have moved
-
-                                    // Calculate consumed dt
-                                    assert(edgeTraveledActual * adjustedEdgeTraveledPlanned >= 0.0f); // Should have same sign
-                                    float const dtFractionConsumed = adjustedEdgeTraveledPlanned != 0.0f
-                                        ? std::min(edgeTraveledActual / adjustedEdgeTraveledPlanned, 1.0f) // Signs should agree anyway
-                                        : 1.0f; // If we were planning no travel, any movement is a whole consumption
-                                    LogNpcDebug("        dtFractionConsumed=", dtFractionConsumed);
-                                    remainingDt *= (1.0f - dtFractionConsumed);
-
-                                    // Reset well detection machinery
-                                    static_assert(pastBarycentricPositions.size() == 2);
-                                    pastBarycentricPositions[0].reset();
-                                    pastBarycentricPositions[1].reset();
-                                }
-                            }
-
-                            // Update total (absolute) distance traveled along (an) edge
-                            edgeDistanceTraveledTotal += std::abs(edgeTraveledActual);
-
-                            // If we haven't completed, there is still some distance remaining in the budget
-                            //
-                            // Note: if this doesn't hold, at the next iteration we'll move by zero and we'll reset
-                            // velocity to zero, even though we have moved in this step, thus yielding an erroneous
-                            // zero velocity
-                            assert(remainingDt == 0.0f || edgeDistanceTraveledTotal < *edgeDistanceToTravelMax);
-
-                            // Update total human distance traveled
-                            if (npc.Kind == NpcKindType::Human
-                                && isPrimaryParticle) // Human is represented by primary particle
-                            {
-                                // Note: does not include eventual distance traveled after becoming free; fine because we will transition and wipe out total traveled
-                                npc.KindSpecificState.HumanNpcState.TotalDistanceTraveledOnEdgeSinceStateTransition += std::abs(edgeTraveledActual);
-                            }
-
-                            // Update total vector walked along edge
-                            // Note: we use unadjusted edge traveled planned, as edge walked planned is also unadjusted,
-                            // and we are only interested in the ratio anyway
-                            float const edgeWalkedActual = edgeTraveledPlanned != 0.0f
-                                ? edgeTraveledActual * (edgeWalkedPlanned / edgeTraveledPlanned)
-                                : 0.0f; // Unlikely, but read above for rationale behind 0.0
-                            totalEdgeWalkedActual += edgeDir * edgeWalkedActual;
-                            LogNpcDebug("        edgeWalkedActual=", edgeWalkedActual, " totalEdgeWalkedActual=", totalEdgeWalkedActual);
-
-                            // Update well detection machinery
-                            if (npcParticle.ConstrainedState.has_value()) // We might have left constrained state (not to return to it anymore)
-                            {
-                                pastBarycentricPositions[1] = pastBarycentricPositions[0];
-                                pastBarycentricPositions[0] = npcParticle.ConstrainedState->CurrentBCoords;
-                            }
-
-                            if (npcParticle.ConstrainedState.has_value())
-                            {
-                                LogNpcDebug("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " EndMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
-                            }
-                            else
-                            {
-                                LogNpcDebug("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
-                            }
-
-                            hasFoundNonInertial = true;
-
-                            break;
+                            // Consume the whole time quantum
+                            remainingDt = 0.0f;
                         }
                         else
                         {
-                            LogNpcDebug("      traj.edgeN=", trajectory.dot(edgeNormal));
+                            // Resultant of physical and walked is zero => no movement at all
+                            // Note: either physical and/or walked could individually be non-zero
+                            //
+                            // For now, assume no dt consumed and continue
                         }
                     }
-                }
-            } // for (vertex)
+                    else
+                    {
+                        // We have moved
 
-            if (!hasFoundNonInertial)
+                        // Calculate consumed dt
+                        assert(edgeTraveledActual * adjustedEdgeTraveledPlanned >= 0.0f); // Should have same sign
+                        float const dtFractionConsumed = adjustedEdgeTraveledPlanned != 0.0f
+                            ? std::min(edgeTraveledActual / adjustedEdgeTraveledPlanned, 1.0f) // Signs should agree anyway
+                            : 1.0f; // If we were planning no travel, any movement is a whole consumption
+                        LogNpcDebug("        dtFractionConsumed=", dtFractionConsumed);
+                        remainingDt *= (1.0f - dtFractionConsumed);
+
+                        // Reset well detection machinery
+                        static_assert(pastBarycentricPositions.size() == 2);
+                        pastBarycentricPositions[0].reset();
+                        pastBarycentricPositions[1].reset();
+                    }
+                }
+
+                // Update total (absolute) distance traveled along (an) edge
+                edgeDistanceTraveledTotal += std::abs(edgeTraveledActual);
+
+                // If we haven't completed, there is still some distance remaining in the budget
+                //
+                // Note: if this doesn't hold, at the next iteration we'll move by zero and we'll reset
+                // velocity to zero, even though we have moved in this step, thus yielding an erroneous
+                // zero velocity
+                assert(remainingDt == 0.0f || edgeDistanceTraveledTotal < *edgeDistanceToTravelMax);
+
+                // Update total human distance traveled
+                if (npc.Kind == NpcKindType::Human
+                    && isPrimaryParticle) // Human is represented by primary particle
+                {
+                    // Note: does not include eventual distance traveled after becoming free; fine because we will transition and wipe out total traveled
+                    npc.KindSpecificState.HumanNpcState.TotalDistanceTraveledOnEdgeSinceStateTransition += std::abs(edgeTraveledActual);
+                }
+
+                // Update total vector walked along edge
+                // Note: we use unadjusted edge traveled planned, as edge walked planned is also unadjusted,
+                // and we are only interested in the ratio anyway
+                float const edgeWalkedActual = edgeTraveledPlanned != 0.0f
+                    ? edgeTraveledActual * (edgeWalkedPlanned / edgeTraveledPlanned)
+                    : 0.0f; // Unlikely, but read above for rationale behind 0.0
+                totalEdgeWalkedActual += edgeDir * edgeWalkedActual;
+                LogNpcDebug("        edgeWalkedActual=", edgeWalkedActual, " totalEdgeWalkedActual=", totalEdgeWalkedActual);
+
+                // Update well detection machinery
+                if (npcParticle.ConstrainedState.has_value()) // We might have left constrained state (not to return to it anymore)
+                {
+                    pastBarycentricPositions[1] = pastBarycentricPositions[0];
+                    pastBarycentricPositions[0] = npcParticle.ConstrainedState->CurrentBCoords;
+                }
+
+                if (npcParticle.ConstrainedState.has_value())
+                {
+                    LogNpcDebug("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " EndMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
+                }
+                else
+                {
+                    LogNpcDebug("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
+                }
+            }
+            else
             {
                 //
                 // Case 2: Inertial: not on edge or on edge but not moving against (nor along) it
@@ -1151,6 +1211,530 @@ void Npcs::UpdateNpcParticlePhysics(
                 // Consume whole time quantum and stop
                 remainingDt = 0.0f;
             }
+
+            ////// TODOOLD
+
+            //////
+            ////// Check if we are at a corner; if we are, travel through corners - according to trajectory - until
+            ////// any of the following:
+            //////  - Trajectory points towards a floor
+            //////  - Trajectory points *inside* triangle
+            //////  - Particle becomes free
+            //////
+            ////// We do this so that if we're after a bounce we don't see the triangle of the vertical wall that we've bounced off, but the
+            ////// triangle of the floor
+            //////
+
+            ////std::optional<int> vertexOrdinal = npcParticle.ConstrainedState->CurrentBCoords.BCoords.try_get_vertex();
+            ////if (vertexOrdinal.has_value())
+            ////{
+            ////    bcoords3f const trajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinates(
+            ////        trajectoryEndAbsolutePosition,
+            ////        npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
+            ////        shipMesh.GetPoints());
+
+            ////    auto const outcome = NavigateVertex(
+            ////        npc,
+            ////        isPrimaryParticle,
+            ////        *vertexOrdinal,
+            ////        particleStartAbsolutePosition,
+            ////        trajectoryStartAbsolutePosition,
+            ////        trajectoryEndAbsolutePosition,
+            ////        trajectoryEndBarycentricCoords,
+            ////        true, // Check immediately whether we're directed towards the interior of the triangle
+            ////        shipMesh,
+            ////        mParticles,
+            ////        gameParameters);
+
+            ////    switch (outcome.Type)
+            ////    {
+            ////        case NavigateVertexOutcome::OutcomeType::CompletedNavigation:
+            ////        {
+            ////            // Continue with ray-tracing
+            ////            break;
+            ////        }
+
+            ////        case NavigateVertexOutcome::OutcomeType::ConvertedToFree:
+            ////        {
+            ////            // Done
+            ////            remainingDt = 0.0f;
+            ////            break;
+            ////        }
+
+            ////        case NavigateVertexOutcome::OutcomeType::EncounteredFloor:
+            ////        {
+            ////            // Continue with ray-tracing, handling impact using "flattening" algorithm
+            ////            break;
+            ////        }
+            ////    }
+            ////}
+
+            ////if (remainingDt == 0.0f)
+            ////{
+            ////    break;
+            ////}
+
+            //////
+            ////// Check which of two cases applies at this moment:
+            ////// 1. On edge and moving against (or along) it (i.e. in a non-inertial frame)
+            ////// 2. Not on edge, or on edge but not moving against (nor along) it
+            //////
+
+            ////LogNpcDebug("    Checking edges");
+
+            ////// Check all edges, stop at first one that is floor and against which we're moving
+            ////bool hasFoundNonInertial = false;
+            ////for (int vi = 0; vi < 3; ++vi)
+            ////{
+            ////    if (npcParticle.ConstrainedState->CurrentBCoords.BCoords[vi] == 0.0f)
+            ////    {
+            ////        // We are on this edge
+
+            ////        int const edgeOrdinal = (vi + 1) % 3;
+
+            ////        assert(isPrimaryParticle || npc.DipoleState.has_value());
+
+            ////        LogNpcDebug("      edge ", edgeOrdinal, ": isFloor=", IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, edgeOrdinal, npc, isPrimaryParticle, mParticles, shipMesh));
+
+            ////        // Check if this is really a floor to this particle
+            ////        if (IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, edgeOrdinal, npc, isPrimaryParticle, mParticles, shipMesh))
+            ////        {
+            ////            // On floor edge - so potentially in a non-inertial frame
+
+            ////            // Check now whether we're moving *against* the floor
+
+            ////            vec2f const edgeVector = shipMesh.GetTriangles().GetSubSpringVector(
+            ////                npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
+            ////                edgeOrdinal,
+            ////                shipMesh.GetPoints());
+
+            ////            vec2f const edgeDir = edgeVector.normalise();
+            ////            vec2f const edgeNormal = edgeDir.to_perpendicular(); // Points outside of triangle (i.e. towards floor)
+
+            ////            if (trajectory.dot(edgeNormal) >= 0.0f) // If 0, no normal force - hence no friction; however we want to take this codepath anyways for consistency
+            ////            {
+            ////                //
+            ////                // Case 1: Non-inertial: on edge and moving against (or along) it, pushed by it
+            ////                //
+
+            ////                LogNpcDebug("    ConstrainedNonInertial: triangle=", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, " edgeOrdinal=", edgeOrdinal, " bCoords=", npcParticle.ConstrainedState->CurrentBCoords.BCoords, " trajectory=", trajectory);
+            ////                LogNpcDebug("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
+
+            ////                // Set now our current edge-ness for the rest of this simulation step, which is
+            ////                // mostly for animation purposes.
+            ////                //
+            ////                // In fact, the subsequent UpdateNpcParticle_ConstrainedNonInertial call has 3 outcomes:
+            ////                //  - We end up inside the triangle - along this same edge;
+            ////                //  - We travel up to a vertex, and then:
+            ////                //      - Ready to continue: in this case we might have reached a new triangle,
+            ////                //        but we'll go through this again;
+            ////                //      - Become free: no more constrained state anyways;
+            ////                //      - Hit floor, with then either continuation (above) or bounce; in the case
+            ////                //        of bounce, we _do_ want the current virtual floor to be the one _before_ the bounce.
+
+            ////                npcParticle.ConstrainedState->CurrentVirtualFloor.emplace(
+            ////                    npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
+            ////                    edgeOrdinal);
+
+            ////                //
+            ////                // We're moving against the floor, hence we are in a non-inertial frame...
+            ////                // ...take friction into account and flaten trajectory
+            ////                //
+
+            ////                //
+            ////                // Calculate magnitude of flattened trajectory - i.e. component of trajectory
+            ////                // along (i.e. tangent) edge, positive when in the direction of the edge
+            ////                //
+
+            ////                float trajectoryT = trajectory.dot(edgeDir);
+
+            ////                //
+            ////                // Update tangential component of trajectory with friction
+            ////                //
+
+            ////                {
+            ////                    // Normal trajectory: apparent (integrated) force against the floor;
+            ////                    // positive when against the floor
+
+            ////                    float const trajectoryN = trajectory.dot(edgeDir.to_perpendicular());
+
+            ////                    //
+            ////                    // Choose between kinetic and static friction
+            ////                    //
+            ////                    // Note that we want to check actual velocity here, not
+            ////                    // *intention* to move (which is trajectory)
+            ////                    //
+
+            ////                    float frictionCoefficient;
+            ////                    if (std::abs(npcParticle.ConstrainedState->MeshRelativeVelocity.dot(edgeDir)) > 0.01f) // Magic number
+            ////                    {
+            ////                        // Kinetic friction
+            ////                        frictionCoefficient = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).KineticFriction * gameParameters.KineticFrictionAdjustment;
+            ////                    }
+            ////                    else
+            ////                    {
+            ////                        // Static friction
+            ////                        frictionCoefficient = mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).StaticFriction * gameParameters.StaticFrictionAdjustment;
+            ////                    }
+
+            ////                    // Calculate friction (integrated) force magnitude (along edgeDir),
+            ////                    // which is the same as apparent force, up to max friction threshold
+            ////                    float tFriction = std::min(std::abs(trajectoryT), frictionCoefficient * std::max(trajectoryN, 0.0f));
+            ////                    if (trajectoryT >= 0.0f)
+            ////                    {
+            ////                        tFriction *= -1.0f;
+            ////                    }
+
+            ////                    LogNpcDebug("        friction: trajectoryN=", trajectoryN, " relVel=", npcParticle.ConstrainedState->MeshRelativeVelocity,
+            ////                        " trajectoryT=", trajectoryT, " tFriction=", tFriction);
+
+            ////                    // Update trajectory with friction
+            ////                    trajectoryT += tFriction;
+            ////                }
+
+            ////                // The (signed) edge length that we plan to travel independently from walking
+            ////                float const edgePhysicalTraveledPlanned = trajectoryT;
+
+            ////                //
+            ////                // Calculate displacement due to walking, if any
+            ////                //
+
+            ////                // The (signed) edge length that we plan to travel exclusively via walking
+            ////                float edgeWalkedPlanned = 0.0f;
+
+            ////                if (npc.Kind == NpcKindType::Human
+            ////                    && npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking
+            ////                    && isPrimaryParticle)
+            ////                {
+            ////                    //
+            ////                    // Walking displacement projected along edge - what's needed to reach total desired walking
+            ////                    // displacement, together with physical
+            ////                    // - Never reduces physical
+            ////                    // - Never adds to physical so much as to cause resultant to be faster than walking speed
+            ////                    //
+
+            ////                    vec2f const idealWalkDir = vec2f(npc.KindSpecificState.HumanNpcState.CurrentFaceDirectionX, 0.0f);
+            ////                    assert(idealWalkDir.length() == 1.0f);
+
+            ////                    float const idealWalkMagnitude = CalculateActualHumanWalkingAbsoluteSpeed(npc.KindSpecificState.HumanNpcState) * remainingDt;
+
+            ////                    vec2f walkDir; // Actual absolute direction of walk - along the edge
+            ////                    if (idealWalkDir.dot(edgeDir) >= 0.0f)
+            ////                    {
+            ////                        // Same direction as edge (ahead is towards larger)
+
+            ////                        walkDir = edgeDir;
+            ////                        edgeWalkedPlanned = Clamp(idealWalkMagnitude - edgePhysicalTraveledPlanned, 0.0f, idealWalkMagnitude);
+            ////                    }
+            ////                    else
+            ////                    {
+            ////                        // Opposite direction as edge (ahead is towards smaller)
+
+            ////                        walkDir = -edgeDir;
+            ////                        edgeWalkedPlanned = Clamp(-idealWalkMagnitude - edgePhysicalTraveledPlanned, -idealWalkMagnitude, 0.0f);
+            ////                    }
+
+            ////                    // Apply gravity resistance: too steep slopes (wrt vertical) are gently clamped to zero,
+            ////                    // to prevent walking on floors that are too steep
+            ////                    //
+            ////                    // Note: walkDir.y is sin(slope angle between horiz and dir)
+            ////                    float constexpr ResistanceSinSlopeStart = 0.50f; // Start slightly before expected 45-degree ramp
+            ////                    static_assert(ResistanceSinSlopeStart <= GameParameters::MaxHumanNpcWalkSinSlope);
+            ////                    if (walkDir.y >= ResistanceSinSlopeStart) // walkDir.y is component along vertical, pointing up
+            ////                    {
+            ////                        float const y2 = (walkDir.y - ResistanceSinSlopeStart) / (GameParameters::MaxHumanNpcWalkSinSlope - ResistanceSinSlopeStart);
+            ////                        float const gravityResistance = std::max(1.0f - (y2 * y2), 0.0f);
+
+            ////                        LogNpcDebug("        gravityResistance=", gravityResistance, " (walkDir.y=", walkDir.y, ")");
+
+            ////                        edgeWalkedPlanned *= gravityResistance;
+            ////                    }
+
+            ////                    if (npc.KindSpecificState.HumanNpcState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
+            ////                    {
+            ////                        LogNpcDebug("        idealWalkMagnitude=", idealWalkMagnitude, " => edgeWalkedPlanned=", edgeWalkedPlanned, " (@", npc.KindSpecificState.HumanNpcState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude, ")");
+            ////                    }
+            ////                }
+
+            ////                //
+            ////                // Calculate total (signed) displacement we plan on undergoing
+            ////                //
+
+            ////                float const edgeTraveledPlanned = edgePhysicalTraveledPlanned + edgeWalkedPlanned; // Resultant
+
+            ////                if (!edgeDistanceToTravelMax)
+            ////                {
+            ////                    edgeDistanceToTravelMax = std::abs(edgeTraveledPlanned);
+
+            ////                    LogNpcDebug("        initialized distance budget: edgeDistanceToTravelMax=", *edgeDistanceToTravelMax);
+            ////                }
+
+            ////                // Make sure we don't travel more than what we're willing to
+
+            ////                float adjustedEdgeTraveledPlanned;
+
+            ////                float const remainingDistanceBudget = *edgeDistanceToTravelMax - edgeDistanceTraveledTotal;
+            ////                assert(remainingDistanceBudget >= 0.0f);
+            ////                if (std::abs(edgeTraveledPlanned) > remainingDistanceBudget)
+            ////                {
+            ////                    if (edgeTraveledPlanned >= 0.0f)
+            ////                    {
+            ////                        adjustedEdgeTraveledPlanned = std::min(edgeTraveledPlanned, remainingDistanceBudget);
+            ////                    }
+            ////                    else
+            ////                    {
+            ////                        adjustedEdgeTraveledPlanned = std::max(edgeTraveledPlanned, -remainingDistanceBudget);
+            ////                    }
+
+            ////                    LogNpcDebug("        travel exceeds budget (edgeTraveledPlanned=", edgeTraveledPlanned, " budget=", remainingDistanceBudget,
+            ////                        " => adjustedEdgeTraveledPlanned=", adjustedEdgeTraveledPlanned);
+            ////                }
+            ////                else
+            ////                {
+            ////                    adjustedEdgeTraveledPlanned = edgeTraveledPlanned;
+            ////                }
+
+            ////                //
+            ////                // Recover flattened trajectory as a vector
+            ////                //
+
+            ////                vec2f const flattenedTrajectory = edgeDir * adjustedEdgeTraveledPlanned;
+
+            ////                //
+            ////                // Calculate trajectory target
+            ////                //
+
+            ////                vec2f flattenedTrajectoryEndAbsolutePosition = trajectoryStartAbsolutePosition + flattenedTrajectory;
+
+            ////                bcoords3f flattenedTrajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinates(
+            ////                    flattenedTrajectoryEndAbsolutePosition,
+            ////                    npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
+            ////                    shipMesh.GetPoints());
+
+            ////                //
+            ////                // Due to numerical slack, ensure target barycentric coords are still along edge
+            ////                //
+
+            ////                int const edgeVertexOrdinal = (edgeOrdinal + 2) % 3;
+            ////                flattenedTrajectoryEndBarycentricCoords[edgeVertexOrdinal] = 0.0f;
+            ////                flattenedTrajectoryEndBarycentricCoords[(edgeVertexOrdinal + 1) % 3] = 1.0f - flattenedTrajectoryEndBarycentricCoords[(edgeVertexOrdinal + 2) % 3];
+
+            ////                LogNpcDebug("        flattenedTrajectory=", flattenedTrajectory, " flattenedTrajectoryEndAbsolutePosition=", flattenedTrajectoryEndAbsolutePosition, " flattenedTrajectoryEndBarycentricCoords=", flattenedTrajectoryEndBarycentricCoords);
+
+            ////                //
+            ////                // Ray-trace using non-inertial physics;
+            ////                // will return when completed or when current edge is over
+            ////                //
+            ////                // If needs to continue, returns the (signed) actual edge traveled, which is implicitly the
+            ////                // (signed) actual edge physically traveled plus the (signed) actual edge walked during the
+            ////                // consumed dt portion of the remaning dt
+            ////                //
+            ////                // Fact: at each iteration, the actual movement of the particle will be the result of phys traj and imposed walk displacement
+            ////                // Fact: phys traj displacement (planned) is itself dependant from remaining_dt, because of advancement of particle's current bary coords
+            ////                // Fat: walk displacement (planned) is also dependant from remaining_dt, because we use walk velocity
+            ////                // Fact: so, the actual movement includes the consumed_dt's portion (fraction) of both phys traj and imposed walk
+            ////                //
+
+            ////                LogNpcDebug("        edgePhysicalTraveledPlanned=", edgePhysicalTraveledPlanned, " edgeWalkedPlanned=", edgeWalkedPlanned);
+
+            ////                auto const [edgeTraveledActual, doStop] = UpdateNpcParticle_ConstrainedNonInertial(
+            ////                    npc,
+            ////                    isPrimaryParticle,
+            ////                    edgeOrdinal,
+            ////                    edgeDir,
+            ////                    particleStartAbsolutePosition,
+            ////                    trajectoryStartAbsolutePosition,
+            ////                    flattenedTrajectoryEndAbsolutePosition,
+            ////                    flattenedTrajectoryEndBarycentricCoords,
+            ////                    flattenedTrajectory,
+            ////                    adjustedEdgeTraveledPlanned,
+            ////                    meshVelocity,
+            ////                    remainingDt,
+            ////                    shipMesh,
+            ////                    mParticles,
+            ////                    currentSimulationTime,
+            ////                    gameParameters);
+
+            ////                LogNpcDebug("    Actual edge traveled in non-inertial step: ", edgeTraveledActual);
+
+            ////                if (doStop)
+            ////                {
+            ////                    // Completed
+            ////                    remainingDt = 0.0f;
+            ////                }
+            ////                else
+            ////                {
+            ////                    if (edgeTraveledActual == 0.0f)
+            ////                    {
+            ////                        // No movement
+
+            ////                        // Check if we're in a well
+            ////                        if (pastBarycentricPositions[0] == npcParticle.ConstrainedState->CurrentBCoords
+            ////                            || pastBarycentricPositions[1] == npcParticle.ConstrainedState->CurrentBCoords)
+            ////                        {
+            ////                            //
+            ////                            // Well - stop here
+            ////                            //
+
+            ////                            LogNpcDebug("    Detected well - stopping here");
+
+            ////                            // Update particle's physics, considering that we are in a well and thus still (wrt mesh)
+
+            ////                            vec2f const particleEndAbsolutePosition = shipMesh.GetTriangles().FromBarycentricCoordinates(
+            ////                                npcParticle.ConstrainedState->CurrentBCoords.BCoords,
+            ////                                npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
+            ////                                shipMesh.GetPoints());
+
+            ////                            mParticles.SetPosition(npcParticle.ParticleIndex, particleEndAbsolutePosition);
+
+            ////                            // No (relative) velocity (so just mesh velocity, and no global damping)
+            ////                            mParticles.SetVelocity(npcParticle.ParticleIndex, meshVelocity);
+            ////                            npcParticle.ConstrainedState->MeshRelativeVelocity = vec2f::zero();
+
+            ////                            // Consume the whole time quantum
+            ////                            remainingDt = 0.0f;
+            ////                        }
+            ////                        else
+            ////                        {
+            ////                            // Resultant of physical and walked is zero => no movement at all
+            ////                            // Note: either physical and/or walked could individually be non-zero
+            ////                            //
+            ////                            // For now, assume no dt consumed and continue
+            ////                        }
+            ////                    }
+            ////                    else
+            ////                    {
+            ////                        // We have moved
+
+            ////                        // Calculate consumed dt
+            ////                        assert(edgeTraveledActual * adjustedEdgeTraveledPlanned >= 0.0f); // Should have same sign
+            ////                        float const dtFractionConsumed = adjustedEdgeTraveledPlanned != 0.0f
+            ////                            ? std::min(edgeTraveledActual / adjustedEdgeTraveledPlanned, 1.0f) // Signs should agree anyway
+            ////                            : 1.0f; // If we were planning no travel, any movement is a whole consumption
+            ////                        LogNpcDebug("        dtFractionConsumed=", dtFractionConsumed);
+            ////                        remainingDt *= (1.0f - dtFractionConsumed);
+
+            ////                        // Reset well detection machinery
+            ////                        static_assert(pastBarycentricPositions.size() == 2);
+            ////                        pastBarycentricPositions[0].reset();
+            ////                        pastBarycentricPositions[1].reset();
+            ////                    }
+            ////                }
+
+            ////                // Update total (absolute) distance traveled along (an) edge
+            ////                edgeDistanceTraveledTotal += std::abs(edgeTraveledActual);
+
+            ////                // If we haven't completed, there is still some distance remaining in the budget
+            ////                //
+            ////                // Note: if this doesn't hold, at the next iteration we'll move by zero and we'll reset
+            ////                // velocity to zero, even though we have moved in this step, thus yielding an erroneous
+            ////                // zero velocity
+            ////                assert(remainingDt == 0.0f || edgeDistanceTraveledTotal < *edgeDistanceToTravelMax);
+
+            ////                // Update total human distance traveled
+            ////                if (npc.Kind == NpcKindType::Human
+            ////                    && isPrimaryParticle) // Human is represented by primary particle
+            ////                {
+            ////                    // Note: does not include eventual distance traveled after becoming free; fine because we will transition and wipe out total traveled
+            ////                    npc.KindSpecificState.HumanNpcState.TotalDistanceTraveledOnEdgeSinceStateTransition += std::abs(edgeTraveledActual);
+            ////                }
+
+            ////                // Update total vector walked along edge
+            ////                // Note: we use unadjusted edge traveled planned, as edge walked planned is also unadjusted,
+            ////                // and we are only interested in the ratio anyway
+            ////                float const edgeWalkedActual = edgeTraveledPlanned != 0.0f
+            ////                    ? edgeTraveledActual * (edgeWalkedPlanned / edgeTraveledPlanned)
+            ////                    : 0.0f; // Unlikely, but read above for rationale behind 0.0
+            ////                totalEdgeWalkedActual += edgeDir * edgeWalkedActual;
+            ////                LogNpcDebug("        edgeWalkedActual=", edgeWalkedActual, " totalEdgeWalkedActual=", totalEdgeWalkedActual);
+
+            ////                // Update well detection machinery
+            ////                if (npcParticle.ConstrainedState.has_value()) // We might have left constrained state (not to return to it anymore)
+            ////                {
+            ////                    pastBarycentricPositions[1] = pastBarycentricPositions[0];
+            ////                    pastBarycentricPositions[0] = npcParticle.ConstrainedState->CurrentBCoords;
+            ////                }
+
+            ////                if (npcParticle.ConstrainedState.has_value())
+            ////                {
+            ////                    LogNpcDebug("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " EndMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
+            ////                }
+            ////                else
+            ////                {
+            ////                    LogNpcDebug("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
+            ////                }
+
+            ////                hasFoundNonInertial = true;
+
+            ////                break;
+            ////            }
+            ////            else
+            ////            {
+            ////                LogNpcDebug("      traj.edgeN=", trajectory.dot(edgeNormal));
+            ////            }
+            ////        }
+            ////    }
+            ////} // for (vertex)
+
+            ////if (!hasFoundNonInertial)
+            ////{
+            ////    //
+            ////    // Case 2: Inertial: not on edge or on edge but not moving against (nor along) it
+            ////    //
+
+            ////    LogNpcDebug("    ConstrainedInertial: CurrentBCoords=", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, ":", npcParticle.ConstrainedState->CurrentBCoords.BCoords, " physicsDeltaPos=", physicsDeltaPos);
+            ////    LogNpcDebug("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
+
+            ////    // We are not on an edge floor (nor we'll got on it now)
+            ////    npcParticle.ConstrainedState->CurrentVirtualFloor.reset();
+
+            ////    //
+            ////    // Calculate target barycentric coords
+            ////    //
+
+            ////    bcoords3f const trajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinates(
+            ////        trajectoryEndAbsolutePosition,
+            ////        npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
+            ////        shipMesh.GetPoints());
+
+            ////    //
+            ////    // Move towards target bary coords
+            ////    //
+
+            ////    float totalTraveled = UpdateNpcParticle_ConstrainedInertial(
+            ////        npc,
+            ////        isPrimaryParticle,
+            ////        particleStartAbsolutePosition,
+            ////        trajectoryStartAbsolutePosition, // segmentTrajectoryStartAbsolutePosition
+            ////        trajectoryEndAbsolutePosition,
+            ////        trajectoryEndBarycentricCoords,
+            ////        meshVelocity,
+            ////        remainingDt,
+            ////        shipMesh,
+            ////        mParticles,
+            ////        currentSimulationTime,
+            ////        gameParameters);
+
+            ////    // Update total traveled
+            ////    if (npc.Kind == NpcKindType::Human
+            ////        && isPrimaryParticle) // Human is represented by primary particle
+            ////    {
+            ////        // Note: does not include eventual disance traveled after becoming free; fine because we will transition and wipe out total traveled
+            ////        npc.KindSpecificState.HumanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition += std::abs(totalTraveled);
+            ////    }
+
+            ////    if (npcParticle.ConstrainedState.has_value())
+            ////    {
+            ////        LogNpcDebug("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " EndMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
+            ////    }
+            ////    else
+            ////    {
+            ////        LogNpcDebug("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
+            ////    }
+
+            ////    // Consume whole time quantum and stop
+            ////    remainingDt = 0.0f;
+            ////}
 
             if (remainingDt <= 0.0f)
             {
@@ -2084,11 +2668,12 @@ inline bool Npcs::NavigateVertex_Walking(
         if (trajectoryEndBarycentricCoords[prevVertexOrdinal] >= 0.0f
             && trajectoryEndBarycentricCoords[nextVertexOrdinal] >= 0.0f)
         {
-            LogNpcDebug("      Trajectory extends inside triangle, remembering");
+            LogNpcDebug("      Trajectory extends inside triangle");
 
             // Remember these absolute BCoords as we'll go there if we don't have any candidates nor we bounce on a floor
             if (!firstTriangleInterior.has_value()) // Might have found already one due to numerical slack; we honor the first in the case
             {
+                LogNpcDebug("        First such trajectory, remembering");
                 firstTriangleInterior = currentAbsoluteBCoords;
             }
 
@@ -2121,7 +2706,9 @@ inline bool Npcs::NavigateVertex_Walking(
             //
             // Check whether it's a viable floor
             //
-            // Note: here we check viability wrt *actual* (resultant physical) movement, rather than *intended* (walkdir) movement
+            // Notes:
+            //  - Here we check viability wrt *actual* (resultant physical) movement, rather than *intended* (walkdir) movement
+            //  - Viability is based on actual gravity direction - not on *apparent* gravity
             //
 
             vec2f const edgeVector = shipMesh.GetTriangles().GetSubSpringVector(
@@ -2129,16 +2716,37 @@ inline bool Npcs::NavigateVertex_Walking(
                 crossedEdgeOrdinal,
                 shipMesh.GetPoints());
 
-            vec2f const edgeDirWrtMovement = (orientation == RotationDirectionType::Clockwise)
-                ? edgeVector.normalise()
-                : -edgeVector.normalise();
+            // TODOOLD
+            ////vec2f const edgeDirWrtMovement = (orientation == RotationDirectionType::Clockwise)
+            ////    ? edgeVector.normalise()
+            ////    : -edgeVector.normalise();
 
-            bool const isViable = (edgeDirWrtMovement.y >= 0.0f)
-                ? (edgeDirWrtMovement.y <= GameParameters::MaxHumanNpcWalkSinSlope) // Slope up
-                : ((orientation == RotationDirectionType::Clockwise)
-                    ? edgeDirWrtMovement.x < 0.0f
-                    : edgeDirWrtMovement.x > 0.0f
-                  );
+            ////bool const isViable = (edgeDirWrtMovement.y >= 0.0f)
+            ////    ? (edgeDirWrtMovement.y <= GameParameters::MaxHumanNpcWalkSinSlope) // Slope up
+            ////    : ((orientation == RotationDirectionType::Clockwise)
+            ////        ? edgeDirWrtMovement.x < 0.0f
+            ////        : edgeDirWrtMovement.x > 0.0f
+            ////      );
+
+            bool isViable;
+            if (edgeVector.x > 0.0f)
+            {
+                // Edge is above
+
+                LogNpcDebug("          Non-viable (", edgeVector, ")");
+
+                isViable = false;
+            }
+            else
+            {
+                vec2f const edgeDirWrtMovement = (orientation == RotationDirectionType::Clockwise)
+                    ? edgeVector.normalise()
+                    : -edgeVector.normalise();
+
+                isViable = edgeDirWrtMovement.y <= GameParameters::MaxHumanNpcWalkSinSlope;
+
+                LogNpcDebug("          ", isViable ? "Viable" : "Non-viable", " ", edgeDirWrtMovement);
+            }
 
             if (isViable)
             {
@@ -2146,9 +2754,9 @@ inline bool Npcs::NavigateVertex_Walking(
                 // Viable floor - add to candidates
                 //
 
-                LogNpcDebug("          Viable, adding to candidates");
-
                 floorCandidates[floorCandidatesCount++] = currentAbsoluteBCoords;
+
+                LogNpcDebug("          Added to candidates: new count=", floorCandidatesCount);
             }
 
             //
@@ -2173,7 +2781,7 @@ inline bool Npcs::NavigateVertex_Walking(
                 // Non-viable floor
                 //
 
-                LogNpcDebug("          Non-viable");
+                LogNpcDebug("          Simply non-viable");
 
                 // Remember it if it's the first obstacle or if its depth trumps current first obstacle
                 // (same depth as the edge we're walking on trumps different depth)
@@ -2184,6 +2792,7 @@ inline bool Npcs::NavigateVertex_Walking(
                     || (shipMesh.GetTriangles().GetSubSpringNpcFloorType(firstBounceableFloor->TriangleElementIndex, firstBounceableFloor->EdgeOrdinal) != initialFloorType
                         && nonViableFloorType == initialFloorType))
                 {
+                    LogNpcDebug("            Remembering bounceable floor");
                     firstBounceableFloor = TriangleAndEdge(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
                 }
 
@@ -2291,11 +2900,10 @@ inline bool Npcs::NavigateVertex_Walking(
         // Translate target bary coords
         //
 
-        trajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinatesInsideEdge(
+        trajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinates(
             trajectoryEndAbsolutePosition,
             oppositeTriangleInfo.TriangleElementIndex,
-            shipMesh.GetPoints(),
-            oppositeTriangleInfo.EdgeOrdinal);
+            shipMesh.GetPoints());
 
         LogNpcDebug("        New TrajEndB-Coords: ", trajectoryEndBarycentricCoords);
     }
