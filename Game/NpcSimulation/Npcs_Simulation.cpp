@@ -2662,20 +2662,18 @@ inline bool Npcs::NavigateVertex_Walking(
             " TrajectoryEndBarycentricCoords=", trajectoryEndBarycentricCoords);
 
         //
-        // Check whether we are directed towards the *interior* of this triangle
+        // Check whether we are directed towards the *interior* of this triangle, if we don't
+        // know yet which triangle we'd be going inside
         //
 
-        if (trajectoryEndBarycentricCoords[prevVertexOrdinal] >= 0.0f
+        if (!firstTriangleInterior.has_value()
+            && trajectoryEndBarycentricCoords[prevVertexOrdinal] >= 0.0f
             && trajectoryEndBarycentricCoords[nextVertexOrdinal] >= 0.0f)
         {
-            LogNpcDebug("      Trajectory extends inside triangle");
+            LogNpcDebug("      Trajectory extends inside triangle, remembering");
 
             // Remember these absolute BCoords as we'll go there if we don't have any candidates nor we bounce on a floor
-            if (!firstTriangleInterior.has_value()) // Might have found already one due to numerical slack; we honor the first in the case
-            {
-                LogNpcDebug("        First such trajectory, remembering");
-                firstTriangleInterior = currentAbsoluteBCoords;
-            }
+            firstTriangleInterior = currentAbsoluteBCoords;
 
             // Continue, so that we may find candidates at a lower slope
         }
@@ -2728,14 +2726,13 @@ inline bool Npcs::NavigateVertex_Walking(
             ////        : edgeDirWrtMovement.x > 0.0f
             ////      );
 
-            bool isViable;
             if (edgeVector.x > 0.0f)
             {
                 // Edge is above
 
-                LogNpcDebug("          Non-viable (", edgeVector, ")");
+                LogNpcDebug("          Edge is above (", edgeVector, ")");
 
-                isViable = false;
+                // TODOHERE: should we stop search here?
             }
             else
             {
@@ -2743,63 +2740,63 @@ inline bool Npcs::NavigateVertex_Walking(
                     ? edgeVector.normalise()
                     : -edgeVector.normalise();
 
-                isViable = edgeDirWrtMovement.y <= GameParameters::MaxHumanNpcWalkSinSlope;
+                bool const isViable = edgeDirWrtMovement.y <= GameParameters::MaxHumanNpcWalkSinSlope;
 
                 LogNpcDebug("          ", isViable ? "Viable" : "Non-viable", " ", edgeDirWrtMovement);
-            }
 
-            if (isViable)
-            {
-                //
-                // Viable floor - add to candidates
-                //
-
-                floorCandidates[floorCandidatesCount++] = currentAbsoluteBCoords;
-
-                LogNpcDebug("          Added to candidates: new count=", floorCandidatesCount);
-            }
-
-            //
-            // Decide whether to bounce or not, and continue or not
-            //
-
-            auto const crossedEdgeFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
-            if ((crossedEdgeFloorType == NpcFloorType::FloorPlane1H && initialFloorType == NpcFloorType::FloorPlane1V)
-                || (crossedEdgeFloorType == NpcFloorType::FloorPlane1V && initialFloorType == NpcFloorType::FloorPlane1H))
-            {
-                //
-                // If HonV or VonH: impenetrable floor (regardless of viability); stop here
-                //
-
-                LogNpcDebug("          Impenetrable, stopping here");
-                firstBounceableFloor = TriangleAndEdge(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
-                break;
-            }
-            else if (!isViable)
-            {
-                //
-                // Non-viable floor
-                //
-
-                LogNpcDebug("          Simply non-viable");
-
-                // Remember it if it's the first obstacle or if its depth trumps current first obstacle
-                // (same depth as the edge we're walking on trumps different depth)
-
-                auto const nonViableFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
-
-                if (!firstBounceableFloor.has_value()
-                    || (shipMesh.GetTriangles().GetSubSpringNpcFloorType(firstBounceableFloor->TriangleElementIndex, firstBounceableFloor->EdgeOrdinal) != initialFloorType
-                        && nonViableFloorType == initialFloorType))
+                if (isViable)
                 {
-                    LogNpcDebug("            Remembering bounceable floor");
-                    firstBounceableFloor = TriangleAndEdge(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
+                    //
+                    // Viable floor - add to candidates
+                    //
+
+                    floorCandidates[floorCandidatesCount++] = currentAbsoluteBCoords;
+
+                    LogNpcDebug("          Added to candidates: new count=", floorCandidatesCount);
                 }
 
-                // If we've found a (non-viable) impenetrable wall, stop search
-                if (nonViableFloorType == initialFloorType)
+                //
+                // Decide whether to bounce or not, and continue or not
+                //
+
+                auto const crossedEdgeFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
+                if ((crossedEdgeFloorType == NpcFloorType::FloorPlane1H && initialFloorType == NpcFloorType::FloorPlane1V)
+                    || (crossedEdgeFloorType == NpcFloorType::FloorPlane1V && initialFloorType == NpcFloorType::FloorPlane1H))
                 {
+                    //
+                    // If HonV or VonH: impenetrable floor (regardless of viability); stop here
+                    //
+
+                    LogNpcDebug("          Impenetrable, stopping here");
+                    firstBounceableFloor = TriangleAndEdge(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
                     break;
+                }
+                else if (!isViable)
+                {
+                    //
+                    // Non-viable floor
+                    //
+
+                    LogNpcDebug("          Simply non-viable");
+
+                    // Remember it if it's the first obstacle or if its depth trumps current first obstacle
+                    // (same depth as the edge we're walking on trumps different depth)
+
+                    auto const nonViableFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
+
+                    if (!firstBounceableFloor.has_value()
+                        || (shipMesh.GetTriangles().GetSubSpringNpcFloorType(firstBounceableFloor->TriangleElementIndex, firstBounceableFloor->EdgeOrdinal) != initialFloorType
+                            && nonViableFloorType == initialFloorType))
+                    {
+                        LogNpcDebug("            Remembering bounceable floor");
+                        firstBounceableFloor = TriangleAndEdge(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
+                    }
+
+                    // If we've found a (non-viable) impenetrable wall, stop search
+                    if (nonViableFloorType == initialFloorType)
+                    {
+                        break;
+                    }
                 }
             }
         }
@@ -2897,15 +2894,19 @@ inline bool Npcs::NavigateVertex_Walking(
         prevVertexOrdinal = (vertexOrdinal + 2) % 3;
 
         //
-        // Translate target bary coords
+        // Translate target bary coords - if we still need them
         //
 
-        trajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinates(
-            trajectoryEndAbsolutePosition,
-            oppositeTriangleInfo.TriangleElementIndex,
-            shipMesh.GetPoints());
+        if (!firstTriangleInterior.has_value())
+        {
+            trajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinatesInsideEdge(
+                trajectoryEndAbsolutePosition,
+                oppositeTriangleInfo.TriangleElementIndex,
+                shipMesh.GetPoints(),
+                oppositeTriangleInfo.EdgeOrdinal);
 
-        LogNpcDebug("        New TrajEndB-Coords: ", trajectoryEndBarycentricCoords);
+            LogNpcDebug("        New TrajEndB-Coords: ", trajectoryEndBarycentricCoords);
+        }
     }
 
     //
