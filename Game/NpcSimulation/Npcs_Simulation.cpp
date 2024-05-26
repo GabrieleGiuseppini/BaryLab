@@ -2099,9 +2099,16 @@ inline bool Npcs::NavigateVertex_Walking(
     assert(npcParticle.ConstrainedState.has_value());
 
     //
+    // When in walking state and arriving at a vertex at which there are more than two *viable* floors there (incl.incoming, so >= 2 + 1), choose which one to take
+    //    - It's like "not seeing" certain floors
+    // Note: *viable* == with right slope for walking on it
+    //    - We only consider those floors that are in a sector centered around walk(face) dir, up amplitude equal to = / -MaxSlopeForWalking, and down amplitude less than vertical
+    //    - This allows us to take a down "stair" that is almost vertical
+    //    - We only choose in our direction because the simulation is still very much physical, i.e.informed by trajectory
+    //
     // Returns true if need to stop (ConvertedToFree or Bounced)
     //
-    // Rules of the game:
+    // Rules of the code:
     // - We only change the particle's state (triangle & bcoords) upon leaving
     //      - And most importantly, we don't move
     // - We take into account *actual* (resultant physical) movement (i.e. trajectory), rather than *intended* (walkdir) movement
