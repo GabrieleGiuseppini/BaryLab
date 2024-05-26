@@ -2709,7 +2709,7 @@ inline bool Npcs::NavigateVertex_Walking(
             //  - Viability is based on actual gravity direction - not on *apparent* gravity
             //
 
-            vec2f const edgeVector = shipMesh.GetTriangles().GetSubSpringVector(
+            vec2f const crossedEdgeVector = shipMesh.GetTriangles().GetSubSpringVector(
                 currentAbsoluteBCoords.TriangleElementIndex,
                 crossedEdgeOrdinal,
                 shipMesh.GetPoints());
@@ -2726,77 +2726,79 @@ inline bool Npcs::NavigateVertex_Walking(
             ////        : edgeDirWrtMovement.x > 0.0f
             ////      );
 
-            if (edgeVector.x > 0.0f)
+            bool isViable;
+
+            if (crossedEdgeVector.x > 0.0f)
             {
                 // Edge is above
 
-                LogNpcDebug("          Edge is above (", edgeVector, ")");
+                LogNpcDebug("          Edge is above ", crossedEdgeVector, ", non-viable");
 
-                // TODOHERE: should we stop search here?
+                isViable = false;
             }
             else
             {
-                vec2f const edgeDirWrtMovement = (orientation == RotationDirectionType::Clockwise)
-                    ? edgeVector.normalise()
-                    : -edgeVector.normalise();
+                vec2f const crossedEdgeDirWrtMovement = (orientation == RotationDirectionType::Clockwise)
+                    ? crossedEdgeVector.normalise()
+                    : -crossedEdgeVector.normalise();
 
-                bool const isViable = edgeDirWrtMovement.y <= GameParameters::MaxHumanNpcWalkSinSlope;
+                isViable = crossedEdgeDirWrtMovement.y <= GameParameters::MaxHumanNpcWalkSinSlope;
 
-                LogNpcDebug("          ", isViable ? "Viable" : "Non-viable", " ", edgeDirWrtMovement);
+                LogNpcDebug("          Edge is ", isViable ? "viable" : "non-viable", " ", crossedEdgeDirWrtMovement);
+            }
 
-                if (isViable)
-                {
-                    //
-                    // Viable floor - add to candidates
-                    //
-
-                    floorCandidates[floorCandidatesCount++] = currentAbsoluteBCoords;
-
-                    LogNpcDebug("          Added to candidates: new count=", floorCandidatesCount);
-                }
-
+            if (isViable)
+            {
                 //
-                // Decide whether to bounce or not, and continue or not
+                // Viable floor - add to candidates
                 //
 
-                auto const crossedEdgeFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
-                if ((crossedEdgeFloorType == NpcFloorType::FloorPlane1H && initialFloorType == NpcFloorType::FloorPlane1V)
-                    || (crossedEdgeFloorType == NpcFloorType::FloorPlane1V && initialFloorType == NpcFloorType::FloorPlane1H))
-                {
-                    //
-                    // If HonV or VonH: impenetrable floor (regardless of viability); stop here
-                    //
+                floorCandidates[floorCandidatesCount++] = currentAbsoluteBCoords;
 
-                    LogNpcDebug("          Impenetrable, stopping here");
+                LogNpcDebug("          Added to candidates: new count=", floorCandidatesCount);
+            }
+
+            //
+            // Decide whether to bounce or not, and continue or not
+            //
+
+            auto const crossedEdgeFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
+            if ((crossedEdgeFloorType == NpcFloorType::FloorPlane1H && initialFloorType == NpcFloorType::FloorPlane1V)
+                || (crossedEdgeFloorType == NpcFloorType::FloorPlane1V && initialFloorType == NpcFloorType::FloorPlane1H))
+            {
+                //
+                // If HonV or VonH: impenetrable floor (regardless of viability); stop here
+                //
+
+                LogNpcDebug("          Impenetrable, stopping here");
+                firstBounceableFloor = TriangleAndEdge(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
+                break;
+            }
+            else if (!isViable)
+            {
+                //
+                // Non-viable floor
+                //
+
+                LogNpcDebug("          Simply non-viable");
+
+                // Remember it if it's the first obstacle or if its depth trumps current first obstacle
+                // (same depth as the edge we're walking on trumps different depth)
+
+                auto const nonViableFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
+
+                if (!firstBounceableFloor.has_value()
+                    || (shipMesh.GetTriangles().GetSubSpringNpcFloorType(firstBounceableFloor->TriangleElementIndex, firstBounceableFloor->EdgeOrdinal) != initialFloorType
+                        && nonViableFloorType == initialFloorType))
+                {
+                    LogNpcDebug("            Remembering bounceable floor");
                     firstBounceableFloor = TriangleAndEdge(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
-                    break;
                 }
-                else if (!isViable)
+
+                // If we've found a (non-viable) impenetrable wall, stop search
+                if (nonViableFloorType == initialFloorType)
                 {
-                    //
-                    // Non-viable floor
-                    //
-
-                    LogNpcDebug("          Simply non-viable");
-
-                    // Remember it if it's the first obstacle or if its depth trumps current first obstacle
-                    // (same depth as the edge we're walking on trumps different depth)
-
-                    auto const nonViableFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
-
-                    if (!firstBounceableFloor.has_value()
-                        || (shipMesh.GetTriangles().GetSubSpringNpcFloorType(firstBounceableFloor->TriangleElementIndex, firstBounceableFloor->EdgeOrdinal) != initialFloorType
-                            && nonViableFloorType == initialFloorType))
-                    {
-                        LogNpcDebug("            Remembering bounceable floor");
-                        firstBounceableFloor = TriangleAndEdge(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
-                    }
-
-                    // If we've found a (non-viable) impenetrable wall, stop search
-                    if (nonViableFloorType == initialFloorType)
-                    {
-                        break;
-                    }
+                    break;
                 }
             }
         }
