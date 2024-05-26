@@ -2635,6 +2635,8 @@ inline bool Npcs::NavigateVertex_Walking(
 
     AbsoluteTriangleBCoords currentAbsoluteBCoords = npcParticle.ConstrainedState->CurrentBCoords;
 
+    vec2f const vertexAbsolutePosition = shipMesh.GetPoints().GetPosition(shipMesh.GetTriangles().GetPointIndices(currentAbsoluteBCoords.TriangleElementIndex)[vertexOrdinal]);
+
     // The two vertices around the vertex we are on - seen in clockwise order
     int nextVertexOrdinal = (vertexOrdinal + 1) % 3;
     int prevVertexOrdinal = (vertexOrdinal + 2) % 3;
@@ -2671,7 +2673,7 @@ inline bool Npcs::NavigateVertex_Walking(
             && trajectoryEndBarycentricCoords[prevVertexOrdinal] >= 0.0f
             && trajectoryEndBarycentricCoords[nextVertexOrdinal] >= 0.0f)
         {
-            LogNpcDebug("      Trajectory extends inside triangle, remembering");
+            LogNpcDebug("      Trajectory extends inside triangle, remembering it");
 
             // Remember these absolute BCoords as we'll go there if we don't have any candidates nor we bounce on a floor
             firstTriangleInterior = currentAbsoluteBCoords;
@@ -2688,6 +2690,18 @@ inline bool Npcs::NavigateVertex_Walking(
             : (vertexOrdinal + 2) % 3; // Previous edge
 
         LogNpcDebug("      Next crossed edge: ", crossedEdgeOrdinal);
+
+        //
+        // Check whether we've gone too far around
+        //
+
+        auto const & nextVertexPos = shipMesh.GetPoints().GetPosition(shipMesh.GetTriangles().GetPointIndices(currentAbsoluteBCoords.TriangleElementIndex)[nextVertexOrdinal]);
+        auto const & prevVertexPos = shipMesh.GetPoints().GetPosition(shipMesh.GetTriangles().GetPointIndices(currentAbsoluteBCoords.TriangleElementIndex)[prevVertexOrdinal]);
+        if (prevVertexPos.x <= vertexAbsolutePosition.x && nextVertexPos.x > vertexAbsolutePosition.x)
+        {
+            LogMessage("      Gone too far - may stop here");
+            break;
+        }
 
         //
         // Check whether this new edge is floor
