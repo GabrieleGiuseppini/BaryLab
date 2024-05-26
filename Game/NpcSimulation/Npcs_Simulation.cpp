@@ -2624,7 +2624,8 @@ inline bool Npcs::NavigateVertex_Walking(
     //
     // Rules of the game:
     // - We only change the particle's state (triangle & bcoords) upon leaving
-    // - We don't move
+    //      - And most importantly, we don't move
+    // - We take into account *actual* (resultant physical) movement (i.e. trajectory), rather than *intended* (walkdir) movement
     //
 
     std::array<AbsoluteTriangleBCoords, GameParameters::MaxSpringsPerPoint> floorCandidates;
@@ -2713,18 +2714,6 @@ inline bool Npcs::NavigateVertex_Walking(
                 currentAbsoluteBCoords.TriangleElementIndex,
                 crossedEdgeOrdinal,
                 shipMesh.GetPoints());
-
-            // TODOOLD
-            ////vec2f const edgeDirWrtMovement = (orientation == RotationDirectionType::Clockwise)
-            ////    ? edgeVector.normalise()
-            ////    : -edgeVector.normalise();
-
-            ////bool const isViable = (edgeDirWrtMovement.y >= 0.0f)
-            ////    ? (edgeDirWrtMovement.y <= GameParameters::MaxHumanNpcWalkSinSlope) // Slope up
-            ////    : ((orientation == RotationDirectionType::Clockwise)
-            ////        ? edgeDirWrtMovement.x < 0.0f
-            ////        : edgeDirWrtMovement.x > 0.0f
-            ////      );
 
             bool isViable;
 
