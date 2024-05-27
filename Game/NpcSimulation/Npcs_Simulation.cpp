@@ -2258,8 +2258,11 @@ inline bool Npcs::NavigateVertex_Walking(
                 //
                 // If HonV or VonH: impenetrable floor (regardless of viability); stop here
                 //
+                // In case we have no candidates (and thus this is not viable), remember this one as the one to bounce off
+                //
 
                 LogNpcDebug("          Impenetrable, stopping here");
+                // TODOHERE: we're erasing previous firstBounceableFloor, which could be a steep S while we are a.g. on H
                 firstBounceableFloor = TriangleAndEdge(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
                 break;
             }
