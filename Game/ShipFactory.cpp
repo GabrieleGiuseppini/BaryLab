@@ -268,9 +268,12 @@ void ShipFactory::CreateElementInfos(
                 // Quad: P - E - SE - S
                 //
 
-                auto const & pointE = pointIndexMatrix[{x + TessellationCircularOrderDirections[0][0], y + TessellationCircularOrderDirections[0][1]}];
-                auto const & pointSE = pointIndexMatrix[{x + TessellationCircularOrderDirections[1][0], y + TessellationCircularOrderDirections[1][1]}];
-                auto const & pointS = pointIndexMatrix[{x + TessellationCircularOrderDirections[2][0], y + TessellationCircularOrderDirections[2][1]}];
+                auto const pointECoordinates = vec2i(x + TessellationCircularOrderDirections[0][0], y + TessellationCircularOrderDirections[0][1]);
+                auto const & pointE = pointIndexMatrix[pointECoordinates];
+                auto const pointSECoordinates = vec2i(x + TessellationCircularOrderDirections[1][0], y + TessellationCircularOrderDirections[1][1]);
+                auto const & pointSE = pointIndexMatrix[pointSECoordinates];
+                auto const pointSCoordinates = vec2i(x + TessellationCircularOrderDirections[2][0], y + TessellationCircularOrderDirections[2][1]);
+                auto const & pointS = pointIndexMatrix[pointSCoordinates];
 
                 if (pointE.has_value())
                 {
@@ -279,7 +282,7 @@ void ShipFactory::CreateElementInfos(
                         if (pointS.has_value())
                         {
                             //
-                            // We can choose if two triangles aloing P-SE diagonal, or two triangles along S-E diagonal;
+                            // We can choose if two triangles along P-SE diagonal, or two triangles along S-E diagonal;
                             // we prioritize the one that is hull, so we honor hull edges for NPC floors (since floors
                             // may only exist on hull springs)
                             //
@@ -287,41 +290,136 @@ void ShipFactory::CreateElementInfos(
                             bool const isP_SE_hull = pointInfos[pointIndex].Material.IsHull && pointInfos[*pointSE].Material.IsHull;
                             bool const isS_E_hull = pointInfos[*pointS].Material.IsHull && pointInfos[*pointE].Material.IsHull;
 
-                            if (!isP_SE_hull && isS_E_hull)
+                            if (isS_E_hull)
                             {
-                                // Only S-E is hull
+                                if (isP_SE_hull)
+                                {
+                                    // Both are hull - the one with the most "continuations" wins
 
-                                // P - E - S
+                                    // S-E
+                                    int seCount = 0;
+                                    // S.SW
+                                    auto contCoord = vec2i(pointSCoordinates.x + TessellationCircularOrderDirections[3][0], pointSCoordinates.y + TessellationCircularOrderDirections[3][1]);
+                                    if (pointIndexMatrix[contCoord].has_value()
+                                        && pointInfos[*pointIndexMatrix[contCoord]].Material.IsHull)
+                                        ++seCount;
+                                    // E.NE
+                                    contCoord = vec2i(pointECoordinates.x + TessellationCircularOrderDirections[7][0], pointECoordinates.y + TessellationCircularOrderDirections[7][1]);
+                                    if (pointIndexMatrix[contCoord].has_value()
+                                        && pointInfos[*pointIndexMatrix[contCoord]].Material.IsHull)
+                                        ++seCount;
 
-                                //
-                                // Create ShipFactoryTriangle
-                                //
+                                    // P-SE
+                                    int pseCount = 0;
+                                    // P.NW
+                                    contCoord = vec2i(x + TessellationCircularOrderDirections[5][0], y + TessellationCircularOrderDirections[5][1]);
+                                    if (pointIndexMatrix[contCoord].has_value()
+                                        && pointInfos[*pointIndexMatrix[contCoord]].Material.IsHull)
+                                        ++pseCount;
+                                    // SE.SE
+                                    contCoord = vec2i(pointSECoordinates.x + TessellationCircularOrderDirections[1][0], pointSECoordinates.y + TessellationCircularOrderDirections[1][1]);
+                                    if (pointIndexMatrix[contCoord].has_value()
+                                        && pointInfos[*pointIndexMatrix[contCoord]].Material.IsHull)
+                                        ++pseCount;
 
-                                triangleInfos.emplace_back(
-                                    std::array<ElementIndex, 3>( // Points are in CW order
-                                        {
-                                            pointIndex,
-                                            *pointE,
-                                            *pointS
-                                        }));
+                                    if (pseCount >= seCount)
+                                    {
+                                        // P - E - SE
 
-                                // S - E - SE
+                                        //
+                                        // Create ShipFactoryTriangle
+                                        //
 
-                                //
-                                // Create ShipFactoryTriangle
-                                //
+                                        triangleInfos.emplace_back(
+                                            std::array<ElementIndex, 3>( // Points are in CW order
+                                                {
+                                                    pointIndex,
+                                                    *pointE,
+                                                    *pointSE
+                                                }));
 
-                                triangleInfos.emplace_back(
-                                    std::array<ElementIndex, 3>( // Points are in CW order
-                                        {
-                                            *pointS,
-                                            *pointE,
-                                            *pointSE
-                                        }));
+                                        // P - SE - S
+
+                                        //
+                                        // Create ShipFactoryTriangle
+                                        //
+
+                                        triangleInfos.emplace_back(
+                                            std::array<ElementIndex, 3>( // Points are in CW order
+                                                {
+                                                    pointIndex,
+                                                    *pointSE,
+                                                    *pointS
+                                                }));
+
+                                    }
+                                    else
+                                    {
+                                        // P - E - S
+
+                                        //
+                                        // Create ShipFactoryTriangle
+                                        //
+
+                                        triangleInfos.emplace_back(
+                                            std::array<ElementIndex, 3>( // Points are in CW order
+                                                {
+                                                    pointIndex,
+                                                    *pointE,
+                                                    *pointS
+                                                }));
+
+                                        // S - E - SE
+
+                                        //
+                                        // Create ShipFactoryTriangle
+                                        //
+
+                                        triangleInfos.emplace_back(
+                                            std::array<ElementIndex, 3>( // Points are in CW order
+                                                {
+                                                    *pointS,
+                                                    *pointE,
+                                                    *pointSE
+                                                }));
+                                    }
+                                }
+                                else
+                                {
+                                    // Only S-E is hull
+
+                                    // P - E - S
+
+                                    //
+                                    // Create ShipFactoryTriangle
+                                    //
+
+                                    triangleInfos.emplace_back(
+                                        std::array<ElementIndex, 3>( // Points are in CW order
+                                            {
+                                                pointIndex,
+                                                *pointE,
+                                                *pointS
+                                            }));
+
+                                    // S - E - SE
+
+                                    //
+                                    // Create ShipFactoryTriangle
+                                    //
+
+                                    triangleInfos.emplace_back(
+                                        std::array<ElementIndex, 3>( // Points are in CW order
+                                            {
+                                                *pointS,
+                                                *pointE,
+                                                *pointSE
+                                            }));
+                                }
                             }
                             else
                             {
-                                // Only P-SE is hull or neither/both are hull; in the last case P-SE wins arbitrarily
+                                // Only P-SE is hull or neither is hull; in the last case P-SE wins arbitrarily
 
                                 // P - E - SE
 

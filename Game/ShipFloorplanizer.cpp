@@ -215,21 +215,22 @@ void ShipFloorplanizer::ProcessVertexBlockPatterns(
 		springExclusionSet.insert({ vertexBlock[1][0] , vertexBlock[1][1] });
 	}
 
-	//
-	// Pattern 3: "wall-on-floor" (|-): take care of redundant \ and /
-	//
-	//  o?o
-	//  o*o
-	//  ***
-	//
+	////// Questionable: seems superseded and removes useful
+	//////
+	////// Pattern 3: "wall-on-floor" (|-): take care of redundant \ and /
+	//////
+	//////  o?o
+	//////  o*o
+	//////  ***
+	//////
 
-	if (vertexBlock[0][0] != NoneElementIndex && vertexBlock[1][0] != NoneElementIndex && vertexBlock[2][0] != NoneElementIndex
-		&& vertexBlock[0][1] == NoneElementIndex && vertexBlock[1][1] != NoneElementIndex && vertexBlock[2][1] == NoneElementIndex
-		&& vertexBlock[0][2] == NoneElementIndex && vertexBlock[2][2] == NoneElementIndex)
-	{
-		springExclusionSet.insert({ vertexBlock[0][0] , vertexBlock[1][1] });
-		springExclusionSet.insert({ vertexBlock[2][0] , vertexBlock[1][1] });
-	}
+	////if (vertexBlock[0][0] != NoneElementIndex && vertexBlock[1][0] != NoneElementIndex && vertexBlock[2][0] != NoneElementIndex
+	////	&& vertexBlock[0][1] == NoneElementIndex && vertexBlock[1][1] != NoneElementIndex && vertexBlock[2][1] == NoneElementIndex
+	////	&& vertexBlock[0][2] == NoneElementIndex && vertexBlock[2][2] == NoneElementIndex)
+	////{
+	////	springExclusionSet.insert({ vertexBlock[0][0] , vertexBlock[1][1] });
+	////	springExclusionSet.insert({ vertexBlock[2][0] , vertexBlock[1][1] });
+	////}
 
 	//
 	// Pattern 4: "corner" (|_): take care of redundant \
@@ -261,6 +262,24 @@ void ShipFloorplanizer::ProcessVertexBlockPatterns(
 	////{
 	////	springExclusionSet.insert({ vertexBlock[0][0] , vertexBlock[1][1] });
 	////}
+
+	//
+	// Pattern 6: "stair at angle" (_\|): take care of redundant /| and /_
+	//
+	//   *o*
+	//   o**
+	//   ***
+	//
+
+	if (vertexBlock[0][0] != NoneElementIndex && vertexBlock[1][0] != NoneElementIndex && vertexBlock[2][0] != NoneElementIndex
+		&& vertexBlock[0][1] == NoneElementIndex && vertexBlock[1][1] != NoneElementIndex && vertexBlock[2][1] != NoneElementIndex
+		&& vertexBlock[0][2] != NoneElementIndex && vertexBlock[1][2] == NoneElementIndex && vertexBlock[2][2] != NoneElementIndex)
+	{
+		springExclusionSet.insert({ vertexBlock[0][0] , vertexBlock[1][1] });
+		springExclusionSet.insert({ vertexBlock[1][1] , vertexBlock[1][0] });
+		springExclusionSet.insert({ vertexBlock[1][1] , vertexBlock[2][2] });
+		springExclusionSet.insert({ vertexBlock[1][1] , vertexBlock[2][1] });
+	}
 }
 
 void ShipFloorplanizer::Rotate90CW(VertexBlock & vertexBlock) const
