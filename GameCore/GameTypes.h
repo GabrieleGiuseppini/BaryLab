@@ -805,8 +805,27 @@ enum class NpcFloorType
     Open,
     FloorPlane1H,
     FloorPlane1V,
-    FloorPlane2
+    FloorPlane2S1,
+    FloorPlane2S2
 };
+
+inline int constexpr GetNpcFloorDepth(NpcFloorType floorType)
+{
+    switch (floorType)
+    {
+        case NpcFloorType::Open:
+            return 0;
+        case NpcFloorType::FloorPlane1H:
+        case NpcFloorType::FloorPlane1V:
+            return 1;
+        case NpcFloorType::FloorPlane2S1:
+        case NpcFloorType::FloorPlane2S2:
+            return 2;
+    }
+
+    assert(false);
+    return 0;
+}
 
 /*
  * Types of hightlight for NPCs.

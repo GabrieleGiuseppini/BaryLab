@@ -88,12 +88,30 @@ ShipFactoryFloorPlan ShipFloorplanizer::BuildFloorplan(
 				assert(std::abs(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == 1);
 				floorType = NpcFloorType::FloorPlane1H;
 			}
+			else if (
+				(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x < pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x)
+				== (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y < pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y)
+				)
+			{
+				// Diagonal 1
+				assert(
+					((pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == 1
+						&& (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y) == 1)
+					||
+					((pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == -1
+						&& (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y) == -1));
+				floorType = NpcFloorType::FloorPlane2S1;
+			}
 			else
 			{
-				// Diagonal
-				assert(std::abs(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == 1);
-				assert(std::abs(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y) == 1);
-				floorType = NpcFloorType::FloorPlane2;
+				// Diagonal 2
+				assert(
+					((pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == 1
+						&& (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y) == -1)
+					||
+					((pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == -1
+						&& (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y) == 1));
+				floorType = NpcFloorType::FloorPlane2S2;
 			}
 
 			auto const [_, isInserted] = floorPlan.try_emplace(

@@ -2261,8 +2261,8 @@ inline bool Npcs::NavigateVertex_Walking(
                     //
 
                     if (!firstBounceableFloor.has_value()
-                        || (shipMesh.GetTriangles().GetSubSpringNpcFloorType(firstBounceableFloor->TriangleElementIndex, firstBounceableFloor->EdgeOrdinal) != initialFloorType
-                            && crossedEdgeFloorType == initialFloorType))
+                        || (GetNpcFloorDepth(shipMesh.GetTriangles().GetSubSpringNpcFloorType(firstBounceableFloor->TriangleElementIndex, firstBounceableFloor->EdgeOrdinal)) != GetNpcFloorDepth(initialFloorType)
+                            && GetNpcFloorDepth(crossedEdgeFloorType) == GetNpcFloorDepth(initialFloorType)))
                     {
                         LogNpcDebug("            Remembering bounceable floor");
                         firstBounceableFloor = TriangleAndEdge(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
