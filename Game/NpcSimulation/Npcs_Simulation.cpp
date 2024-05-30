@@ -2261,9 +2261,10 @@ inline bool Npcs::NavigateVertex_Walking(
                     //  - But when given a choice with vertical - e.g. --> _\| - we prefer bouncing on vertical, for better physics
                     //      - Thus honoring semi-invisible nature of S
                     //
-                    // Also: we want to maintain that depth 1 areas are enterable from depth 2 areas, hence,
+                    // Also: we want to enforce a concept of entering depth 1 areas from depth 2 areas, hence,
                     // if we're on S, we want to remember the _last_ of H/V we encounter (which would be the
-                    // second at most, as there cannot be any third bounceable H/V if we're on S)
+                    // second at most, as there cannot be any third bounceable H/V if we're on S), as that is
+                    // consistent with being "inside a depth 1 area"
                     //
 
                     bool doRememberBounceableFloor = false;
