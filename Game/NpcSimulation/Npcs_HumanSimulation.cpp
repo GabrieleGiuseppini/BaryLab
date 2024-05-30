@@ -1155,7 +1155,7 @@ void Npcs::OnHumanImpact(
 
 		case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
 		{
-			LogNpcDebug("OnHumanImpact: alignment=", bounceEdgeNormal.dot(vec2f(humanState.CurrentFaceDirectionX, 0.0f)));
+			LogNpcDebug("OnHumanImpact: bounceEdgeNormal.dot(faceX)=", bounceEdgeNormal.dot(vec2f(humanState.CurrentFaceDirectionX, 0.0f)));
 
 			// Check alignment of impact with walking direction; if hit => flip
 			// Note: might also want to check *magnitude* of hit

@@ -2395,6 +2395,8 @@ inline bool Npcs::NavigateVertex_Walking(
                 || firstBounceableFloor.has_value()
                 || firstTriangleInterior.has_value())
             {
+                LogNpcDebug("        Free region after other options, stopping here");
+
                 break;
             }
             else
@@ -2506,7 +2508,7 @@ inline bool Npcs::NavigateVertex_Walking(
     {
         // Bounce on this floor
 
-        LogNpcDebug("    Bouncing on floor ", firstBounceableFloor->TriangleElementIndex, ":", firstBounceableFloor->EdgeOrdinal, ", flipping walk");
+        LogNpcDebug("    Bouncing on floor ", firstBounceableFloor->TriangleElementIndex, ":", firstBounceableFloor->EdgeOrdinal);
 
         // Note: we don't move to intersection position for lazyness: after all we can stay
         // in initial place and avoid a new NavigateVertex, now that we gain opposite
@@ -2519,6 +2521,8 @@ inline bool Npcs::NavigateVertex_Walking(
                 shipMesh.GetPoints())
             .normalise();
         vec2f const floorEdgeNormal = floorEdgeDir.to_perpendicular();
+
+        LogNpcDebug("    floorEdgeDir=", floorEdgeDir, " floorEdgeNormal=", floorEdgeNormal);
 
         vec2f const bounceAbsolutePosition = shipMesh.GetTriangles().FromBarycentricCoordinates(
             currentAbsoluteBCoords.BCoords, // Same as initial - in absolute coords
@@ -2787,7 +2791,7 @@ void Npcs::OnImpact(
     vec2f const & bounceEdgeNormal, // Pointing outside of triangle
     float currentSimulationTime) const
 {
-    LogNpcDebug("    OnImpact(", normalResponse.length(), ", ", bounceEdgeNormal, ")");
+    LogNpcDebug("    OnImpact(mag=", normalResponse.length(), ", bounceEdgeNormal=", bounceEdgeNormal, ")");
 
     // Human state machine
     if (npc.Kind == NpcKindType::Human)
