@@ -858,7 +858,8 @@ void Npcs::UpdateNpcParticlePhysics(
                 //  - We travel up to a vertex, and then:
                 //      - End towards interior of triangle: in this case we might have reached a new triangle,
                 //        but we'll go through this again and become inertial (resetting this edge-ness);
-                //      - Ready to continue on a new edge: we'll go through this again;
+                //      - Ready to continue on a new edge: we could update this edge-ness to the new edge, but we'll go
+                //        through this again, and thus we save the effort;
                 //      - Become free: no more constrained state anyways;
                 //      - Hit floor: in this case we _do_ want the current virtual floor to be the one _before_ the bounce.
 
