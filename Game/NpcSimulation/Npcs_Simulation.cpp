@@ -605,7 +605,7 @@ void Npcs::UpdateNpcParticlePhysics(
             assert(remainingDt > 0.0f);
 
             LogNpcDebug("    ------------------------");
-            LogNpcDebug("    Triangle=", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, " B-Coords=", npcParticle.ConstrainedState->CurrentBCoords.BCoords, " RemainingDt=", remainingDt);
+            LogNpcDebug("    New iter: Triangle=", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, " B-Coords=", npcParticle.ConstrainedState->CurrentBCoords.BCoords, " RemainingDt=", remainingDt);
 
             //
             // We ray-trace the particle along a trajectory that starts at the position at which the particle
@@ -2286,6 +2286,13 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         //    - This allows us to take a down "stair" that is almost vertical
         //    - We only choose in our direction because the simulation is still very much physical, i.e.informed by trajectory
         //
+        // We divide floor candidates in two groups: easy slope and hard slope (i.e. almost falling); we only choose among hard slopes if there
+        // are no easy slopes. Rationale: NPC going about S and hitting wall-floor conjunction; we don't want it to take wall going down
+        //      |
+        //   ---|
+        //    */|
+        //    / |
+        //
 
         struct AbsoluteTriangleBCoordsAndEdge
         {
@@ -2293,8 +2300,10 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
             int EdgeOrdinal;
         };
 
-        std::array<AbsoluteTriangleBCoordsAndEdge, GameParameters::MaxSpringsPerPoint> floorCandidates;
-        size_t floorCandidatesCount = 0;
+        std::array<AbsoluteTriangleBCoordsAndEdge, GameParameters::MaxSpringsPerPoint> floorCandidatesEasySlope;
+        size_t floorCandidatesEasySlopeCount = 0;
+        std::array<AbsoluteTriangleBCoordsAndEdge, GameParameters::MaxSpringsPerPoint> floorCandidatesHardSlope;
+        size_t floorCandidatesHardSlopeCount = 0;
         std::optional<AbsoluteTriangleBCoordsAndEdge> firstBounceableFloor;
         std::optional<AbsoluteTriangleBCoords> firstTriangleInterior;
 
@@ -2316,7 +2325,7 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
 
         for (int iIter = 0; ; ++iIter)
         {
-            LogNpcDebug("    NavigateVertex_Walking: iter=", iIter, " nCandidates=", floorCandidatesCount, " hasBounceableFloor=", firstBounceableFloor.has_value() ? "T" : "F",
+            LogNpcDebug("    NavigateVertex_Walking: iter=", iIter, " nCandidatesEasy=", floorCandidatesEasySlopeCount, " nCandidatesHard=", floorCandidatesHardSlopeCount, " hasBounceableFloor=", firstBounceableFloor.has_value() ? "T" : "F",
                 " hasFirstTriangleInterior=", firstTriangleInterior.has_value() ? "T" : "F");
 
             assert(iIter < GameParameters::MaxSpringsPerPoint); // Detect and debug-break on infinite loops
@@ -2413,9 +2422,18 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
                     // Viable floor - add to candidates
                     //
 
-                    floorCandidates[floorCandidatesCount++] = { currentAbsoluteBCoords, crossedEdgeOrdinal };
+                    if (std::abs(crossedEdgeDir.y) < 0.98f) // Magic slope
+                    {
+                        floorCandidatesEasySlope[floorCandidatesEasySlopeCount++] = { currentAbsoluteBCoords, crossedEdgeOrdinal };
 
-                    LogNpcDebug("          Added to candidates: new count=", floorCandidatesCount);
+                        LogNpcDebug("          Added to easy candidates: new count=", floorCandidatesEasySlopeCount);
+                    }
+                    else
+                    {
+                        floorCandidatesHardSlope[floorCandidatesHardSlopeCount++] = { currentAbsoluteBCoords, crossedEdgeOrdinal };
+
+                        LogNpcDebug("          Added to hard candidates: new count=", floorCandidatesHardSlopeCount);
+                    }
                 }
                 else
                 {
@@ -2508,7 +2526,7 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
 
                 // If we've found this free region before anything else, become free; otherwise,
                 // stop search now and proceed with what we've found
-                if (floorCandidatesCount != 0
+                if (floorCandidatesEasySlopeCount + floorCandidatesHardSlopeCount != 0
                     || firstBounceableFloor.has_value()
                     || firstTriangleInterior.has_value())
                 {
@@ -2597,19 +2615,35 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         // Process results
         //
 
-        if (floorCandidatesCount > 0)
+        if (floorCandidatesEasySlopeCount > 0 || floorCandidatesHardSlopeCount > 0)
         {
-            // Choose candidate
+            // Only choose among hard ones if there are no easy ones
 
-            // TODOHERE
-            size_t chosenCandidate = 0;
+            AbsoluteTriangleBCoordsAndEdge chosenFloor;
+            if (floorCandidatesEasySlopeCount > 0)
+            {
+                size_t chosenCandidateIndex = (floorCandidatesEasySlopeCount == 1)
+                    ? 0
+                    : GameRandomEngine::GetInstance().Choose(floorCandidatesEasySlopeCount);
+                chosenFloor = floorCandidatesEasySlope[chosenCandidateIndex];
 
-            LogNpcDebug("    Chosen candidate ", chosenCandidate, " (", floorCandidates[chosenCandidate].TriangleBCoords.TriangleElementIndex, ":", floorCandidates[chosenCandidate].TriangleBCoords.BCoords,
-                ", ", floorCandidates[chosenCandidate].EdgeOrdinal, ") out of ", floorCandidatesCount);
+                LogNpcDebug("    Chosen easy candidate ", chosenCandidateIndex, " (", chosenFloor.TriangleBCoords.TriangleElementIndex, ":", chosenFloor.TriangleBCoords.BCoords,
+                    ", ", chosenFloor.EdgeOrdinal, ") out of ", floorCandidatesEasySlopeCount);
+            }
+            else
+            {
+                size_t chosenCandidateIndex = (floorCandidatesHardSlopeCount == 1)
+                    ? 0
+                    : GameRandomEngine::GetInstance().Choose(floorCandidatesHardSlopeCount);
+                chosenFloor = floorCandidatesHardSlope[chosenCandidateIndex];
+
+                LogNpcDebug("    Chosen hard candidate ", chosenCandidateIndex, " (", chosenFloor.TriangleBCoords.TriangleElementIndex, ":", chosenFloor.TriangleBCoords.BCoords,
+                    ", ", chosenFloor.EdgeOrdinal, ") out of ", floorCandidatesEasySlopeCount);
+            }
 
             return NavigateVertexOutcome::MakeContinueAlongFloorOutcome(
-                floorCandidates[chosenCandidate].TriangleBCoords,
-                floorCandidates[chosenCandidate].EdgeOrdinal);
+                chosenFloor.TriangleBCoords,
+                chosenFloor.EdgeOrdinal);
         }
         else if (firstBounceableFloor.has_value())
         {

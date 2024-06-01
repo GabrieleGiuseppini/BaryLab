@@ -686,7 +686,7 @@ void Npcs::UpdateHuman(
 
 				float const primaryMeshRelativeVelocityAlongWalkDir = primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(idealWalkVelocityDir);
 
-				LogNpcDebug("idealWalkVelocity=", idealWalkVelocityDir * idealWalkVelocityMagnitude, " (mag=", idealWalkVelocityMagnitude, ") ",
+				LogNpcDebug("Walk update: mesh-relative velocity check: idealWalkVelocity=", idealWalkVelocityDir * idealWalkVelocityMagnitude, " (mag=", idealWalkVelocityMagnitude, ") ",
 					"meshRelativeVelocity=", primaryParticleState.ConstrainedState->MeshRelativeVelocity, " (along dir =", primaryMeshRelativeVelocityAlongWalkDir, ")");
 
 				if (primaryMeshRelativeVelocityAlongWalkDir >= 0.0f)
