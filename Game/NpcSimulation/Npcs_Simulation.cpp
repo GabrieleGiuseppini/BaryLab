@@ -648,7 +648,14 @@ void Npcs::UpdateNpcParticlePhysics(
             if (std::optional<int> const vertexOrdinal = npcParticle.ConstrainedState->CurrentBCoords.BCoords.try_get_vertex();
                 vertexOrdinal.has_value())
             {
-                // On a vertex (*two* edges)
+                //
+                // We are on a vertex (*two* edges)
+                //
+                // There are two conditions that bring us here:
+                //  1. After a bounce or an impact continuation
+                //  2. Initial (e.g. placed by chance on a vertex)
+                //
+
                 LogNpcDebug("    On a vertex: ", *vertexOrdinal, " of triangle ", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex);
 
                 // Check what comes next
@@ -661,28 +668,61 @@ void Npcs::UpdateNpcParticlePhysics(
                 auto const outcome = NavigateVertex(
                     npc,
                     isPrimaryParticle,
+                    npcParticle.ConstrainedState->CurrentVirtualFloor,
                     *vertexOrdinal,
-                    particleStartAbsolutePosition,
-                    trajectoryStartAbsolutePosition,
+                    trajectory,
                     trajectoryEndAbsolutePosition,
                     trajectoryEndBarycentricCoords,
-                    true, // Check immediately whether we're directed towards the interior of the triangle
                     shipMesh,
-                    mParticles,
-                    gameParameters);
+                    mParticles);
 
                 switch (outcome.Type)
                 {
-                    case NavigateVertexOutcome::OutcomeType::CompletedNavigation:
+                    case NavigateVertexOutcome::OutcomeType::BecomeFree:
+                    {
+                        // Transition to free immediately
+
+                        TransitionParticleToFreeState(npc, true);
+
+                        UpdateNpcParticle_Free(
+                            npcParticle,
+                            particleStartAbsolutePosition,
+                            trajectoryEndAbsolutePosition,
+                            mParticles,
+                            gameParameters);
+
+                        remainingDt = 0.0f;
+
+                        break;
+                    }
+
+                    case NavigateVertexOutcome::OutcomeType::ContinueAlongFloor:
+                    {
+                        //
+                        // This either tells us that our trajectory points us towards this floor (if not walking),
+                        // or that we're walking and decided for this floor: in either case we are non-inertial on this floor
+                        //
+
+                        nonInertialEdgeOrdinal = outcome.FloorEdgeOrdinal;
+
+                        // Move to NavigationOutcome
+                        npcParticle.ConstrainedState->CurrentBCoords = outcome.TriangleBCoords;
+
+                        break;
+                    }
+
+                    case NavigateVertexOutcome::OutcomeType::ContinueToInterior:
                     {
                         //
                         // This tells us we're moving into triangle or along an edge of it, but not against it;
                         // assume we're going non-inertial, after all we're not _against_ the floor
-                        // - Assert dot-with- normal is practically <= 0
+                        //
 
-                        LogMessage("    CompletedNavigation: assuming continuing with inertial");
+                        // Move to NavigationOutcome
+                        npcParticle.ConstrainedState->CurrentBCoords = outcome.TriangleBCoords;
 
 #ifdef _DEBUG
+                        // - Assert dot-with-normal is practically <= 0 for all edges we touch
                         for (int vi = 0; vi < 3; ++vi)
                         {
                             if (npcParticle.ConstrainedState->CurrentBCoords.BCoords[vi] == 0.0f)
@@ -699,38 +739,14 @@ void Npcs::UpdateNpcParticlePhysics(
                             }
                         }
 #endif
-
                         break;
                     }
 
-                    case NavigateVertexOutcome::OutcomeType::ConvertedToFree:
+                    case NavigateVertexOutcome::OutcomeType::ImpactOnFloor:
                     {
-                        //
-                        // This tells us we've gone free, can stop here for good
-                        //
+                        // Let the subsequent non-inertial ray tracing take care of this
 
-                        remainingDt = 0.0f;
-
-                        break;
-                    }
-
-                    case NavigateVertexOutcome::OutcomeType::EncounteredFloor:
-                    {
-                        //
-                        // This tells us that our trajectory points us towards this edge which is a floor: we are non-inertial on this floor
-                        //
-
-                        nonInertialEdgeOrdinal = outcome.EncounteredFloorEdgeOrdinal;
-
-                        {
-                            vec2f const edgeVector = shipMesh.GetTriangles().GetSubSpringVector(
-                                npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
-                                nonInertialEdgeOrdinal,
-                                shipMesh.GetPoints());
-                            vec2f const edgeDir = edgeVector.normalise();
-                            vec2f const edgeNormal = edgeDir.to_perpendicular(); // Points outside of triangle (i.e. towards floor)
-                            assert(trajectory.dot(edgeNormal) > -0.0001f);
-                        }
+                        nonInertialEdgeOrdinal = outcome.FloorEdgeOrdinal;
 
                         break;
                     }
@@ -1663,130 +1679,230 @@ std::tuple<float, bool> Npcs::UpdateNpcParticle_ConstrainedNonInertial(
     LogNpcDebug("        edgeTraveled=", edgeTraveled);
 
     //
-    // See whether this particle is the primary (feet) of a walking human
+    // Navigate this vertex now
     //
 
-    if (npc.Kind == NpcKindType::Human
-        && npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking
-        && isPrimaryParticle)
+    auto const navigationOutcome = NavigateVertex(
+        npc,
+        isPrimaryParticle,
+        TriangleAndEdge(npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex, edgeOrdinal),
+        intersectionVertexOrdinal,
+        flattenedTrajectory,
+        flattenedTrajectoryEndAbsolutePosition,
+        flattenedTrajectoryEndBarycentricCoords,
+        shipMesh,
+        particles);
+
+    switch (navigationOutcome.Type)
     {
-        //
-        // Navigate this vertex and choose floors to walk on, until any of these:
-        // - We are directed inside a triangle
-        // - We have chosen a floor
-        // - We bounce against a floor
-        // - We become free
-        //
-
-        bool isStop = NavigateVertex_Walking(
-            npc,
-            edgeOrdinal,
-            intersectionVertexOrdinal,
-            particleStartAbsolutePosition,
-            flattenedTrajectoryEndAbsolutePosition,
-            flattenedTrajectoryEndBarycentricCoords,
-            flattenedTrajectory,
-            meshVelocity,
-            dt,
-            shipMesh,
-            particles,
-            currentSimulationTime,
-            gameParameters);
-
-        return std::make_tuple(edgeTraveled, isStop);
-    }
-    else
-    {
-        //
-        // Navigate this vertex now, until any of these:
-        // - We are directed inside a triangle
-        // - We hit a floor
-        // - We become free
-        //
-
-        auto const navigationOutcome = NavigateVertex(
-            npc,
-            isPrimaryParticle,
-            intersectionVertexOrdinal,
-            particleStartAbsolutePosition,
-            trajectoryStartAbsolutePosition,
-            flattenedTrajectoryEndAbsolutePosition,
-            flattenedTrajectoryEndBarycentricCoords,
-            false, // No need to check whether we are directed into _this_ triangle
-            shipMesh,
-            particles,
-            gameParameters);
-
-        switch (navigationOutcome.Type)
+        case NavigateVertexOutcome::OutcomeType::BecomeFree:
         {
-            case NavigateVertexOutcome::OutcomeType::CompletedNavigation:
-            {
-                return std::make_tuple(edgeTraveled, false);
-            }
+            // Become free
 
-            case NavigateVertexOutcome::OutcomeType::ConvertedToFree:
-            {
-                return std::make_tuple(edgeTraveled, true);
-            }
+            TransitionParticleToFreeState(npc, true);
 
-            case NavigateVertexOutcome::OutcomeType::EncounteredFloor:
-            {
-                //
-                // We might have hit a tiny bump (e.g. because of triangles slightly bent); in this case we don't want to bounce
-                //
+            UpdateNpcParticle_Free(
+                npcParticle,
+                particleStartAbsolutePosition,
+                flattenedTrajectoryEndAbsolutePosition,
+                particles,
+                gameParameters);
 
-                vec2f const floorEdgeDir =
-                    shipMesh.GetTriangles().GetSubSpringVector(
-                        npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex,
-                        navigationOutcome.EncounteredFloorEdgeOrdinal,
-                        shipMesh.GetPoints())
-                    .normalise();
-                vec2f const floorEdgeNormal = floorEdgeDir.to_perpendicular();
-
-                // Check angle between desired (original) trajectory and edge
-                float const trajProjOntoEdgeNormal = flattenedTrajectory.normalise().dot(floorEdgeNormal);
-                if (trajProjOntoEdgeNormal <= 0.71f) // PI/4+
-                {
-                    //
-                    // Impact continuation (no bounce)
-                    //
-                    // Stop here and then check trajectory in new situation
-                    //
-
-                    LogNpcDebug("      Impact continuation (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
-
-                    return std::make_tuple(edgeTraveled, false);
-                }
-                else
-                {
-                    //
-                    // Bounce - calculate bounce response, using the *apparent* (trajectory)
-                    // velocity - since this one includes the mesh velocity
-                    //
-
-                    LogNpcDebug("      Bounce (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
-
-                    BounceConstrainedNpcParticle(
-                        npc,
-                        isPrimaryParticle,
-                        flattenedTrajectory,
-                        intersectionAbsolutePosition,
-                        floorEdgeNormal,
-                        meshVelocity,
-                        dt,
-                        particles,
-                        currentSimulationTime,
-                        gameParameters);
-
-                    // Terminate
-                    return std::make_tuple(edgeTraveled, true);
-                }
-            }
+            // Terminate
+            return std::make_tuple(edgeTraveled, true);
         }
 
-        assert(false);
-        return std::make_tuple(edgeTraveled, false);
+        case NavigateVertexOutcome::OutcomeType::ContinueAlongFloor:
+        {
+            // Impact continuation, continue
+
+            // Move to NavigationOutcome
+            npcParticleConstrainedState.CurrentBCoords = navigationOutcome.TriangleBCoords;
+
+            // Continue
+            return std::make_tuple(edgeTraveled, false);
+        }
+
+        case NavigateVertexOutcome::OutcomeType::ContinueToInterior:
+        {
+            // Continue
+
+            // Move to NavigationOutcome
+            npcParticleConstrainedState.CurrentBCoords = navigationOutcome.TriangleBCoords;
+
+            // Continue
+            return std::make_tuple(edgeTraveled, false);
+        }
+
+        case NavigateVertexOutcome::OutcomeType::ImpactOnFloor:
+        {
+            // Bounce
+
+            vec2f const floorEdgeDir =
+                shipMesh.GetTriangles().GetSubSpringVector(
+                    navigationOutcome.TriangleBCoords.TriangleElementIndex,
+                    navigationOutcome.FloorEdgeOrdinal,
+                    shipMesh.GetPoints())
+                .normalise();
+            vec2f const floorEdgeNormal = floorEdgeDir.to_perpendicular();
+
+            vec2f const bounceAbsolutePosition = shipMesh.GetTriangles().FromBarycentricCoordinates(
+                navigationOutcome.TriangleBCoords.BCoords,
+                navigationOutcome.TriangleBCoords.TriangleElementIndex,
+                shipMesh.GetPoints());
+
+            BounceConstrainedNpcParticle(
+                npc,
+                true,
+                flattenedTrajectory,
+                bounceAbsolutePosition,
+                floorEdgeNormal,
+                meshVelocity,
+                dt,
+                particles,
+                currentSimulationTime,
+                gameParameters);
+
+            // Move to bounce position - so that we can eventually make a fresh new choice
+            // now that we have acquired a velocity in a different direction
+            npcParticleConstrainedState.CurrentBCoords = navigationOutcome.TriangleBCoords;
+
+            // Terminate
+            return std::make_tuple(edgeTraveled, true);
+        }
     }
+
+    assert(false);
+    return std::make_tuple(edgeTraveled, false);
+
+
+    ////// TODOOLD
+
+    //////
+    ////// See whether this particle is the primary (feet) of a walking human
+    //////
+
+    ////if (npc.Kind == NpcKindType::Human
+    ////    && npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking
+    ////    && isPrimaryParticle)
+    ////{
+    ////    //
+    ////    // Navigate this vertex and choose floors to walk on, until any of these:
+    ////    // - We are directed inside a triangle
+    ////    // - We have chosen a floor
+    ////    // - We bounce against a floor
+    ////    // - We become free
+    ////    //
+
+    ////    bool isStop = NavigateVertex_Walking(
+    ////        npc,
+    ////        edgeOrdinal,
+    ////        intersectionVertexOrdinal,
+    ////        particleStartAbsolutePosition,
+    ////        flattenedTrajectoryEndAbsolutePosition,
+    ////        flattenedTrajectoryEndBarycentricCoords,
+    ////        flattenedTrajectory,
+    ////        meshVelocity,
+    ////        dt,
+    ////        shipMesh,
+    ////        particles,
+    ////        currentSimulationTime,
+    ////        gameParameters);
+
+    ////    return std::make_tuple(edgeTraveled, isStop);
+    ////}
+    ////else
+    ////{
+    ////    //
+    ////    // Navigate this vertex now, until any of these:
+    ////    // - We are directed inside a triangle
+    ////    // - We hit a floor
+    ////    // - We become free
+    ////    //
+
+    ////    auto const navigationOutcome = NavigateVertex(
+    ////        npc,
+    ////        isPrimaryParticle,
+    ////        intersectionVertexOrdinal,
+    ////        particleStartAbsolutePosition,
+    ////        trajectoryStartAbsolutePosition,
+    ////        flattenedTrajectoryEndAbsolutePosition,
+    ////        flattenedTrajectoryEndBarycentricCoords,
+    ////        false, // No need to check whether we are directed into _this_ triangle
+    ////        shipMesh,
+    ////        particles,
+    ////        gameParameters);
+
+    ////    switch (navigationOutcome.Type)
+    ////    {
+    ////        case NavigateVertexOutcome::OutcomeType::CompletedNavigation:
+    ////        {
+    ////            return std::make_tuple(edgeTraveled, false);
+    ////        }
+
+    ////        case NavigateVertexOutcome::OutcomeType::ConvertedToFree:
+    ////        {
+    ////            return std::make_tuple(edgeTraveled, true);
+    ////        }
+
+    ////        case NavigateVertexOutcome::OutcomeType::EncounteredFloor:
+    ////        {
+    ////            //
+    ////            // We might have hit a tiny bump (e.g. because of triangles slightly bent); in this case we don't want to bounce
+    ////            //
+
+    ////            vec2f const floorEdgeDir =
+    ////                shipMesh.GetTriangles().GetSubSpringVector(
+    ////                    npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex,
+    ////                    navigationOutcome.EncounteredFloorEdgeOrdinal,
+    ////                    shipMesh.GetPoints())
+    ////                .normalise();
+    ////            vec2f const floorEdgeNormal = floorEdgeDir.to_perpendicular();
+
+    ////            // Check angle between desired (original) trajectory and edge
+    ////            float const trajProjOntoEdgeNormal = flattenedTrajectory.normalise().dot(floorEdgeNormal);
+    ////            if (trajProjOntoEdgeNormal <= 0.71f) // PI/4+
+    ////            {
+    ////                //
+    ////                // Impact continuation (no bounce)
+    ////                //
+    ////                // Stop here and then check trajectory in new situation
+    ////                //
+
+    ////                LogNpcDebug("      Impact continuation (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
+
+    ////                return std::make_tuple(edgeTraveled, false);
+    ////            }
+    ////            else
+    ////            {
+    ////                //
+    ////                // Bounce - calculate bounce response, using the *apparent* (trajectory)
+    ////                // velocity - since this one includes the mesh velocity
+    ////                //
+
+    ////                LogNpcDebug("      Bounce (trajProjOntoEdgeNormal=", trajProjOntoEdgeNormal, ")");
+
+    ////                BounceConstrainedNpcParticle(
+    ////                    npc,
+    ////                    isPrimaryParticle,
+    ////                    flattenedTrajectory,
+    ////                    intersectionAbsolutePosition,
+    ////                    floorEdgeNormal,
+    ////                    meshVelocity,
+    ////                    dt,
+    ////                    particles,
+    ////                    currentSimulationTime,
+    ////                    gameParameters);
+
+    ////                // Terminate
+    ////                return std::make_tuple(edgeTraveled, true);
+    ////            }
+    ////        }
+    ////    }
+
+    ////    assert(false);
+    ////    return std::make_tuple(edgeTraveled, false);
+    ////}
 }
 
 float Npcs::UpdateNpcParticle_ConstrainedInertial(
@@ -2082,7 +2198,560 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
     }
 }
 
-inline bool Npcs::NavigateVertex_Walking(
+inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
+    StateType const & npc,
+    bool isPrimaryParticle,
+    std::optional<TriangleAndEdge> const & walkedEdge,
+    int vertexOrdinal, // Mutable
+    vec2f const & trajectory,
+    vec2f const & trajectoryEndAbsolutePosition,
+    bcoords3f trajectoryEndBarycentricCoords, // Mutable
+    Ship const & shipMesh,
+    NpcParticles const & particles)
+{
+    // Rules of the code:
+    // - We communicate the particle's final state (triangle & bcoords) upon leaving
+    //      - And most importantly, we don't move
+    // - We take into account *actual* (resultant physical) movement (i.e. trajectory), rather than *intended* (walkdir) movement
+
+    //
+    // See whether this particle is the primary (feet) of a walking human
+    //
+
+    if (npc.Kind == NpcKindType::Human
+        && npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking
+        && walkedEdge.has_value()
+        && isPrimaryParticle)
+    {
+        //
+        // Navigate around this vertex according to CW/CCW and choose floors to walk on; we return any of these:
+        // - We are directed inside a triangle (iff no floors have been found)
+        // - We have chosen a floor
+        // - We have detected an impact against a floor (iff no floors have been found)
+        // - We become free
+        //
+
+        StateType::NpcParticleStateType const & npcParticle = npc.PrimaryParticleState; // This is a primary particle
+        assert(npcParticle.ConstrainedState.has_value());
+
+        //
+        // When in walking state and arriving at a vertex at which there are more than two *viable* floors there (incl.incoming, so >= 2 + 1), choose which one to take
+        //    - It's like "not seeing" certain floors
+        // Note: *viable* == with right slope for walking on it
+        //    - We only consider those floors that are in a sector centered around walk(face) dir, up amplitude equal to = / -MaxSlopeForWalking, and down amplitude less than vertical
+        //    - This allows us to take a down "stair" that is almost vertical
+        //    - We only choose in our direction because the simulation is still very much physical, i.e.informed by trajectory
+        //
+
+        struct AbsoluteTriangleBCoordsAndEdge
+        {
+            AbsoluteTriangleBCoords TriangleBCoords;
+            int EdgeOrdinal;
+        };
+
+        std::array<AbsoluteTriangleBCoordsAndEdge, GameParameters::MaxSpringsPerPoint> floorCandidates;
+        size_t floorCandidatesCount = 0;
+        std::optional<AbsoluteTriangleBCoordsAndEdge> firstBounceableFloor;
+        std::optional<AbsoluteTriangleBCoords> firstTriangleInterior;
+
+        AbsoluteTriangleBCoords currentAbsoluteBCoords = npcParticle.ConstrainedState->CurrentBCoords;
+
+        vec2f const vertexAbsolutePosition = shipMesh.GetPoints().GetPosition(shipMesh.GetTriangles().GetPointIndices(currentAbsoluteBCoords.TriangleElementIndex)[vertexOrdinal]);
+
+        // The two vertices around the vertex we are on - seen in clockwise order
+        int nextVertexOrdinal = (vertexOrdinal + 1) % 3;
+        int prevVertexOrdinal = (vertexOrdinal + 2) % 3;
+
+        // Determine orientation (CW vs CCW)
+        RotationDirectionType const orientation = (trajectoryEndBarycentricCoords[prevVertexOrdinal] <= trajectoryEndBarycentricCoords[nextVertexOrdinal])
+            ? RotationDirectionType::Clockwise
+            : RotationDirectionType::CounterClockwise;
+
+        // Remember floor type of starting edge
+        NpcFloorType const initialFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(walkedEdge->TriangleElementIndex, walkedEdge->EdgeOrdinal);
+
+        for (int iIter = 0; ; ++iIter)
+        {
+            LogNpcDebug("    NavigateVertex_Walking: iter=", iIter, " nCandidates=", floorCandidatesCount, " hasBounceableFloor=", firstBounceableFloor.has_value() ? "T" : "F",
+                " hasFirstTriangleInterior=", firstTriangleInterior.has_value() ? "T" : "F");
+
+            assert(iIter < GameParameters::MaxSpringsPerPoint); // Detect and debug-break on infinite loops
+
+            // Pre-conditions: we are at this vertex
+            assert(currentAbsoluteBCoords.BCoords[vertexOrdinal] == 1.0f);
+            assert(currentAbsoluteBCoords.BCoords[nextVertexOrdinal] == 0.0f);
+            assert(currentAbsoluteBCoords.BCoords[prevVertexOrdinal] == 0.0f);
+
+            LogNpcDebug("      Triangle=", currentAbsoluteBCoords.TriangleElementIndex, " Vertex=", vertexOrdinal, " BCoords=", currentAbsoluteBCoords.BCoords,
+                " TrajectoryEndBarycentricCoords=", trajectoryEndBarycentricCoords);
+
+            //
+            // Check whether we are directed towards the *interior* of this triangle, if we don't
+            // know yet which triangle we'd be going inside
+            //
+
+            if (!firstTriangleInterior.has_value()
+                && trajectoryEndBarycentricCoords[prevVertexOrdinal] >= 0.0f
+                && trajectoryEndBarycentricCoords[nextVertexOrdinal] >= 0.0f)
+            {
+                LogNpcDebug("      Trajectory extends inside triangle, remembering it");
+
+                // Remember these absolute BCoords as we'll go there if we don't have any candidates nor we bounce on a floor
+                firstTriangleInterior = currentAbsoluteBCoords;
+
+                // Continue, so that we may find candidates at a lower slope
+            }
+
+            //
+            // Find next edge that we cross
+            //
+
+            int const crossedEdgeOrdinal = (orientation == RotationDirectionType::Clockwise)
+                ? vertexOrdinal // Next edge
+                : (vertexOrdinal + 2) % 3; // Previous edge
+
+            LogNpcDebug("      Next crossed edge: ", crossedEdgeOrdinal);
+
+            //
+            // Check whether we've gone too far around
+            //
+
+            auto const & nextVertexPos = shipMesh.GetPoints().GetPosition(shipMesh.GetTriangles().GetPointIndices(currentAbsoluteBCoords.TriangleElementIndex)[nextVertexOrdinal]);
+            auto const & prevVertexPos = shipMesh.GetPoints().GetPosition(shipMesh.GetTriangles().GetPointIndices(currentAbsoluteBCoords.TriangleElementIndex)[prevVertexOrdinal]);
+            if (prevVertexPos.x <= vertexAbsolutePosition.x && nextVertexPos.x > vertexAbsolutePosition.x)
+            {
+                LogMessage("      Gone too far - may stop search here");
+                break;
+            }
+
+            //
+            // Check whether this new edge is floor
+            //
+
+            if (IsEdgeFloorToParticle(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal, npc, true, particles, shipMesh))
+            {
+                //
+                // Encountered floor
+                //
+
+                auto const crossedEdgeFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
+
+                LogNpcDebug("        Crossed edge is floor (type:", int(crossedEdgeFloorType), ")");
+
+                //
+                // Check whether it's a viable floor, i.e. whether its direction is:
+                //    - x: in direction of movement (including close to 0, i.e. almost vertical)
+                //    - y: lower than MaxHumanNpcWalkSinSlope
+                //
+                // Notes:
+                //  - Here we check viability wrt *actual* (resultant physical) movement, rather than *intended* (walkdir) movement
+                //  - Viability is based on actual gravity direction - not on *apparent* gravity
+                //
+
+                vec2f const crossedEdgeDir = shipMesh.GetTriangles().GetSubSpringVector(
+                    currentAbsoluteBCoords.TriangleElementIndex,
+                    crossedEdgeOrdinal,
+                    shipMesh.GetPoints()).normalise();
+
+                bool const isViable =
+                    crossedEdgeDir.x < 0.0f
+                    && (
+                        (orientation == RotationDirectionType::Clockwise)
+                        ? crossedEdgeDir.y <= GameParameters::MaxHumanNpcWalkSinSlope
+                        : -crossedEdgeDir.y <= GameParameters::MaxHumanNpcWalkSinSlope
+                        );
+
+                LogNpcDebug("          Edge is ", isViable ? "viable" : "non-viable", " (edgeDir=", crossedEdgeDir, ")");
+
+                if (isViable)
+                {
+                    //
+                    // Viable floor - add to candidates
+                    //
+
+                    floorCandidates[floorCandidatesCount++] = { currentAbsoluteBCoords, crossedEdgeOrdinal };
+
+                    LogNpcDebug("          Added to candidates: new count=", floorCandidatesCount);
+                }
+                else
+                {
+                    //
+                    // Not viable - see if it's bounceable
+                    //
+                    // Bounceable: only if we hit it according to our current direction
+                    //   - Note: all edges are in our direction until we've found a triangle interior
+                    //
+
+                    if (!firstTriangleInterior.has_value())
+                    {
+                        LogNpcDebug("          Edge is bounceable");
+
+                        //
+                        // Bounceable: store it so we may bounce on it in case there are no candidates
+                        //
+                        // Note: we give same-depth priority over other-depth, because:
+                        //  - If no other walls - nor candidates - exist, we're ok with bouncing on S at --> _\
+                        //  - But when given a choice with vertical - e.g. --> _\| - we prefer bouncing on vertical, for better physics
+                        //      - Thus honoring semi-invisible nature of S
+                        //
+                        // Also: we want to enforce a concept of entering depth 1 areas from depth 2 areas, hence,
+                        // if we're on S, we want to remember the _last_ of H/V we encounter (which would be the
+                        // second at most, as there cannot be any third bounceable H/V if we're on S), as that is
+                        // consistent with being "inside a depth 1 area"
+                        //
+
+                        bool doRememberBounceableFloor = false;
+
+                        if (!firstBounceableFloor.has_value())
+                        {
+                            doRememberBounceableFloor = true;
+                        }
+                        else
+                        {
+                            auto const currentBounceableFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(firstBounceableFloor->TriangleBCoords.TriangleElementIndex, firstBounceableFloor->EdgeOrdinal);
+                            if ((GetNpcFloorDepth(currentBounceableFloorType) != GetNpcFloorDepth(initialFloorType) && GetNpcFloorDepth(crossedEdgeFloorType) == GetNpcFloorDepth(initialFloorType))
+                                ||
+                                (
+                                    (initialFloorType == NpcFloorType::FloorPlane2S1 || initialFloorType == NpcFloorType::FloorPlane2S2)
+                                    && GetNpcFloorDepth(currentBounceableFloorType) == 1
+                                    && GetNpcFloorDepth(crossedEdgeFloorType) == 1
+                                    ))
+                            {
+                                doRememberBounceableFloor = true;
+                            }
+                        }
+
+                        if (doRememberBounceableFloor)
+                        {
+                            LogNpcDebug("            Remembering bounceable floor");
+                            firstBounceableFloor = { currentAbsoluteBCoords, crossedEdgeOrdinal };
+                        }
+                    }
+                }
+
+                //
+                // Check now if it's an impenetrable wall
+                //
+                // Impenetrable: iff HonV or VonH
+                //  - We allow SonS to be penetrable, so that while we go down ladder and encounter ladder going up, we may go beyond it if there's a floor behind it
+                //
+
+                if ((crossedEdgeFloorType == NpcFloorType::FloorPlane1H && initialFloorType == NpcFloorType::FloorPlane1V)
+                    || (crossedEdgeFloorType == NpcFloorType::FloorPlane1V && initialFloorType == NpcFloorType::FloorPlane1H))
+                {
+                    LogNpcDebug("          Impenetrable, stopping here");
+
+                    // If this was viable, we'll choose it; if it was not viable, we'll bounce on it if it was in direction
+                    //  - Note: if it's not in direction (i.e. if we have an interior), and if we have no candidates and no bounceables - then we will take the interior
+
+                    break;
+                }
+            }
+
+            //
+            // Climb over edge
+            //
+
+            // Find opposite triangle
+            auto const & oppositeTriangleInfo = shipMesh.GetTriangles().GetOppositeTriangle(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
+            if (oppositeTriangleInfo.TriangleElementIndex == NoneElementIndex || shipMesh.GetTriangles().IsDeleted(oppositeTriangleInfo.TriangleElementIndex))
+            {
+                //
+                // Found a free region
+                //
+
+                LogNpcDebug("      No opposite triangle found, found free region");
+
+                // If we've found this free region before anything else, become free; otherwise,
+                // stop search now and proceed with what we've found
+                if (floorCandidatesCount != 0
+                    || firstBounceableFloor.has_value()
+                    || firstTriangleInterior.has_value())
+                {
+                    LogNpcDebug("        Free region after other options, stopping here");
+
+                    break;
+                }
+                else
+                {
+                    // Detected free
+
+                    LogNpcDebug("        Free region before anything else, detected free");
+
+                    return NavigateVertexOutcome::MakeBecomeFreeOutcome();
+                }
+            }
+
+            LogNpcDebug("      Opposite triangle found: ", oppositeTriangleInfo.TriangleElementIndex);
+
+            // See whether we've gone around
+            if (oppositeTriangleInfo.TriangleElementIndex == npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex)
+            {
+                // Time to stop
+
+                LogNpcDebug("        Opposite triangle is self (done full round), stopping search");
+
+                // We must have found a triangle into which we go
+                assert(firstTriangleInterior.has_value());
+
+                break;
+            }
+
+            //
+            // Move to triangle
+            //
+
+            LogNpcDebug("      Continuing search from edge ", oppositeTriangleInfo.EdgeOrdinal, " of opposite triangle ", oppositeTriangleInfo.TriangleElementIndex);
+
+            // Calculate new current barycentric coords (wrt opposite triangle - note that we haven't moved)
+            bcoords3f newBarycentricCoords; // In new triangle
+            newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 2) % 3] = 0.0f;
+            newBarycentricCoords[oppositeTriangleInfo.EdgeOrdinal] = currentAbsoluteBCoords.BCoords[(crossedEdgeOrdinal + 1) % 3];
+            newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 1) % 3] = currentAbsoluteBCoords.BCoords[crossedEdgeOrdinal];
+
+            LogNpcDebug("        B-Coords: ", currentAbsoluteBCoords.BCoords, " -> ", newBarycentricCoords);
+
+            assert(newBarycentricCoords.is_on_edge_or_internal());
+
+            // Move to triangle and b-coords
+            currentAbsoluteBCoords = AbsoluteTriangleBCoords(oppositeTriangleInfo.TriangleElementIndex, newBarycentricCoords);
+
+            // New vertex: we know that coord of vertex opposite of crossed edge (i.e. vertex with ordinal crossed_edge+2) is 0.0
+            if (newBarycentricCoords[oppositeTriangleInfo.EdgeOrdinal] == 0.0f)
+            {
+                // Between edge and edge+1
+                vertexOrdinal = (oppositeTriangleInfo.EdgeOrdinal + 1) % 3;
+            }
+            else
+            {
+                // Between edge and edge-1
+                assert(newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 1) % 3] == 0.0f);
+                vertexOrdinal = oppositeTriangleInfo.EdgeOrdinal;
+            }
+
+            // The two vertices around the vertex we are on - seen in clockwise order
+            nextVertexOrdinal = (vertexOrdinal + 1) % 3;
+            prevVertexOrdinal = (vertexOrdinal + 2) % 3;
+
+            //
+            // Translate target bary coords - if we still need them
+            //
+
+            if (!firstTriangleInterior.has_value())
+            {
+                trajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinatesInsideEdge(
+                    trajectoryEndAbsolutePosition,
+                    oppositeTriangleInfo.TriangleElementIndex,
+                    shipMesh.GetPoints(),
+                    oppositeTriangleInfo.EdgeOrdinal);
+
+                LogNpcDebug("        New TrajEndB-Coords: ", trajectoryEndBarycentricCoords);
+            }
+        }
+
+        //
+        // Process results
+        //
+
+        if (floorCandidatesCount > 0)
+        {
+            // Choose candidate
+
+            // TODOHERE
+            size_t chosenCandidate = 0;
+
+            LogNpcDebug("    Chosen candidate ", chosenCandidate, " (", floorCandidates[chosenCandidate].TriangleBCoords.TriangleElementIndex, ":", floorCandidates[chosenCandidate].TriangleBCoords.BCoords,
+                ", ", floorCandidates[chosenCandidate].EdgeOrdinal, ") out of ", floorCandidatesCount);
+
+            return NavigateVertexOutcome::MakeContinueAlongFloorOutcome(
+                floorCandidates[chosenCandidate].TriangleBCoords,
+                floorCandidates[chosenCandidate].EdgeOrdinal);
+        }
+        else if (firstBounceableFloor.has_value())
+        {
+            // Impact on this floor
+
+            LogNpcDebug("    Impact on floor ", firstBounceableFloor->TriangleBCoords.TriangleElementIndex, ":", firstBounceableFloor->EdgeOrdinal);
+
+            return NavigateVertexOutcome::MakeImpactOnFloorOutcome(
+                firstBounceableFloor->TriangleBCoords,
+                firstBounceableFloor->EdgeOrdinal);
+        }
+        else
+        {
+            // Inside triangle
+
+            assert(firstTriangleInterior.has_value());
+
+            LogNpcDebug("    Going inside triangle ", firstTriangleInterior->TriangleElementIndex, ":", firstTriangleInterior->BCoords);
+
+            return NavigateVertexOutcome::MakeContinueToInteriorOutcome(*firstTriangleInterior);
+        }
+    }
+    else
+    {
+        //
+        // Navigate this vertex along the trajectory direction, until any of these:
+        // - We are directed inside a triangle
+        // - We have encountered a floor
+        // - We have detected an impact against a floor
+        // - We become free
+        //
+
+        auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
+        assert(npcParticle.ConstrainedState.has_value());
+
+        AbsoluteTriangleBCoords currentAbsoluteBCoords = npcParticle.ConstrainedState->CurrentBCoords;
+
+        for (int iIter = 0; ; ++iIter)
+        {
+            LogNpcDebug("    NavigateVertex_NonWalking: iter=", iIter);
+
+            assert(iIter < 8); // Detect and debug-break on infinite loops
+
+            // The two vertices around the vertex we are on - seen in clockwise order
+            int const nextVertexOrdinal = (vertexOrdinal + 1) % 3;
+            int const prevVertexOrdinal = (vertexOrdinal + 2) % 3;
+
+            // Pre-conditions: we are at this vertex
+            assert(currentAbsoluteBCoords.BCoords[vertexOrdinal] == 1.0f);
+            assert(currentAbsoluteBCoords.BCoords[nextVertexOrdinal] == 0.0f);
+            assert(currentAbsoluteBCoords.BCoords[prevVertexOrdinal] == 0.0f);
+
+            LogNpcDebug("      Triangle=", currentAbsoluteBCoords.TriangleElementIndex, " Vertex=", vertexOrdinal, " TrajectoryEndBarycentricCoords=", trajectoryEndBarycentricCoords);
+
+            //
+            // Check whether we are directed towards the *interior* of this triangle - including its edges
+            //
+
+            if (trajectoryEndBarycentricCoords[prevVertexOrdinal] >= 0.0f
+                && trajectoryEndBarycentricCoords[nextVertexOrdinal] >= 0.0f)
+            {
+                //
+                // We go inside (or on) this triangle - stop where we are, we'll then check trajectory in new situation
+                //
+
+                LogNpcDebug("      Going inside triangle ", currentAbsoluteBCoords.TriangleElementIndex, ":", currentAbsoluteBCoords.BCoords);
+
+                return NavigateVertexOutcome::MakeContinueToInteriorOutcome(currentAbsoluteBCoords);
+            }
+
+            //
+            // Find next edge that we intersect at this vertex
+            //
+
+            RotationDirectionType const orientation = (trajectoryEndBarycentricCoords[prevVertexOrdinal] <= trajectoryEndBarycentricCoords[nextVertexOrdinal])
+                ? RotationDirectionType::Clockwise
+                : RotationDirectionType::CounterClockwise;
+
+            int const crossedEdgeOrdinal = (orientation == RotationDirectionType::Clockwise)
+                ? vertexOrdinal // Next edge
+                : (vertexOrdinal + 2) % 3; // Prev edge
+
+            LogNpcDebug("      Trajectory crosses triangle: crossedEdgeOrdinal=", crossedEdgeOrdinal);
+
+            //
+            // Check whether this new edge is floor
+            //
+
+            if (IsEdgeFloorToParticle(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal, npc, isPrimaryParticle, particles, shipMesh))
+            {
+                //
+                // Encountered floor
+                //
+
+                LogNpcDebug("      Crossed edge is floor");
+
+                // Determine viability of floor: check angle between desired (original) trajectory and edge
+
+                vec2f const floorEdgeDir = shipMesh.GetTriangles().GetSubSpringVector(
+                    currentAbsoluteBCoords.TriangleElementIndex,
+                    crossedEdgeOrdinal,
+                    shipMesh.GetPoints()).normalise();
+                vec2f const floorEdgeNormal = floorEdgeDir.to_perpendicular();
+
+                float const trajProjOntoEdgeNormal = trajectory.normalise().dot(floorEdgeNormal);
+                bool const isViable = (trajProjOntoEdgeNormal <= 0.71f); // PI/4+
+
+                LogNpcDebug("        Edge is ", isViable ? "viable" : "non-viable", " (floorEdgeNormal=", floorEdgeNormal, ")");
+
+                if (isViable)
+                {
+                    return NavigateVertexOutcome::MakeContinueAlongFloorOutcome(currentAbsoluteBCoords, crossedEdgeOrdinal);
+                }
+                else
+                {
+                    return NavigateVertexOutcome::MakeImpactOnFloorOutcome(currentAbsoluteBCoords, crossedEdgeOrdinal);
+                }
+            }
+
+            //
+            // Not floor, climb over edge
+            //
+
+            // Find opposite triangle
+            auto const & oppositeTriangleInfo = shipMesh.GetTriangles().GetOppositeTriangle(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
+            if (oppositeTriangleInfo.TriangleElementIndex == NoneElementIndex || shipMesh.GetTriangles().IsDeleted(oppositeTriangleInfo.TriangleElementIndex))
+            {
+                //
+                // Become free
+                //
+
+                LogNpcDebug("      No opposite triangle found, becoming free");
+
+                return NavigateVertexOutcome::MakeBecomeFreeOutcome();
+            }
+
+            //
+            // Move to triangle
+            //
+
+            LogNpcDebug("      Moving to edge ", oppositeTriangleInfo.EdgeOrdinal, " of opposite triangle ", oppositeTriangleInfo.TriangleElementIndex);
+
+            // Calculate new current barycentric coords (wrt opposite triangle - note that we haven't moved)
+            bcoords3f newBarycentricCoords; // In new triangle
+            newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 2) % 3] = 0.0f;
+            newBarycentricCoords[oppositeTriangleInfo.EdgeOrdinal] = currentAbsoluteBCoords.BCoords[(crossedEdgeOrdinal + 1) % 3];
+            newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 1) % 3] = currentAbsoluteBCoords.BCoords[crossedEdgeOrdinal];
+
+            LogNpcDebug("      B-Coords: ", currentAbsoluteBCoords.BCoords, " -> ", newBarycentricCoords);
+
+            assert(newBarycentricCoords.is_on_edge_or_internal());
+
+            // Move to triangle and b-coords
+            currentAbsoluteBCoords = AbsoluteTriangleBCoords(oppositeTriangleInfo.TriangleElementIndex, newBarycentricCoords);
+
+            // New vertex: we know that coord of vertex opposite of crossed edge (i.e. vertex with ordinal crossed_edge+2) is 0.0
+            if (newBarycentricCoords[oppositeTriangleInfo.EdgeOrdinal] == 0.0f)
+            {
+                // Between edge and edge+1
+                vertexOrdinal = (oppositeTriangleInfo.EdgeOrdinal + 1) % 3;
+            }
+            else
+            {
+                // Between edge and edge-1
+                assert(newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 1) % 3] == 0.0f);
+                vertexOrdinal = oppositeTriangleInfo.EdgeOrdinal;
+            }
+
+            //
+            // Translate target bary coords
+            //
+
+            trajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinatesInsideEdge(
+                trajectoryEndAbsolutePosition,
+                oppositeTriangleInfo.TriangleElementIndex,
+                shipMesh.GetPoints(),
+                oppositeTriangleInfo.EdgeOrdinal);
+
+            LogNpcDebug("      TrajEndB-Coords: ", trajectoryEndBarycentricCoords);
+        }
+    }
+}
+
+// TODOOLD
+
+inline bool Npcs::NavigateVertex_Walking_TODOOLD(
     StateType & npc,
     int const initialEdgeOrdinal,
     int vertexOrdinal, // Mutable
@@ -2498,7 +3167,7 @@ inline bool Npcs::NavigateVertex_Walking(
     }
 }
 
-Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
+Npcs::NavigateVertexOutcome_TODOOLD Npcs::NavigateVertex_TODOOLD(
     StateType & npc,
     bool isPrimaryParticle,
     int vertexOrdinal,
@@ -2547,7 +3216,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
 
                 LogNpcDebug("      Trajectory extends inside triangle - CompletedNavigation");
 
-                return NavigateVertexOutcome::MakeCompletedNavigationOutcome();
+                return NavigateVertexOutcome_TODOOLD::MakeCompletedNavigationOutcome();
             }
         }
 
@@ -2581,7 +3250,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
 
             LogNpcDebug("      Crossed edge is floor - EncounteredFloor");
 
-            return NavigateVertexOutcome::MakeEncounteredFloorOutcome(crossedEdgeOrdinal);
+            return NavigateVertexOutcome_TODOOLD::MakeEncounteredFloorOutcome(crossedEdgeOrdinal);
         }
 
         //
@@ -2607,7 +3276,7 @@ Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
                 particles,
                 gameParameters);
 
-            return NavigateVertexOutcome::MakeConvertedToFreeOutcome();
+            return NavigateVertexOutcome_TODOOLD::MakeConvertedToFreeOutcome();
         }
 
         //

@@ -932,8 +932,73 @@ private:
 		float currentSimulationTime,
 		GameParameters const & gameParameters);
 
+	struct NavigateVertexOutcome
+	{
+		enum class OutcomeType
+		{
+			ContinueToInterior,		// {TriangleBCoords}
+			ContinueAlongFloor,		// {TriangleBCoords, FloorEdgeOrdinal}
+			ImpactOnFloor,			// {TriangleBCoords, FloorEdgeOrdinal, ...TODO: what's handy...}
+			BecomeFree				// {}
+		};
+
+		OutcomeType Type;
+
+		AbsoluteTriangleBCoords TriangleBCoords;
+		int FloorEdgeOrdinal; // In TriangleBCoords's triangle
+
+		static NavigateVertexOutcome MakeContinueToInteriorOutcome(AbsoluteTriangleBCoords const & triangleBCoords)
+		{
+			return NavigateVertexOutcome(OutcomeType::ContinueToInterior, triangleBCoords, -1);
+		}
+
+		static NavigateVertexOutcome MakeContinueAlongFloorOutcome(
+			AbsoluteTriangleBCoords const & triangleBCoords,
+			int floorEdgeORdinal)
+		{
+			return NavigateVertexOutcome(OutcomeType::ContinueAlongFloor, triangleBCoords, floorEdgeORdinal);
+		}
+
+		static NavigateVertexOutcome MakeImpactOnFloorOutcome(
+			AbsoluteTriangleBCoords const & triangleBCoords,
+			int floorEdgeORdinal)
+		{
+			return NavigateVertexOutcome(OutcomeType::ImpactOnFloor, triangleBCoords, floorEdgeORdinal);
+		}
+
+		static NavigateVertexOutcome MakeBecomeFreeOutcome()
+		{
+			return NavigateVertexOutcome(OutcomeType::BecomeFree, {}, - 1);
+		}
+
+	private:
+
+		NavigateVertexOutcome(
+			OutcomeType type,
+			AbsoluteTriangleBCoords const & triangleBCoords,
+			int floorEdgeOrdinal)
+			: Type(type)
+			, TriangleBCoords(triangleBCoords)
+			, FloorEdgeOrdinal(floorEdgeOrdinal)
+		{}
+	};
+
+	static inline NavigateVertexOutcome NavigateVertex(
+		StateType const & npc,
+		bool isPrimaryParticle,
+		std::optional<TriangleAndEdge> const & walkedEdge,
+		int vertexOrdinal,
+		vec2f const & trajectory,
+		vec2f const & trajectoryEndAbsolutePosition,
+		bcoords3f trajectoryEndBarycentricCoords,
+		Ship const & shipMesh,
+		NpcParticles const & particles);
+
+
+	// TODOOLD
+
 	// Returns true if need to stop (ConvertedToFree or Bounced)
-	inline bool NavigateVertex_Walking(
+	inline bool NavigateVertex_Walking_TODOOLD(
 		StateType & npc,
 		int initialEdgeOrdinal,
 		int vertexOrdinal,
@@ -948,7 +1013,7 @@ private:
 		float currentSimulationTime,
 		GameParameters const & gameParameters);
 
-	struct NavigateVertexOutcome
+	struct NavigateVertexOutcome_TODOOLD
 	{
 		enum class OutcomeType
 		{
@@ -961,24 +1026,24 @@ private:
 
 		int EncounteredFloorEdgeOrdinal; // In particle's current triangle
 
-		static NavigateVertexOutcome MakeCompletedNavigationOutcome()
+		static NavigateVertexOutcome_TODOOLD MakeCompletedNavigationOutcome()
 		{
-			return NavigateVertexOutcome(OutcomeType::CompletedNavigation, -1);
+			return NavigateVertexOutcome_TODOOLD(OutcomeType::CompletedNavigation, -1);
 		}
 
-		static NavigateVertexOutcome MakeEncounteredFloorOutcome(int encounteredFloorEdgeOrdinal)
+		static NavigateVertexOutcome_TODOOLD MakeEncounteredFloorOutcome(int encounteredFloorEdgeOrdinal)
 		{
-			return NavigateVertexOutcome(OutcomeType::EncounteredFloor, encounteredFloorEdgeOrdinal);
+			return NavigateVertexOutcome_TODOOLD(OutcomeType::EncounteredFloor, encounteredFloorEdgeOrdinal);
 		}
 
-		static NavigateVertexOutcome MakeConvertedToFreeOutcome()
+		static NavigateVertexOutcome_TODOOLD MakeConvertedToFreeOutcome()
 		{
-			return NavigateVertexOutcome(OutcomeType::ConvertedToFree, -1);
+			return NavigateVertexOutcome_TODOOLD(OutcomeType::ConvertedToFree, -1);
 		}
 
 	private:
 
-		NavigateVertexOutcome(
+		NavigateVertexOutcome_TODOOLD(
 			OutcomeType type,
 			int encounteredFloorEdgeOrdinal)
 			: Type(type)
@@ -986,7 +1051,7 @@ private:
 		{}
 	};
 
-	inline NavigateVertexOutcome NavigateVertex(
+	inline NavigateVertexOutcome_TODOOLD NavigateVertex_TODOOLD(
 		StateType & npc,
 		bool isPrimaryParticle,
 		int vertexOrdinal,
