@@ -945,7 +945,7 @@ private:
 		{
 			ContinueToInterior,		// {TriangleBCoords}
 			ContinueAlongFloor,		// {TriangleBCoords, FloorEdgeOrdinal}
-			ImpactOnFloor,			// {TriangleBCoords, FloorEdgeOrdinal, ...TODO: what's handy...}
+			ImpactOnFloor,			// {TriangleBCoords, FloorEdgeOrdinal}
 			BecomeFree				// {}
 		};
 
@@ -1000,76 +1000,6 @@ private:
 		bcoords3f trajectoryEndBarycentricCoords,
 		Ship const & shipMesh,
 		NpcParticles const & particles);
-
-
-	// TODOOLD
-
-	// Returns true if need to stop (ConvertedToFree or Bounced)
-	inline bool NavigateVertex_Walking_TODOOLD(
-		StateType & npc,
-		int initialEdgeOrdinal,
-		int vertexOrdinal,
-		vec2f const & particleStartAbsolutePosition,
-		vec2f const & trajectoryEndAbsolutePosition,
-		bcoords3f trajectoryEndBarycentricCoords,
-		vec2f const & trajectory,
-		vec2f const meshVelocity,
-		float dt,
-		Ship const & shipMesh,
-		NpcParticles & particles,
-		float currentSimulationTime,
-		GameParameters const & gameParameters);
-
-	struct NavigateVertexOutcome_TODOOLD
-	{
-		enum class OutcomeType
-		{
-			CompletedNavigation,
-			EncounteredFloor,
-			ConvertedToFree
-		};
-
-		OutcomeType Type;
-
-		int EncounteredFloorEdgeOrdinal; // In particle's current triangle
-
-		static NavigateVertexOutcome_TODOOLD MakeCompletedNavigationOutcome()
-		{
-			return NavigateVertexOutcome_TODOOLD(OutcomeType::CompletedNavigation, -1);
-		}
-
-		static NavigateVertexOutcome_TODOOLD MakeEncounteredFloorOutcome(int encounteredFloorEdgeOrdinal)
-		{
-			return NavigateVertexOutcome_TODOOLD(OutcomeType::EncounteredFloor, encounteredFloorEdgeOrdinal);
-		}
-
-		static NavigateVertexOutcome_TODOOLD MakeConvertedToFreeOutcome()
-		{
-			return NavigateVertexOutcome_TODOOLD(OutcomeType::ConvertedToFree, -1);
-		}
-
-	private:
-
-		NavigateVertexOutcome_TODOOLD(
-			OutcomeType type,
-			int encounteredFloorEdgeOrdinal)
-			: Type(type)
-			, EncounteredFloorEdgeOrdinal(encounteredFloorEdgeOrdinal)
-		{}
-	};
-
-	inline NavigateVertexOutcome_TODOOLD NavigateVertex_TODOOLD(
-		StateType & npc,
-		bool isPrimaryParticle,
-		int vertexOrdinal,
-		vec2f const & particleStartAbsolutePosition,
-		vec2f const & trajectoryStartAbsolutePosition,
-		vec2f const & trajectoryEndAbsolutePosition,
-		bcoords3f trajectoryEndBarycentricCoords,
-		bool isInitialStateUnknown,
-		Ship const & shipMesh,
-		NpcParticles & particles,
-		GameParameters const & gameParameters);
 
 	void BounceConstrainedNpcParticle(
 		StateType & npc,
@@ -1133,6 +1063,12 @@ private:
 		}
 
 		// Ok, it's a floor and this is a secondary particle
+		//
+		// Secondary particles have a ton of rules to ensure that e.g. the head
+		// of a NPC doesn't behave as if it were disjoint from the feet; for
+		// example we don't want the head to bang on a plane that separates it
+		// from the feet, or to bang their head on a staircase above the floor
+		// we're walking on.
 
 		assert(npc.DipoleState.has_value());
 
