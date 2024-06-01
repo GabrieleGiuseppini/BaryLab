@@ -741,6 +741,9 @@ void Npcs::EndMoveNpc(
 	OnMayBeNpcRegimeChanged(
 		StateType::RegimeType::BeingPlaced,
 		npc);
+
+	// Select NPC's primary particle
+	SelectParticle(npc.PrimaryParticleState.ParticleIndex);
 }
 
 void Npcs::CompleteNewNpc(

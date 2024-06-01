@@ -899,8 +899,15 @@ private:
 		NpcParticles & particles,
 		GameParameters const & gameParameters) const;
 
+	struct ConstrainedNonInertialOutcome
+	{
+		float EdgeTraveled;						// During this single step
+		bool DoStop;							// When set, we can stop
+		std::optional<int> FloorEdgeOrdinal;	// This is the next edge we have chosen to walk upon
+	};
+
 	// Returns total edge traveled (in step), and isStop
-	std::tuple<float, bool> UpdateNpcParticle_ConstrainedNonInertial(
+	ConstrainedNonInertialOutcome UpdateNpcParticle_ConstrainedNonInertial(
 		StateType & npc,
 		bool isPrimaryParticle,
 		int edgeOrdinal,
