@@ -1140,7 +1140,8 @@ private:
 		// make the head ghost through certain floor depths
 
 		if (npc.Kind == NpcKindType::Human
-			&& npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking
+			&& (npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking
+				 || npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Rising)
 			&& npc.PrimaryParticleState.ConstrainedState.has_value()
 			&& npc.PrimaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value())
 		{
