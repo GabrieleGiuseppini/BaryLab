@@ -1793,7 +1793,7 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
 
             BounceConstrainedNpcParticle(
                 npc,
-                true,
+                isPrimaryParticle,
                 flattenedTrajectory,
                 bounceAbsolutePosition,
                 floorEdgeNormal,
@@ -2421,7 +2421,7 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
                     //
                     // Not viable - see if it's bounceable
                     //
-                    // Bounceable: only if we hit it according to our current direction
+                    // Bounceable: iff we hit it according to our current direction
                     //   - Note: all edges are in our direction until we've found a triangle interior
                     //
 
