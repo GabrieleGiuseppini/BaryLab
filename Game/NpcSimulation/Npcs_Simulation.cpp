@@ -853,14 +853,14 @@ void Npcs::UpdateNpcParticlePhysics(
                 // Set now our current edge-ness for the rest of this simulation step, which is
                 // mostly for animation purposes.
                 //
-                // In fact, the subsequent UpdateNpcParticle_ConstrainedNonInertial call has 3 outcomes:
+                // In fact, the subsequent UpdateNpcParticle_ConstrainedNonInertial call has 5 outcomes:
                 //  - We end up inside the triangle - along this same edge;
                 //  - We travel up to a vertex, and then:
-                //      - Ready to continue: in this case we might have reached a new triangle,
-                //        but we'll go through this again;
+                //      - End towards interior of triangle: in this case we might have reached a new triangle,
+                //        but we'll go through this again and become inertial (resetting this edge-ness);
+                //      - Ready to continue on a new edge: we'll go through this again;
                 //      - Become free: no more constrained state anyways;
-                //      - Hit floor, with then either continuation (above) or bounce; in the case
-                //        of bounce, we _do_ want the current virtual floor to be the one _before_ the bounce.
+                //      - Hit floor: in this case we _do_ want the current virtual floor to be the one _before_ the bounce.
 
                 npcParticle.ConstrainedState->CurrentVirtualFloor.emplace(
                     npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
