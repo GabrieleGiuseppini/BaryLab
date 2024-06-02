@@ -689,7 +689,8 @@ Physics::Triangles ShipFactory::CreateTriangles(
 
         // Calculate opposite triangles and floor types
         std::array<std::pair<ElementIndex, int>, 3> subSpringsOppositeTriangle;
-        std::array<NpcFloorType, 3> subSpringsFloorType;
+        std::array<NpcFloorKindType, 3> subSpringsFloorKind;
+        std::array<NpcFloorGeometryType, 3> subSpringsFloorGeometry;
         for (int iEdge = 0; iEdge < 3; ++iEdge)
         {
             ElementIndex const springElementIndex = triangleInfos[t].Springs[iEdge];
@@ -744,19 +745,18 @@ Physics::Triangles ShipFactory::CreateTriangles(
             ElementIndex const edgePointA = springInfos[springElementIndex].PointAIndex;
             ElementIndex const edgePointB = springInfos[springElementIndex].PointBIndex;
 
-            NpcFloorType floorType;
             if (const auto floorIt = floorPlan.find({ edgePointA, edgePointB });
                 floorIt != floorPlan.cend()
                 && (!isSealedTriangle || subSpringsOppositeTriangle[iEdge].first == NoneElementIndex))
             {
-                floorType = floorIt->second.FloorType;
+                subSpringsFloorKind[iEdge] = floorIt->second.FloorKind;
+                subSpringsFloorGeometry[iEdge] = floorIt->second.FloorGeometry;
             }
             else
             {
-                floorType = NpcFloorType::Open;
+                subSpringsFloorKind[iEdge] = NpcFloorKindType::NotAFloor;
+                subSpringsFloorGeometry[iEdge] = NpcFloorGeometryType::NotAFloor;
             }
-
-            subSpringsFloorType[iEdge] = floorType;
         }
 
         // Create triangle
@@ -773,9 +773,12 @@ Physics::Triangles ShipFactory::CreateTriangles(
             subSpringsOppositeTriangle[1].second,
             subSpringsOppositeTriangle[2].first,
             subSpringsOppositeTriangle[2].second,
-            subSpringsFloorType[0],
-            subSpringsFloorType[1],
-            subSpringsFloorType[2]);
+            subSpringsFloorKind[0],
+            subSpringsFloorGeometry[0],
+            subSpringsFloorKind[1],
+            subSpringsFloorGeometry[1],
+            subSpringsFloorKind[2],
+            subSpringsFloorGeometry[2]);
 
         // Add triangle to its endpoints
         points.AddConnectedTriangle(triangleInfos[t].PointIndices[0], t, true); // Owner

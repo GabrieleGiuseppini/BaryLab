@@ -58,7 +58,8 @@ private:
         {}
     };
 
-    using SubSpringNpcFloorTypes = std::array<NpcFloorType, 3>;
+    using SubSpringNpcFloorKinds = std::array<NpcFloorKindType, 3>;
+    using SubSpringNpcFloorGeometries = std::array<NpcFloorGeometryType, 3>;
 
     /*
      * The opposite triangles of an edge, by edge ordinal.
@@ -90,7 +91,8 @@ public:
         , mEndpointsBuffer(mBufferElementCount, mElementCount, Endpoints(NoneElementIndex, NoneElementIndex, NoneElementIndex))
         , mSubSpringsBuffer(mBufferElementCount, mElementCount, SubSprings(NoneElementIndex, NoneElementIndex, NoneElementIndex))
         , mOppositeTrianglesBuffer(mBufferElementCount, mElementCount, { OppositeTriangleInfo(NoneElementIndex, -1), OppositeTriangleInfo(NoneElementIndex, -1), OppositeTriangleInfo(NoneElementIndex, -1) })
-        , mSubSpringNpcFloorTypesBuffer(mBufferElementCount, mElementCount, { NpcFloorType::Open, NpcFloorType::Open, NpcFloorType::Open})
+        , mSubSpringNpcFloorKindsBuffer(mBufferElementCount, mElementCount, { NpcFloorKindType::NotAFloor, NpcFloorKindType::NotAFloor, NpcFloorKindType::NotAFloor })
+        , mSubSpringNpcFloorGeometriesBuffer(mBufferElementCount, mElementCount, { NpcFloorGeometryType::NotAFloor, NpcFloorGeometryType::NotAFloor, NpcFloorGeometryType::NotAFloor })
     {
     }
 
@@ -109,9 +111,12 @@ public:
         int subSpringBOppositeTriangleEdgeOrdinal,
         ElementIndex subSpringCOppositeTriangle,
         int subSpringCOppositeTriangleEdgeOrdinal,
-        NpcFloorType subSpringAFloorType,
-        NpcFloorType subSpringBFloorType,
-        NpcFloorType subSpringCFloorType);
+        NpcFloorKindType subSpringAFloorKind,
+        NpcFloorGeometryType subSpringAFloorGeometry,
+        NpcFloorKindType subSpringBFloorKind,
+        NpcFloorGeometryType subSpringBFloorGeometry,
+        NpcFloorKindType subSpringCFloorKind,
+        NpcFloorGeometryType subSpringCFloorGeometry);
 
 public:
 
@@ -358,12 +363,20 @@ public:
 
     // Floor types
 
-    NpcFloorType GetSubSpringNpcFloorType(
+    NpcFloorKindType GetSubSpringNpcFloorKind(
         ElementIndex triangleElementIndex,
         int springOrdinal) const
     {
         assert(springOrdinal >= 0 && springOrdinal < 3);
-        return mSubSpringNpcFloorTypesBuffer[triangleElementIndex][springOrdinal];
+        return mSubSpringNpcFloorKindsBuffer[triangleElementIndex][springOrdinal];
+    }
+
+    NpcFloorGeometryType GetSubSpringNpcFloorGeometry(
+        ElementIndex triangleElementIndex,
+        int springOrdinal) const
+    {
+        assert(springOrdinal >= 0 && springOrdinal < 3);
+        return mSubSpringNpcFloorGeometriesBuffer[triangleElementIndex][springOrdinal];
     }
 
 private:
@@ -422,7 +435,8 @@ private:
     Buffer<OppositeTrianglesInfo> mOppositeTrianglesBuffer;
 
     // NPC Floor types
-    Buffer<SubSpringNpcFloorTypes> mSubSpringNpcFloorTypesBuffer;
+    Buffer<SubSpringNpcFloorKinds> mSubSpringNpcFloorKindsBuffer;
+    Buffer<SubSpringNpcFloorGeometries> mSubSpringNpcFloorGeometriesBuffer;
 };
 
 }

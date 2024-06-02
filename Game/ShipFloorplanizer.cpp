@@ -75,18 +75,18 @@ ShipFactoryFloorPlan ShipFloorplanizer::BuildFloorplan(
 			// Take this spring
 			//
 
-			NpcFloorType floorType;
+			NpcFloorGeometryType floorGeometry;
 			if (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x == pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x)
 			{
 				// Vertical
 				assert(std::abs(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y) == 1);
-				floorType = NpcFloorType::FloorPlane1V;
+				floorGeometry = NpcFloorGeometryType::Depth1V;
 			}
 			else if (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y == pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y)
 			{
 				// Horizontal
 				assert(std::abs(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == 1);
-				floorType = NpcFloorType::FloorPlane1H;
+				floorGeometry = NpcFloorGeometryType::Depth1H;
 			}
 			else if (
 				(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x < pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x)
@@ -100,7 +100,7 @@ ShipFactoryFloorPlan ShipFloorplanizer::BuildFloorplan(
 					||
 					((pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == -1
 						&& (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y) == -1));
-				floorType = NpcFloorType::FloorPlane2S1;
+				floorGeometry = NpcFloorGeometryType::Depth2S1;
 			}
 			else
 			{
@@ -111,12 +111,13 @@ ShipFactoryFloorPlan ShipFloorplanizer::BuildFloorplan(
 					||
 					((pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == -1
 						&& (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y) == 1));
-				floorType = NpcFloorType::FloorPlane2S2;
+				floorGeometry = NpcFloorGeometryType::Depth2S2;
 			}
 
 			auto const [_, isInserted] = floorPlan.try_emplace(
 				{ springInfo.PointAIndex, springInfo.PointBIndex },
-				floorType,
+				NpcFloorKindType::DefaultFloor,
+				floorGeometry,
 				static_cast<ElementIndex>(s));
 
 			assert(isInserted);

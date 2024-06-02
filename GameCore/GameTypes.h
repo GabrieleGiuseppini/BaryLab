@@ -800,31 +800,54 @@ enum class HumanNpcKindType
 
 // Futurework: FurnitureNpcKind
 
-enum class NpcFloorType
+enum class NpcFloorKindType
 {
-    Open,
-    FloorPlane1H,
-    FloorPlane1V,
-    FloorPlane2S1,
-    FloorPlane2S2
+    NotAFloor,
+    DefaultFloor // Futurework: areas, etc.
 };
 
-inline int constexpr GetNpcFloorDepth(NpcFloorType floorType)
+enum class NpcFloorGeometryDepthType
 {
-    switch (floorType)
+    NotAFloor,
+    Depth1, // Main depth: H-V
+    Depth2 // Staircases: S-S
+};
+
+enum class NpcFloorGeometryType
+{
+    NotAFloor,
+    // Depth 1: main depth
+    Depth1H,
+    Depth1V,
+    // Depth 2: staircases
+    Depth2S1,
+    Depth2S2
+};
+
+inline NpcFloorGeometryDepthType NpcFloorGeometryDepth(NpcFloorGeometryType geometry)
+{
+    switch (geometry)
     {
-        case NpcFloorType::Open:
-            return 0;
-        case NpcFloorType::FloorPlane1H:
-        case NpcFloorType::FloorPlane1V:
-            return 1;
-        case NpcFloorType::FloorPlane2S1:
-        case NpcFloorType::FloorPlane2S2:
-            return 2;
+        case NpcFloorGeometryType::NotAFloor:
+        {
+            return NpcFloorGeometryDepthType::NotAFloor;
+        }
+
+        case NpcFloorGeometryType::Depth1H:
+        case NpcFloorGeometryType::Depth1V:
+        {
+            return NpcFloorGeometryDepthType::Depth1;
+        }
+
+        case NpcFloorGeometryType::Depth2S1:
+        case NpcFloorGeometryType::Depth2S2:
+        {
+            return NpcFloorGeometryDepthType::Depth2;
+        }
     }
 
     assert(false);
-    return 0;
+    return NpcFloorGeometryDepthType::NotAFloor;
 }
 
 /*

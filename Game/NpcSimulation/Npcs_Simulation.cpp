@@ -2191,8 +2191,8 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
             ? RotationDirectionType::Clockwise
             : RotationDirectionType::CounterClockwise;
 
-        // Remember floor type of starting edge
-        NpcFloorType const initialFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(walkedEdge->TriangleElementIndex, walkedEdge->EdgeOrdinal);
+        // Remember floor geometry of starting edge
+        NpcFloorGeometryType const initialFloorGeometry = shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(walkedEdge->TriangleElementIndex, walkedEdge->EdgeOrdinal);
 
         for (int iIter = 0; ; ++iIter)
         {
@@ -2258,9 +2258,9 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
                 // Encountered floor
                 //
 
-                auto const crossedEdgeFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
+                auto const crossedEdgeFloorGeometry = shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
 
-                LogNpcDebug("        Crossed edge is floor (type:", int(crossedEdgeFloorType), ")");
+                LogNpcDebug("        Crossed edge is floor (geometry:", int(crossedEdgeFloorGeometry), ")");
 
                 //
                 // Check whether it's a viable floor, i.e. whether its direction is:
@@ -2341,13 +2341,13 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
                         }
                         else
                         {
-                            auto const currentBounceableFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(firstBounceableFloor->TriangleBCoords.TriangleElementIndex, firstBounceableFloor->EdgeOrdinal);
-                            if ((GetNpcFloorDepth(currentBounceableFloorType) != GetNpcFloorDepth(initialFloorType) && GetNpcFloorDepth(crossedEdgeFloorType) == GetNpcFloorDepth(initialFloorType))
+                            auto const currentBounceableFloorGeometry = shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(firstBounceableFloor->TriangleBCoords.TriangleElementIndex, firstBounceableFloor->EdgeOrdinal);
+                            if ((NpcFloorGeometryDepth(currentBounceableFloorGeometry) != NpcFloorGeometryDepth(initialFloorGeometry) && NpcFloorGeometryDepth(crossedEdgeFloorGeometry) == NpcFloorGeometryDepth(initialFloorGeometry))
                                 ||
                                 (
-                                    (initialFloorType == NpcFloorType::FloorPlane2S1 || initialFloorType == NpcFloorType::FloorPlane2S2)
-                                    && GetNpcFloorDepth(currentBounceableFloorType) == 1
-                                    && GetNpcFloorDepth(crossedEdgeFloorType) == 1
+                                    NpcFloorGeometryDepth(initialFloorGeometry) == NpcFloorGeometryDepthType::Depth2
+                                    && NpcFloorGeometryDepth(currentBounceableFloorGeometry) == NpcFloorGeometryDepthType::Depth1
+                                    && NpcFloorGeometryDepth(crossedEdgeFloorGeometry) == NpcFloorGeometryDepthType::Depth1
                                     ))
                             {
                                 doRememberBounceableFloor = true;
@@ -2369,8 +2369,8 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
                 //  - We allow SonS to be penetrable, so that while we go down ladder and encounter ladder going up, we may go beyond it if there's a floor behind it
                 //
 
-                if ((crossedEdgeFloorType == NpcFloorType::FloorPlane1H && initialFloorType == NpcFloorType::FloorPlane1V)
-                    || (crossedEdgeFloorType == NpcFloorType::FloorPlane1V && initialFloorType == NpcFloorType::FloorPlane1H))
+                if ((crossedEdgeFloorGeometry == NpcFloorGeometryType::Depth1H && initialFloorGeometry == NpcFloorGeometryType::Depth1V)
+                    || (crossedEdgeFloorGeometry == NpcFloorGeometryType::Depth1V && initialFloorGeometry == NpcFloorGeometryType::Depth1H))
                 {
                     LogNpcDebug("          Impenetrable, stopping here");
 

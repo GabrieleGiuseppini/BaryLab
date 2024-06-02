@@ -118,13 +118,16 @@ struct ShipFactoryTriangle
 
 struct ShipFactoryFloorInfo
 {
-    NpcFloorType FloorType;
+    NpcFloorKindType FloorKind;
+    NpcFloorGeometryType FloorGeometry;
     ElementIndex SpringIndex;
 
     ShipFactoryFloorInfo(
-        NpcFloorType floorType,
+        NpcFloorKindType floorKind,
+        NpcFloorGeometryType floorGeometry,
         ElementIndex springIndex)
-        : FloorType(floorType)
+        : FloorKind(floorKind)
+        , FloorGeometry(floorGeometry)
         , SpringIndex(springIndex)
     {}
 };

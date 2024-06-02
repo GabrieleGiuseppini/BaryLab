@@ -24,9 +24,12 @@ void Triangles::Add(
     int subSpringBOppositeTriangleEdgeOrdinal,
     ElementIndex subSpringCOppositeTriangle,
     int subSpringCOppositeTriangleEdgeOrdinal,
-    NpcFloorType subSpringANpcFloorType,
-    NpcFloorType subSpringBNpcFloorType,
-    NpcFloorType subSpringCNpcFloorType)
+    NpcFloorKindType subSpringAFloorKind,
+    NpcFloorGeometryType subSpringAFloorGeometry,
+    NpcFloorKindType subSpringBFloorKind,
+    NpcFloorGeometryType subSpringBFloorGeometry,
+    NpcFloorKindType subSpringCFloorKind,
+    NpcFloorGeometryType subSpringCFloorGeometry)
 {
     mEndpointsBuffer.emplace_back(pointAIndex, pointBIndex, pointCIndex);
     mSubSpringsBuffer.emplace_back(subSpringAIndex, subSpringBIndex, subSpringCIndex);
@@ -34,7 +37,8 @@ void Triangles::Add(
         OppositeTriangleInfo(subSpringAOppositeTriangle, subSpringAOppositeTriangleEdgeOrdinal),
         OppositeTriangleInfo(subSpringBOppositeTriangle, subSpringBOppositeTriangleEdgeOrdinal),
         OppositeTriangleInfo(subSpringCOppositeTriangle, subSpringCOppositeTriangleEdgeOrdinal) });
-    mSubSpringNpcFloorTypesBuffer.emplace_back(SubSpringNpcFloorTypes({ subSpringANpcFloorType, subSpringBNpcFloorType, subSpringCNpcFloorType }));
+    mSubSpringNpcFloorKindsBuffer.emplace_back(SubSpringNpcFloorKinds({ subSpringAFloorKind, subSpringBFloorKind, subSpringCFloorKind }));
+    mSubSpringNpcFloorGeometriesBuffer.emplace_back(SubSpringNpcFloorGeometries({ subSpringAFloorGeometry, subSpringBFloorGeometry, subSpringCFloorGeometry }));
 }
 
 ElementIndex Triangles::FindContaining(

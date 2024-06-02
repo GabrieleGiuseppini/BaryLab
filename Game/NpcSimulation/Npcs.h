@@ -1034,11 +1034,9 @@ private:
 		NpcParticles const & npcParticles,
 		Ship const & shipMesh)
 	{
-		auto const floorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(triangleElementIndex, edgeOrdinal);
-
 		// First off: if not a floor, it's not a floor
 
-		if (floorType == NpcFloorType::Open)
+		if (shipMesh.GetTriangles().GetSubSpringNpcFloorKind(triangleElementIndex, edgeOrdinal) == NpcFloorKindType::NotAFloor)
 		{
 			return false;
 		}
@@ -1081,23 +1079,27 @@ private:
 			&& npc.PrimaryParticleState.ConstrainedState.has_value()
 			&& npc.PrimaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value())
 		{
-			auto const primaryFloorType = shipMesh.GetTriangles().GetSubSpringNpcFloorType(
+			auto const floorGeometry = shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(
+				triangleElementIndex,
+				edgeOrdinal);
+
+			auto const primaryFloorGeometry = shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(
 				npc.PrimaryParticleState.ConstrainedState->CurrentVirtualFloor->TriangleElementIndex,
 				npc.PrimaryParticleState.ConstrainedState->CurrentVirtualFloor->EdgeOrdinal);
 
-			auto const primaryFloorDepth = GetNpcFloorDepth(primaryFloorType);
+			auto const primaryFloorDepth = NpcFloorGeometryDepth(primaryFloorGeometry);
 
 			// Rule 1: other depth is never floor
 			// - So e.g. walking up a stair doesn't make us bang our head on the floor above
 			// - So e.g. walking on a floor doesn't make us bang our head on a stair
-			if (GetNpcFloorDepth(floorType) != primaryFloorDepth)
+			if (NpcFloorGeometryDepth(floorGeometry) != primaryFloorDepth)
 			{
 				return false;
 			}
 
 			// Rule 2: when on a Sx depth, Sy is never floor
 			// - So e.g. we don't bang our head at orthogonal stair intersections
-			if (primaryFloorDepth == 2 && floorType != primaryFloorType)
+			if (primaryFloorDepth == NpcFloorGeometryDepthType::Depth2 && floorGeometry != primaryFloorGeometry)
 			{
 				return false;
 			}

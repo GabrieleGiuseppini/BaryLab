@@ -184,10 +184,10 @@ void LabController::Render()
             {
                 float constexpr FloorThicknessAdjustment = 3.0f;
 
-                NpcFloorType floorType = triangles.GetSubSpringNpcFloorType(t, e);
-                switch (floorType)
+                NpcFloorGeometryType floorGeometry = triangles.GetSubSpringNpcFloorGeometry(t, e);
+                switch (floorGeometry)
                 {
-                    case NpcFloorType::Open:
+                    case NpcFloorGeometryType::NotAFloor:
                     {
                         if (points.GetMaterial(springs.GetEndpointAIndex(triangles.GetSubSprings(t).SpringIndices[e]))->IsHull
                             && points.GetMaterial(springs.GetEndpointBIndex(triangles.GetSubSprings(t).SpringIndices[e]))->IsHull)
@@ -200,14 +200,14 @@ void LabController::Render()
                         }
                     }
 
-                    case NpcFloorType::FloorPlane1H:
-                    case NpcFloorType::FloorPlane1V:
+                    case NpcFloorGeometryType::Depth1H:
+                    case NpcFloorGeometryType::Depth1V:
                     {
                         return { { 0x12, 0x1b, 0x54, 0xff }, FloorThicknessAdjustment };
                     }
 
-                    case NpcFloorType::FloorPlane2S1:
-                    case NpcFloorType::FloorPlane2S2:
+                    case NpcFloorGeometryType::Depth2S1:
+                    case NpcFloorGeometryType::Depth2S2:
                     {
                         return { { 0x12, 0x54, 0x1b, 0xff }, FloorThicknessAdjustment };
                     }
@@ -280,9 +280,9 @@ void LabController::Render()
                 color = rgbaColor(227, 107, 107, 77);
             }
             else if (
-                triangles.GetSubSpringNpcFloorType(t, 0) != NpcFloorType::Open
-                && triangles.GetSubSpringNpcFloorType(t, 1) != NpcFloorType::Open
-                && triangles.GetSubSpringNpcFloorType(t, 2) != NpcFloorType::Open)
+                triangles.GetSubSpringNpcFloorKind(t, 0) != NpcFloorKindType::NotAFloor
+                && triangles.GetSubSpringNpcFloorKind(t, 1) != NpcFloorKindType::NotAFloor
+                && triangles.GetSubSpringNpcFloorKind(t, 2) != NpcFloorKindType::NotAFloor)
             {
                 color = rgbaColor(35, 35, 35, 77);
             }
