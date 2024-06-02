@@ -103,7 +103,7 @@ struct GameParameters
 
     static float constexpr MaxHumanNpcTotalWalkingSpeedAdjustment = 3.5f; // Absolute cap
 
-    static float constexpr MaxHumanNpcWalkSinSlope = 0.85f; // Max sin of slope we're willing to climb up: ___*\___<W---  (58 degrees)
+    static float constexpr MaxHumanNpcWalkSinSlope = 0.87f; // Max sin of slope we're willing to climb up: ___*\___<W---  (60.5 degrees)
 
     struct HumanNpcGeometry
     {

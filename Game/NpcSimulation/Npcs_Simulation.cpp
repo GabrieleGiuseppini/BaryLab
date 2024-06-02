@@ -974,12 +974,12 @@ void Npcs::UpdateNpcParticlePhysics(
                     // to prevent walking on floors that are too steep
                     //
                     // Note: walkDir.y is sin(slope angle between horiz and dir)
-                    float constexpr ResistanceSinSlopeStart = 0.50f; // Start slightly before expected 45-degree ramp
-                    static_assert(ResistanceSinSlopeStart <= GameParameters::MaxHumanNpcWalkSinSlope);
+                    float constexpr NeighborhoodWidth = 1.0f - GameParameters::MaxHumanNpcWalkSinSlope;
+                    float constexpr ResistanceSinSlopeStart = GameParameters::MaxHumanNpcWalkSinSlope - NeighborhoodWidth / 2.0f;
                     if (walkDir.y >= ResistanceSinSlopeStart) // walkDir.y is component along vertical, pointing up
                     {
-                        float const y2 = (walkDir.y - ResistanceSinSlopeStart) / (GameParameters::MaxHumanNpcWalkSinSlope - ResistanceSinSlopeStart);
-                        float const gravityResistance = std::max(1.0f - (y2 * y2), 0.0f);
+                        float const y2 = (walkDir.y - ResistanceSinSlopeStart) / NeighborhoodWidth;
+                        float const gravityResistance = std::max(1.0f - y2, 0.0f);
 
                         LogNpcDebug("        gravityResistance=", gravityResistance, " (walkDir.y=", walkDir.y, ")");
 
