@@ -1155,12 +1155,12 @@ void Npcs::OnHumanImpact(
 
 		case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking:
 		{
-			LogNpcDebug("OnHumanImpact: bounceEdgeNormal.dot(faceX)=", bounceEdgeNormal.dot(vec2f(humanState.CurrentFaceDirectionX, 0.0f)));
+			LogNpcDebug("OnHumanImpact: bounceSlope=", bounceEdgeNormal.dot(vec2f(humanState.CurrentFaceDirectionX, 0.0f)));
 
 			// Check alignment of impact with walking direction; if hit => flip
 			// Note: might also want to check *magnitude* of hit
-			float constexpr MaxOppositionSlope = 0.85f;
-			if (bounceEdgeNormal.dot(vec2f(humanState.CurrentFaceDirectionX, 0.0f)) > MaxOppositionSlope
+			float const bounceSlope = bounceEdgeNormal.dot(vec2f(humanState.CurrentFaceDirectionX, 0.0f)); // 1.0 when hit wall perpendicular
+			if ( ((isPrimaryParticle && bounceSlope > 0.85f) || (!isPrimaryParticle && bounceSlope > 0.50f))
 				&& humanState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
 			{
 				LogNpcDebug("OnHumanImpact: FLIP!");
