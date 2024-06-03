@@ -2196,7 +2196,8 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
 
         for (int iIter = 0; ; ++iIter)
         {
-            LogNpcDebug("    NavigateVertex_Walking: iter=", iIter, " nCandidatesEasy=", floorCandidatesEasySlopeCount, " nCandidatesHard=", floorCandidatesHardSlopeCount, " hasBounceableFloor=", firstBounceableFloor.has_value() ? "T" : "F",
+            LogNpcDebug("    NavigateVertex_Walking: iter=", iIter, " orientation=", orientation == RotationDirectionType::Clockwise ? "CW" : "CCW",
+                " nCandidatesEasy=", floorCandidatesEasySlopeCount, " nCandidatesHard=", floorCandidatesHardSlopeCount, " hasBounceableFloor=", firstBounceableFloor.has_value() ? "T" : "F",
                 " hasFirstTriangleInterior=", firstTriangleInterior.has_value() ? "T" : "F");
 
             assert(iIter < GameParameters::MaxSpringsPerPoint); // Detect and debug-break on infinite loops
