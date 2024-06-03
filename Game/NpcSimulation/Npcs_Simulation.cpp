@@ -656,13 +656,13 @@ void Npcs::UpdateNpcParticlePhysics(
 
             if (currentNonInertialFloorEdgeOrdinal.has_value())
             {
-                // We have already determined that we are on an edge
+                // We have already determined that we are on an edge OR going inside a triangle (-1)
 
                 assert(npcParticle.ConstrainedState.has_value() && npcParticle.ConstrainedState->CurrentBCoords.BCoords.is_on_edge());
 
                 nonInertialEdgeOrdinal = *currentNonInertialFloorEdgeOrdinal;
 
-                LogNpcDebug("    We remember from earlier that we are on a floor edge: ", *currentNonInertialFloorEdgeOrdinal, " of triangle ", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex);
+                LogNpcDebug("    We remember from earlier that we are on a floor edge/inside triangle: ", *currentNonInertialFloorEdgeOrdinal, " of triangle ", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex);
             }
             else
             {
@@ -764,6 +764,9 @@ void Npcs::UpdateNpcParticlePhysics(
                                 }
                             }
 #endif
+                            // We can leave nonInertialEdgeOrdinal as -1, it's the return value anyway
+                            assert(outcome.FloorEdgeOrdinal == -1);
+
                             break;
                         }
 
@@ -1191,7 +1194,7 @@ void Npcs::UpdateNpcParticlePhysics(
                     pastBarycentricPositions[0] = npcParticle.ConstrainedState->CurrentBCoords;
                 }
 
-                // Update current floor edge we're walking on (if any)
+                // Update current floor edge we're walking on, or inside triangle
                 currentNonInertialFloorEdgeOrdinal = newFloorEdgeOrdinal;
 
                 if (npcParticle.ConstrainedState.has_value())
@@ -1649,7 +1652,7 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
         return {
             edgeTraveledPlanned,    // We moved by how much we planned
             true,                   // Stop here
-            std::nullopt };         // No edge
+            -1 };                   // No edge (but we're stopping anyways)
     }
 
     //
@@ -1772,7 +1775,7 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
             return {
                 edgeTraveled,
                 false,
-                std::nullopt };
+                -1 }; // Our next edge is...no edge
         }
 
         case NavigateVertexOutcome::OutcomeType::ImpactOnFloor:
@@ -2186,10 +2189,22 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         int nextVertexOrdinal = (vertexOrdinal + 1) % 3;
         int prevVertexOrdinal = (vertexOrdinal + 2) % 3;
 
-        // Determine orientation (CW vs CCW)
+        // Determine orientation of our visit (CW vs CCW)
+        //
+        // Assumption is that trajectoryEndBarycentricCoords is *outside* triangle,
+        // and we are at the last vertex possible in this triangle before leaving it
+        //
+        //   0    * b[0] > b[2]
+        //   |\  /
+        //   | \
+        //   | *\
+        //  2----1
+        //      /
+        //     *  b[0] < b[2]
+
         RotationDirectionType const orientation = (trajectoryEndBarycentricCoords[prevVertexOrdinal] <= trajectoryEndBarycentricCoords[nextVertexOrdinal])
-            ? RotationDirectionType::Clockwise
-            : RotationDirectionType::CounterClockwise;
+            ? RotationDirectionType::CounterClockwise
+            : RotationDirectionType::Clockwise;
 
         // Remember floor geometry of starting edge
         NpcFloorGeometryType const initialFloorGeometry = shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(walkedEdge->TriangleElementIndex, walkedEdge->EdgeOrdinal);
@@ -2231,7 +2246,7 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
             // Find next edge that we cross
             //
 
-            int const crossedEdgeOrdinal = (orientation == RotationDirectionType::Clockwise)
+            int const crossedEdgeOrdinal = (orientation == RotationDirectionType::CounterClockwise)
                 ? vertexOrdinal // Next edge
                 : (vertexOrdinal + 2) % 3; // Previous edge
 
@@ -2281,7 +2296,7 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
                 bool const isViable =
                     crossedEdgeDir.x < 0.0f
                     && (
-                        (orientation == RotationDirectionType::Clockwise)
+                        (orientation == RotationDirectionType::CounterClockwise)
                         ? crossedEdgeDir.y <= GameParameters::MaxHumanNpcWalkSinSlope
                         : -crossedEdgeDir.y <= GameParameters::MaxHumanNpcWalkSinSlope
                         );
@@ -2591,10 +2606,10 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
             //
 
             RotationDirectionType const orientation = (trajectoryEndBarycentricCoords[prevVertexOrdinal] <= trajectoryEndBarycentricCoords[nextVertexOrdinal])
-                ? RotationDirectionType::Clockwise
-                : RotationDirectionType::CounterClockwise;
+                ? RotationDirectionType::CounterClockwise
+                : RotationDirectionType::Clockwise;
 
-            int const crossedEdgeOrdinal = (orientation == RotationDirectionType::Clockwise)
+            int const crossedEdgeOrdinal = (orientation == RotationDirectionType::CounterClockwise)
                 ? vertexOrdinal // Next edge
                 : (vertexOrdinal + 2) % 3; // Prev edge
 
