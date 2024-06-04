@@ -1071,14 +1071,20 @@ void Npcs::RunWalkingHumanStateMachine(
 
 	if (walkingState.CurrentWalkMagnitude != 0.0f)
 	{
-		float constexpr MinRelativeVelocityAgreementToAcceptWalk = 0.025f;
 		float const relativeVelocityAgreement = primaryParticleState.ConstrainedState->MeshRelativeVelocity.dot(
 			vec2f(
 				humanState.CurrentFaceDirectionX * CalculateActualHumanWalkingAbsoluteSpeed(humanState),
 				0.0f));
+
+		LogNpcDebug("        relativeVelocityAgreement=", relativeVelocityAgreement);
+
+		float constexpr MinRelativeVelocityAgreementToAcceptWalk = 0.025f;
 		if (relativeVelocityAgreement < MinRelativeVelocityAgreementToAcceptWalk)
 		{
 			// Grow decision to flip
+
+			LogNpcDebug("        Growing impatient because of relative velocity not catching up with walk velocity");
+
 			FlipHumanWalk(humanState, StrongTypedFalse<_DoImmediate>);
 		}
 		else
@@ -1099,6 +1105,9 @@ void Npcs::RunWalkingHumanStateMachine(
 	if (walkingState.CurrentFlipDecision >= 0.95f)
 	{
 		// Flip now
+
+		LogNpcDebug("        Reached flip decision");
+
 		FlipHumanWalk(humanState, StrongTypedTrue<_DoImmediate>);
 	}
 
