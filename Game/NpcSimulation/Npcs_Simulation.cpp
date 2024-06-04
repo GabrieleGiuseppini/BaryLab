@@ -1699,19 +1699,28 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
 
     LogNpcDebug("      Moving to intersection vertex ", intersectionVertexOrdinal, ": ", intersectionBarycentricCoords);
 
-    npcParticleConstrainedState.CurrentBCoords.BCoords = intersectionBarycentricCoords;
+    // Calculate (signed) edge traveled
+    float edgeTraveled;
+    if (intersectionBarycentricCoords == npcParticleConstrainedState.CurrentBCoords.BCoords)
+    {
+        // We haven't moved - ensure pure zero
+        edgeTraveled = 0.0f;
+    }
+    else
+    {
+        vec2f const intersectionAbsolutePosition = shipMesh.GetPoints().GetPosition(shipMesh.GetTriangles().GetPointIndices(npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex)[intersectionVertexOrdinal]);
+        assert(intersectionAbsolutePosition == shipMesh.GetTriangles().FromBarycentricCoordinates(
+            intersectionBarycentricCoords,
+            npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex,
+            shipMesh.GetPoints()));
 
-    // Update (signed) edge traveled, assuming we're always moving along initial edge
-    // (other edges we're only passing through cuspids)
-    vec2f const intersectionAbsolutePosition = shipMesh.GetPoints().GetPosition(shipMesh.GetTriangles().GetPointIndices(npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex)[intersectionVertexOrdinal]);
-    assert(intersectionAbsolutePosition == shipMesh.GetTriangles().FromBarycentricCoordinates(
-        intersectionBarycentricCoords,
-        npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex,
-        shipMesh.GetPoints()));
-
-    float const edgeTraveled = (intersectionAbsolutePosition - trajectoryStartAbsolutePosition).dot(edgeDir);
+        edgeTraveled = (intersectionAbsolutePosition - trajectoryStartAbsolutePosition).dot(edgeDir);
+    }
 
     LogNpcDebug("        edgeTraveled=", edgeTraveled);
+
+    // Move
+    npcParticleConstrainedState.CurrentBCoords.BCoords = intersectionBarycentricCoords;
 
     //
     // Navigate this vertex now
