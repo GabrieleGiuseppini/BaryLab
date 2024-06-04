@@ -1083,6 +1083,8 @@ private:
 				triangleElementIndex,
 				edgeOrdinal);
 
+			auto const floorGeometryDepth = NpcFloorGeometryDepth(floorGeometry);
+
 			auto const primaryFloorGeometry = shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(
 				npc.PrimaryParticleState.ConstrainedState->CurrentVirtualFloor->TriangleElementIndex,
 				npc.PrimaryParticleState.ConstrainedState->CurrentVirtualFloor->EdgeOrdinal);
@@ -1092,14 +1094,16 @@ private:
 			// Rule 1: other depth is never floor
 			// - So e.g. walking up a stair doesn't make us bang our head on the floor above
 			// - So e.g. walking on a floor doesn't make us bang our head on a stair
-			if (NpcFloorGeometryDepth(floorGeometry) != primaryFloorDepth)
+			if (floorGeometryDepth != primaryFloorDepth)
 			{
 				return false;
 			}
 
 			// Rule 2: when on a Sx depth, Sy is never floor
 			// - So e.g. we don't bang our head at orthogonal stair intersections
-			if (primaryFloorDepth == NpcFloorGeometryDepthType::Depth2 && floorGeometry != primaryFloorGeometry)
+			if (floorGeometryDepth == NpcFloorGeometryDepthType::Depth2
+				&& primaryFloorDepth == NpcFloorGeometryDepthType::Depth2
+				&& floorGeometry != primaryFloorGeometry)
 			{
 				return false;
 			}
