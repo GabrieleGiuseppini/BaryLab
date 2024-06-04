@@ -1035,6 +1035,7 @@ void Npcs::OnPointMoved(float currentSimulationTime)
 
 bool Npcs::IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangleIndex) const
 {
+#ifdef _DEBUG
 	if (mCurrentlySelectedParticle.has_value())
 	{
 		for (auto const & state : mStateBuffer)
@@ -1058,12 +1059,16 @@ bool Npcs::IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangle
 			}
 		}
 	}
+#else
+	(void)triangleIndex;
+#endif
 
 	return false;
 }
 
 bool Npcs::IsSpringHostingCurrentlySelectedParticle(ElementIndex springIndex) const
 {
+#ifdef _DEBUG
 	if (mCurrentlySelectedParticle.has_value())
 	{
 		for (auto const & ship : mShips)
@@ -1101,6 +1106,9 @@ bool Npcs::IsSpringHostingCurrentlySelectedParticle(ElementIndex springIndex) co
 			}
 		}
 	}
+#else
+	(void)springIndex;
+#endif
 
 	return false;
 }

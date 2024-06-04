@@ -2260,7 +2260,7 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
             auto const & prevVertexPos = shipMesh.GetPoints().GetPosition(shipMesh.GetTriangles().GetPointIndices(currentAbsoluteBCoords.TriangleElementIndex)[prevVertexOrdinal]);
             if (prevVertexPos.x <= vertexAbsolutePosition.x && nextVertexPos.x > vertexAbsolutePosition.x)
             {
-                LogMessage("      Gone too far - may stop search here");
+                LogNpcDebug("      Gone too far - may stop search here");
                 break;
             }
 
