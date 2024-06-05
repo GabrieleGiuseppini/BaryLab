@@ -963,16 +963,16 @@ private:
 
 		static NavigateVertexOutcome MakeContinueAlongFloorOutcome(
 			AbsoluteTriangleBCoords const & triangleBCoords,
-			int floorEdgeORdinal)
+			int floorEdgeOrdinal)
 		{
-			return NavigateVertexOutcome(OutcomeType::ContinueAlongFloor, triangleBCoords, floorEdgeORdinal);
+			return NavigateVertexOutcome(OutcomeType::ContinueAlongFloor, triangleBCoords, floorEdgeOrdinal);
 		}
 
 		static NavigateVertexOutcome MakeImpactOnFloorOutcome(
 			AbsoluteTriangleBCoords const & triangleBCoords,
-			int floorEdgeORdinal)
+			int floorEdgeOrdinal)
 		{
-			return NavigateVertexOutcome(OutcomeType::ImpactOnFloor, triangleBCoords, floorEdgeORdinal);
+			return NavigateVertexOutcome(OutcomeType::ImpactOnFloor, triangleBCoords, floorEdgeOrdinal);
 		}
 
 		static NavigateVertexOutcome MakeBecomeFreeOutcome()
