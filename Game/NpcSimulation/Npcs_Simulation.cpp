@@ -589,7 +589,7 @@ void Npcs::UpdateNpcParticlePhysics(
         // this max distance we're willing to travel - hence the nickname "budget".
 
         std::optional<float> edgeDistanceToTravelMax;
-        float edgeDistanceTraveledTotal = 0.0f; // To keep track of total distance
+        float edgeDistanceTraveledTotal = 0.0f; // To keep track of total distance, and of whether we have moved or not
 
         // The edge - wrt the current particle's triangle - that we are currently traveling on.
         // Meaningful only in the Constrained-NonInertial case.
@@ -1087,6 +1087,7 @@ void Npcs::UpdateNpcParticlePhysics(
                     flattenedTrajectoryEndBarycentricCoords,
                     flattenedTrajectory,
                     adjustedEdgeTraveledPlanned,
+                    (edgeDistanceTraveledTotal > 0.0f),
                     meshVelocity,
                     remainingDt,
                     shipMesh,
@@ -1239,6 +1240,7 @@ void Npcs::UpdateNpcParticlePhysics(
                     trajectoryStartAbsolutePosition, // segmentTrajectoryStartAbsolutePosition
                     trajectoryEndAbsolutePosition,
                     trajectoryEndBarycentricCoords,
+                    (edgeDistanceTraveledTotal > 0.0f),
                     meshVelocity,
                     remainingDt,
                     shipMesh,
@@ -1585,6 +1587,7 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
     bcoords3f flattenedTrajectoryEndBarycentricCoords,
     vec2f const & flattenedTrajectory,
     float edgeTraveledPlanned,
+    bool hasMovedEarlierInStep,
     vec2f const meshVelocity,
     float dt,
     Ship const & shipMesh,
@@ -1808,6 +1811,7 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
                 npc,
                 isPrimaryParticle,
                 flattenedTrajectory,
+                hasMovedEarlierInStep,
                 bounceAbsolutePosition,
                 floorEdgeNormal,
                 meshVelocity,
@@ -1839,6 +1843,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
     vec2f const & segmentTrajectoryStartAbsolutePosition,
     vec2f const & segmentTrajectoryEndAbsolutePosition,
     bcoords3f segmentTrajectoryEndBarycentricCoords, // In current triangle; mutable
+    bool hasMovedEarlierInStep,
     vec2f const meshVelocity,
     float segmentDt,
     Ship const & shipMesh,
@@ -2033,6 +2038,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                 npc,
                 isPrimaryParticle,
                 trajectory,
+                hasMovedEarlierInStep,
                 intersectionAbsolutePosition,
                 intersectionEdgeNormal,
                 meshVelocity,
@@ -2083,7 +2089,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                     particles,
                     gameParameters);
 
-                vec2f const totalTraveledVector = intersectionAbsolutePosition - particleStartAbsolutePosition; // We consider constrained only
+                vec2f const totalTraveledVector = intersectionAbsolutePosition - particleStartAbsolutePosition; // We consider constrained portion only
                 return totalTraveledVector.length();
             }
             else
@@ -2727,6 +2733,7 @@ void Npcs::BounceConstrainedNpcParticle(
     StateType & npc,
     bool isPrimaryParticle,
     vec2f const & trajectory,
+    bool hasMovedEarlierInStep,
     vec2f const & bouncePosition,
     vec2f const & bounceEdgeNormal,
     vec2f const meshVelocity,
@@ -2740,10 +2747,20 @@ void Npcs::BounceConstrainedNpcParticle(
 
     // Decompose apparent (physical, not walked) particle velocity into normal and tangential
 
+    // TODOTEST
     vec2f const apparentParticleVelocity = trajectory / dt;
+    // TODOTEST: this is a tentative to fix "infinite bounce" due to bouncing when there's no movement
+    ////vec2f const apparentParticleVelocity = hasMovedEarlierInStep
+    ////    ? trajectory / dt
+    ////    : npcParticle.ConstrainedState->MeshRelativeVelocity;
+    (void)hasMovedEarlierInStep;
     float const apparentParticleVelocityAlongNormal = apparentParticleVelocity.dot(bounceEdgeNormal);
     vec2f const normalVelocity = bounceEdgeNormal * apparentParticleVelocityAlongNormal;
     vec2f const tangentialVelocity = apparentParticleVelocity - normalVelocity;
+
+    // TODOTEST
+    LogNpcDebug("TODOHERE: calculated apparentParticleVelocity=", apparentParticleVelocity, " (hasMovedEarlierInStep=", hasMovedEarlierInStep,
+        " meshRelativeVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity, ")");
 
     // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
     vec2f const normalResponse =
