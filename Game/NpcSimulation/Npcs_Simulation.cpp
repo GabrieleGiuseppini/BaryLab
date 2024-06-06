@@ -592,14 +592,15 @@ void Npcs::UpdateNpcParticlePhysics(
         float edgeDistanceTraveledTotal = 0.0f; // To keep track of total distance, and of whether we have moved or not
 
         // The edge - wrt the current particle's triangle - that we are currently traveling on.
-        // Meaningful only in the Constrained-NonInertial case.
+        // Meaningful only during Constrained-NonInertial phases.
         //
         // We begin by not knowing where we are on; when we don't know, we figure this out
-        // by means of vertex navigation, eventually involving a floor choice in case we
-        // are a walking human NPC.
-        // If we know the edge (e.g. because of impact continuation), then this holds the edge.
-        // If the value is -1, it was impossible to determine a floor edge (e.g. because we're
-        // at a vertex going inside a triangle).
+        // either by means of vertex navigation (if we are on a vertex) - eventually involving
+        // a floor choice in case we are a walking human NPC - or by checking on which floors
+        // we are incident (if we are not on a vertex, or navigation of the vertex yields
+        // a non-definite edge).
+        // From them on, as long as we determine we're surely on an edge (i.e. non-inertial), we remember
+        // the edge.
 
         std::optional<int> currentNonInertialFloorEdgeOrdinal;
 
@@ -644,24 +645,24 @@ void Npcs::UpdateNpcParticlePhysics(
             LogNpcDebug("    TrajectoryStartAbsolutePosition=", trajectoryStartAbsolutePosition, " PhysicsDeltaPos=", physicsDeltaPos, " TotalEdgeWalkedActual=", totalEdgeWalkedActual,
                 " => TrajectoryEndAbsolutePosition=", trajectoryEndAbsolutePosition, " Trajectory=", trajectory);
 
-            // TODO: see if needs to be rewritten
             //
-            // Check whether we are insisting on an edge - i.e. whether we're non-inertial:
-            //  - If we are on no edge: then we are... not on a edge; go ahead as inertial
-            //  - If we are on *one* edge: check if it's a floor and if we are insisting on it, and depending on that, we are either inertial or non-inertial (on that edge)
-            //  - If we are on a vertex (i.e. *two* edges): use NavigateVertex to see what should happen next:
-            //      - BecomeFree: this tells us we've gone free, can stop here for good
-            //      - ContinueAlongFloor
-            //      - EncounteredFloor: this tells us that our trajectory points us towards this edge which is a floor: we are non-inertial on this floor,
-            //                          after all we're not _against_ the floor
-
-            //      - CompletedNavigation: this tells us we're moving into triangle or along an edge of it, but not against it; we're then going inertial
+            // Determine whether we are insisting on an edge - i.e. whether we're non-inertial
+            //
+            // If this is the first time, we determine the edge via vertex navigation (if we
+            // are at a vertex) or via floor normals (if we are on an edge, or at a vertex
+            // but unsure of the floor as the trajectory might hint to the inside of a triangle).
+            //
+            // If it's not the first time, then we know we;re at one of these two:
+            //  - We cannot determine the edge (because the trajectory might hint to the inside of a triangle)
+            //  - We know we are on an edge
             //
 
-            int nonInertialEdgeOrdinal = -1; // Of the triangle @ npcParticle.ConstrainedState->CurrentBCoords; this is a floor
+            // The edge we determine now - of the triangle @ npcParticle.ConstrainedState->CurrentBCoords; this is a floor
+            int nonInertialEdgeOrdinal = -1;
 
             if (!currentNonInertialFloorEdgeOrdinal.has_value())
             {
+                // First time
                 if (std::optional<int> const vertexOrdinal = npcParticle.ConstrainedState->CurrentBCoords.BCoords.try_get_vertex();
                     vertexOrdinal.has_value())
                 {
@@ -720,6 +721,7 @@ void Npcs::UpdateNpcParticlePhysics(
                             // or that we're walking and decided for this floor: in either case we are non-inertial on this floor
                             //
 
+                            assert(outcome.FloorEdgeOrdinal >= 0);
                             nonInertialEdgeOrdinal = outcome.FloorEdgeOrdinal;
 
                             // Move to NavigationOutcome
@@ -731,17 +733,23 @@ void Npcs::UpdateNpcParticlePhysics(
                         case NavigateVertexOutcome::OutcomeType::ContinueToInterior:
                         {
                             //
-                            // This tells us we're moving into triangle or along an edge of it, but not against it;
-                            // assume we're going non-inertial, after all we're not _against_ the floor
+                            // This tells us that the trajectory appears to tell that we're
+                            // moving into a triangle or along an edge of it, but this could
+                            // be a numerical illusion.
+                            // Need to use floor normals to see if we are
+                            // incident to a triangle
                             //
 
+                            assert(outcome.FloorEdgeOrdinal == -1);
                             nonInertialEdgeOrdinal = -1; // Determine via floor-normal checks
 
                             // Move to NavigationOutcome
                             npcParticle.ConstrainedState->CurrentBCoords = outcome.TriangleBCoords;
 
 #ifdef _DEBUG
-                            // - Assert dot-with-normal is practically <= 0 for all edges we touch
+
+                            // Assert dot-with-normal is negative or very small for all edges we touch
+                            // (after all the numerical illusion is just lack of precision)
                             for (int vi = 0; vi < 3; ++vi)
                             {
                                 if (npcParticle.ConstrainedState->CurrentBCoords.BCoords[vi] == 0.0f)
@@ -754,13 +762,10 @@ void Npcs::UpdateNpcParticlePhysics(
                                         shipMesh.GetPoints());
                                     vec2f const edgeDir = edgeVector.normalise();
                                     vec2f const edgeNormal = edgeDir.to_perpendicular(); // Points outside of triangle (i.e. towards floor)
-                                    assert(trajectory.dot(edgeNormal) < 0.0001f);
+                                    assert(trajectory.dot(edgeNormal) < 0.01f);
                                 }
                             }
 #endif
-                            // We can leave nonInertialEdgeOrdinal as -1, it's the return value anyway
-                            assert(outcome.FloorEdgeOrdinal == -1);
-
                             break;
                         }
 
@@ -768,7 +773,10 @@ void Npcs::UpdateNpcParticlePhysics(
                         {
                             // Let the subsequent non-inertial ray tracing take care of this
 
+                            assert(outcome.FloorEdgeOrdinal >= 0);
                             nonInertialEdgeOrdinal = outcome.FloorEdgeOrdinal;
+
+                            // Do not move to NavigationOutcome, we'll get there via ray tracing
 
                             break;
                         }
@@ -785,16 +793,15 @@ void Npcs::UpdateNpcParticlePhysics(
             {
                 LogNpcDebug("    We remember from earlier that we are on a floor edge/inside triangle: ", *currentNonInertialFloorEdgeOrdinal, " of triangle ", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex);
 
-                nonInertialEdgeOrdinal = *currentNonInertialFloorEdgeOrdinal; // Note: could be -1; expand comment
+                nonInertialEdgeOrdinal = *currentNonInertialFloorEdgeOrdinal;
             }
 
             if (nonInertialEdgeOrdinal == -1)
             {
                 LogNpcDebug("    Determining floor edge with floor normals");
 
-                // TODO: comments - we CAN be at a vertex now
-                // TODO: should we choose "best" edge?
-                // Either on an edge (but not a vertex), or just inside the triangle (on no edge)
+                // Find edge that trajectory is against the most
+                float bestHeadsOnNess = std::numeric_limits<float>::lowest();
                 for (int vi = 0; vi < 3; ++vi)
                 {
                     if (npcParticle.ConstrainedState->CurrentBCoords.BCoords[vi] == 0.0f)
@@ -819,232 +826,34 @@ void Npcs::UpdateNpcParticlePhysics(
                                 edgeOrdinal,
                                 shipMesh.GetPoints());
                             vec2f const edgeNormal = edgeVector.to_perpendicular(); // Points outside of triangle (i.e. towards floor)
+                            float const headsOnNess = trajectory.dot(edgeNormal);
                             if (trajectory.dot(edgeNormal) >= 0.0f) // If 0, no normal force - hence no friction; however we want to take this codepath anyways for consistency
                             {
                                 //
                                 // We are insisting against this edge floor
                                 //
 
-                                LogNpcDebug("      We are moving against this floor (alignment=", trajectory.dot(edgeNormal), ")");
+                                LogNpcDebug("      We are moving against this floor (alignment=", headsOnNess, ")");
 
-                                nonInertialEdgeOrdinal = edgeOrdinal;
+                                if (headsOnNess > bestHeadsOnNess)
+                                {
+                                    // Winner
+                                    nonInertialEdgeOrdinal = edgeOrdinal;
+                                    bestHeadsOnNess = headsOnNess;
+                                }
                             }
                             else
                             {
-                                LogNpcDebug("      We are not moving against this floor (alignment=", trajectory.dot(edgeNormal), ")");
+                                LogNpcDebug("      We are not moving against this floor (alignment=", headsOnNess, ")");
                             }
                         }
                         else
                         {
                             LogNpcDebug("      The edge is not a floor");
                         }
-
-                        // Since we know we are not on a vertex, and we know we are on this edge, then there are no more edges to check
-                        ////assert(vi == 2
-                        ////    || (vi == 1 && npcParticle.ConstrainedState->CurrentBCoords.BCoords[vi + 1] != 0.0f)
-                        ////    || (vi == 0 && npcParticle.ConstrainedState->CurrentBCoords.BCoords[vi + 1] != 0.0f && npcParticle.ConstrainedState->CurrentBCoords.BCoords[vi + 2] != 0.0f));
-                        ////break;
-
-                        // TODO: should we choose "best"?
-                        if (nonInertialEdgeOrdinal >= 0)
-                        {
-                            break;
-                        }
                     }
                 }
             }
-
-
-////            // TODOOLD
-////            if (currentNonInertialFloorEdgeOrdinal.has_value())
-////            {
-////                // We have already determined that we are on an edge OR going inside a triangle (-1)
-////
-////                assert(npcParticle.ConstrainedState.has_value() && npcParticle.ConstrainedState->CurrentBCoords.BCoords.is_on_edge());
-////
-////                nonInertialEdgeOrdinal = *currentNonInertialFloorEdgeOrdinal;
-////
-////                LogNpcDebug("    We remember from earlier that we are on a floor edge/inside triangle: ", *currentNonInertialFloorEdgeOrdinal, " of triangle ", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex);
-////            }
-////            else
-////            {
-////                // We must determine an edge that we want to be on - if any
-////
-////                LogNpcDebug("    Must determine whether we are on a floor edge, and which one");
-////
-////                if (std::optional<int> const vertexOrdinal = npcParticle.ConstrainedState->CurrentBCoords.BCoords.try_get_vertex();
-////                    vertexOrdinal.has_value())
-////                {
-////                    //
-////                    // We are on a vertex (*two* edges)
-////                    //
-////                    // There are two conditions that bring us here:
-////                    //  1. After a bounce or an impact continuation
-////                    //  2. Initial (e.g. placed by chance on a vertex)
-////                    //
-////
-////                    LogNpcDebug("    On a vertex: ", *vertexOrdinal, " of triangle ", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex);
-////
-////                    // Check what comes next
-////
-////                    bcoords3f const trajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinates(
-////                        trajectoryEndAbsolutePosition,
-////                        npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
-////                        shipMesh.GetPoints());
-////
-////                    auto const outcome = NavigateVertex(
-////                        npc,
-////                        isPrimaryParticle,
-////                        npcParticle.ConstrainedState->CurrentVirtualFloor,
-////                        *vertexOrdinal,
-////                        trajectory,
-////                        trajectoryEndAbsolutePosition,
-////                        trajectoryEndBarycentricCoords,
-////                        shipMesh,
-////                        mParticles);
-////
-////                    switch (outcome.Type)
-////                    {
-////                        case NavigateVertexOutcome::OutcomeType::BecomeFree:
-////                        {
-////                            // Transition to free immediately
-////
-////                            TransitionParticleToFreeState(npc, true);
-////
-////                            UpdateNpcParticle_Free(
-////                                npcParticle,
-////                                particleStartAbsolutePosition,
-////                                trajectoryEndAbsolutePosition,
-////                                mParticles,
-////                                gameParameters);
-////
-////                            remainingDt = 0.0f;
-////
-////                            break;
-////                        }
-////
-////                        case NavigateVertexOutcome::OutcomeType::ContinueAlongFloor:
-////                        {
-////                            //
-////                            // This either tells us that our trajectory points us towards this floor (if not walking),
-////                            // or that we're walking and decided for this floor: in either case we are non-inertial on this floor
-////                            //
-////
-////                            nonInertialEdgeOrdinal = outcome.FloorEdgeOrdinal;
-////
-////                            // Move to NavigationOutcome
-////                            npcParticle.ConstrainedState->CurrentBCoords = outcome.TriangleBCoords;
-////
-////                            break;
-////                        }
-////
-////                        case NavigateVertexOutcome::OutcomeType::ContinueToInterior:
-////                        {
-////                            //
-////                            // This tells us we're moving into triangle or along an edge of it, but not against it;
-////                            // assume we're going non-inertial, after all we're not _against_ the floor
-////                            //
-////
-////                            // Move to NavigationOutcome
-////                            npcParticle.ConstrainedState->CurrentBCoords = outcome.TriangleBCoords;
-////
-////#ifdef _DEBUG
-////                            // - Assert dot-with-normal is practically <= 0 for all edges we touch
-////                            for (int vi = 0; vi < 3; ++vi)
-////                            {
-////                                if (npcParticle.ConstrainedState->CurrentBCoords.BCoords[vi] == 0.0f)
-////                                {
-////                                    int const edgeOrdinal = (vi + 1) % 3;
-////
-////                                    vec2f const edgeVector = shipMesh.GetTriangles().GetSubSpringVector(
-////                                        npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
-////                                        edgeOrdinal,
-////                                        shipMesh.GetPoints());
-////                                    vec2f const edgeDir = edgeVector.normalise();
-////                                    vec2f const edgeNormal = edgeDir.to_perpendicular(); // Points outside of triangle (i.e. towards floor)
-////                                    assert(trajectory.dot(edgeNormal) < 0.0001f);
-////                                }
-////                            }
-////#endif
-////                            // We can leave nonInertialEdgeOrdinal as -1, it's the return value anyway
-////                            assert(outcome.FloorEdgeOrdinal == -1);
-////
-////                            break;
-////                        }
-////
-////                        case NavigateVertexOutcome::OutcomeType::ImpactOnFloor:
-////                        {
-////                            // Let the subsequent non-inertial ray tracing take care of this
-////
-////                            nonInertialEdgeOrdinal = outcome.FloorEdgeOrdinal;
-////
-////                            break;
-////                        }
-////                    }
-////
-////                    // Follow-up free conversion
-////                    if (remainingDt == 0.0f)
-////                    {
-////                        break;
-////                    }
-////                }
-////                else
-////                {
-////                    // Either on an edge (but not a vertex), or just inside the triangle (on no edge)
-////                    for (int vi = 0; vi < 3; ++vi)
-////                    {
-////                        if (npcParticle.ConstrainedState->CurrentBCoords.BCoords[vi] == 0.0f)
-////                        {
-////                            // We are on this edge
-////
-////                            int const edgeOrdinal = (vi + 1) % 3;
-////
-////                            LogNpcDebug("    On an edge: ", edgeOrdinal, " of triangle ", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex);
-////
-////                            // Check if this is really a floor to this particle
-////                            if (IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, edgeOrdinal, npc, isPrimaryParticle, mParticles, shipMesh))
-////                            {
-////                                // The edge is a floor
-////
-////                                LogNpcDebug("      The edge is a floor");
-////
-////                                // Check now whether we're moving *against* the floor
-////
-////                                vec2f const edgeVector = shipMesh.GetTriangles().GetSubSpringVector(
-////                                    npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
-////                                    edgeOrdinal,
-////                                    shipMesh.GetPoints());
-////                                //vec2f const edgeDir = edgeVector.normalise();
-////                                vec2f const edgeNormal = edgeVector.to_perpendicular(); // Points outside of triangle (i.e. towards floor)
-////                                if (trajectory.dot(edgeNormal) >= 0.0f) // If 0, no normal force - hence no friction; however we want to take this codepath anyways for consistency
-////                                {
-////                                    //
-////                                    // We are insisting against this edge floor
-////                                    //
-////
-////                                    LogNpcDebug("      We are moving against this floor (alignment=", trajectory.dot(edgeNormal), ")");
-////
-////                                    nonInertialEdgeOrdinal = edgeOrdinal;
-////                                }
-////                                else
-////                                {
-////                                    LogNpcDebug("      We are not moving against this floor (alignment=", trajectory.dot(edgeNormal), ")");
-////                                }
-////                            }
-////                            else
-////                            {
-////                                LogNpcDebug("      The edge is not a floor");
-////                            }
-////
-////                            // Since we know we are not on a vertex, and we know we are on this edge, then there are no more edges to check
-////                            assert(vi == 2
-////                                || (vi == 1 && npcParticle.ConstrainedState->CurrentBCoords.BCoords[vi + 1] != 0.0f)
-////                                || (vi == 0 && npcParticle.ConstrainedState->CurrentBCoords.BCoords[vi + 1] != 0.0f && npcParticle.ConstrainedState->CurrentBCoords.BCoords[vi + 2] != 0.0f));
-////                            break;
-////                        }
-////                    }
-////                }
-////            }
 
             if (nonInertialEdgeOrdinal >= 0)
             {
@@ -1296,6 +1105,15 @@ void Npcs::UpdateNpcParticlePhysics(
                     mParticles,
                     currentSimulationTime,
                     gameParameters);
+
+                if (npcParticle.ConstrainedState.has_value())
+                {
+                    LogNpcDebug("    EndBCoords=", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, ":", npcParticle.ConstrainedState->CurrentBCoords.BCoords);
+                }
+                else
+                {
+                    LogNpcDebug("    Became free");
+                }
 
                 LogNpcDebug("    Actual edge traveled in non-inertial step: ", edgeTraveledActual);
 
