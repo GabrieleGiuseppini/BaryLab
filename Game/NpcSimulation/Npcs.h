@@ -918,7 +918,7 @@ private:
 		bcoords3f flattenedTrajectoryEndBarycentricCoords,
 		vec2f const & flattenedTrajectory,
 		float edgeTraveledPlanned,
-		bool hasMovedEarlierInStep,
+		bool hasMovedInStep,
 		vec2f const meshVelocity,
 		float dt,
 		Ship const & shipMesh,
@@ -933,7 +933,7 @@ private:
 		vec2f const & segmentTrajectoryStartAbsolutePosition,
 		vec2f const & segmentTrajectoryEndAbsolutePosition,
 		bcoords3f segmentTrajectoryEndBarycentricCoords,
-		bool hasMovedEarlierInStep,
+		bool hasMovedInStep,
 		vec2f const meshVelocity,
 		float segmentDt,
 		Ship const & shipMesh,
@@ -1007,7 +1007,7 @@ private:
 		StateType & npc,
 		bool isPrimaryParticle,
 		vec2f const & trajectory,
-		bool hasMovedEarlierInStep,
+		bool hasMovedInStep,
 		vec2f const & bouncePosition,
 		vec2f const & bounceEdgeNormal,
 		vec2f const meshVelocity,
@@ -1118,7 +1118,7 @@ private:
 		bcoords3f const primaryBaryCoords = shipMesh.GetTriangles().ToBarycentricCoordinates(primaryPosition, triangleElementIndex, shipMesh.GetPoints());
 
 		// It's on the other side of the edge if its "edge's" b-coord is negative
-		if (primaryBaryCoords[(edgeOrdinal + 2) % 3] >= 0.01f)
+		if (primaryBaryCoords[(edgeOrdinal + 2) % 3] >= 0.0f)
 		{
 			return true;
 		}
