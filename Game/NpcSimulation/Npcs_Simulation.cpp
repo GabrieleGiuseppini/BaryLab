@@ -1098,7 +1098,7 @@ void Npcs::UpdateNpcParticlePhysics(
                     flattenedTrajectoryEndBarycentricCoords,
                     flattenedTrajectory,
                     adjustedEdgeTraveledPlanned,
-                    (edgeDistanceTraveledTotal > 0.0f),
+                    (edgeDistanceTraveledTotal > 0.0f), // hasMovedInStep
                     meshVelocity,
                     remainingDt,
                     shipMesh,
@@ -1607,7 +1607,7 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
     bcoords3f flattenedTrajectoryEndBarycentricCoords,
     vec2f const & flattenedTrajectory,
     float edgeTraveledPlanned,
-    bool hasMovedEarlierInStep,
+    bool hasMovedInStep,
     vec2f const meshVelocity,
     float dt,
     Ship const & shipMesh,
@@ -1831,7 +1831,7 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
                 npc,
                 isPrimaryParticle,
                 flattenedTrajectory,
-                hasMovedEarlierInStep,
+                hasMovedInStep || (edgeTraveled != 0.0f),
                 bounceAbsolutePosition,
                 floorEdgeNormal,
                 meshVelocity,
@@ -1863,7 +1863,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
     vec2f const & segmentTrajectoryStartAbsolutePosition,
     vec2f const & segmentTrajectoryEndAbsolutePosition,
     bcoords3f segmentTrajectoryEndBarycentricCoords, // In current triangle; mutable
-    bool hasMovedEarlierInStep,
+    bool hasMovedInStep,
     vec2f const meshVelocity,
     float segmentDt,
     Ship const & shipMesh,
@@ -2058,7 +2058,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                 npc,
                 isPrimaryParticle,
                 trajectory,
-                hasMovedEarlierInStep,
+                hasMovedInStep || ((intersectionAbsolutePosition - segmentTrajectoryStartAbsolutePosition).length() != 0.0f),
                 intersectionAbsolutePosition,
                 intersectionEdgeNormal,
                 meshVelocity,
@@ -2078,75 +2078,73 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
             // Return (mesh-relative) distance traveled with this move
             return (segmentTrajectoryEndAbsolutePosition - segmentTrajectoryStartAbsolutePosition).length();
         }
+
+        //
+        // Not floor, climb over edge
+        //
+
+        LogNpcDebug("      Climbing over non-floor edge");
+
+        // Find opposite triangle
+        auto const & oppositeTriangleInfo = shipMesh.GetTriangles().GetOppositeTriangle(npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex, intersectionEdgeOrdinal);
+        if (oppositeTriangleInfo.TriangleElementIndex == NoneElementIndex || shipMesh.GetTriangles().IsDeleted(oppositeTriangleInfo.TriangleElementIndex))
+        {
+            //
+            // Become free
+            //
+
+            LogNpcDebug("      No opposite triangle found, becoming free");
+
+            //
+            // Move to endpoint and exit, consuming whole quantum
+            //
+
+            TransitionParticleToFreeState(npc, isPrimaryParticle);
+
+            UpdateNpcParticle_Free(
+                npcParticle,
+                particleStartAbsolutePosition,
+                segmentTrajectoryEndAbsolutePosition,
+                particles,
+                gameParameters);
+
+            vec2f const totalTraveledVector = intersectionAbsolutePosition - particleStartAbsolutePosition; // We consider constrained portion only
+            return totalTraveledVector.length();
+        }
         else
         {
             //
-            // Not floor, climb over edge
+            // Move to edge of opposite triangle
             //
 
-            LogNpcDebug("      Climbing over non-floor edge");
+            LogNpcDebug("      Moving to edge ", oppositeTriangleInfo.EdgeOrdinal, " of opposite triangle ", oppositeTriangleInfo.TriangleElementIndex);
 
-            // Find opposite triangle
-            auto const & oppositeTriangleInfo = shipMesh.GetTriangles().GetOppositeTriangle(npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex, intersectionEdgeOrdinal);
-            if (oppositeTriangleInfo.TriangleElementIndex == NoneElementIndex || shipMesh.GetTriangles().IsDeleted(oppositeTriangleInfo.TriangleElementIndex))
-            {
-                //
-                // Become free
-                //
+            // Calculate new current barycentric coords (wrt new triangle)
+            bcoords3f newBarycentricCoords; // In new triangle
+            newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 2) % 3] = 0.0f;
+            newBarycentricCoords[oppositeTriangleInfo.EdgeOrdinal] = npcParticleConstrainedState.CurrentBCoords.BCoords[(intersectionEdgeOrdinal + 1) % 3];
+            newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 1) % 3] = npcParticleConstrainedState.CurrentBCoords.BCoords[intersectionEdgeOrdinal];
 
-                LogNpcDebug("      No opposite triangle found, becoming free");
+            LogNpcDebug("      B-Coords: ", npcParticleConstrainedState.CurrentBCoords.BCoords, " -> ", newBarycentricCoords);
 
-                //
-                // Move to endpoint and exit, consuming whole quantum
-                //
+            assert(newBarycentricCoords.is_on_edge_or_internal());
 
-                TransitionParticleToFreeState(npc, isPrimaryParticle);
+            // Move to triangle and coords
+            npcParticleConstrainedState.CurrentBCoords = AbsoluteTriangleBCoords(oppositeTriangleInfo.TriangleElementIndex, newBarycentricCoords);
 
-                UpdateNpcParticle_Free(
-                    npcParticle,
-                    particleStartAbsolutePosition,
-                    segmentTrajectoryEndAbsolutePosition,
-                    particles,
-                    gameParameters);
+            // Translate target coords to this triangle, for next iteration
+            auto const oldSegmentTrajectoryEndBarycentricCoords = segmentTrajectoryEndBarycentricCoords; // For logging
+            // Note: here we introduce a lot of error - the target bary coords are not anymore
+            // guaranteed to lie exactly on the (continuation of the) edge
+            segmentTrajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinatesInsideEdge(
+                segmentTrajectoryEndAbsolutePosition,
+                oppositeTriangleInfo.TriangleElementIndex,
+                shipMesh.GetPoints(),
+                oppositeTriangleInfo.EdgeOrdinal);
 
-                vec2f const totalTraveledVector = intersectionAbsolutePosition - particleStartAbsolutePosition; // We consider constrained portion only
-                return totalTraveledVector.length();
-            }
-            else
-            {
-                //
-                // Move to edge of opposite triangle
-                //
+            LogNpcDebug("      TrajEndB-Coords: ", oldSegmentTrajectoryEndBarycentricCoords, " -> ", segmentTrajectoryEndBarycentricCoords);
 
-                LogNpcDebug("      Moving to edge ", oppositeTriangleInfo.EdgeOrdinal, " of opposite triangle ", oppositeTriangleInfo.TriangleElementIndex);
-
-                // Calculate new current barycentric coords (wrt new triangle)
-                bcoords3f newBarycentricCoords; // In new triangle
-                newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 2) % 3] = 0.0f;
-                newBarycentricCoords[oppositeTriangleInfo.EdgeOrdinal] = npcParticleConstrainedState.CurrentBCoords.BCoords[(intersectionEdgeOrdinal + 1) % 3];
-                newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 1) % 3] = npcParticleConstrainedState.CurrentBCoords.BCoords[intersectionEdgeOrdinal];
-
-                LogNpcDebug("      B-Coords: ", npcParticleConstrainedState.CurrentBCoords.BCoords, " -> ", newBarycentricCoords);
-
-                assert(newBarycentricCoords.is_on_edge_or_internal());
-
-                // Move to triangle and coords
-                npcParticleConstrainedState.CurrentBCoords = AbsoluteTriangleBCoords(oppositeTriangleInfo.TriangleElementIndex, newBarycentricCoords);
-
-                // Translate target coords to this triangle, for next iteration
-                auto const oldSegmentTrajectoryEndBarycentricCoords = segmentTrajectoryEndBarycentricCoords; // For logging
-                // Note: here we introduce a lot of error - the target bary coords are not anymore
-                // guaranteed to lie exactly on the (continuation of the) edge
-                segmentTrajectoryEndBarycentricCoords = shipMesh.GetTriangles().ToBarycentricCoordinatesInsideEdge(
-                    segmentTrajectoryEndAbsolutePosition,
-                    oppositeTriangleInfo.TriangleElementIndex,
-                    shipMesh.GetPoints(),
-                    oppositeTriangleInfo.EdgeOrdinal);
-
-                LogNpcDebug("      TrajEndB-Coords: ", oldSegmentTrajectoryEndBarycentricCoords, " -> ", segmentTrajectoryEndBarycentricCoords);
-
-                // Continue
-            }
+            // Continue
         }
     }
 }
@@ -2753,7 +2751,7 @@ void Npcs::BounceConstrainedNpcParticle(
     StateType & npc,
     bool isPrimaryParticle,
     vec2f const & trajectory,
-    bool hasMovedEarlierInStep,
+    bool hasMovedInStep,
     vec2f const & bouncePosition,
     vec2f const & bounceEdgeNormal,
     vec2f const meshVelocity,
@@ -2765,64 +2763,94 @@ void Npcs::BounceConstrainedNpcParticle(
     auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
     assert(npcParticle.ConstrainedState.has_value());
 
-    // Decompose apparent (physical, not walked) particle velocity into normal and tangential
+    // Calculate apparent velocity:
+    //  - If we have made any movement in this step, then this is an actual collision
+    //    after having traveled part of the (segment) trajectory; we calculate then the
+    //    collision velocity by means of the (segment) trajectory we wanted to travel during
+    //    the (segment) dt
+    //      - Note: here we take into account new forces that sprung up just before this iteration
+    //  - Otherwise, the previous iteration stopped just short of the bounce, either heads-on
+    //    (in which case we have MRVelocity) or because we are resting here (in which case we
+    //    have no MRVelocity); we thus infer whether this is a real collision or not by means
+    //    of the particle's mesh-relative velocity
+    //      - Note: at this moment the particle's mesh-relative velocity does _not_ include
+    //        yet an eventual mesh displacement that took place between the previous step and this
+    //        step, nor any new forces that sprung up just before this iteration
+    //          - We assume new forces that sprung up just before this iteration have no effect on
+    //            bounce, because particle is already on floor
+    //
+    // If we end up with zero apparent velocity, it means we're just resting on this edge,
+    // at this position
 
-    // TODOTEST
-    vec2f const apparentParticleVelocity = trajectory / dt;
-    // TODOTEST: this is a tentative to fix "infinite bounce" due to bouncing when there's no movement
-    ////vec2f const apparentParticleVelocity = hasMovedEarlierInStep
-    ////    ? trajectory / dt
-    ////    : npcParticle.ConstrainedState->MeshRelativeVelocity;
-    (void)hasMovedEarlierInStep;
+    vec2f const apparentParticleVelocity = hasMovedInStep
+        ? trajectory / dt
+        : npcParticle.ConstrainedState->MeshRelativeVelocity;
     float const apparentParticleVelocityAlongNormal = apparentParticleVelocity.dot(bounceEdgeNormal);
-    vec2f const normalVelocity = bounceEdgeNormal * apparentParticleVelocityAlongNormal;
-    vec2f const tangentialVelocity = apparentParticleVelocity - normalVelocity;
 
-    // TODOTEST
-    LogNpcDebug("TODOHERE: calculated apparentParticleVelocity=", apparentParticleVelocity, " (hasMovedEarlierInStep=", hasMovedEarlierInStep,
+    LogNpcDebug("      BounceConstrainedNpcParticle: apparentParticleVelocity=", apparentParticleVelocity, " (hasMovedInStep=", hasMovedInStep,
         " meshRelativeVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity, ")");
 
-    // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
-    vec2f const normalResponse =
-        -normalVelocity
-        * particles.GetPhysicalProperties(npcParticle.ParticleIndex).Elasticity
-        * gameParameters.ElasticityAdjustment;
+    if (apparentParticleVelocityAlongNormal != 0.0f)
+    {
+        // Decompose apparent particle velocity into normal and tangential
+        vec2f const normalVelocity = bounceEdgeNormal * apparentParticleVelocityAlongNormal;
+        vec2f const tangentialVelocity = apparentParticleVelocity - normalVelocity;
 
-    // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
-    vec2f const tangentialResponse =
-        tangentialVelocity
-        * std::max(0.0f, 1.0f - particles.GetPhysicalProperties(npcParticle.ParticleIndex).KineticFriction * gameParameters.KineticFrictionAdjustment);
+        // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
+        vec2f const normalResponse =
+            -normalVelocity
+            * particles.GetPhysicalProperties(npcParticle.ParticleIndex).Elasticity
+            * gameParameters.ElasticityAdjustment;
 
-    // Calculate whole response (which, given that we've been working in *apparent* space (we've calc'd the collision response to *trajectory* which is apparent displacement)),
-    // is a relative velocity (relative to mesh)
-    vec2f const resultantRelativeVelocity = (normalResponse + tangentialResponse);
+        // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
+        vec2f const tangentialResponse =
+            tangentialVelocity
+            * std::max(0.0f, 1.0f - particles.GetPhysicalProperties(npcParticle.ParticleIndex).KineticFriction * gameParameters.KineticFrictionAdjustment);
 
-    // Do not damp velocity if we're trying to maintain equilibrium
-    vec2f const resultantAbsoluteVelocity =
-        resultantRelativeVelocity * ((npc.Kind != NpcKindType::Human || npc.KindSpecificState.HumanNpcState.EquilibriumTorque == 0.0f) ? (1.0f - gameParameters.GlobalDamping) : 1.0f)
-        + meshVelocity;
+        // Calculate whole response (which, given that we've been working in *apparent* space (we've calc'd the collision response to *trajectory* which is apparent displacement)),
+        // is a relative velocity (relative to mesh)
+        vec2f const resultantRelativeVelocity = (normalResponse + tangentialResponse);
 
-    LogNpcDebug("        trajectory=", trajectory, " apparentParticleVelocity=", apparentParticleVelocity, " nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantRelativeVelocity);
+        // Do not damp velocity if we're trying to maintain equilibrium
+        vec2f const resultantAbsoluteVelocity =
+            resultantRelativeVelocity * ((npc.Kind != NpcKindType::Human || npc.KindSpecificState.HumanNpcState.EquilibriumTorque == 0.0f) ? (1.0f - gameParameters.GlobalDamping) : 1.0f)
+            + meshVelocity;
 
-    //
-    // Set position and velocity
-    //
+        LogNpcDebug("        Impact: trajectory=", trajectory, " apparentParticleVelocity=", apparentParticleVelocity, " nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantRelativeVelocity);
 
-    particles.SetPosition(npcParticle.ParticleIndex, bouncePosition);
+        //
+        // Set position and velocity
+        //
 
-    particles.SetVelocity(npcParticle.ParticleIndex, resultantAbsoluteVelocity);
-    npcParticle.ConstrainedState->MeshRelativeVelocity = resultantRelativeVelocity;
+        particles.SetPosition(npcParticle.ParticleIndex, bouncePosition);
 
-    //
-    // Publish impact
-    //
+        particles.SetVelocity(npcParticle.ParticleIndex, resultantAbsoluteVelocity);
+        npcParticle.ConstrainedState->MeshRelativeVelocity = resultantRelativeVelocity;
 
-    OnImpact(
-        npc,
-        isPrimaryParticle,
-        normalVelocity,
-        bounceEdgeNormal,
-        currentSimulationTime);
+        //
+        // Publish impact
+        //
+
+        OnImpact(
+            npc,
+            isPrimaryParticle,
+            normalVelocity,
+            bounceEdgeNormal,
+            currentSimulationTime);
+    }
+    else
+    {
+        LogNpcDebug("        Not an impact");
+
+        //
+        // Set position and velocity
+        //
+
+        particles.SetPosition(npcParticle.ParticleIndex, bouncePosition);
+
+        particles.SetVelocity(npcParticle.ParticleIndex, meshVelocity);
+        npcParticle.ConstrainedState->MeshRelativeVelocity = vec2f::zero();
+    }
 }
 
 void Npcs::OnImpact(
