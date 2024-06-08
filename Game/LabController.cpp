@@ -654,302 +654,143 @@ void LabController::QueryPointAt(vec2f const & screenCoordinates) const
     mWorld->QueryPointAt(worldCoordinates);
 }
 
+void LabController::FlipCurrentlySelectedHuman()
+{
+    assert(mWorld);
+
+    if (mWorld->GetNpcs().GetCurrentlySelectedNpc().has_value())
+    {
+        mWorld->GetNpcs().FlipHumanWalk(*mWorld->GetNpcs().GetCurrentlySelectedNpc());
+        //mModel->GetNpcs().FlipHumanFrontBack(0);
+    }
+}
+
 void LabController::DoStepForVideo()
 {
     assert(mWorld);
 
-    mWorld->GetNpcs().FlipHumanWalk(0);
-    //mModel->GetNpcs().FlipHumanFrontBack(0);
+    ++mCurrentVideoStep;
 
-    ////// TODOTEST
-    //////RotateShipBy(0, 3.1f * 3.0f); // Stuck against wall
-    ////RotateShipBy(0, -3.1f * 12.0f); // Sfarfallio
-    ////return;
+    ////// Segment 1
 
-    ////++mCurrentVideoStep;
-
-    ////int matchIndex = 0;
-
-    ////////++matchIndex;
-    ////////if (mCurrentVideoStep == matchIndex)
-    ////////{
-    ////////    //
-    ////////    // Load ship and stay clean
-    ////////    //
-
-    ////////    LoadShip(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
-
-    ////////    // Enable gravity
-    ////////    SetGravityEnabled(true);
-
-    ////////    // Enable auto-play
-    ////////    SetSimulationControlState(SimulationControlStateType::Play);
-
-    ////////    // Other settings
-    ////////    SetSeaLevel(-7.0f);
-
-    ////////    return;
-    ////////}
-
-    ////////++matchIndex;
-    ////////if (mCurrentVideoStep == matchIndex)
-    ////////{
-    ////////    //
-    ////////    // Create one ball
-    ////////    //
-
-    ////////    mModel->GetNpcs().Add(
-    ////////        Npcs::NpcType::Furniture,
-    ////////        vec2f(0.0f, 0.0f),
-    ////////        std::nullopt,
-    ////////        mStructuralMaterialDatabase,
-    ////////        mModel->GetShip());
-
-    ////////    return;
-    ////////}
-
-    ////////++matchIndex;
-    ////////if (mCurrentVideoStep == matchIndex)
-    ////////{
-    ////////    //
-    ////////    // Reset
-    ////////    //
-
-    ////////    LoadShip(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
-
-    ////////    return;
-    ////////}
-
-    ////////++matchIndex;
-    ////////if (mCurrentVideoStep == matchIndex)
-    ////////{
-    ////////    //
-    ////////    // Create a few balls
-    ////////    //
-
-    ////////    for (int i = 0; i < 9; ++i)
-    ////////    {
-    ////////        vec2f const position = vec2f(
-    ////////            GameRandomEngine::GetInstance().GenerateUniformReal(-9.0f, 8.0f),
-    ////////            GameRandomEngine::GetInstance().GenerateUniformReal(-5.0f, 5.0f));
-
-    ////////        mModel->GetNpcs().Add(
-    ////////            Npcs::NpcType::Furniture,
-    ////////            position,
-    ////////            std::nullopt,
-    ////////            mStructuralMaterialDatabase,
-    ////////            mModel->GetShip());
-    ////////    }
-
-    ////////    return;
-    ////////}
-
-    ////////++matchIndex;
-    ////////if (mCurrentVideoStep == matchIndex)
-    ////////{
-    ////////    //
-    ////////    // Reset
-    ////////    //
-
-    ////////    LoadShip(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
-
-    ////////    return;
-    ////////}
-
-    ////////++matchIndex;
-    ////////if (mCurrentVideoStep == matchIndex)
-    ////////{
-    ////////    //
-    ////////    // Create many balls
-    ////////    //
-
-    ////////    for (int i = 0; i < 25; ++i)
-    ////////    {
-    ////////        vec2f const position = vec2f(
-    ////////            GameRandomEngine::GetInstance().GenerateUniformReal(-9.0f, 8.0f),
-    ////////            GameRandomEngine::GetInstance().GenerateUniformReal(-5.0f, 5.0f));
-
-    ////////        mModel->GetNpcs().Add(
-    ////////            Npcs::NpcType::Furniture,
-    ////////            position,
-    ////////            std::nullopt,
-    ////////            mStructuralMaterialDatabase,
-    ////////            mModel->GetShip());
-    ////////    }
-
-    ////////    return;
-    ////////}
-
-    /////////////////////////////////////////////////////////////
-    ////// Humans
-    /////////////////////////////////////////////////////////////
+    ////int matchIndex = 1;
+    ////if (mCurrentVideoStep == matchIndex)
+    ////{
+    ////    // Setup camera
+    ////    mRenderContext->SetCameraWorldPosition(vec2f(-4.42721558f + 8.0f, -5.58747005f));
+    ////}
 
     ////++matchIndex;
     ////if (mCurrentVideoStep == matchIndex)
     ////{
-    ////    //
-    ////    // Load ship and stay clean
-    ////    //
+    ////    // Place NPC
+    ////    mWorld->GetNpcs().AddHumanNpc(
+    ////        HumanNpcKindType::Passenger,
+    ////        vec2f(-1.0f, -6.0f + 1.69f),
+    ////        mCurrentSimulationTime);
 
-    ////    LoadShip(std::filesystem::absolute("Meshes\\video_mesh.png"), false);
+    ////    // Select NPC
+    ////    mWorld->GetNpcs().SelectNpc(0);
+    ////}
 
-    ////    // Enable auto-play
+    ////++matchIndex;
+    ////if (mCurrentVideoStep == matchIndex)
+    ////{
+    ////    // Pause
+    ////    SetSimulationControlState(SimulationControlStateType::Paused);
+    ////}
+
+    ////++matchIndex;
+    ////if (mCurrentVideoStep == matchIndex)
+    ////{
+    ////    // Play
     ////    SetSimulationControlState(SimulationControlStateType::Play);
-
-    ////    // Disable gravity
-    ////    SetGravityEnabled(false);
-
-    ////    // Other settings
-    ////    SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
-    ////    SetSeaLevel(-7.0f);
-
-    ////    return;
     ////}
 
     ////++matchIndex;
     ////if (mCurrentVideoStep == matchIndex)
     ////{
-    ////    //
-    ////    // Add one horizontal human
-    ////    //
+    ////    // Zoom
+    ////    mRenderContext->SetZoom(1.5f);
+    ////}
 
-    ////    vec2f primaryPosition = vec2f(1.5f, -2.0f);
-    ////    vec2f secondaryPosition = primaryPosition + vec2f(1.0f, 0.0f) * GameParameters::HumanNpcGeometry::BodyLength * mLabParameters.HumanNpcBodyLengthAdjustment;
-    ////    mModel->GetNpcs().Add(
-    ////        Npcs::NpcType::Human,
-    ////        primaryPosition,
-    ////        secondaryPosition,
-    ////        mCurrentSimulationTime,
-    ////        mStructuralMaterialDatabase,
-    ////        mModel->GetShip(),
-    ////        mLabParameters);
+    ////// Segment 2
 
-    ////    return;
+    ////int matchIndex = 1;
+    ////if (mCurrentVideoStep == matchIndex)
+    ////{
+    ////    // Place NPC1
+    ////    mWorld->GetNpcs().AddHumanNpc(
+    ////        HumanNpcKindType::Passenger,
+    ////        vec2f(-3.0f, -6.0f + 1.69f),
+    ////        mCurrentSimulationTime);
+
+    ////    // Place NPC2
+    ////    mWorld->GetNpcs().AddHumanNpc(
+    ////        HumanNpcKindType::Passenger,
+    ////        vec2f(1.0f, -6.0f + 1.69f),
+    ////        mCurrentSimulationTime);
     ////}
 
     ////++matchIndex;
     ////if (mCurrentVideoStep == matchIndex)
     ////{
-    ////    //
-    ////    // Enable gravity
-    ////    //
-
-
-    ////    SetGravityEnabled(true);
-
-    ////    return;
+    ////    // Pause
+    ////    SetSimulationControlState(SimulationControlStateType::Paused);
     ////}
 
     ////++matchIndex;
     ////if (mCurrentVideoStep == matchIndex)
     ////{
-    ////    //
-    ////    // Low-rising 1
-    ////    //
-
-    ////    SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0010f);
-
-    ////    return;
+    ////    // Play
+    ////    SetSimulationControlState(SimulationControlStateType::Play);
     ////}
 
     ////++matchIndex;
     ////if (mCurrentVideoStep == matchIndex)
     ////{
-    ////    //
-    ////    // Stop rising
-    ////    //
+    ////    AABB const shipAABB = mWorld->GetShip().GetPoints().GetAABB();
 
-    ////    SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
+    ////    // Many more NPCs
+    ////    for (int i = 0; i < 10; ++i)
+    ////    {
+    ////        float const posX = GameRandomEngine::GetInstance().GenerateUniformReal(shipAABB.BottomLeft.x, shipAABB.TopRight.x);
+    ////        float const posY = GameRandomEngine::GetInstance().GenerateUniformReal(shipAABB.BottomLeft.y + GameParameters::HumanNpcGeometry::BodyLengthMean * 1.5f * mGameParameters.HumanNpcBodyLengthAdjustment, shipAABB.TopRight.y);
 
-    ////    return;
+    ////        mWorld->GetNpcs().AddHumanNpc(
+    ////            HumanNpcKindType::Passenger,
+    ////            vec2f(posX, posY),
+    ////            mCurrentSimulationTime);
+    ////    }
     ////}
 
-    ////++matchIndex;
+    ////// Segment 3
+
+    ////int matchIndex = 1;
     ////if (mCurrentVideoStep == matchIndex)
     ////{
-    ////    //
-    ////    // Low-rising 2
-    ////    //
+    ////    AABB const shipAABB = mWorld->GetShip().GetPoints().GetAABB();
 
-    ////    SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0013f);
+    ////    for (size_t i = 0; i < GameParameters::MaxNpcs; ++i)
+    ////    {
+    ////        float const posX = GameRandomEngine::GetInstance().GenerateUniformReal(shipAABB.BottomLeft.x, shipAABB.TopRight.x);
+    ////        float const posY = GameRandomEngine::GetInstance().GenerateUniformReal(shipAABB.BottomLeft.y + GameParameters::HumanNpcGeometry::BodyLengthMean * 1.5f * mGameParameters.HumanNpcBodyLengthAdjustment, shipAABB.TopRight.y);
 
-    ////    return;
+    ////        bool const hasBeenAdded = mWorld->GetNpcs().AddHumanNpc(
+    ////            HumanNpcKindType::Passenger,
+    ////            vec2f(posX, posY),
+    ////            mCurrentSimulationTime);
+
+    ////        if (!hasBeenAdded)
+    ////        {
+    ////            throw GameException("Cannot add NPC!");
+    ////        }
+    ////    }
     ////}
-
-    ////++matchIndex;
-    ////if (mCurrentVideoStep == matchIndex)
+    ////else
     ////{
-    ////    //
-    ////    // Stop rising
-    ////    //
-
-    ////    SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
-
-    ////    return;
+    ////    AdjustZoom(0.995f);
     ////}
-
-    ////++matchIndex;
-    ////if (mCurrentVideoStep == matchIndex)
-    ////{
-    ////    //
-    ////    // Low-rising 3
-    ////    //
-
-    ////    SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0018f);
-
-    ////    return;
-    ////}
-
-    ////++matchIndex;
-    ////if (mCurrentVideoStep == matchIndex)
-    ////{
-    ////    //
-    ////    // Stop rising
-    ////    //
-
-    ////    SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0f);
-
-    ////    return;
-    ////}
-
-    ////++matchIndex;
-    ////if (mCurrentVideoStep == matchIndex)
-    ////{
-    ////    //
-    ////    // Definitive rising  - but no walking
-    ////    //
-
-    ////    SetHumanNpcEquilibriumTorqueStiffnessCoefficient(0.0032f);
-
-    ////    // But no walking
-    ////    mLabParameters.HumanNpcWalkingAcceleration = 0.0f;
-
-    ////    return;
-    ////}
-
-    ////++matchIndex;
-    ////if (mCurrentVideoStep == matchIndex)
-    ////{
-    ////    //
-    ////    // Walking
-    ////    //
-
-    ////    mLabParameters.HumanNpcWalkingAcceleration = 0.027f;
-
-    ////    return;
-    ////}
-
-    ////++matchIndex;
-    ////if (mCurrentVideoStep == matchIndex)
-    ////{
-    ////    return;
-    ////}
-
-    //////
-    ////// Wrap around
-    //////
-
-    ////mCurrentVideoStep = 0;
 }
 
 ////////////////////////////////////////////////

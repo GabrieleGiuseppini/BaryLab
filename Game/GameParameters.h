@@ -109,7 +109,7 @@ struct GameParameters
     {
         static float constexpr BodyLengthMean = 1.65f;
         static float constexpr BodyLengthStdDev = 0.065f;
-        static float constexpr BodyWidthNarrowMultiplierStdDev = 0.05f;
+        static float constexpr BodyWidthNarrowMultiplierStdDev = 0.045f;
         static float constexpr BodyWidthWideMultiplierStdDev = 0.15f;
 
         // All fractions below ar relative to BodyLength

@@ -395,6 +395,12 @@ void MainFrame::OnKeyDown(wxKeyEvent & event)
         //mLabController->QueryNearestNpcParticleAt(screenCoords);
         mLabController->QueryPointAt(screenCoords);
     }
+    else if (event.GetKeyCode() == 'F')
+    {
+        // Flip
+
+        mLabController->FlipCurrentlySelectedHuman();
+    }
     else if (event.GetKeyCode() == 'V')
     {
         // Video

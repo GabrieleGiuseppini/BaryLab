@@ -100,6 +100,8 @@ public:
 
     void QueryPointAt(vec2f const & screenCoordinates) const;
 
+    void FlipCurrentlySelectedHuman();
+
     void DoStepForVideo();
 
     //
