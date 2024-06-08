@@ -601,7 +601,7 @@ void Npcs::UpdateNpcParticlePhysics(
             assert(remainingDt > 0.0f);
 
             LogNpcDebug("    ------------------------");
-            LogNpcDebug("    New iter: CurrentBCoords=", npcParticle.ConstrainedState->CurrentBCoords, " CurrentFloorDepth=", int(npc.LastEnteredFloorDepth), " RemainingDt=", remainingDt);
+            LogNpcDebug("    New iter: CurrentBCoords=", npcParticle.ConstrainedState->CurrentBCoords, " RemainingDt=", remainingDt);
 
             //
             // We ray-trace the particle along a trajectory that starts at the position at which the particle
