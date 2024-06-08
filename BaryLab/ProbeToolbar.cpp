@@ -215,7 +215,7 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
 
         hSizer->AddSpacer(HMargin);
 
-        // Physics Probe
+        // Misc Probe
         {
             wxGridBagSizer * gridSizer = new wxGridBagSizer(0, 0);
 
@@ -233,6 +233,25 @@ ProbeToolbar::ProbeToolbar(wxWindow* parent)
                 gridSizer->Add(
                     mParticleVelocityTextCtrl,
                     wxGBPosition(0, 1),
+                    wxGBSpan(1, 1),
+                    wxEXPAND,
+                    0);
+            }
+
+            // Floor Depth
+            {
+                auto label = new wxStaticText(this, wxID_ANY, _("floor depth:"));
+                gridSizer->Add(
+                    label,
+                    wxGBPosition(1, 0),
+                    wxGBSpan(1, 1),
+                    wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
+                    0);
+
+                mNpcFloorDepthTextCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(TextCtrlWidth, -1), wxTE_RIGHT | wxTE_READONLY);
+                gridSizer->Add(
+                    mNpcFloorDepthTextCtrl,
+                    wxGBPosition(1, 1),
                     wxGBSpan(1, 1),
                     wxEXPAND,
                     0);
@@ -566,6 +585,18 @@ void ProbeToolbar::OnSubjectParticlePhysicsUpdated(std::optional<PhysicsParticle
     }
 
     mParticleVelocityTextCtrl->SetValue(ss.str());
+}
+
+void ProbeToolbar::OnSubjectParticleLastEnteredFloorDepthUpdated(std::optional<int> const & lastEnteredFloorDepth)
+{
+    if (lastEnteredFloorDepth.has_value())
+    {
+        mNpcFloorDepthTextCtrl->SetValue(std::to_string(*lastEnteredFloorDepth));
+    }
+    else
+    {
+        mNpcFloorDepthTextCtrl->SetValue("");
+    }
 }
 
 void ProbeToolbar::OnHumanNpcBehaviorChanged(std::optional<std::string> behavior)

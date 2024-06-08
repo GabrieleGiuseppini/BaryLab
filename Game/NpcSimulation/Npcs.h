@@ -549,6 +549,12 @@ private:
 		// The additional state specific to the type of this NPC.
 		KindSpecificStateType KindSpecificState;
 
+		// The last entered floor depth. Changed when (primary) touches a floor,
+		// and sticks after floors are left. Can be used to indicate which depth
+		// the NPC belongs to, which changes when an NPC takes a step/touches
+		// a new edge.
+		NpcFloorGeometryDepthType LastEnteredFloorDepth;
+
 		// The current highlight state of this NPC.
 		NpcHighlightType Highlight;
 
@@ -572,6 +578,7 @@ private:
 			, PrimaryParticleState(std::move(primaryParticleState))
 			, DipoleState(std::move(dipoleState))
 			, KindSpecificState(std::move(kindSpecificState))
+			, LastEnteredFloorDepth(NpcFloorGeometryDepthType::NotAFloor)
 			, Highlight(NpcHighlightType::None)
 			, RandomNormalizedUniformSeed(GameRandomEngine::GetInstance().GenerateUniformReal(-1.0f, 1.0f))
 		{}
@@ -1073,12 +1080,19 @@ private:
 
 		assert(npc.DipoleState.has_value());
 
-		// If it's a human walking - and this is a secondary (head) - then there are rules that
-		// make the head ghost through certain floor depths
+		// If it's a human walking, check rules using floor depths to determine
+		// which floors are seen as floors by this secondary (head)
 
 		if (npc.Kind == NpcKindType::Human
 			&& (npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking
-				 || npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Rising)
+				|| (npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Rising
+					&& // During rising, do not try to ghost the edge that the secondary is resting upon
+					   (!npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value()
+						|| !npc.DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value()
+						|| npc.DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualFloor->TriangleElementIndex != triangleElementIndex
+						|| npc.DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualFloor->EdgeOrdinal != edgeOrdinal
+						)
+					))
 			&& npc.PrimaryParticleState.ConstrainedState.has_value()
 			&& npc.PrimaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value())
 		{
@@ -1133,7 +1147,13 @@ private:
 		vec2f const humanDir = (primaryPosition - secondaryPosition).normalise(); // Pointing down to feet
 
 		// It's vertical when y is -1.0 (cos of angle)
-		return humanDir.y > -0.8f;
+		if (humanDir.y > -0.8f)
+		{
+			// Not quite vertical
+			return true;
+		}
+
+		return false;
 	}
 
 	static vec2f CalculateDipoleVector(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)

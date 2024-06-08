@@ -45,6 +45,8 @@ public:
 
     void OnSubjectParticlePhysicsUpdated(std::optional<PhysicsParticleProbe> const & probe) override;
 
+    void OnSubjectParticleLastEnteredFloorDepthUpdated(std::optional<int> const & lastEnteredFloorDepth) override;
+
     void OnHumanNpcBehaviorChanged(std::optional<std::string> behavior) override;
 
     void OnHumanNpcStateQuantityChanged(std::optional<std::tuple<std::string, std::string>> nameAndValue) override;
@@ -88,6 +90,7 @@ private:
     wxTextCtrl * mProbeBarycentricCoordinateL3TextCtrl;
 
     wxTextCtrl * mParticleVelocityTextCtrl;
+    wxTextCtrl * mNpcFloorDepthTextCtrl;
 
     wxTextCtrl * mHumanBehaviorTextCtrl;
     wxStaticText * mHumanStateQuantityNameLabel;

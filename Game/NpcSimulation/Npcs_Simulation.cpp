@@ -145,7 +145,6 @@ void Npcs::TransitionParticleToConstrainedState(
     StateType::NpcParticleStateType::ConstrainedStateType constrainedState)
 {
     // Transition
-
     if (isPrimaryParticle)
     {
         npc.PrimaryParticleState.ConstrainedState = constrainedState;
@@ -157,11 +156,8 @@ void Npcs::TransitionParticleToConstrainedState(
     }
 
     // Regime
-
     auto const oldRegime = npc.CurrentRegime;
-
     npc.CurrentRegime = CalculateRegime(npc);
-
     OnMayBeNpcRegimeChanged(oldRegime, npc);
 }
 
@@ -170,7 +166,6 @@ void Npcs::TransitionParticleToFreeState(
     bool isPrimaryParticle)
 {
     // Transition
-
     if (isPrimaryParticle)
     {
         npc.PrimaryParticleState.ConstrainedState.reset();
@@ -188,12 +183,15 @@ void Npcs::TransitionParticleToFreeState(
     }
 
     // Regime
-
     auto const oldRegime = npc.CurrentRegime;
-
     npc.CurrentRegime = CalculateRegime(npc);
-
     OnMayBeNpcRegimeChanged(oldRegime, npc);
+
+    // Last floor depth entered
+    if (isPrimaryParticle)
+    {
+        npc.LastEnteredFloorDepth = NpcFloorGeometryDepthType::NotAFloor;
+    }
 }
 
 std::optional<Npcs::StateType::NpcParticleStateType::ConstrainedStateType> Npcs::CalculateParticleConstrainedState(
@@ -609,7 +607,7 @@ void Npcs::UpdateNpcParticlePhysics(
             assert(remainingDt > 0.0f);
 
             LogNpcDebug("    ------------------------");
-            LogNpcDebug("    New iter: Triangle=", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, " B-Coords=", npcParticle.ConstrainedState->CurrentBCoords.BCoords, " RemainingDt=", remainingDt);
+            LogNpcDebug("    New iter: CurrentBCoords=", npcParticle.ConstrainedState->CurrentBCoords, " CurrentFloorDepth=", int(npc.LastEnteredFloorDepth), " RemainingDt=", remainingDt);
 
             //
             // We ray-trace the particle along a trajectory that starts at the position at which the particle
@@ -864,6 +862,17 @@ void Npcs::UpdateNpcParticlePhysics(
                 LogNpcDebug("    ConstrainedNonInertial: triangle=", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, " nonInertialEdgeOrdinal=", nonInertialEdgeOrdinal, " bCoords=", npcParticle.ConstrainedState->CurrentBCoords.BCoords, " trajectory=", trajectory);
                 LogNpcDebug("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
 
+                // Remember our floor geometry depth now - it will dictate how we see floors
+                if (isPrimaryParticle)
+                {
+                    npc.LastEnteredFloorDepth = NpcFloorGeometryDepth(
+                        shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(
+                            npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
+                            nonInertialEdgeOrdinal));
+                }
+
+                LogNpcDebug("    CurrentFloorDepth=", int(npc.LastEnteredFloorDepth));
+
                 // Set now our current edge-ness for the rest of this simulation step, which is
                 // mostly for animation purposes.
                 //
@@ -1108,7 +1117,7 @@ void Npcs::UpdateNpcParticlePhysics(
 
                 if (npcParticle.ConstrainedState.has_value())
                 {
-                    LogNpcDebug("    EndBCoords=", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, ":", npcParticle.ConstrainedState->CurrentBCoords.BCoords);
+                    LogNpcDebug("    EndBCoords=", npcParticle.ConstrainedState->CurrentBCoords);
                 }
                 else
                 {
@@ -1218,6 +1227,17 @@ void Npcs::UpdateNpcParticlePhysics(
                 // Update current floor edge we're walking on, or inside triangle
                 currentNonInertialFloorEdgeOrdinal = newFloorEdgeOrdinal;
 
+                // Remember our new floor geometry depth now - it will dictate how we see floors
+                if (isPrimaryParticle && currentNonInertialFloorEdgeOrdinal.has_value() && *currentNonInertialFloorEdgeOrdinal >= 0)
+                {
+                    npc.LastEnteredFloorDepth = NpcFloorGeometryDepth(
+                        shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(
+                            npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
+                            *currentNonInertialFloorEdgeOrdinal));
+
+                    LogNpcDebug("    New CurrentFloorDepth=", int(npc.LastEnteredFloorDepth));
+                }
+
                 if (npcParticle.ConstrainedState.has_value())
                 {
                     LogNpcDebug("    EndPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " EndVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " EndMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
@@ -1233,7 +1253,7 @@ void Npcs::UpdateNpcParticlePhysics(
                 // Case 2: Inertial: not on edge or on edge but not moving against (nor along) it
                 //
 
-                LogNpcDebug("    ConstrainedInertial: CurrentBCoords=", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, ":", npcParticle.ConstrainedState->CurrentBCoords.BCoords, " physicsDeltaPos=", physicsDeltaPos);
+                LogNpcDebug("    ConstrainedInertial: CurrentBCoords=", npcParticle.ConstrainedState->CurrentBCoords, " physicsDeltaPos=", physicsDeltaPos);
                 LogNpcDebug("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
 
                 // We are not on an edge floor (nor we'll got on it now)
@@ -1844,6 +1864,12 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
             // now that we have acquired a velocity in a different direction
             npcParticleConstrainedState.CurrentBCoords = navigationOutcome.TriangleBCoords;
 
+            // We are on this floor geometry depth now
+            npc.LastEnteredFloorDepth = NpcFloorGeometryDepth(
+                shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(
+                    navigationOutcome.TriangleBCoords.TriangleElementIndex,
+                    navigationOutcome.FloorEdgeOrdinal));
+
             // Terminate
             return {
                 edgeTraveled,
@@ -2074,6 +2100,12 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
             // step, would cause the NPC to stop walking. Afte rall we're not lying as we're really
             // non-inertial on this floor
             npcParticleConstrainedState.CurrentVirtualFloor.emplace(npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex, intersectionEdgeOrdinal);
+
+            // We are on this floor geometry depth now
+            npc.LastEnteredFloorDepth = NpcFloorGeometryDepth(
+                shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(
+                    npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex,
+                    intersectionEdgeOrdinal));
 
             // Return (mesh-relative) distance traveled with this move
             return (segmentTrajectoryEndAbsolutePosition - segmentTrajectoryStartAbsolutePosition).length();
@@ -2581,7 +2613,7 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
 
             assert(firstTriangleInterior.has_value());
 
-            LogNpcDebug("    Going inside triangle ", firstTriangleInterior->TriangleElementIndex, ":", firstTriangleInterior->BCoords);
+            LogNpcDebug("    Going inside triangle ", *firstTriangleInterior);
 
             return NavigateVertexOutcome::MakeContinueToInteriorOutcome(*firstTriangleInterior);
         }
@@ -2629,7 +2661,7 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
                 // We go inside (or on) this triangle - stop where we are, we'll then check trajectory in new situation
                 //
 
-                LogNpcDebug("      Going inside triangle ", currentAbsoluteBCoords.TriangleElementIndex, ":", currentAbsoluteBCoords.BCoords);
+                LogNpcDebug("      Going inside triangle ", currentAbsoluteBCoords);
 
                 return NavigateVertexOutcome::MakeContinueToInteriorOutcome(currentAbsoluteBCoords);
             }

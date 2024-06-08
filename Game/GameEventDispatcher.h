@@ -52,6 +52,14 @@ public:
         }
     }
 
+    virtual void OnSubjectParticleLastEnteredFloorDepthUpdated(std::optional<int> const & lastEnteredFloorDepth) override
+    {
+        for (auto sink : mBLabSinks)
+        {
+            sink->OnSubjectParticleLastEnteredFloorDepthUpdated(lastEnteredFloorDepth);
+        }
+    }
+
     void OnTrajectoryToggled(bool isTrajectorySet) override
     {
         for (auto sink : mBLabSinks)
