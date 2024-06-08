@@ -3321,14 +3321,14 @@ void Npcs::UpdateNpcAnimation(
                     {
                         targetAngles.LeftArm = Pi<float>;
                     }
-
-                    // Legs: 0
-
-                    targetAngles.RightLeg = 0.0f;
-                    targetAngles.LeftLeg = 0.0f;
-
-                    convergenceRate = 0.05f; // Quite slow
                 }
+
+                // Legs: 0
+
+                targetAngles.RightLeg = 0.0f;
+                targetAngles.LeftLeg = 0.0f;
+
+                convergenceRate = 0.05f; // Quite slow
 
                 break;
             }
