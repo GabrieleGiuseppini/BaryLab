@@ -182,7 +182,21 @@ struct AbsoluteTriangleBCoords
         return this->TriangleElementIndex == other.TriangleElementIndex
             && this->BCoords == other.BCoords;
     }
+
+    std::string ToString() const
+    {
+        std::stringstream ss;
+        ss << TriangleElementIndex << ":" << BCoords;
+        return ss.str();
+    }
 };
+
+inline std::basic_ostream<char> & operator<<(std::basic_ostream<char> & os, AbsoluteTriangleBCoords const & is)
+{
+    os << is.ToString();
+    return os;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Geometry
