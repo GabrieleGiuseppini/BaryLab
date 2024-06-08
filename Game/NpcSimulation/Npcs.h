@@ -549,12 +549,6 @@ private:
 		// The additional state specific to the type of this NPC.
 		KindSpecificStateType KindSpecificState;
 
-		// The last entered floor depth. Changed when (primary) touches a floor,
-		// and sticks after floors are left. Can be used to indicate which depth
-		// the NPC belongs to, which changes when an NPC takes a step/touches
-		// a new edge.
-		NpcFloorGeometryDepthType LastEnteredFloorDepth;
-
 		// The current highlight state of this NPC.
 		NpcHighlightType Highlight;
 
@@ -578,7 +572,6 @@ private:
 			, PrimaryParticleState(std::move(primaryParticleState))
 			, DipoleState(std::move(dipoleState))
 			, KindSpecificState(std::move(kindSpecificState))
-			, LastEnteredFloorDepth(NpcFloorGeometryDepthType::NotAFloor)
 			, Highlight(NpcHighlightType::None)
 			, RandomNormalizedUniformSeed(GameRandomEngine::GetInstance().GenerateUniformReal(-1.0f, 1.0f))
 		{}

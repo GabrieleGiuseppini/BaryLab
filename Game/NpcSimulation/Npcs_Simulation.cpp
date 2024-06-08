@@ -186,12 +186,6 @@ void Npcs::TransitionParticleToFreeState(
     auto const oldRegime = npc.CurrentRegime;
     npc.CurrentRegime = CalculateRegime(npc);
     OnMayBeNpcRegimeChanged(oldRegime, npc);
-
-    // Last floor depth entered
-    if (isPrimaryParticle)
-    {
-        npc.LastEnteredFloorDepth = NpcFloorGeometryDepthType::NotAFloor;
-    }
 }
 
 std::optional<Npcs::StateType::NpcParticleStateType::ConstrainedStateType> Npcs::CalculateParticleConstrainedState(
@@ -862,17 +856,6 @@ void Npcs::UpdateNpcParticlePhysics(
                 LogNpcDebug("    ConstrainedNonInertial: triangle=", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, " nonInertialEdgeOrdinal=", nonInertialEdgeOrdinal, " bCoords=", npcParticle.ConstrainedState->CurrentBCoords.BCoords, " trajectory=", trajectory);
                 LogNpcDebug("    StartPosition=", mParticles.GetPosition(npcParticle.ParticleIndex), " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " MeshVelocity=", meshVelocity, " StartMRVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity);
 
-                // Remember our floor geometry depth now - it will dictate how we see floors
-                if (isPrimaryParticle)
-                {
-                    npc.LastEnteredFloorDepth = NpcFloorGeometryDepth(
-                        shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(
-                            npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
-                            nonInertialEdgeOrdinal));
-                }
-
-                LogNpcDebug("    CurrentFloorDepth=", int(npc.LastEnteredFloorDepth));
-
                 // Set now our current edge-ness for the rest of this simulation step, which is
                 // mostly for animation purposes.
                 //
@@ -1226,17 +1209,6 @@ void Npcs::UpdateNpcParticlePhysics(
 
                 // Update current floor edge we're walking on, or inside triangle
                 currentNonInertialFloorEdgeOrdinal = newFloorEdgeOrdinal;
-
-                // Remember our new floor geometry depth now - it will dictate how we see floors
-                if (isPrimaryParticle && currentNonInertialFloorEdgeOrdinal.has_value() && *currentNonInertialFloorEdgeOrdinal >= 0)
-                {
-                    npc.LastEnteredFloorDepth = NpcFloorGeometryDepth(
-                        shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(
-                            npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
-                            *currentNonInertialFloorEdgeOrdinal));
-
-                    LogNpcDebug("    New CurrentFloorDepth=", int(npc.LastEnteredFloorDepth));
-                }
 
                 if (npcParticle.ConstrainedState.has_value())
                 {
@@ -1864,12 +1836,6 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
             // now that we have acquired a velocity in a different direction
             npcParticleConstrainedState.CurrentBCoords = navigationOutcome.TriangleBCoords;
 
-            // We are on this floor geometry depth now
-            npc.LastEnteredFloorDepth = NpcFloorGeometryDepth(
-                shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(
-                    navigationOutcome.TriangleBCoords.TriangleElementIndex,
-                    navigationOutcome.FloorEdgeOrdinal));
-
             // Terminate
             return {
                 edgeTraveled,
@@ -2100,12 +2066,6 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
             // step, would cause the NPC to stop walking. Afte rall we're not lying as we're really
             // non-inertial on this floor
             npcParticleConstrainedState.CurrentVirtualFloor.emplace(npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex, intersectionEdgeOrdinal);
-
-            // We are on this floor geometry depth now
-            npc.LastEnteredFloorDepth = NpcFloorGeometryDepth(
-                shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(
-                    npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex,
-                    intersectionEdgeOrdinal));
 
             // Return (mesh-relative) distance traveled with this move
             return (segmentTrajectoryEndAbsolutePosition - segmentTrajectoryStartAbsolutePosition).length();

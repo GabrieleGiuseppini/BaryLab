@@ -42,11 +42,6 @@ struct IBLabEventHandler
         // Default implemented
     }
 
-    virtual void OnSubjectParticleLastEnteredFloorDepthUpdated(std::optional<int> const & /*lastEnteredFloorDepth*/)
-    {
-        // Default implemented
-    }
-
     virtual void OnTrajectoryToggled(bool /*isTrajectorySet*/)
     {
         // Default-implemented

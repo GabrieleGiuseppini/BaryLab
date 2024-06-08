@@ -1119,7 +1119,6 @@ void Npcs::Publish() const
 	std::optional<int> constrainedRegimeLastEnteredFloorDepth;
 	std::optional<bcoords3f> subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged;
 	std::optional<PhysicsParticleProbe> physicsParticleProbe;
-	std::optional<int> lastEnteredFloorDepth;
 
 	if (mCurrentlySelectedParticle.has_value())
 	{
@@ -1134,8 +1133,6 @@ void Npcs::Publish() const
 
 				if (state.PrimaryParticleState.ParticleIndex == *mCurrentlySelectedParticle)
 				{
-					lastEnteredFloorDepth = int(state.LastEnteredFloorDepth);
-
 					if (state.PrimaryParticleState.ConstrainedState.has_value())
 					{
 						constrainedRegimeParticleProbe.emplace(state.PrimaryParticleState.ConstrainedState->CurrentBCoords);
@@ -1154,8 +1151,6 @@ void Npcs::Publish() const
 				else if (state.DipoleState.has_value()
 					&& state.DipoleState->SecondaryParticleState.ParticleIndex == *mCurrentlySelectedParticle)
 				{
-					lastEnteredFloorDepth = int(state.LastEnteredFloorDepth);
-
 					if (state.DipoleState->SecondaryParticleState.ConstrainedState.has_value())
 					{
 						constrainedRegimeParticleProbe.emplace(state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentBCoords);
@@ -1178,7 +1173,6 @@ void Npcs::Publish() const
 	mGameEventHandler->OnSubjectParticleConstrainedRegimeUpdated(constrainedRegimeParticleProbe);
 	mGameEventHandler->OnSubjectParticleBarycentricCoordinatesWrtOriginTriangleChanged(subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged);
 	mGameEventHandler->OnSubjectParticlePhysicsUpdated(physicsParticleProbe);
-	mGameEventHandler->OnSubjectParticleLastEnteredFloorDepthUpdated(lastEnteredFloorDepth);
 
 	if (mCurrentlySelectedNpc.has_value()
 		&& mStateBuffer[*mCurrentlySelectedNpc].has_value())
