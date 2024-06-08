@@ -409,7 +409,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 		// Narrow
 		widthMultiplier = 1.0f - std::min(
 			std::abs(GameRandomEngine::GetInstance().GenerateNormalReal(0.0f, GameParameters::HumanNpcGeometry::BodyWidthNarrowMultiplierStdDev)),
-			3.0f * GameParameters::HumanNpcGeometry::BodyWidthNarrowMultiplierStdDev);
+			2.0f * GameParameters::HumanNpcGeometry::BodyWidthNarrowMultiplierStdDev);
 	}
 	else
 	{
