@@ -288,6 +288,7 @@ void Npcs::UpdateNpcs(
     //
     // 2. Calculate preliminary forces
     // 3. Check if a free secondary particle should become constrained
+    // 4. Calculate spring forces
     //
 
     for (auto & npcState : mStateBuffer)
@@ -329,11 +330,13 @@ void Npcs::UpdateNpcs(
                     static_cast<int>(p),
                     gameParameters);
             }
+
+            CalculateNpcParticleSpringForces(*npcState);
         }
     }
 
     //
-    // 4. Update physical state
+    // 5. Update physical state
     //
 
     for (auto & npcState : mStateBuffer)
@@ -358,7 +361,7 @@ void Npcs::UpdateNpcs(
     }
 
     //
-    // 5. Update behavioral state machines
+    // 6. Update behavioral state machines
     //
 
     LogNpcDebug("----------------------------------");
@@ -382,7 +385,7 @@ void Npcs::UpdateNpcs(
     }
 
     //
-    // 6. Update animation
+    // 7. Update animation
     //
 
     for (auto & npcState : mStateBuffer)
@@ -1370,21 +1373,26 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
         }
     }
 
-    // 3. Spring forces
+    // 3. External forces
 
-    for (auto const & connectedSpring : npcParticle.ConnectedSprings)
+    preliminaryForces += mParticles.GetExternalForces(npcParticle.ParticleIndex);
+
+    mParticles.SetPreliminaryForces(npcParticle.ParticleIndex, preliminaryForces);
+}
+
+void Npcs::CalculateNpcParticleSpringForces(StateType const & npc)
+{
+    for (auto const & spring : npc.ParticleMesh.Springs)
     {
-        float const dt = GameParameters::SimulationTimeStepDuration;
+        float constexpr dt = GameParameters::SimulationTimeStepDuration;
 
-        vec2f const springDisplacement = mParticles.GetPosition(connectedSpring.OtherEndpointIndex) - mParticles.GetPosition(npcParticle.ParticleIndex); // Towards other
+        vec2f const springDisplacement = mParticles.GetPosition(spring.EndpointAIndex) - mParticles.GetPosition(spring.EndpointBIndex); // Towards A
         float const springDisplacementLength = springDisplacement.length();
         vec2f const springDir = springDisplacement.normalise_approx(springDisplacementLength);
 
         //
         // 3a. Hooke's law
         //
-
-        auto const & spring = npc.ParticleMesh.Springs[connectedSpring.SpringOrdinal];
 
         // Calculate spring force on this particle
         float const fSpring =
@@ -1399,7 +1407,7 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
         //
 
         // Calculate damp force on this particle
-        vec2f const relVelocity = mParticles.GetVelocity(connectedSpring.OtherEndpointIndex) - mParticles.GetVelocity(npcParticle.ParticleIndex);
+        vec2f const relVelocity = mParticles.GetVelocity(spring.EndpointAIndex) - mParticles.GetVelocity(spring.EndpointBIndex);
         float const fDamp =
             relVelocity.dot(springDir)
             * spring.SpringDampingCoefficient;
@@ -1408,15 +1416,11 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
         // Apply forces
         //
 
-        preliminaryForces += springDir * (fSpring + fDamp);
+        vec2f const springForce = springDir * (fSpring + fDamp);
+
+        mParticles.SetPreliminaryForces(spring.EndpointAIndex, mParticles.GetPreliminaryForces(spring.EndpointAIndex) - springForce);
+        mParticles.SetPreliminaryForces(spring.EndpointBIndex, mParticles.GetPreliminaryForces(spring.EndpointBIndex) + springForce);
     }
-
-    // 4. External forces
-
-    preliminaryForces += mParticles.GetExternalForces(npcParticle.ParticleIndex);
-
-
-    mParticles.SetPreliminaryForces(npcParticle.ParticleIndex, preliminaryForces);
 }
 
 vec2f Npcs::CalculateNpcParticleDefinitiveForces(

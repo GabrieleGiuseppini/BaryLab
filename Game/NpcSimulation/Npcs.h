@@ -889,6 +889,8 @@ private:
 		int npcParticleOrdinal,
 		GameParameters const & gameParameters);
 
+	void CalculateNpcParticleSpringForces(StateType const & npc);
+
 	vec2f CalculateNpcParticleDefinitiveForces(
 		StateType const & npc,
 		int npcParticleOrdinal,
