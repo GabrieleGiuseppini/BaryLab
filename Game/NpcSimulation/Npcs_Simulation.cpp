@@ -304,7 +304,7 @@ void Npcs::UpdateNpcs(
                 0,
                 gameParameters);
 
-            // Secondaries: preliminary forces, and free becoming constrained
+            // Secondaries:free becoming constrained, and preliminary forces
 
             for (auto p = 1; p < npcState->ParticleMesh.Particles.size(); ++p)
             {
@@ -330,6 +330,8 @@ void Npcs::UpdateNpcs(
                     static_cast<int>(p),
                     gameParameters);
             }
+
+            // Spring forces for whole NPC
 
             CalculateNpcParticleSpringForces(*npcState);
         }
