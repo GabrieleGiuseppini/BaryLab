@@ -30,7 +30,9 @@ struct GameParameters
     static size_t constexpr MaxSpringsPerPoint = 8u;
     static size_t constexpr MaxTrianglesPerPoint = 8u;
     static size_t constexpr MaxNpcs = 8192u;
-    static size_t constexpr MaxParticlesPerNpc = 2u;
+    static size_t constexpr MaxParticlesPerNpc = 4u;
+    static size_t constexpr MaxSpringsPerNpc = 6u;
+    static size_t constexpr MaxSpringsPerNpcParticle = 3u;
 
     //
     // Physics
