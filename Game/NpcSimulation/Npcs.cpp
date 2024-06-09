@@ -299,7 +299,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 				}
 				if (p == 2 || p == 3)
 				{
-					particlePosition.y += SideLength;
+					particlePosition.y -= SideLength;
 				}
 
 				auto const particleIndex = mParticles.Add(
