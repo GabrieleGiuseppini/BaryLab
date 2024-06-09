@@ -721,7 +721,8 @@ void MainFrame::OnRotateMeshByParticle(wxCommandEvent & /*event*/)
 void MainFrame::OnAddFurnitureNpc(wxCommandEvent & /*event*/)
 {
     assert(!!mToolController);
-    mToolController->SetFurnitureNpcPlaceTool(FurnitureNpcKindType::Particle); // Futurework
+    //mToolController->SetFurnitureNpcPlaceTool(FurnitureNpcKindType::Particle); // Futurework
+    mToolController->SetFurnitureNpcPlaceTool(FurnitureNpcKindType::Crate); // Futurework
 }
 
 void MainFrame::OnAddHumanNpc(wxCommandEvent & /*event*/)

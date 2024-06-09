@@ -112,7 +112,8 @@ void Npcs::RenderUpload(
 
 	assert(renderContext.GetNpcRenderMode() == NpcRenderModeType::Limbs);
 
-	renderContext.UploadNpcQuadsStart(mFurnitureNpcCount + mHumanNpcCount * (6 + 2));
+	// Futurework
+	renderContext.UploadNpcQuadsStart(mFurnitureNpcCount * 4 + mHumanNpcCount * (6 + 2));
 
 #ifdef IN_BARYLAB
 	// For furniture
@@ -257,10 +258,10 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 	float /*currentSimulationTime*/)
 {
 	//
-	// Check if there are enough NPCs and particles
+	// Check if there are enough NPCs
 	//
 
-	if ((mHumanNpcCount + mFurnitureNpcCount) >= GameParameters::MaxNpcs || mParticles.GetRemainingParticlesCount() < 2)
+	if ((mHumanNpcCount + mFurnitureNpcCount) >= GameParameters::MaxNpcs)
 	{
 		return std::nullopt;
 	}
@@ -271,23 +272,140 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 
 	StateType::ParticleMeshType particleMesh;
 
-	// Futurework
-	assert(furnitureKind == FurnitureNpcKindType::Particle);
+	switch (furnitureKind)
+	{
+		case FurnitureNpcKindType::Crate:
+		{
+			// Check if there are enough particles
 
-	// Primary
+			if (mParticles.GetRemainingParticlesCount() < 4)
+			{
+				return std::nullopt;
+			}
 
-	auto const & furnitureMaterial = mMaterialDatabase.GetNpcMaterial(NpcMaterial::KindType::Furniture);
+			// Particles
 
-	auto const primaryParticleIndex = mParticles.Add(
-		furnitureMaterial.Mass,
-		furnitureMaterial.StaticFriction,
-		furnitureMaterial.KineticFriction,
-		furnitureMaterial.Elasticity,
-		furnitureMaterial.BuoyancyVolumeFill,
-		worldCoordinates,
-		furnitureMaterial.RenderColor);
+			float constexpr SideLength = 1.5f;
+			float constexpr DiagonalSideLength = SideLength * 1.41421356f; // sqrt(2)
 
-	particleMesh.Particles.emplace_back(primaryParticleIndex, std::nullopt);
+			auto const & furnitureMaterial = mMaterialDatabase.GetNpcMaterial(NpcMaterial::KindType::Furniture);
+
+			for (int p = 0; p < 4; ++p)
+			{
+				vec2f particlePosition = worldCoordinates;
+				if (p == 1 || p == 3)
+				{
+					particlePosition.x += SideLength;
+				}
+				if (p == 2 || p == 3)
+				{
+					particlePosition.y += SideLength;
+				}
+
+				auto const particleIndex = mParticles.Add(
+					furnitureMaterial.Mass,
+					furnitureMaterial.StaticFriction,
+					furnitureMaterial.KineticFriction,
+					furnitureMaterial.Elasticity,
+					furnitureMaterial.BuoyancyVolumeFill,
+					particlePosition,
+					furnitureMaterial.RenderColor);
+
+				particleMesh.Particles.emplace_back(particleIndex, std::nullopt);
+			}
+
+			// Springs
+
+			float const massFactor =
+				(furnitureMaterial.Mass * furnitureMaterial.Mass)
+				/ (furnitureMaterial.Mass + furnitureMaterial.Mass);
+
+			StateType::NpcSpringStateType baseSpring = {
+				NoneElementIndex,
+				NoneElementIndex,
+				0,
+				massFactor,
+				0.0f,   // Calculated later
+				0.0f }; // Calculated later
+
+			{
+				baseSpring.EndpointAIndex = particleMesh.Particles[0].ParticleIndex;
+				baseSpring.EndpointBIndex = particleMesh.Particles[1].ParticleIndex;
+				baseSpring.DipoleLength = SideLength;
+				auto & spring = particleMesh.Springs.emplace_back(baseSpring);
+				RecalculateSpringForceParameters(spring);
+			}
+
+			{
+				baseSpring.EndpointAIndex = particleMesh.Particles[0].ParticleIndex;
+				baseSpring.EndpointBIndex = particleMesh.Particles[2].ParticleIndex;
+				baseSpring.DipoleLength = SideLength;
+				auto & spring = particleMesh.Springs.emplace_back(baseSpring);
+				RecalculateSpringForceParameters(spring);
+			}
+
+			{
+				baseSpring.EndpointAIndex = particleMesh.Particles[0].ParticleIndex;
+				baseSpring.EndpointBIndex = particleMesh.Particles[3].ParticleIndex;
+				baseSpring.DipoleLength = DiagonalSideLength;
+				auto & spring = particleMesh.Springs.emplace_back(baseSpring);
+				RecalculateSpringForceParameters(spring);
+			}
+
+			{
+				baseSpring.EndpointAIndex = particleMesh.Particles[1].ParticleIndex;
+				baseSpring.EndpointBIndex = particleMesh.Particles[3].ParticleIndex;
+				baseSpring.DipoleLength = SideLength;
+				auto & spring = particleMesh.Springs.emplace_back(baseSpring);
+				RecalculateSpringForceParameters(spring);
+			}
+
+			{
+				baseSpring.EndpointAIndex = particleMesh.Particles[2].ParticleIndex;
+				baseSpring.EndpointBIndex = particleMesh.Particles[3].ParticleIndex;
+				baseSpring.DipoleLength = SideLength;
+				auto & spring = particleMesh.Springs.emplace_back(baseSpring);
+				RecalculateSpringForceParameters(spring);
+			}
+
+			{
+				baseSpring.EndpointAIndex = particleMesh.Particles[1].ParticleIndex;
+				baseSpring.EndpointBIndex = particleMesh.Particles[2].ParticleIndex;
+				baseSpring.DipoleLength = DiagonalSideLength;
+				auto & spring = particleMesh.Springs.emplace_back(baseSpring);
+				RecalculateSpringForceParameters(spring);
+			}
+
+			break;
+		}
+
+		case FurnitureNpcKindType::Particle:
+		{
+			// Check if there are enough particles
+
+			if (mParticles.GetRemainingParticlesCount() < 1)
+			{
+				return std::nullopt;
+			}
+
+			// Primary
+
+			auto const & furnitureMaterial = mMaterialDatabase.GetNpcMaterial(NpcMaterial::KindType::Furniture);
+
+			auto const primaryParticleIndex = mParticles.Add(
+				furnitureMaterial.Mass,
+				furnitureMaterial.StaticFriction,
+				furnitureMaterial.KineticFriction,
+				furnitureMaterial.Elasticity,
+				furnitureMaterial.BuoyancyVolumeFill,
+				worldCoordinates,
+				furnitureMaterial.RenderColor);
+
+			particleMesh.Particles.emplace_back(primaryParticleIndex, std::nullopt);
+
+			break;
+		}
+	}
 
 	// Furniture
 
@@ -505,6 +623,8 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 			{
 				case NpcKindType::Furniture:
 				{
+					// Primary
+					assert(state.ParticleMesh.Particles.size() > 0);
 					candidateParticle = state.ParticleMesh.Particles[0].ParticleIndex;
 					candidateNpcConstrainedState = &(state.ParticleMesh.Particles[0].ConstrainedState);
 					break;
@@ -677,7 +797,27 @@ void Npcs::MoveNpcTo(
 	{
 		case NpcKindType::Furniture:
 		{
+			//// Move all particles
+
+			//for (auto & particle : mStateBuffer[id]->ParticleMesh.Particles)
+			//{
+			//	auto const particleIndex = particle.ParticleIndex;
+			//	vec2f const oldPosition = mParticles.GetPosition(particleIndex);
+			//	mParticles.SetPosition(particleIndex, newPosition);
+			//	vec2f const absoluteVelocity = (newPosition - oldPosition) / GameParameters::SimulationTimeStepDuration * InertialVelocityFactor;
+			//	mParticles.SetVelocity(particleIndex, absoluteVelocity);
+
+			//	if (particle.ConstrainedState.has_value())
+			//	{
+			//		// We can only assume here, and we assume the ship is still and since the user doesn't move with the ship,
+			//		// all this velocity is also relative to mesh
+			//		particle.ConstrainedState->MeshRelativeVelocity = absoluteVelocity;
+			//	}
+			//}
+
 			// Move primary particle
+
+			assert(mStateBuffer[id]->ParticleMesh.Particles.size() > 0);
 
 			auto const particleIndex = mStateBuffer[id]->ParticleMesh.Particles[0].ParticleIndex;
 			vec2f const oldPosition = mParticles.GetPosition(particleIndex);
@@ -1902,14 +2042,38 @@ void Npcs::RenderNpc(
 
 		case NpcKindType::Furniture:
 		{
-			for (auto const & particle : npc.ParticleMesh.Particles)
+			// Futurework
+			if (npc.ParticleMesh.Particles.size() == 4)
 			{
-				shipRenderContext.UploadNpcParticle(
+				// Quad
+				shipRenderContext.UploadNpcQuad(
 					planeId,
-					mParticles.GetPosition(particle.ParticleIndex),
-					mParticles.GetRenderColor(particle.ParticleIndex),
+					TextureQuad(
+						mParticles.GetPosition(npc.ParticleMesh.Particles[0].ParticleIndex),
+						vec2f{-1.0f, 1.0f},
+						mParticles.GetPosition(npc.ParticleMesh.Particles[1].ParticleIndex),
+						vec2f{ 1.0f, 1.0f },
+						mParticles.GetPosition(npc.ParticleMesh.Particles[2].ParticleIndex),
+						vec2f{ -1.0f, -1.0f },
+						mParticles.GetPosition(npc.ParticleMesh.Particles[3].ParticleIndex),
+						vec2f{ 1.0f, -1.0f }
+					),
 					1.0f,
 					npc.Highlight);
+			}
+			else
+			{
+				// Bunch-of-particles
+
+				for (auto const & particle : npc.ParticleMesh.Particles)
+				{
+					shipRenderContext.UploadNpcParticle(
+						planeId,
+						mParticles.GetPosition(particle.ParticleIndex),
+						mParticles.GetRenderColor(particle.ParticleIndex),
+						1.0f,
+						npc.Highlight);
+				}
 			}
 
 			break;
