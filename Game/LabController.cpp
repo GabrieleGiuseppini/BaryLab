@@ -125,9 +125,7 @@ void LabController::Update()
             mGameParameters,
             mPerfStats);
 
-#ifdef _DEBUG
         mWorld->GetNpcs().Publish();
-#endif
 
         // Update state
         mSimulationControlImpulse = false;
