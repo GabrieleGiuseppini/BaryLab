@@ -134,9 +134,7 @@ void Npcs::ResetNpcStateToWorld(
         }
     }
 
-#ifdef BARYLAB_PROBING
     Publish();
-#endif
 }
 
 void Npcs::TransitionParticleToConstrainedState(

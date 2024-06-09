@@ -742,8 +742,10 @@ void Npcs::EndMoveNpc(
 		StateType::RegimeType::BeingPlaced,
 		npc);
 
+#ifdef IN_BARYLAB
 	// Select NPC's primary particle
 	SelectParticle(npc.PrimaryParticleState.ParticleIndex);
+#endif
 }
 
 void Npcs::CompleteNewNpc(
@@ -1115,6 +1117,7 @@ bool Npcs::IsSpringHostingCurrentlySelectedParticle(ElementIndex springIndex) co
 
 void Npcs::Publish() const
 {
+#ifdef _DEBUG
 	std::optional<AbsoluteTriangleBCoords> constrainedRegimeParticleProbe;
 	std::optional<int> constrainedRegimeLastEnteredFloorDepth;
 	std::optional<bcoords3f> subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged;
@@ -1251,6 +1254,7 @@ void Npcs::Publish() const
 			}
 		}
 	}
+#endif
 }
 
 #endif
