@@ -286,17 +286,25 @@ void Npcs::UpdateNpcs(
     // Note: no need to reset PreliminaryForces as we'll recalculate all of them
 
     //
-    // 2. Check if a free secondary particle should become constrained
-    // 3. Calculate preliminary forces
+    // 2. Calculate preliminary forces
+    // 3. Check if a free secondary particle should become constrained
     //
 
     for (auto & npcState : mStateBuffer)
     {
         if (npcState.has_value())
         {
-            // Secondary free becoming constrained
+            // Preliminary forces for primary
 
-            // TODO: move the inner primary check before this loop - for tidyness
+            assert(npcState->ParticleMesh.Particles.size() > 0);
+
+            CalculateNpcParticlePreliminaryForces(
+                *npcState,
+                0,
+                gameParameters);
+
+            // Secondaries: preliminary forces, and free becoming constrained
+
             for (auto p = 1; p < npcState->ParticleMesh.Particles.size(); ++p)
             {
                 if (!npcState->ParticleMesh.Particles[p].ConstrainedState.has_value() // Secondary is free
@@ -315,12 +323,7 @@ void Npcs::UpdateNpcs(
                         TransitionParticleToConstrainedState(*npcState, static_cast<int>(p), std::move(*newConstrainedState));
                     }
                 }
-            }
 
-            // Preliminary Forces
-
-            for (auto p = 0; p < npcState->ParticleMesh.Particles.size(); ++p)
-            {
                 CalculateNpcParticlePreliminaryForces(
                     *npcState,
                     static_cast<int>(p),
