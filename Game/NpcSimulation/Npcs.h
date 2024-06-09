@@ -1016,7 +1016,6 @@ private:
 
 	void UpdateNpcAnimation(
 		StateType & npc,
-		int npcParticleOrdinal,
 		float currentSimulationTime,
 		Ship const & shipMesh);
 

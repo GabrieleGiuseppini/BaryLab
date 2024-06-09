@@ -387,14 +387,10 @@ void Npcs::UpdateNpcs(
 
             // Animation
 
-            for (auto p = 0; p < npcState->ParticleMesh.Particles.size(); ++p)
-            {
-                UpdateNpcAnimation(
-                    *npcState,
-                    static_cast<int>(p),
-                    currentSimulationTime,
-                    shipMesh);
-            }
+            UpdateNpcAnimation(
+                *npcState,
+                currentSimulationTime,
+                shipMesh);
         }
     }
 }
@@ -2852,11 +2848,10 @@ void Npcs::OnImpact(
 
 void Npcs::UpdateNpcAnimation(
     StateType & npc,
-    int npcParticleOrdinal,
     float currentSimulationTime,
     Ship const & shipMesh)
 {
-    if (npc.Kind == NpcKindType::Human && npcParticleOrdinal == 0) // Take the primary as the only representative of a human
+    if (npc.Kind == NpcKindType::Human) // Take the primary as the only representative of a human
     {
         auto & humanNpcState = npc.KindSpecificState.HumanNpcState;
         auto & animationState = humanNpcState.AnimationState;
