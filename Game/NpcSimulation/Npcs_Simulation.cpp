@@ -299,7 +299,7 @@ void Npcs::UpdateNpcs(
             // TODO: move the inner primary check before this loop - for tidyness
             for (auto p = 1; p < npcState->ParticleMesh.Particles.size(); ++p)
             {
-                if (npcState->ParticleMesh.Particles[p].ConstrainedState.has_value() // Secondary is free
+                if (!npcState->ParticleMesh.Particles[p].ConstrainedState.has_value() // Secondary is free
                     && npcState->ParticleMesh.Particles[0].ConstrainedState.has_value()) // And primary is constrained
                 {
                     assert(mShips[npcState->CurrentShipId].has_value());
@@ -311,6 +311,7 @@ void Npcs::UpdateNpcs(
 
                     if (newConstrainedState.has_value())
                     {
+                        // Make this secondary constrained
                         TransitionParticleToConstrainedState(*npcState, static_cast<int>(p), std::move(*newConstrainedState));
                     }
                 }
@@ -672,7 +673,7 @@ void Npcs::UpdateNpcParticlePhysics(
                         {
                             // Transition to free immediately
 
-                            TransitionParticleToFreeState(npc, true);
+                            TransitionParticleToFreeState(npc, npcParticleOrdinal);
 
                             UpdateNpcParticle_Free(
                                 npcParticle,
@@ -1240,6 +1241,15 @@ void Npcs::UpdateNpcParticlePhysics(
                     currentSimulationTime,
                     gameParameters);
 
+                if (npcParticle.ConstrainedState.has_value())
+                {
+                    LogNpcDebug("    EndBCoords=", npcParticle.ConstrainedState->CurrentBCoords);
+                }
+                else
+                {
+                    LogNpcDebug("    Became free");
+                }
+
                 // Update total traveled
                 if (npc.Kind == NpcKindType::Human
                     && npcParticleOrdinal == 0) // Human is represented by primary particle
@@ -1738,7 +1748,7 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
         {
             // Become free
 
-            TransitionParticleToFreeState(npc, true);
+            TransitionParticleToFreeState(npc, npcParticleOrdinal);
 
             UpdateNpcParticle_Free(
                 npcParticle,
