@@ -396,9 +396,6 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 		0.0f // Calculated later
 		});
 
-	primaryParticle.ConnectedSprings.emplace_back(0, secondaryParticleIndex);
-	secondaryParticle.ConnectedSprings.emplace_back(0, primaryParticleIndex);
-
 	RecalculateSpringForceParameters(dipoleSpring);
 
 	// Human

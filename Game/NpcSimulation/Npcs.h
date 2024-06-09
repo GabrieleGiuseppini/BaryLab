@@ -138,30 +138,9 @@ private:
 
 			std::optional<ConstrainedStateType> ConstrainedState;
 
-			struct NpcParticleConnectedSpringType final
-			{
-				int SpringOrdinal; // In mesh's springs
-				ElementIndex OtherEndpointIndex;
-
-				NpcParticleConnectedSpringType() // Default cctor only needed for array
-					: SpringOrdinal(-1)
-					, OtherEndpointIndex(NoneElementIndex)
-				{}
-
-				NpcParticleConnectedSpringType(
-					int springOrdinal,
-					ElementIndex otherEndpointIndex)
-					: SpringOrdinal(springOrdinal)
-					, OtherEndpointIndex(otherEndpointIndex)
-				{}
-			};
-
-			FixedSizeVector<NpcParticleConnectedSpringType, GameParameters::MaxSpringsPerNpcParticle> ConnectedSprings;
-
 			NpcParticleStateType() // Default cctor only needed for array
 				: ParticleIndex(NoneElementIndex)
 				, ConstrainedState()
-				, ConnectedSprings()
 			{}
 
 			NpcParticleStateType(
@@ -169,7 +148,6 @@ private:
 				std::optional<ConstrainedStateType> && constrainedState)
 				: ParticleIndex(particleIndex)
 				, ConstrainedState(std::move(constrainedState))
-				, ConnectedSprings()
 			{}
 
 			vec2f const & GetApplicableVelocity(NpcParticles const & particles) const
