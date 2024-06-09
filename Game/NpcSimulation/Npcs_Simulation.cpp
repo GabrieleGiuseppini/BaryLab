@@ -362,6 +362,7 @@ void Npcs::UpdateNpcs(
 
     //
     // 6. Update behavioral state machines
+    // 7. Update animation
     //
 
     LogNpcDebug("----------------------------------");
@@ -370,30 +371,21 @@ void Npcs::UpdateNpcs(
     {
         if (npcState.has_value())
         {
+            assert(mShips[npcState->CurrentShipId].has_value());
+            auto const & shipMesh = mShips[npcState->CurrentShipId]->ShipMesh;
+
+            // Behavior
+
             if (npcState->Kind == NpcKindType::Human)
             {
-                assert(mShips[npcState->CurrentShipId].has_value());
-                auto const & shipMesh = mShips[npcState->CurrentShipId]->ShipMesh;
-
                 UpdateHuman(
                     *npcState,
                     currentSimulationTime,
                     shipMesh,
                     gameParameters);
             }
-        }
-    }
 
-    //
-    // 7. Update animation
-    //
-
-    for (auto & npcState : mStateBuffer)
-    {
-        if (npcState.has_value())
-        {
-            assert(mShips[npcState->CurrentShipId].has_value());
-            auto const & shipMesh = mShips[npcState->CurrentShipId]->ShipMesh;
+            // Animation
 
             for (auto p = 0; p < npcState->ParticleMesh.Particles.size(); ++p)
             {
