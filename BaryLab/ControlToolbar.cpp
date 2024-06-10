@@ -32,7 +32,8 @@ long const ControlToolbar::ID_ROTATE_MESH_BY_PARTICLE = wxNewId();
 long const ControlToolbar::ID_ADD_HUMAN_NPC = wxNewId();
 long const ControlToolbar::ID_MOVE_NPC = wxNewId();
 long const ControlToolbar::ID_REMOVE_NPC = wxNewId();
-long const ControlToolbar::ID_ADD_FURNITURE_NPC = wxNewId();
+long const ControlToolbar::ID_ADD_FURNITURE_PARTICLE_NPC = wxNewId();
+long const ControlToolbar::ID_ADD_FURNITURE_QUAD_NPC = wxNewId();
 
 long const ControlToolbar::ID_SIMULATION_CONTROL_PLAY = wxNewId();
 long const ControlToolbar::ID_SIMULATION_CONTROL_PAUSE = wxNewId();
@@ -322,28 +323,52 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
             gridSizer->Add(mRemoveNpcButton);
         }
 
-        // Add Furniture NPC
+        // Add Furniture Particle NPC
         {
-            mAddFurnitureNpcButton = new wxBitmapToggleButton(
+            mAddFurnitureParticleNpcButton = new wxBitmapToggleButton(
                 this,
-                ID_ADD_FURNITURE_NPC,
+                ID_ADD_FURNITURE_PARTICLE_NPC,
                 wxBitmap(
-                    (ResourceLocator::GetResourcesFolderPath() / "add_furniture_npc_icon.png").string(),
+                    (ResourceLocator::GetResourcesFolderPath() / "add_furniture_particle_npc_icon.png").string(),
                     wxBITMAP_TYPE_PNG),
                 wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 
-            mAddFurnitureNpcButton->Bind(wxEVT_TOGGLEBUTTON,
+            mAddFurnitureParticleNpcButton->Bind(wxEVT_TOGGLEBUTTON,
                 [this](wxCommandEvent & /*event*/)
                 {
-                    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_ADD_FURNITURE_NPC);
+                    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_ADD_FURNITURE_PARTICLE_NPC);
                     ProcessEvent(evt);
 
-                    ReconciliateUIWithTool(ToolType::AddFurnitureNpc);
+                    ReconciliateUIWithTool(ToolType::AddFurnitureParticleNpc);
                 });
 
-            mAddFurnitureNpcButton->SetToolTip("Add a furniture NPC");
+            mAddFurnitureParticleNpcButton->SetToolTip("Add a particle furniture NPC");
 
-            gridSizer->Add(mAddFurnitureNpcButton);
+            gridSizer->Add(mAddFurnitureParticleNpcButton);
+        }
+
+        // Add Furniture Quad NPC
+        {
+            mAddFurnitureQuadNpcButton = new wxBitmapToggleButton(
+                this,
+                ID_ADD_FURNITURE_QUAD_NPC,
+                wxBitmap(
+                    (ResourceLocator::GetResourcesFolderPath() / "add_furniture_quad_npc_icon.png").string(),
+                    wxBITMAP_TYPE_PNG),
+                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+
+            mAddFurnitureQuadNpcButton->Bind(wxEVT_TOGGLEBUTTON,
+                [this](wxCommandEvent & /*event*/)
+                {
+                    wxCommandEvent evt(wxEVT_TOOLBAR_ACTION, ID_ADD_FURNITURE_QUAD_NPC);
+                    ProcessEvent(evt);
+
+                    ReconciliateUIWithTool(ToolType::AddFurnitureQuadNpc);
+                });
+
+            mAddFurnitureQuadNpcButton->SetToolTip("Add a quad furniture NPC");
+
+            gridSizer->Add(mAddFurnitureQuadNpcButton);
         }
 
         gridSizer->AddStretchSpacer();
@@ -791,7 +816,8 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(false);
-            mAddFurnitureNpcButton->SetValue(false);
+            mAddFurnitureParticleNpcButton->SetValue(false);
+            mAddFurnitureQuadNpcButton->SetValue(false);
 
             break;
         }
@@ -809,7 +835,9 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(false);
-            mAddFurnitureNpcButton->SetValue(false);
+            mAddFurnitureParticleNpcButton->SetValue(false);
+            mAddFurnitureQuadNpcButton->SetValue(false);
+
 
             break;
         }
@@ -827,7 +855,9 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(false);
-            mAddFurnitureNpcButton->SetValue(false);
+            mAddFurnitureParticleNpcButton->SetValue(false);
+            mAddFurnitureQuadNpcButton->SetValue(false);
+
 
             break;
         }
@@ -845,7 +875,9 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(false);
-            mAddFurnitureNpcButton->SetValue(false);
+            mAddFurnitureParticleNpcButton->SetValue(false);
+            mAddFurnitureQuadNpcButton->SetValue(false);
+
 
             break;
         }
@@ -862,8 +894,9 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
 
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(false);
-            mAddFurnitureNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(false);
+            mAddFurnitureParticleNpcButton->SetValue(false);
+            mAddFurnitureQuadNpcButton->SetValue(false);
 
             break;
         }
@@ -881,7 +914,8 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(false);
-            mAddFurnitureNpcButton->SetValue(false);
+            mAddFurnitureParticleNpcButton->SetValue(false);
+            mAddFurnitureQuadNpcButton->SetValue(false);
 
             break;
         }
@@ -899,7 +933,8 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(false);
-            mAddFurnitureNpcButton->SetValue(false);
+            mAddFurnitureParticleNpcButton->SetValue(false);
+            mAddFurnitureQuadNpcButton->SetValue(false);
 
             break;
         }
@@ -917,7 +952,8 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(true);
             mMoveNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(false);
-            mAddFurnitureNpcButton->SetValue(false);
+            mAddFurnitureParticleNpcButton->SetValue(false);
+            mAddFurnitureQuadNpcButton->SetValue(false);
 
             break;
         }
@@ -935,7 +971,8 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(true);
             mRemoveNpcButton->SetValue(false);
-            mAddFurnitureNpcButton->SetValue(false);
+            mAddFurnitureParticleNpcButton->SetValue(false);
+            mAddFurnitureQuadNpcButton->SetValue(false);
 
             break;
         }
@@ -953,12 +990,13 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(true);
-            mAddFurnitureNpcButton->SetValue(false);
+            mAddFurnitureParticleNpcButton->SetValue(false);
+            mAddFurnitureQuadNpcButton->SetValue(false);
 
             break;
         }
 
-        case ToolType::AddFurnitureNpc:
+        case ToolType::AddFurnitureParticleNpc:
         {
             mMoveParticleButton->SetValue(false);
             mMoveVertexButton->SetValue(false);
@@ -971,11 +1009,30 @@ void ControlToolbar::ReconciliateUIWithTool(ToolType tool)
             mAddHumanNpcButton->SetValue(false);
             mMoveNpcButton->SetValue(false);
             mRemoveNpcButton->SetValue(false);
-            mAddFurnitureNpcButton->SetValue(true);
+            mAddFurnitureParticleNpcButton->SetValue(true);
+            mAddFurnitureQuadNpcButton->SetValue(false);
 
             break;
         }
 
+        case ToolType::AddFurnitureQuadNpc:
+        {
+            mMoveParticleButton->SetValue(false);
+            mMoveVertexButton->SetValue(false);
+            mRotateMeshByPositionButton->SetValue(false);
+            mRotateMeshByParticleButton->SetValue(false);
+            mSetParticleTrajectoryButton->SetValue(false);
+            mSetOriginTriangleButton->SetValue(false);
+            mSelectParticleButton->SetValue(false);
+
+            mAddHumanNpcButton->SetValue(false);
+            mMoveNpcButton->SetValue(false);
+            mRemoveNpcButton->SetValue(false);
+            mAddFurnitureParticleNpcButton->SetValue(false);
+            mAddFurnitureQuadNpcButton->SetValue(true);
+
+            break;
+        }
     }
 }
 

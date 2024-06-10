@@ -150,7 +150,8 @@ MainFrame::MainFrame(wxApp * mainApp)
         mControlToolbar->Connect(ControlToolbar::ID_ROTATE_MESH_BY_POSITION, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnRotateMeshByPosition, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_ROTATE_MESH_BY_PARTICLE, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnRotateMeshByParticle, 0, this);
 
-        mControlToolbar->Connect(ControlToolbar::ID_ADD_FURNITURE_NPC, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnAddFurnitureNpc, 0, this);
+        mControlToolbar->Connect(ControlToolbar::ID_ADD_FURNITURE_PARTICLE_NPC, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnAddFurnitureParticleNpc, 0, this);
+        mControlToolbar->Connect(ControlToolbar::ID_ADD_FURNITURE_QUAD_NPC, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnAddFurnitureQuadNpc, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_ADD_HUMAN_NPC, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnAddHumanNpc, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_MOVE_NPC, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnMoveNpc, 0, this);
         mControlToolbar->Connect(ControlToolbar::ID_REMOVE_NPC, ControlToolbar::wxEVT_TOOLBAR_ACTION, (wxObjectEventFunction)&MainFrame::OnRemoveNpc, 0, this);
@@ -718,11 +719,16 @@ void MainFrame::OnRotateMeshByParticle(wxCommandEvent & /*event*/)
     mToolController->SetTool(ToolType::RotateMeshByParticle);
 }
 
-void MainFrame::OnAddFurnitureNpc(wxCommandEvent & /*event*/)
+void MainFrame::OnAddFurnitureParticleNpc(wxCommandEvent & /*event*/)
 {
     assert(!!mToolController);
-    //mToolController->SetFurnitureNpcPlaceTool(FurnitureNpcKindType::Particle); // Futurework
-    mToolController->SetFurnitureNpcPlaceTool(FurnitureNpcKindType::Crate); // Futurework
+    mToolController->SetTool(ToolType::AddFurnitureParticleNpc);
+}
+
+void MainFrame::OnAddFurnitureQuadNpc(wxCommandEvent & /*event*/)
+{
+    assert(!!mToolController);
+    mToolController->SetTool(ToolType::AddFurnitureQuadNpc);
 }
 
 void MainFrame::OnAddHumanNpc(wxCommandEvent & /*event*/)

@@ -274,7 +274,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 
 	switch (furnitureKind)
 	{
-		case FurnitureNpcKindType::Crate:
+		case FurnitureNpcKindType::Quad:
 		{
 			// Check if there are enough particles
 

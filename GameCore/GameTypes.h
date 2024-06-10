@@ -801,7 +801,7 @@ enum class NpcKindType
 enum class FurnitureNpcKindType
 {
     Particle,
-    Crate
+    Quad
 };
 
 /*

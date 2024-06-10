@@ -28,10 +28,11 @@ enum class ToolType
     SetOriginTriangle = 5,
     SelectParticle = 6,
 
-    AddFurnitureNpc = 7,
-    AddHumanNpc = 8,
-    MoveNpc = 9,
-    RemoveNpc = 10
+    AddFurnitureParticleNpc = 7,
+    AddFurnitureQuadNpc = 8,
+    AddHumanNpc = 9,
+    MoveNpc = 10,
+    RemoveNpc = 11
 };
 
 struct InputState
@@ -817,31 +818,40 @@ private:
     wxCursor const mErrorCursor;
 };
 
-class AddFurnitureNpcTool final : public AddNpcToolBase
+class AddFurnitureParticleNpcTool final : public AddNpcToolBase
 {
 public:
 
-    AddFurnitureNpcTool(
+    AddFurnitureParticleNpcTool(
         wxWindow * cursorWindow,
         std::shared_ptr<LabController> labController);
-
-    void SetFurnitureNpcKind(FurnitureNpcKindType furnitureNpcKind)
-    {
-        mFurnitureNpcKind = furnitureNpcKind;
-    }
 
 protected:
 
     std::optional<PickedObjectId<NpcId>> InternalBeginPlaceNewNpc(vec2f const & screenCoordinates) override
     {
         return mLabController->BeginPlaceNewFurnitureNpc(
-            mFurnitureNpcKind,
+            FurnitureNpcKindType::Particle,
             screenCoordinates);
     }
+};
 
-private:
+class AddFurnitureQuadNpcTool final : public AddNpcToolBase
+{
+public:
 
-    FurnitureNpcKindType mFurnitureNpcKind;
+    AddFurnitureQuadNpcTool(
+        wxWindow * cursorWindow,
+        std::shared_ptr<LabController> labController);
+
+protected:
+
+    std::optional<PickedObjectId<NpcId>> InternalBeginPlaceNewNpc(vec2f const & screenCoordinates) override
+    {
+        return mLabController->BeginPlaceNewFurnitureNpc(
+            FurnitureNpcKindType::Quad,
+            screenCoordinates);
+    }
 };
 
 
