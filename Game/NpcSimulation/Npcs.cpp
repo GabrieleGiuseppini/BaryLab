@@ -587,23 +587,26 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 {
 	float const squareSearchRadius = gameParameters.ToolSearchRadius * gameParameters.ToolSearchRadius;
 
-	NpcId nearestNpc = NoneNpcId;
-	float nearestNpcSquareDistance = std::numeric_limits<float>::max();
-	vec2f nearestNpcPosition = vec2f::zero();
+	struct NearestNpcType
+	{
+		NpcId Npc{ NoneNpcId };
+		float SquareDistance{ std::numeric_limits<float>::max() };
+		vec2f Position{ vec2f::zero() };
+	};
+
+	NearestNpcType nearestOnPlaneNpc;
+	NearestNpcType nearestOffPlaneNpc;
 
 	//
 	// Determine ship and plane of this position - if any
 	//
 
+	std::pair<ShipId, PlaneId> probeDepth;
+
 	// Find topmost triangle containing this position
 	auto const topmostTriangle = FindTopmostTriangleContaining(position);
 	if (topmostTriangle)
 	{
-		//
-		// Probing in a triangle...
-		// ...search on this triangle's plane only
-		//
-
 		assert(topmostTriangle->GetShipId() < mShips.size());
 		assert(mShips[topmostTriangle->GetShipId()].has_value());
 		auto const & ship = *mShips[topmostTriangle->GetShipId()];
@@ -611,112 +614,98 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 		ElementIndex const trianglePointIndex = ship.ShipMesh.GetTriangles().GetPointAIndex(topmostTriangle->GetLocalObjectId());
 		PlaneId const planeId = ship.ShipMesh.GetPoints().GetPlaneId(trianglePointIndex);
 
-		for (auto const n : ship.Npcs)
-		{
-			assert(mStateBuffer[n].has_value());
-			auto const & state = *mStateBuffer[n];
+		probeDepth = { ship.ShipMesh.GetId(), planeId };
+	}
+	else
+	{
+		probeDepth = { 0, 0 }; // Bottommost
+	}
 
-			// Choose which particle to use as representative of this NPC
-			ElementIndex candidateParticle = NoneElementIndex;
-			std::optional<StateType::NpcParticleStateType::ConstrainedStateType> const * candidateNpcConstrainedState = nullptr;
-			switch (state.Kind)
+	//
+	// Visit all NPCs and find winner. if any
+	//
+
+	auto particleVisitor = [&](ElementIndex candidateParticleIndex, StateType const & npc, ShipId const & shipId)
+		{
+			vec2f const candidateNpcPosition = mParticles.GetPosition(candidateParticleIndex);
+			float const squareDistance = (candidateNpcPosition - position).squareLength();
+			if (squareDistance < squareSearchRadius)
+			{
+				auto const candidatePlaneId = npc.CurrentPlaneId.value_or(std::numeric_limits<PlaneId>::max());
+				if (std::make_pair(shipId, candidatePlaneId) >= probeDepth)
+				{
+					// It's on-plane
+					if (squareDistance < nearestOnPlaneNpc.SquareDistance)
+					{
+						nearestOnPlaneNpc = { npc.Id, squareDistance, candidateNpcPosition };
+					}
+				}
+				else
+				{
+					// It's off-plane
+					if (squareDistance < nearestOffPlaneNpc.SquareDistance)
+					{
+						nearestOffPlaneNpc = { npc.Id, squareDistance, candidateNpcPosition };
+					}
+				}
+			}
+		};
+
+	for (auto const & state : mStateBuffer)
+	{
+		if (state.has_value())
+		{
+			auto const & ship = mShips[state->CurrentShipId];
+
+			switch (state->Kind)
 			{
 				case NpcKindType::Furniture:
 				{
-					// Primary
-					assert(state.ParticleMesh.Particles.size() > 0);
-					candidateParticle = state.ParticleMesh.Particles[0].ParticleIndex;
-					candidateNpcConstrainedState = &(state.ParticleMesh.Particles[0].ConstrainedState);
+					// All particles
+
+					for (auto const & particle : state->ParticleMesh.Particles)
+					{
+						particleVisitor(
+							particle.ParticleIndex,
+							*state,
+							state->CurrentShipId);
+					}
+
 					break;
 				}
 
 				case NpcKindType::Human:
 				{
 					// Head
-					assert(state.ParticleMesh.Particles.size() == 2);
-					candidateParticle = state.ParticleMesh.Particles[1].ParticleIndex;
-					candidateNpcConstrainedState = &(state.ParticleMesh.Particles[1].ConstrainedState);
+
+					assert(state->ParticleMesh.Particles.size() == 2);
+
+					particleVisitor(
+						state->ParticleMesh.Particles[1].ParticleIndex,
+						*state,
+						state->CurrentShipId);
+
 					break;
 				}
 			}
-
-			assert(candidateParticle != NoneElementIndex);
-			assert(candidateNpcConstrainedState != nullptr);
-
-			// Get plane of this NPC
-			PlaneId candidateNpcPlane;
-			if (candidateNpcConstrainedState->has_value())
-			{
-				assert(mShips[state.CurrentShipId].has_value());
-				candidateNpcPlane = mShips[state.CurrentShipId]->ShipMesh.GetPoints().GetPlaneId(
-					mShips[state.CurrentShipId]->ShipMesh.GetTriangles().GetPointAIndex(candidateNpcConstrainedState->value().CurrentBCoords.TriangleElementIndex));
-			}
-			else
-			{
-				candidateNpcPlane = NonePlaneId;
-			}
-
-			// Calculate distance of primary particle from search point
-			vec2f const candidateNpcPosition = mParticles.GetPosition(candidateParticle);
-			float const squareDistance = (candidateNpcPosition - position).squareLength();
-			if (squareDistance < squareSearchRadius && squareDistance < nearestNpcSquareDistance
-				&& (candidateNpcPlane == NonePlaneId || candidateNpcPlane == planeId))
-			{
-				nearestNpc = state.Id;
-				nearestNpcSquareDistance = squareDistance;
-				nearestNpcPosition = candidateNpcPosition;
-			}
-		}
-	}
-	else
-	{
-		//
-		// Probing in free space...
-		// ...find nearest NPC, regardless of ship (and of plane)
-		//
-
-		for (auto const & state : mStateBuffer)
-		{
-			if (state.has_value())
-			{
-				// Choose which particle to use as representative of this NPC
-				ElementIndex candidateParticle = NoneElementIndex;
-				switch (state->Kind)
-				{
-					case NpcKindType::Furniture:
-					{
-						candidateParticle = state->ParticleMesh.Particles[0].ParticleIndex;
-						break;
-					}
-
-					case NpcKindType::Human:
-					{
-						// Head
-						assert(state->ParticleMesh.Particles.size() == 2);
-						candidateParticle = state->ParticleMesh.Particles[1].ParticleIndex;
-						break;
-					}
-				}
-
-				assert(candidateParticle != NoneElementIndex);
-
-				vec2f const candidateNpcPosition = mParticles.GetPosition(candidateParticle);
-				float const squareDistance = (candidateNpcPosition - position).squareLength();
-				if (squareDistance < squareSearchRadius && squareDistance < nearestNpcSquareDistance)
-				{
-					nearestNpc = state->Id;
-					nearestNpcSquareDistance = squareDistance;
-					nearestNpcPosition = candidateNpcPosition;
-				}
-			}
 		}
 	}
 
-	if (nearestNpc != NoneNpcId)
+	//
+	// Pick a winner - on-plane has higher prio than off-place
+	//
+
+	if (nearestOnPlaneNpc.Npc != NoneNpcId)
 	{
 		return PickedObjectId<NpcId>(
-			nearestNpc,
-			position - nearestNpcPosition);
+			nearestOnPlaneNpc.Npc,
+			position - nearestOnPlaneNpc.Position);
+	}
+	else if (nearestOffPlaneNpc.Npc != NoneNpcId)
+	{
+		return PickedObjectId<NpcId>(
+			nearestOffPlaneNpc.Npc,
+			position - nearestOffPlaneNpc.Position);
 	}
 	else
 	{
