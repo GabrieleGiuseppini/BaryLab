@@ -1,7 +1,6 @@
 [
     {
 	"kind": "Furniture",
-	"name": "Furniture",
         "render_color": "#000060", 
 
 	"mass": 34.5,
@@ -15,7 +14,6 @@
 
     {        
 	"kind": "HumanHead",
-	"name": "HumanHead",
 	"render_color": "#006000", 
 
 	"mass": 34.5,
@@ -29,7 +27,6 @@
 
     {
 	"kind": "HumanFeet",
-	"name": "HumanFeet",
 	"render_color": "#600000", 
 	
 	"mass": 34.5,
