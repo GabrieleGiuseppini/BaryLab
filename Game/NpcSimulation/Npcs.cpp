@@ -292,8 +292,9 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 
 			for (int p = 0; p < 4; ++p)
 			{
+				// CW order
 				vec2f particlePosition = worldCoordinates;
-				if (p == 1 || p == 3)
+				if (p == 1 || p == 2)
 				{
 					particlePosition.x += SideLength;
 				}
@@ -328,6 +329,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 				furnitureMaterial.SpringDampingCoefficient,
 				massFactor);
 
+			// 0 - 1
 			{
 				baseSpring.EndpointAIndex = particleMesh.Particles[0].ParticleIndex;
 				baseSpring.EndpointBIndex = particleMesh.Particles[1].ParticleIndex;
@@ -336,30 +338,34 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 				RecalculateSpringForceParameters(spring);
 			}
 
+			// 0 | 3
 			{
 				baseSpring.EndpointAIndex = particleMesh.Particles[0].ParticleIndex;
+				baseSpring.EndpointBIndex = particleMesh.Particles[3].ParticleIndex;
+				baseSpring.DipoleLength = SideLength;
+				auto & spring = particleMesh.Springs.emplace_back(baseSpring);
+				RecalculateSpringForceParameters(spring);
+			}
+
+			// 0 \ 2
+			{
+				baseSpring.EndpointAIndex = particleMesh.Particles[0].ParticleIndex;
+				baseSpring.EndpointBIndex = particleMesh.Particles[2].ParticleIndex;
+				baseSpring.DipoleLength = DiagonalSideLength;
+				auto & spring = particleMesh.Springs.emplace_back(baseSpring);
+				RecalculateSpringForceParameters(spring);
+			}
+
+			// 1 | 2
+			{
+				baseSpring.EndpointAIndex = particleMesh.Particles[1].ParticleIndex;
 				baseSpring.EndpointBIndex = particleMesh.Particles[2].ParticleIndex;
 				baseSpring.DipoleLength = SideLength;
 				auto & spring = particleMesh.Springs.emplace_back(baseSpring);
 				RecalculateSpringForceParameters(spring);
 			}
 
-			{
-				baseSpring.EndpointAIndex = particleMesh.Particles[0].ParticleIndex;
-				baseSpring.EndpointBIndex = particleMesh.Particles[3].ParticleIndex;
-				baseSpring.DipoleLength = DiagonalSideLength;
-				auto & spring = particleMesh.Springs.emplace_back(baseSpring);
-				RecalculateSpringForceParameters(spring);
-			}
-
-			{
-				baseSpring.EndpointAIndex = particleMesh.Particles[1].ParticleIndex;
-				baseSpring.EndpointBIndex = particleMesh.Particles[3].ParticleIndex;
-				baseSpring.DipoleLength = SideLength;
-				auto & spring = particleMesh.Springs.emplace_back(baseSpring);
-				RecalculateSpringForceParameters(spring);
-			}
-
+			// 2 - 3
 			{
 				baseSpring.EndpointAIndex = particleMesh.Particles[2].ParticleIndex;
 				baseSpring.EndpointBIndex = particleMesh.Particles[3].ParticleIndex;
@@ -368,9 +374,10 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 				RecalculateSpringForceParameters(spring);
 			}
 
+			// 1 / 3
 			{
 				baseSpring.EndpointAIndex = particleMesh.Particles[1].ParticleIndex;
-				baseSpring.EndpointBIndex = particleMesh.Particles[2].ParticleIndex;
+				baseSpring.EndpointBIndex = particleMesh.Particles[3].ParticleIndex;
 				baseSpring.DipoleLength = DiagonalSideLength;
 				auto & spring = particleMesh.Springs.emplace_back(baseSpring);
 				RecalculateSpringForceParameters(spring);
@@ -2048,9 +2055,9 @@ void Npcs::RenderNpc(
 						vec2f{-1.0f, 1.0f},
 						mParticles.GetPosition(npc.ParticleMesh.Particles[1].ParticleIndex),
 						vec2f{ 1.0f, 1.0f },
-						mParticles.GetPosition(npc.ParticleMesh.Particles[2].ParticleIndex),
-						vec2f{ -1.0f, -1.0f },
 						mParticles.GetPosition(npc.ParticleMesh.Particles[3].ParticleIndex),
+						vec2f{ -1.0f, -1.0f },
+						mParticles.GetPosition(npc.ParticleMesh.Particles[2].ParticleIndex),
 						vec2f{ 1.0f, -1.0f }
 					),
 					1.0f,
