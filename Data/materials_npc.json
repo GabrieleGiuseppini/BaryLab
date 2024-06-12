@@ -5,6 +5,8 @@
         "render_color": "#000060", 
 
 	"mass": 34.5,
+	"spring_reduction_fraction": 0.81,
+	"spring_damping_coefficient": 0.5,
 	"static_friction": 0.07,
 	"kinetic_friction": 0.05,
 	"elasticity": 0.6,
@@ -17,6 +19,8 @@
 	"render_color": "#006000", 
 
 	"mass": 34.5,
+	"spring_reduction_fraction": 0.39,
+	"spring_damping_coefficient": 0.5,
 	"static_friction": 0.1,
 	"kinetic_friction": 0.1,
 	"elasticity": 0.42,
@@ -29,6 +33,8 @@
 	"render_color": "#600000", 
 	
 	"mass": 34.5,
+	"spring_reduction_fraction": 0.39,
+	"spring_damping_coefficient": 0.5,
 	"static_friction": 1.045,
 	"kinetic_friction": 1.0,
 	"elasticity": 0.42,

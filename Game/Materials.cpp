@@ -38,17 +38,21 @@ NpcMaterial NpcMaterial::Create(picojson::object const & npcMaterialJson)
         KindType const kind = StrToKindType(Utils::GetMandatoryJsonMember<std::string>(npcMaterialJson, "kind"));
         rgbColor const renderColor = Utils::Hex2RgbColor(Utils::GetMandatoryJsonMember<std::string>(npcMaterialJson, "render_color"));
 
-        float const mass = Utils::GetOptionalJsonMember<float>(npcMaterialJson, "mass", 1.0f);
-        float const staticFriction = Utils::GetOptionalJsonMember<float>(npcMaterialJson, "static_friction", 1.0f);
-        float const kineticFriction = Utils::GetOptionalJsonMember<float>(npcMaterialJson, "kinetic_friction", 1.0f);
-        float const elasticity = Utils::GetOptionalJsonMember<float>(npcMaterialJson, "elasticity", 0.0f);
-        float const buoyancyVolumeFill = Utils::GetOptionalJsonMember<float>(npcMaterialJson, "buoyancy_volume_fill", 1.0f);
+        float const mass = Utils::GetMandatoryJsonMember<float>(npcMaterialJson, "mass");
+        float const springReductionFraction = Utils::GetMandatoryJsonMember<float>(npcMaterialJson, "spring_reduction_fraction");
+        float const springDampingCoefficient = Utils::GetMandatoryJsonMember<float>(npcMaterialJson, "spring_damping_coefficient");
+        float const staticFriction = Utils::GetMandatoryJsonMember<float>(npcMaterialJson, "static_friction");
+        float const kineticFriction = Utils::GetMandatoryJsonMember<float>(npcMaterialJson, "kinetic_friction");
+        float const elasticity = Utils::GetMandatoryJsonMember<float>(npcMaterialJson, "elasticity");
+        float const buoyancyVolumeFill = Utils::GetMandatoryJsonMember<float>(npcMaterialJson, "buoyancy_volume_fill");
 
         return NpcMaterial(
             name,
             kind,
             rgbaColor(renderColor, rgbaColor::data_type_max),
             mass,
+            springReductionFraction,
+            springDampingCoefficient,
             staticFriction,
             kineticFriction,
             elasticity,

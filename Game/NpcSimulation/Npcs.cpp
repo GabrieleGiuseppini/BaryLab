@@ -38,11 +38,11 @@ void Npcs::Update(
 		mCurrentHumanNpcWalkingSpeedAdjustment = gameParameters.HumanNpcWalkingSpeedAdjustment;
 	}
 
-	if (gameParameters.NpcSpringReductionFraction != mCurrentSpringReductionFraction
-		|| gameParameters.NpcSpringDampingCoefficient != mCurrentSpringDampingCoefficient)
+	if (gameParameters.NpcSpringReductionFractionAdjustment != mCurrentSpringReductionFractionAdjustment
+		|| gameParameters.NpcSpringDampingCoefficientAdjustment != mCurrentSpringDampingCoefficientAdjustment)
 	{
-		mCurrentSpringReductionFraction = gameParameters.NpcSpringReductionFraction;
-		mCurrentSpringDampingCoefficient = gameParameters.NpcSpringDampingCoefficient;
+		mCurrentSpringReductionFractionAdjustment = gameParameters.NpcSpringReductionFractionAdjustment;
+		mCurrentSpringDampingCoefficientAdjustment = gameParameters.NpcSpringDampingCoefficientAdjustment;
 
 		RecalculateSpringForceParameters();
 	}
@@ -320,13 +320,13 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 				(furnitureMaterial.Mass * furnitureMaterial.Mass)
 				/ (furnitureMaterial.Mass + furnitureMaterial.Mass);
 
-			StateType::NpcSpringStateType baseSpring = {
+			StateType::NpcSpringStateType baseSpring(
 				NoneElementIndex,
 				NoneElementIndex,
 				0,
-				massFactor,
-				0.0f,   // Calculated later
-				0.0f }; // Calculated later
+				furnitureMaterial.SpringReductionFraction,
+				furnitureMaterial.SpringDampingCoefficient,
+				massFactor);
 
 			{
 				baseSpring.EndpointAIndex = particleMesh.Particles[0].ParticleIndex;
@@ -505,14 +505,13 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 		(feetMaterial.Mass * headMaterial.Mass)
 		/ (feetMaterial.Mass + headMaterial.Mass);
 
-	auto & dipoleSpring = particleMesh.Springs.emplace_back(StateType::NpcSpringStateType{
+	auto & dipoleSpring = particleMesh.Springs.emplace_back(
 		primaryParticleIndex,
 		secondaryParticleIndex,
 		CalculateHumanNpcDipoleLength(height),
-		massFactor,
-		0.0f, // Calculated later
-		0.0f // Calculated later
-		});
+		headMaterial.SpringReductionFraction,
+		headMaterial.SpringDampingCoefficient,
+		massFactor);
 
 	RecalculateSpringForceParameters(dipoleSpring);
 

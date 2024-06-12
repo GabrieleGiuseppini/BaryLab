@@ -499,50 +499,50 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
                     CellBorder);
             }
 
-            // Spring Reduction Fraction
+            // Spring Reduction Fraction Adjustment
             {
-                mSpringReductionFractionSlider = new SliderControl<float>(
+                mSpringReductionFractionAdjustmentSlider = new SliderControl<float>(
                     mechanicsBox,
                     SliderWidth,
                     SliderHeight,
-                    "Spring Reduction Fraction",
-                    "The stiffness of springs.",
+                    "Spring Stiffness Adjust",
+                    "Adjusts the stiffness of springs.",
                     [this](float value)
                     {
-                        this->mLiveSettings.SetValue(SLabSettings::SpringReductionFraction, value);
+                        this->mLiveSettings.SetValue(SLabSettings::SpringReductionFractionAdjustment, value);
                         this->OnLiveSettingsChanged();
                     },
                     std::make_unique<LinearSliderCore>(
-                        mLabController->GetMinSpringReductionFraction(),
-                        mLabController->GetMaxSpringReductionFraction()));
+                        mLabController->GetMinSpringReductionFractionAdjustment(),
+                        mLabController->GetMaxSpringReductionFractionAdjustment()));
 
                 mechanicsSizer->Add(
-                    mSpringReductionFractionSlider,
+                    mSpringReductionFractionAdjustmentSlider,
                     wxGBPosition(0, 7),
                     wxGBSpan(1, 1),
                     wxEXPAND | wxALL,
                     CellBorder);
             }
 
-            // Spring Damping Coefficient
+            // Spring Damping Coefficient Adjustment
             {
-                mSpringDampingCoefficientSlider = new SliderControl<float>(
+                mSpringDampingCoefficientAdjustmentSlider = new SliderControl<float>(
                     mechanicsBox,
                     SliderWidth,
                     SliderHeight,
-                    "Spring Damping Coefficient",
-                    "The damping coefficient of springs.",
+                    "Spring Damping Adjust",
+                    "Adjusts the damping coefficient of springs.",
                     [this](float value)
                     {
-                        this->mLiveSettings.SetValue(SLabSettings::SpringDampingCoefficient, value);
+                        this->mLiveSettings.SetValue(SLabSettings::SpringDampingCoefficientAdjustment, value);
                         this->OnLiveSettingsChanged();
                     },
                     std::make_unique<LinearSliderCore>(
-                        mLabController->GetMinSpringDampingCoefficient(),
-                        mLabController->GetMaxSpringDampingCoefficient()));
+                        mLabController->GetMinSpringDampingCoefficientAdjustment(),
+                        mLabController->GetMaxSpringDampingCoefficientAdjustment()));
 
                 mechanicsSizer->Add(
-                    mSpringDampingCoefficientSlider,
+                    mSpringDampingCoefficientAdjustmentSlider,
                     wxGBPosition(0, 8),
                     wxGBSpan(1, 1),
                     wxEXPAND | wxALL,
@@ -768,8 +768,8 @@ void SettingsDialog::SyncControlsWithSettings(Settings<SLabSettings> const & set
     mGravityAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::GravityAdjustment));
     mGlobalDampingSlider->SetValue(settings.GetValue<float>(SLabSettings::GlobalDamping));
     mSeaLevelSlider->SetValue(settings.GetValue<float>(SLabSettings::SeaLevel));
-    mSpringReductionFractionSlider->SetValue(settings.GetValue<float>(SLabSettings::SpringReductionFraction));
-    mSpringDampingCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::SpringDampingCoefficient));
+    mSpringReductionFractionAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::SpringReductionFractionAdjustment));
+    mSpringDampingCoefficientAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::SpringDampingCoefficientAdjustment));
     mWaterFrictionDragCoefficientAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::WaterFrictionDragCoefficientAdjustment));
     mBuoyancyAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::BuoyancyAdjustment));
 

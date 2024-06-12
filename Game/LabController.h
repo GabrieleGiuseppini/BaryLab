@@ -243,15 +243,15 @@ public:
     float GetMinSeaLevel() const { return Physics::OceanSurface::MinDepth; }
     float GetMaxSeaLevel() const { return Physics::OceanSurface::MaxDepth; }
 
-    float GetSpringReductionFraction() const { return mGameParameters.NpcSpringReductionFraction; }
-    void SetSpringReductionFraction(float value) { mGameParameters.NpcSpringReductionFraction = value; }
-    float GetMinSpringReductionFraction() const { return GameParameters::MinNpcSpringReductionFraction; }
-    float GetMaxSpringReductionFraction() const { return GameParameters::MaxNpcSpringReductionFraction; }
+    float GetSpringReductionFractionAdjustment() const { return mGameParameters.NpcSpringReductionFractionAdjustment; }
+    void SetSpringReductionFractionAdjustment(float value) { mGameParameters.NpcSpringReductionFractionAdjustment = value; }
+    float GetMinSpringReductionFractionAdjustment() const { return GameParameters::MinNpcSpringReductionFractionAdjustment; }
+    float GetMaxSpringReductionFractionAdjustment() const { return GameParameters::MaxNpcSpringReductionFractionAdjustment; }
 
-    float GetSpringDampingCoefficient() const { return mGameParameters.NpcSpringDampingCoefficient; }
-    void SetSpringDampingCoefficient(float value) { mGameParameters.NpcSpringDampingCoefficient = value; }
-    float GetMinSpringDampingCoefficient() const { return GameParameters::MinNpcSpringDampingCoefficient; }
-    float GetMaxSpringDampingCoefficient() const { return GameParameters::MaxNpcSpringDampingCoefficient; }
+    float GetSpringDampingCoefficientAdjustment() const { return mGameParameters.NpcSpringDampingCoefficientAdjustment; }
+    void SetSpringDampingCoefficientAdjustment(float value) { mGameParameters.NpcSpringDampingCoefficientAdjustment = value; }
+    float GetMinSpringDampingCoefficientAdjustment() const { return GameParameters::MinNpcSpringDampingCoefficientAdjustment; }
+    float GetMaxSpringDampingCoefficientAdjustment() const { return GameParameters::MaxNpcSpringDampingCoefficientAdjustment; }
 
     float GetWaterFrictionDragCoefficientAdjustment() const { return mGameParameters.WaterFrictionDragCoefficientAdjustment; }
     void SetWaterFrictionDragCoefficientAdjustment(float value) { mGameParameters.WaterFrictionDragCoefficientAdjustment = value; }

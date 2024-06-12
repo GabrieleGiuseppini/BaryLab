@@ -169,11 +169,32 @@ private:
 			ElementIndex EndpointBIndex; // Index in NpcParticles
 
 			float DipoleLength; // Adjusted
+			float SpringReductionFraction;
+			float SpringDampingCoefficient;
 			float MassFactor; // Purely from materials
 
 			// Calculated
-			float SpringStiffnessCoefficient;
-			float SpringDampingCoefficient;
+			float SpringStiffnessFactor;
+			float SpringDampingFactor;
+
+			NpcSpringStateType() = default; // For array
+
+			NpcSpringStateType(
+				ElementIndex endpointAIndex,
+				ElementIndex endpointBIndex,
+				float dipoleLength,
+				float springReductionFraction,
+				float springDampingCoefficient,
+				float massFactor)
+				: EndpointAIndex(endpointAIndex)
+				, EndpointBIndex(endpointBIndex)
+				, DipoleLength(dipoleLength)
+				, SpringReductionFraction(springReductionFraction)
+				, SpringDampingCoefficient(springDampingCoefficient)
+				, MassFactor(massFactor)
+				, SpringStiffnessFactor(0.0f) // Calculated later
+				, SpringDampingFactor(0.0f) // Calculated later
+			{}
 		};
 
 		struct ParticleMeshType final
@@ -603,8 +624,8 @@ public:
 		// Simulation Parameters
 		, mCurrentHumanNpcBodyLengthAdjustment(gameParameters.HumanNpcBodyLengthAdjustment)
 		, mCurrentHumanNpcWalkingSpeedAdjustment(gameParameters.HumanNpcWalkingSpeedAdjustment)
-		, mCurrentSpringReductionFraction(gameParameters.NpcSpringReductionFraction)
-		, mCurrentSpringDampingCoefficient(gameParameters.NpcSpringReductionFraction)
+		, mCurrentSpringReductionFractionAdjustment(gameParameters.NpcSpringReductionFractionAdjustment)
+		, mCurrentSpringDampingCoefficientAdjustment(gameParameters.NpcSpringReductionFractionAdjustment)
 	{}
 
 	void Update(
@@ -1258,8 +1279,8 @@ private:
 	// Cached from game parameters
 	float mCurrentHumanNpcBodyLengthAdjustment;
 	float mCurrentHumanNpcWalkingSpeedAdjustment;
-	float mCurrentSpringReductionFraction;
-	float mCurrentSpringDampingCoefficient;
+	float mCurrentSpringReductionFractionAdjustment;
+	float mCurrentSpringDampingCoefficientAdjustment;
 
 #ifdef IN_BARYLAB
 

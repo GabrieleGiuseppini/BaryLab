@@ -15,8 +15,8 @@ GameParameters::GameParameters()
 	// Misc
 	, ToolSearchRadius(0.3f)
 	// NPC
-	, NpcSpringReductionFraction(0.39f) // At least for humans, larger than this causes heads to pull up feet
-	, NpcSpringDampingCoefficient(0.5f)
+	, NpcSpringReductionFractionAdjustment(1.0f)
+	, NpcSpringDampingCoefficientAdjustment(1.0f)
 	, HumanNpcEquilibriumTorqueStiffnessCoefficient(0.0035f)
 	, HumanNpcEquilibriumTorqueDampingCoefficient(0.0012f)
 	, HumanNpcWalkingSpeedAdjustment(1.0f)

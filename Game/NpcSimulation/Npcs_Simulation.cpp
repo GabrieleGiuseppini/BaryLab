@@ -1389,7 +1389,7 @@ void Npcs::CalculateNpcParticleSpringForces(StateType const & npc)
         // Calculate spring force on this particle
         float const fSpring =
             (springDisplacementLength - spring.DipoleLength)
-            * spring.SpringStiffnessCoefficient;
+            * spring.SpringStiffnessFactor;
 
         //
         // 3b. Damper forces
@@ -1402,7 +1402,7 @@ void Npcs::CalculateNpcParticleSpringForces(StateType const & npc)
         vec2f const relVelocity = mParticles.GetVelocity(spring.EndpointAIndex) - mParticles.GetVelocity(spring.EndpointBIndex);
         float const fDamp =
             relVelocity.dot(springDir)
-            * spring.SpringDampingCoefficient;
+            * spring.SpringDampingFactor;
 
         //
         // Apply forces
@@ -1519,20 +1519,22 @@ void Npcs::RecalculateSpringForceParameters()
 
 void Npcs::RecalculateSpringForceParameters(StateType::NpcSpringStateType & spring) const
 {
-    spring.SpringStiffnessCoefficient =
-        mCurrentSpringReductionFraction
+    spring.SpringStiffnessFactor =
+        spring.SpringReductionFraction
         * spring.MassFactor
 #ifdef IN_BARYLAB
         * mCurrentMassAdjustment
 #endif
+        * mCurrentSpringReductionFractionAdjustment
         / (GameParameters::SimulationTimeStepDuration * GameParameters::SimulationTimeStepDuration);
 
-    spring.SpringDampingCoefficient =
-        mCurrentSpringDampingCoefficient
+    spring.SpringDampingFactor =
+        spring.SpringDampingCoefficient
         * spring.MassFactor
 #ifdef IN_BARYLAB
         * mCurrentMassAdjustment
 #endif
+        * mCurrentSpringDampingCoefficientAdjustment
         / GameParameters::SimulationTimeStepDuration;
 }
 
