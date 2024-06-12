@@ -289,12 +289,16 @@ void Npcs::UpdateNpcs(
     // 2. Calculate preliminary forces
     // 3. Check if a free secondary particle should become constrained
     // 4. Calculate spring forces
+    // 5. Update physical state
     //
 
     for (auto & npcState : mStateBuffer)
     {
         if (npcState.has_value())
         {
+            assert(mShips[npcState->CurrentShipId].has_value());
+            auto const & shipMesh = mShips[npcState->CurrentShipId]->ShipMesh;
+
             // Preliminary forces for primary
 
             assert(npcState->ParticleMesh.Particles.size() > 0);
@@ -315,7 +319,7 @@ void Npcs::UpdateNpcs(
 
                     auto newConstrainedState = CalculateParticleConstrainedState(
                         mParticles.GetPosition(npcState->ParticleMesh.Particles[p].ParticleIndex),
-                        mShips[npcState->CurrentShipId]->ShipMesh,
+                        shipMesh,
                         std::nullopt);
 
                     if (newConstrainedState.has_value())
@@ -334,21 +338,8 @@ void Npcs::UpdateNpcs(
             // Spring forces for whole NPC
 
             CalculateNpcParticleSpringForces(*npcState);
-        }
-    }
 
-    //
-    // 5. Update physical state
-    //
-
-    for (auto & npcState : mStateBuffer)
-    {
-        if (npcState.has_value())
-        {
-            LogNpcDebug("NPC ", npcState->Id);
-
-            assert(mShips[npcState->CurrentShipId].has_value());
-            auto const & shipMesh = mShips[npcState->CurrentShipId]->ShipMesh;
+            // Update physical state for all particles
 
             for (auto p = 0; p < npcState->ParticleMesh.Particles.size(); ++p)
             {
