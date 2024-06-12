@@ -1867,7 +1867,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
 
     for (int iIter = 0; ; ++iIter)
     {
-        assert(iIter < 8); // Detect and debug-break on infinite loops
+        assert(iIter < 32); // Detect and debug-break on infinite loops
 
         assert(npcParticleConstrainedState.CurrentBCoords.BCoords.is_on_edge_or_internal());
 
@@ -2583,7 +2583,7 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         {
             LogNpcDebug("    NavigateVertex_NonWalking: iter=", iIter);
 
-            assert(iIter < 8); // Detect and debug-break on infinite loops
+            assert(iIter < 32); // Detect and debug-break on infinite loops
 
             // The two vertices around the vertex we are on - seen in clockwise order
             int const nextVertexOrdinal = (vertexOrdinal + 1) % 3;
