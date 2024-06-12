@@ -4,7 +4,7 @@
         "render_color": "#000060", 
 
 	"mass": 34.5,
-	"spring_reduction_fraction": 0.81,
+	"spring_reduction_fraction": 0.97,
 	"spring_damping_coefficient": 0.5,
 	"static_friction": 0.07,
 	"kinetic_friction": 0.05,

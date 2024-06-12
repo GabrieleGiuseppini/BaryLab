@@ -973,6 +973,7 @@ public:
                 if (mNpc.has_value())
                 {
                     mLabController->EndMoveNpc(mNpc->ObjectId);
+                    mNpc.reset();
                 }
 
                 mIsMouseDown = false;

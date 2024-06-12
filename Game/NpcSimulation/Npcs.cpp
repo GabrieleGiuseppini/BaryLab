@@ -591,6 +591,8 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 	vec2f const & position,
 	GameParameters const & gameParameters) const
 {
+	float const squareSearchRadius = gameParameters.ToolSearchRadius * gameParameters.ToolSearchRadius;
+
 	struct NearestNpcType
 	{
 		NpcId Id{ NoneNpcId };
@@ -628,8 +630,10 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 	// Visit all NPCs and find winner. if any
 	//
 
-	auto particleVisitor = [&](ElementIndex candidateParticleIndex, float squareSearchRadius, StateType const & npc, ShipId const & shipId)
+	auto particleVisitor = [&](ElementIndex candidateParticleIndex, StateType const & npc, ShipId const & shipId) -> bool
 		{
+			bool aParticleWasFound = false;
+
 			vec2f const candidateNpcPosition = mParticles.GetPosition(candidateParticleIndex);
 			float const squareDistance = (candidateNpcPosition - position).squareLength();
 			if (squareDistance < squareSearchRadius)
@@ -641,6 +645,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 					if (squareDistance < nearestOnPlaneNpc.SquareDistance)
 					{
 						nearestOnPlaneNpc = { npc.Id, squareDistance };
+						aParticleWasFound = true;
 					}
 				}
 				else
@@ -649,9 +654,12 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 					if (squareDistance < nearestOffPlaneNpc.SquareDistance)
 					{
 						nearestOffPlaneNpc = { npc.Id, squareDistance };
+						aParticleWasFound = true;
 					}
 				}
 			}
+
+			return aParticleWasFound;
 		};
 
 	for (auto const & state : mStateBuffer)
@@ -664,19 +672,53 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 			{
 				case NpcKindType::Furniture:
 				{
-					// All particles
+					// Proximity search for all particles
 
-					float const squareSearchRadius = std::max(
-						gameParameters.ToolSearchRadius * gameParameters.ToolSearchRadius,
-						1.2f * 1.2f); // Allow large furniture to be found when picked inside
-
+					bool aParticleWasFound = false;
 					for (auto const & particle : state->ParticleMesh.Particles)
 					{
-						particleVisitor(
+						bool const r = particleVisitor(
 							particle.ParticleIndex,
-							squareSearchRadius,
 							*state,
 							state->CurrentShipId);
+
+						if (r)
+						{
+							aParticleWasFound = true;
+						}
+					}
+
+					if (!aParticleWasFound)
+					{
+						// Polygon test
+						//
+						// From https://wrfranklin.org/Research/Short_Notes/pnpoly.html
+
+						bool isHit = false;
+						for (size_t i = 0, j = state->ParticleMesh.Particles.size() - 1; i < state->ParticleMesh.Particles.size(); j = i++)
+						{
+							vec2f const & pos_i = mParticles.GetPosition(state->ParticleMesh.Particles[i].ParticleIndex);
+							vec2f const & pos_j = mParticles.GetPosition(state->ParticleMesh.Particles[j].ParticleIndex);
+							if (((pos_i.y > position.y) != (pos_j.y > position.y)) &&
+								(position.x < (pos_j.x - pos_i.x) * (position.y - pos_i.y) / (pos_j.y - pos_i.y) + pos_i.x))
+							{
+								isHit = !isHit;
+							}
+						}
+
+						if (isHit)
+						{
+							if (std::make_pair(state->CurrentShipId, state->CurrentPlaneId.value_or(std::numeric_limits<PlaneId>::max())) >= probeDepth)
+							{
+								// It's on-plane
+								nearestOnPlaneNpc = { state->Id, squareSearchRadius };
+							}
+							else
+							{
+								// It's off-plane
+								nearestOffPlaneNpc = { state->Id, squareSearchRadius };
+							}
+						}
 					}
 
 					break;
@@ -686,13 +728,10 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 				{
 					// Head
 
-					float const squareSearchRadius = gameParameters.ToolSearchRadius * gameParameters.ToolSearchRadius;
-
 					assert(state->ParticleMesh.Particles.size() == 2);
 
 					particleVisitor(
 						state->ParticleMesh.Particles[1].ParticleIndex,
-						squareSearchRadius,
 						*state,
 						state->CurrentShipId);
 
