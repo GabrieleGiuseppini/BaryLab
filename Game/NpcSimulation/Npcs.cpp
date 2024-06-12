@@ -585,13 +585,10 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 	vec2f const & position,
 	GameParameters const & gameParameters) const
 {
-	float const squareSearchRadius = gameParameters.ToolSearchRadius * gameParameters.ToolSearchRadius;
-
 	struct NearestNpcType
 	{
-		NpcId Npc{ NoneNpcId };
+		NpcId Id{ NoneNpcId };
 		float SquareDistance{ std::numeric_limits<float>::max() };
-		vec2f Position{ vec2f::zero() };
 	};
 
 	NearestNpcType nearestOnPlaneNpc;
@@ -625,7 +622,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 	// Visit all NPCs and find winner. if any
 	//
 
-	auto particleVisitor = [&](ElementIndex candidateParticleIndex, StateType const & npc, ShipId const & shipId)
+	auto particleVisitor = [&](ElementIndex candidateParticleIndex, float squareSearchRadius, StateType const & npc, ShipId const & shipId)
 		{
 			vec2f const candidateNpcPosition = mParticles.GetPosition(candidateParticleIndex);
 			float const squareDistance = (candidateNpcPosition - position).squareLength();
@@ -637,7 +634,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 					// It's on-plane
 					if (squareDistance < nearestOnPlaneNpc.SquareDistance)
 					{
-						nearestOnPlaneNpc = { npc.Id, squareDistance, candidateNpcPosition };
+						nearestOnPlaneNpc = { npc.Id, squareDistance };
 					}
 				}
 				else
@@ -645,7 +642,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 					// It's off-plane
 					if (squareDistance < nearestOffPlaneNpc.SquareDistance)
 					{
-						nearestOffPlaneNpc = { npc.Id, squareDistance, candidateNpcPosition };
+						nearestOffPlaneNpc = { npc.Id, squareDistance };
 					}
 				}
 			}
@@ -663,10 +660,15 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 				{
 					// All particles
 
+					float const squareSearchRadius = std::max(
+						gameParameters.ToolSearchRadius * gameParameters.ToolSearchRadius,
+						1.2f * 1.2f); // Allow large furniture to be found when picked inside
+
 					for (auto const & particle : state->ParticleMesh.Particles)
 					{
 						particleVisitor(
 							particle.ParticleIndex,
+							squareSearchRadius,
 							*state,
 							state->CurrentShipId);
 					}
@@ -678,10 +680,13 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 				{
 					// Head
 
+					float const squareSearchRadius = gameParameters.ToolSearchRadius * gameParameters.ToolSearchRadius;
+
 					assert(state->ParticleMesh.Particles.size() == 2);
 
 					particleVisitor(
 						state->ParticleMesh.Particles[1].ParticleIndex,
+						squareSearchRadius,
 						*state,
 						state->CurrentShipId);
 
@@ -695,17 +700,29 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 	// Pick a winner - on-plane has higher prio than off-place
 	//
 
-	if (nearestOnPlaneNpc.Npc != NoneNpcId)
+	NpcId foundId = NoneNpcId;
+	if (nearestOnPlaneNpc.Id != NoneNpcId)
 	{
-		return PickedObjectId<NpcId>(
-			nearestOnPlaneNpc.Npc,
-			position - nearestOnPlaneNpc.Position);
+		foundId = nearestOnPlaneNpc.Id;
 	}
-	else if (nearestOffPlaneNpc.Npc != NoneNpcId)
+	else if (nearestOffPlaneNpc.Id != NoneNpcId)
 	{
+		foundId = nearestOffPlaneNpc.Id;
+	}
+
+	if (foundId != NoneNpcId)
+	{
+		assert(mStateBuffer[foundId].has_value());
+
+		int referenceParticleOrdinal = mStateBuffer[foundId]->Kind == NpcKindType::Furniture
+			? 0
+			: 1;
+
+		ElementIndex referenceParticleIndex = mStateBuffer[foundId]->ParticleMesh.Particles[referenceParticleOrdinal].ParticleIndex;
+
 		return PickedObjectId<NpcId>(
-			nearestOffPlaneNpc.Npc,
-			position - nearestOffPlaneNpc.Position);
+			foundId,
+			position - mParticles.GetPosition(referenceParticleIndex));
 	}
 	else
 	{
@@ -778,7 +795,7 @@ void Npcs::MoveNpcTo(
 	assert(mStateBuffer[id].has_value());
 	assert(mStateBuffer[id]->CurrentRegime == StateType::RegimeType::BeingPlaced);
 
-	vec2f const newPosition = position - offset;
+	vec2f const newTargetPosition = position - offset;
 
 	float constexpr InertialVelocityFactor = 0.5f; // Magic number for how much velocity we impart
 
@@ -786,39 +803,29 @@ void Npcs::MoveNpcTo(
 	{
 		case NpcKindType::Furniture:
 		{
-			//// Move all particles
+			// Move all particles
 
-			//for (auto & particle : mStateBuffer[id]->ParticleMesh.Particles)
-			//{
-			//	auto const particleIndex = particle.ParticleIndex;
-			//	vec2f const oldPosition = mParticles.GetPosition(particleIndex);
-			//	mParticles.SetPosition(particleIndex, newPosition);
-			//	vec2f const absoluteVelocity = (newPosition - oldPosition) / GameParameters::SimulationTimeStepDuration * InertialVelocityFactor;
-			//	mParticles.SetVelocity(particleIndex, absoluteVelocity);
-
-			//	if (particle.ConstrainedState.has_value())
-			//	{
-			//		// We can only assume here, and we assume the ship is still and since the user doesn't move with the ship,
-			//		// all this velocity is also relative to mesh
-			//		particle.ConstrainedState->MeshRelativeVelocity = absoluteVelocity;
-			//	}
-			//}
-
-			// Move primary particle
-
+			// Get position of primary as reference
 			assert(mStateBuffer[id]->ParticleMesh.Particles.size() > 0);
+			vec2f const oldPrimaryPosition = mParticles.GetPosition(mStateBuffer[id]->ParticleMesh.Particles[0].ParticleIndex);
 
-			auto const particleIndex = mStateBuffer[id]->ParticleMesh.Particles[0].ParticleIndex;
-			vec2f const oldPosition = mParticles.GetPosition(particleIndex);
-			mParticles.SetPosition(particleIndex, newPosition);
-			vec2f const absoluteVelocity = (newPosition - oldPosition) / GameParameters::SimulationTimeStepDuration * InertialVelocityFactor;
-			mParticles.SetVelocity(particleIndex, absoluteVelocity);
+			// Calculate new absolute velocity of primary
+			vec2f const newPrimaryAbsoluteVelocity = (newTargetPosition - oldPrimaryPosition) / GameParameters::SimulationTimeStepDuration * InertialVelocityFactor;
 
-			if (mStateBuffer[id]->ParticleMesh.Particles[0].ConstrainedState.has_value())
+			// Move all particles
+			for (auto & particle : mStateBuffer[id]->ParticleMesh.Particles)
 			{
-				// We can only assume here, and we assume the ship is still and since the user doesn't move with the ship,
-				// all this velocity is also relative to mesh
-				mStateBuffer[id]->ParticleMesh.Particles[0].ConstrainedState->MeshRelativeVelocity = absoluteVelocity;
+				auto const particleIndex = particle.ParticleIndex;
+				vec2f const newPosition = newTargetPosition + (mParticles.GetPosition(particleIndex) - oldPrimaryPosition); // Set to new position + offset from reference
+				mParticles.SetPosition(particleIndex, newPosition);
+				mParticles.SetVelocity(particleIndex, newPrimaryAbsoluteVelocity);
+
+				if (particle.ConstrainedState.has_value())
+				{
+					// We can only assume here, and we assume the ship is still and since the user doesn't move with the ship,
+					// all this velocity is also relative to mesh
+					particle.ConstrainedState->MeshRelativeVelocity = newPrimaryAbsoluteVelocity;
+				}
 			}
 
 			break;
@@ -832,8 +839,8 @@ void Npcs::MoveNpcTo(
 
 			auto const particleIndex = mStateBuffer[id]->ParticleMesh.Particles[1].ParticleIndex;
 			vec2f const oldPosition = mParticles.GetPosition(particleIndex);
-			mParticles.SetPosition(particleIndex, newPosition);
-			vec2f const absoluteVelocity = (newPosition - oldPosition) / GameParameters::SimulationTimeStepDuration * InertialVelocityFactor;
+			mParticles.SetPosition(particleIndex, newTargetPosition);
+			vec2f const absoluteVelocity = (newTargetPosition - oldPosition) / GameParameters::SimulationTimeStepDuration * InertialVelocityFactor;
 			mParticles.SetVelocity(particleIndex, absoluteVelocity);
 
 			if (mStateBuffer[id]->ParticleMesh.Particles[1].ConstrainedState.has_value())

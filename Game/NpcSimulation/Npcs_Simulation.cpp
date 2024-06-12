@@ -452,10 +452,10 @@ void Npcs::UpdateNpcParticlePhysics(
     if (npc.CurrentRegime == StateType::RegimeType::BeingPlaced
         && (
             (npc.Kind == NpcKindType::Human && npcParticleOrdinal == 1) // We move the head (secondary)
-            || (npc.Kind != NpcKindType::Human && npcParticleOrdinal == 0))) // We move the primary
+            || (npc.Kind != NpcKindType::Human))) // We move all
     {
         //
-        // Particle is being placed
+        // Particle is being placed - nothing to do
         //
 
         LogNpcDebug("    Being placed");
