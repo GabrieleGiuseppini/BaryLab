@@ -14,6 +14,7 @@
 
 #include <GameCore/BarycentricCoords.h>
 #include <GameCore/ElementIndexRangeIterator.h>
+#include <GameCore/FixedSizeVector.h>
 #include <GameCore/GameRandomEngine.h>
 #include <GameCore/GameTypes.h>
 #include <GameCore/Log.h>
@@ -137,6 +138,11 @@ private:
 
 			std::optional<ConstrainedStateType> ConstrainedState;
 
+			NpcParticleStateType() // Default cctor only needed for array
+				: ParticleIndex(NoneElementIndex)
+				, ConstrainedState()
+			{}
+
 			NpcParticleStateType(
 				ElementIndex particleIndex,
 				std::optional<ConstrainedStateType> && constrainedState)
@@ -157,36 +163,45 @@ private:
 			}
 		};
 
-		struct DipolePropertiesType final
+		struct NpcSpringStateType final
 		{
-			float DipoleLength;
+			ElementIndex EndpointAIndex; // Index in NpcParticles
+			ElementIndex EndpointBIndex; // Index in NpcParticles
+
+			float DipoleLength; // Adjusted
+			float SpringReductionFraction;
+			float SpringDampingCoefficient;
 			float MassFactor; // Purely from materials
 
 			// Calculated
-			float SpringStiffnessCoefficient;
-			float SpringDampingCoefficient;
+			float SpringStiffnessFactor;
+			float SpringDampingFactor;
 
-			DipolePropertiesType(
+			NpcSpringStateType() = default; // For array
+
+			NpcSpringStateType(
+				ElementIndex endpointAIndex,
+				ElementIndex endpointBIndex,
 				float dipoleLength,
+				float springReductionFraction,
+				float springDampingCoefficient,
 				float massFactor)
-				: DipoleLength(dipoleLength)
+				: EndpointAIndex(endpointAIndex)
+				, EndpointBIndex(endpointBIndex)
+				, DipoleLength(dipoleLength)
+				, SpringReductionFraction(springReductionFraction)
+				, SpringDampingCoefficient(springDampingCoefficient)
 				, MassFactor(massFactor)
-				, SpringStiffnessCoefficient(0.0f) // Will be recalculated
-				, SpringDampingCoefficient(0.0f) // Will be recalculated
+				, SpringStiffnessFactor(0.0f) // Calculated later
+				, SpringDampingFactor(0.0f) // Calculated later
 			{}
 		};
 
-		struct DipoleStateType final
+		struct ParticleMeshType final
 		{
-			NpcParticleStateType SecondaryParticleState; // e.g. head
-			DipolePropertiesType DipoleProperties;
+			FixedSizeVector<NpcParticleStateType, GameParameters::MaxParticlesPerNpc> Particles;
 
-			DipoleStateType(
-				NpcParticleStateType && secondaryParticleState,
-				DipolePropertiesType const & dipoleProperties)
-				: SecondaryParticleState(std::move(secondaryParticleState))
-				, DipoleProperties(dipoleProperties)
-			{}
+			FixedSizeVector<NpcSpringStateType, GameParameters::MaxSpringsPerNpc> Springs;
 		};
 
 		union KindSpecificStateType
@@ -533,18 +548,14 @@ private:
 		// course of their lives.
 		ShipId CurrentShipId;
 
-		// The current plane ID. When not set, it stands-in for the topmost
-		// plane ID in the current ship.
-		std::optional<PlaneId> CurrentPlaneId;
+		// The current plane ID.
+		PlaneId CurrentPlaneId;
 
 		// The current regime.
 		RegimeType CurrentRegime;
 
-		// The state of the first (mandatory) particle (e.g. the feet of a human).
-		NpcParticleStateType PrimaryParticleState;
-
-		// The state of the dipole, when this NPC is a dipole.
-		std::optional<DipoleStateType> DipoleState;
+		// The mesh
+		ParticleMeshType ParticleMesh;
 
 		// The additional state specific to the type of this NPC.
 		KindSpecificStateType KindSpecificState;
@@ -559,18 +570,16 @@ private:
 			NpcId id,
 			NpcKindType kind,
 			ShipId initialShipId,
-			std::optional<PlaneId> initialPlaneId,
+			PlaneId initialPlaneId,
 			RegimeType initialRegime,
-			NpcParticleStateType && primaryParticleState,
-			std::optional<DipoleStateType> && dipoleState,
+			ParticleMeshType && particleMesh,
 			KindSpecificStateType && kindSpecificState)
 			: Id(id)
 			, Kind(kind)
 			, CurrentShipId(initialShipId)
-			, CurrentPlaneId(std::move(initialPlaneId))
+			, CurrentPlaneId(initialPlaneId)
 			, CurrentRegime(initialRegime)
-			, PrimaryParticleState(std::move(primaryParticleState))
-			, DipoleState(std::move(dipoleState))
+			, ParticleMesh(std::move(particleMesh))
 			, KindSpecificState(std::move(kindSpecificState))
 			, Highlight(NpcHighlightType::None)
 			, RandomNormalizedUniformSeed(GameRandomEngine::GetInstance().GenerateUniformReal(-1.0f, 1.0f))
@@ -614,8 +623,8 @@ public:
 		// Simulation Parameters
 		, mCurrentHumanNpcBodyLengthAdjustment(gameParameters.HumanNpcBodyLengthAdjustment)
 		, mCurrentHumanNpcWalkingSpeedAdjustment(gameParameters.HumanNpcWalkingSpeedAdjustment)
-		, mCurrentSpringReductionFraction(gameParameters.NpcSpringReductionFraction)
-		, mCurrentSpringDampingCoefficient(gameParameters.NpcSpringReductionFraction)
+		, mCurrentSpringReductionFractionAdjustment(gameParameters.NpcSpringReductionFractionAdjustment)
+		, mCurrentSpringDampingCoefficientAdjustment(gameParameters.NpcSpringReductionFractionAdjustment)
 	{}
 
 	void Update(
@@ -844,12 +853,12 @@ private:
 
 	void TransitionParticleToConstrainedState(
 		StateType & npc,
-		bool isPrimaryParticle,
+		int npcParticleOrdinal,
 		StateType::NpcParticleStateType::ConstrainedStateType constrainedState);
 
 	void TransitionParticleToFreeState(
 		StateType & npc,
-		bool isPrimaryParticle);
+		int npcParticleOrdinal);
 
 	static std::optional<StateType::NpcParticleStateType::ConstrainedStateType> CalculateParticleConstrainedState(
 		vec2f const & position,
@@ -868,25 +877,27 @@ private:
 
 	void UpdateNpcParticlePhysics(
 		StateType & npc,
-		bool isPrimaryParticle,
+		int npcParticleOrdinal,
 		Ship const & shipMesh,
 		float currentSimulationTime,
 		GameParameters const & gameParameters);
 
 	void CalculateNpcParticlePreliminaryForces(
 		StateType const & npc,
-		bool isPrimaryParticle,
+		int npcParticleOrdinal,
 		GameParameters const & gameParameters);
+
+	void CalculateNpcParticleSpringForces(StateType const & npc);
 
 	vec2f CalculateNpcParticleDefinitiveForces(
 		StateType const & npc,
-		bool isPrimaryParticle,
+		int npcParticleOrdinal,
 		float particleMass,
 		GameParameters const & gameParameters) const;
 
 	void RecalculateSpringForceParameters();
 
-	void RecalculateSpringForceParameters(StateType::DipolePropertiesType & dipoleProperties) const;
+	void RecalculateSpringForceParameters(StateType::NpcSpringStateType & spring) const;
 
 	void RecalculateHumanNpcDipoleLengths();
 
@@ -909,7 +920,7 @@ private:
 	// Returns total edge traveled (in step), and isStop
 	ConstrainedNonInertialOutcome UpdateNpcParticle_ConstrainedNonInertial(
 		StateType & npc,
-		bool isPrimaryParticle,
+		int npcParticleOrdinal,
 		int edgeOrdinal,
 		vec2f const & edgeDir,
 		vec2f const & particleStartAbsolutePosition,
@@ -928,7 +939,7 @@ private:
 
 	float UpdateNpcParticle_ConstrainedInertial(
 		StateType & npc,
-		bool isPrimaryParticle,
+		int npcParticleOrdinal,
 		vec2f const & particleStartAbsolutePosition,
 		vec2f const & segmentTrajectoryStartAbsolutePosition,
 		vec2f const & segmentTrajectoryEndAbsolutePosition,
@@ -994,7 +1005,7 @@ private:
 
 	static inline NavigateVertexOutcome NavigateVertex(
 		StateType const & npc,
-		bool isPrimaryParticle,
+		int npcParticleOrdinal,
 		std::optional<TriangleAndEdge> const & walkedEdge,
 		int vertexOrdinal,
 		vec2f const & trajectory,
@@ -1005,7 +1016,7 @@ private:
 
 	void BounceConstrainedNpcParticle(
 		StateType & npc,
-		bool isPrimaryParticle,
+		int npcParticleOrdinal,
 		vec2f const & trajectory,
 		bool hasMovedInStep,
 		vec2f const & bouncePosition,
@@ -1018,14 +1029,13 @@ private:
 
 	void OnImpact(
 		StateType & npc,
-		bool isPrimaryParticle,
+		int npcParticleOrdinal,
 		vec2f const & normalResponse,
 		vec2f const & bounceEdgeNormal,
 		float currentSimulationTime) const;
 
 	void UpdateNpcAnimation(
 		StateType & npc,
-		bool isPrimaryParticle,
 		float currentSimulationTime,
 		Ship const & shipMesh);
 
@@ -1033,7 +1043,7 @@ private:
 		ElementIndex triangleElementIndex,
 		int edgeOrdinal,
 		StateType const & npc,
-		bool isPrimaryParticle,
+		int npcParticleOrdinal,
 		NpcParticles const & npcParticles,
 		Ship const & shipMesh)
 	{
@@ -1047,7 +1057,7 @@ private:
 		// Ok, it's a floor
 
 		// If ghost, not a floor
-		auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
+		auto const & npcParticle = npc.ParticleMesh.Particles[npcParticleOrdinal];
 		if (npcParticle.ConstrainedState.has_value()
 			&& npcParticle.ConstrainedState->GhostParticlePulse)
 		{
@@ -1056,14 +1066,15 @@ private:
 
 		// Ok, it's a floor and we're not ghosting
 
-		// If it's a primary, then every floor is a floor
+		// If it's not the secondary of a dipole, then every floor is a floor
 
-		if (isPrimaryParticle)
+		if (npc.ParticleMesh.Particles.size() != 2
+			|| npcParticleOrdinal == 0)
 		{
 			return true;
 		}
 
-		// Ok, it's a floor and this is a secondary particle
+		// Ok, it's a floor and this is a secondary particle of a dipole
 		//
 		// Secondary particles have a ton of rules to ensure that e.g. the head
 		// of a NPC doesn't behave as if it were disjoint from the feet; for
@@ -1071,7 +1082,7 @@ private:
 		// from the feet, or to bang their head on a staircase above the floor
 		// we're walking on.
 
-		assert(npc.DipoleState.has_value());
+		auto const & primaryParticle = npc.ParticleMesh.Particles[0];
 
 		// If it's a human walking, check rules using floor depths to determine
 		// which floors are seen as floors by this secondary (head)
@@ -1080,14 +1091,14 @@ private:
 			&& (npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking
 				|| (npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Rising
 					&& // During rising, do not try to ghost the edge that the secondary is resting upon
-					   (!npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value()
-						|| !npc.DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value()
-						|| npc.DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualFloor->TriangleElementIndex != triangleElementIndex
-						|| npc.DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualFloor->EdgeOrdinal != edgeOrdinal
-						)
+					(	!npcParticle.ConstrainedState.has_value()
+						|| !npcParticle.ConstrainedState->CurrentVirtualFloor.has_value()
+						|| npcParticle.ConstrainedState->CurrentVirtualFloor->TriangleElementIndex != triangleElementIndex
+						|| npcParticle.ConstrainedState->CurrentVirtualFloor->EdgeOrdinal != edgeOrdinal
+					)
 					))
-			&& npc.PrimaryParticleState.ConstrainedState.has_value()
-			&& npc.PrimaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value())
+			&& primaryParticle.ConstrainedState.has_value()
+			&& primaryParticle.ConstrainedState->CurrentVirtualFloor.has_value())
 		{
 			auto const floorGeometry = shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(
 				triangleElementIndex,
@@ -1096,8 +1107,8 @@ private:
 			auto const floorGeometryDepth = NpcFloorGeometryDepth(floorGeometry);
 
 			auto const primaryFloorGeometry = shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(
-				npc.PrimaryParticleState.ConstrainedState->CurrentVirtualFloor->TriangleElementIndex,
-				npc.PrimaryParticleState.ConstrainedState->CurrentVirtualFloor->EdgeOrdinal);
+				primaryParticle.ConstrainedState->CurrentVirtualFloor->TriangleElementIndex,
+				primaryParticle.ConstrainedState->CurrentVirtualFloor->EdgeOrdinal);
 
 			auto const primaryFloorDepth = NpcFloorGeometryDepth(primaryFloorGeometry);
 
@@ -1121,7 +1132,7 @@ private:
 
 		// If the primary is not on the other side of this edge, then every floor is a floor
 
-		vec2f const & primaryPosition = npcParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
+		vec2f const & primaryPosition = npcParticles.GetPosition(primaryParticle.ParticleIndex);
 		bcoords3f const primaryBaryCoords = shipMesh.GetTriangles().ToBarycentricCoordinates(primaryPosition, triangleElementIndex, shipMesh.GetPoints());
 
 		// It's on the other side of the edge if its "edge's" b-coord is negative
@@ -1136,7 +1147,7 @@ private:
 		// a human NPC ending with its head on an edge and it feet hanging underneath. To prevent this,
 		// we consider this as a floor only if the human is not "quite vertical"
 
-		vec2f const & secondaryPosition = npcParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex);
+		vec2f const & secondaryPosition = npcParticles.GetPosition(npcParticle.ParticleIndex);
 		vec2f const humanDir = (primaryPosition - secondaryPosition).normalise(); // Pointing down to feet
 
 		// It's vertical when y is -1.0 (cos of angle)
@@ -1192,7 +1203,7 @@ private:
 
 	void OnHumanImpact(
 		StateType & npc,
-		bool isPrimaryParticle,
+		int npcParticleOrdinal,
 		vec2f const & normalResponse,
 		vec2f const & bounceEdgeNormal,
 		float currentSimulationTime) const;
@@ -1267,8 +1278,8 @@ private:
 	// Cached from game parameters
 	float mCurrentHumanNpcBodyLengthAdjustment;
 	float mCurrentHumanNpcWalkingSpeedAdjustment;
-	float mCurrentSpringReductionFraction;
-	float mCurrentSpringDampingCoefficient;
+	float mCurrentSpringReductionFractionAdjustment;
+	float mCurrentSpringDampingCoefficientAdjustment;
 
 #ifdef IN_BARYLAB
 

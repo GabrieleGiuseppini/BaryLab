@@ -56,8 +56,8 @@ private:
     SliderControl<float> * mGravityAdjustmentSlider;
     SliderControl<float> * mGlobalDampingSlider;
     SliderControl<float> * mSeaLevelSlider;
-    SliderControl<float> * mSpringReductionFractionSlider;
-    SliderControl<float> * mSpringDampingCoefficientSlider;
+    SliderControl<float> * mSpringReductionFractionAdjustmentSlider;
+    SliderControl<float> * mSpringDampingCoefficientAdjustmentSlider;
     SliderControl<float> * mWaterFrictionDragCoefficientAdjustmentSlider;
     SliderControl<float> * mBuoyancyAdjustmentSlider;
 

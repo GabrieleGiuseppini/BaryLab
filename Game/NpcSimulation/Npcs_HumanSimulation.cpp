@@ -23,9 +23,9 @@ namespace {
 
 Npcs::StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType Npcs::CalculateHumanBehavior(StateType & npc)
 {
-	assert(npc.DipoleState.has_value());
-	auto const & primaryParticleState = npc.PrimaryParticleState;
-	auto const & secondaryParticleState = npc.DipoleState->SecondaryParticleState;
+	assert(npc.ParticleMesh.Particles.size() == 2);
+	auto const & primaryParticleState = npc.ParticleMesh.Particles[0];
+	auto const & secondaryParticleState = npc.ParticleMesh.Particles[1];
 
 	if (!primaryParticleState.ConstrainedState.has_value()
 		&& !secondaryParticleState.ConstrainedState.has_value())
@@ -46,9 +46,9 @@ void Npcs::UpdateHuman(
 	Ship const & shipMesh,
 	GameParameters const & gameParameters)
 {
-	assert(npc.DipoleState.has_value());
-	auto & primaryParticleState = npc.PrimaryParticleState;
-	auto & secondaryParticleState = npc.DipoleState->SecondaryParticleState;
+	assert(npc.ParticleMesh.Particles.size() == 2);
+	auto & primaryParticleState = npc.ParticleMesh.Particles[0];
+	auto & secondaryParticleState = npc.ParticleMesh.Particles[1];
 
 	assert(npc.Kind == NpcKindType::Human);
 	auto & humanState = npc.KindSpecificState.HumanNpcState;
@@ -845,9 +845,8 @@ void Npcs::UpdateHuman(
 
 			// Check if moved to water
 
-			assert(npc.DipoleState.has_value());
-			auto const & headPosition = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex);
-			auto const & feetPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
+			auto const & headPosition = mParticles.GetPosition(secondaryParticleState.ParticleIndex);
+			auto const & feetPosition = mParticles.GetPosition(primaryParticleState.ParticleIndex);
 
 			// It's in water if at least one in water
 			if (mParentWorld.GetOceanSurface().GetDepth(headPosition) > 0.0f
@@ -893,9 +892,8 @@ void Npcs::UpdateHuman(
 
 			// Check if moved to air
 
-			assert(npc.DipoleState.has_value());
-			auto const & headPosition = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex);
-			auto const & feetPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
+			auto const & headPosition = mParticles.GetPosition(secondaryParticleState.ParticleIndex);
+			auto const & feetPosition = mParticles.GetPosition(primaryParticleState.ParticleIndex);
 
 			// It's in air if both in air
 			if (mParentWorld.GetOceanSurface().GetDepth(headPosition) <= 0.0f
@@ -921,7 +919,7 @@ void Npcs::UpdateHuman(
 			{
 				// Progress to swimming if not rotating and head above feet
 
-				float const rotationMagnitude = (mParticles.GetVelocity(npc.DipoleState->SecondaryParticleState.ParticleIndex) - mParticles.GetVelocity(npc.PrimaryParticleState.ParticleIndex)).length();
+				float const rotationMagnitude = (mParticles.GetVelocity(secondaryParticleState.ParticleIndex) - mParticles.GetVelocity(primaryParticleState.ParticleIndex)).length();
 				float const targetSwim =
 					(1.0f - Step(2.0f, rotationMagnitude))
 					* Step(feetPosition.y, headPosition.y);
@@ -1123,7 +1121,7 @@ void Npcs::RunWalkingHumanStateMachine(
 
 void Npcs::OnHumanImpact(
 	StateType & npc,
-	bool isPrimaryParticle,
+	int npcParticleOrdinal,
 	vec2f const & normalResponse,
 	vec2f const & bounceEdgeNormal,  // Pointing outside of triangle
 	float currentSimulationTime) const
@@ -1136,7 +1134,7 @@ void Npcs::OnHumanImpact(
 	{
 		case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Rising:
 		{
-			if (!isPrimaryParticle && normalResponse.length() > 0.1f)
+			if (npcParticleOrdinal == 1 && normalResponse.length() > 0.1f)
 			{
 				// Hit head while rising
 
@@ -1150,7 +1148,7 @@ void Npcs::OnHumanImpact(
 
 		case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
 		{
-			if (!isPrimaryParticle && normalResponse.length() > 1.5f)
+			if (npcParticleOrdinal == 1 && normalResponse.length() > 1.5f)
 			{
 				// Hit head hard while in equilibrium
 
@@ -1169,7 +1167,7 @@ void Npcs::OnHumanImpact(
 			// Check alignment of impact with walking direction; if hit => flip
 			// Note: might also want to check *magnitude* of hit
 			float const bounceSlope = bounceEdgeNormal.dot(vec2f(humanState.CurrentFaceDirectionX, 0.0f)); // 1.0 when hit wall perpendicular
-			if ( ((isPrimaryParticle && bounceSlope > 0.85f) || (!isPrimaryParticle && bounceSlope > 0.50f))
+			if ( ((npcParticleOrdinal == 0 && bounceSlope > 0.85f) || (npcParticleOrdinal == 1 && bounceSlope > 0.50f))
 				&& humanState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude != 0.0f)
 			{
 				LogNpcDebug("OnHumanImpact: FLIP!");
@@ -1217,9 +1215,9 @@ void Npcs::TransitionHumanBehaviorToFree(
 {
 	assert(npc.Kind == NpcKindType::Human);
 
-	assert(npc.DipoleState.has_value());
-	auto const & headPosition = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex);
-	auto const & feetPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
+	assert(npc.ParticleMesh.Particles.size() == 2);
+	auto const & headPosition = mParticles.GetPosition(npc.ParticleMesh.Particles[1].ParticleIndex);
+	auto const & feetPosition = mParticles.GetPosition(npc.ParticleMesh.Particles[0].ParticleIndex);
 
 	// It's in water if both in water
 	if (mParentWorld.GetOceanSurface().GetDepth(headPosition) > 0.0f

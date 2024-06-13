@@ -33,7 +33,8 @@ public:
     static long const ID_ADD_HUMAN_NPC;
     static long const ID_MOVE_NPC;
     static long const ID_REMOVE_NPC;
-    static long const ID_ADD_FURNITURE_NPC;
+    static long const ID_ADD_FURNITURE_PARTICLE_NPC;
+    static long const ID_ADD_FURNITURE_QUAD_NPC;
 
     static long const ID_SIMULATION_CONTROL_PLAY;
     static long const ID_SIMULATION_CONTROL_PAUSE;
@@ -173,7 +174,8 @@ private:
     wxBitmapToggleButton * mAddHumanNpcButton;
     wxBitmapToggleButton * mMoveNpcButton;
     wxBitmapToggleButton * mRemoveNpcButton;
-    wxBitmapToggleButton * mAddFurnitureNpcButton;
+    wxBitmapToggleButton * mAddFurnitureParticleNpcButton;
+    wxBitmapToggleButton * mAddFurnitureQuadNpcButton;
 
     wxBitmapToggleButton * mSetParticleGravityButton;
 

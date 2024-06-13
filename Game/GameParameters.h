@@ -30,7 +30,9 @@ struct GameParameters
     static size_t constexpr MaxSpringsPerPoint = 8u;
     static size_t constexpr MaxTrianglesPerPoint = 8u;
     static size_t constexpr MaxNpcs = 8192u;
-    static size_t constexpr MaxParticlesPerNpc = 2u;
+    static size_t constexpr MaxParticlesPerNpc = 4u;
+    static size_t constexpr MaxSpringsPerNpc = 6u;
+    static size_t constexpr MaxSpringsPerNpcParticle = 3u;
 
     //
     // Physics
@@ -80,13 +82,13 @@ struct GameParameters
     // NPCs
     //
 
-    float NpcSpringReductionFraction;
-    static float constexpr MinNpcSpringReductionFraction = 0.0f;
-    static float constexpr MaxNpcSpringReductionFraction = 2.0f;
+    float NpcSpringReductionFractionAdjustment;
+    static float constexpr MinNpcSpringReductionFractionAdjustment = 0.0f;
+    static float constexpr MaxNpcSpringReductionFractionAdjustment = 5.0f;
 
-    float NpcSpringDampingCoefficient;
-    static float constexpr MinNpcSpringDampingCoefficient = 0.0f;
-    static float constexpr MaxNpcSpringDampingCoefficient = 1.0f;
+    float NpcSpringDampingCoefficientAdjustment;
+    static float constexpr MinNpcSpringDampingCoefficientAdjustment = 0.0f;
+    static float constexpr MaxNpcSpringDampingCoefficientAdjustment = 2.0f;
 
     float HumanNpcEquilibriumTorqueStiffnessCoefficient;
     static float constexpr MinHumanNpcEquilibriumTorqueStiffnessCoefficient = 0.0f;

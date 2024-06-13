@@ -21,7 +21,7 @@ void Npcs::ResetNpcStateToWorld(
     //
 
     // Take the position of the primary particle as representative of the NPC
-    auto const & position = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
+    auto const & position = mParticles.GetPosition(npc.ParticleMesh.Particles[0].ParticleIndex);
 
     auto const topmostTriangle = FindTopmostTriangleContaining(position);
     if (topmostTriangle.has_value())
@@ -70,41 +70,50 @@ void Npcs::ResetNpcStateToWorld(
 
     if (primaryParticleTriangleIndex.has_value())
     {
+        // Constrained
+
         // Use the plane ID of this triangle
         ElementIndex const trianglePointIndex = shipMesh.GetTriangles().GetPointAIndex(*primaryParticleTriangleIndex);
         npc.CurrentPlaneId = shipMesh.GetPoints().GetPlaneId(trianglePointIndex);
     }
     else
     {
-        // Primary is free, hence this NPC is on the topmost plane ID of its current ship
-        npc.CurrentPlaneId = std::nullopt;
+        // Primary is free, hence this NPC is on the topmost plane ID of its current ship;
+        // fine to stick to this plane so that if new planes come up, they will cover the NPC!
+        npc.CurrentPlaneId = shipMesh.GetMaxPlaneId();
     }
 
-    // Primary particle
+    // Particles
 
-    npc.PrimaryParticleState.ConstrainedState = CalculateParticleConstrainedState(
-        mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex),
-        shipMesh,
-        primaryParticleTriangleIndex);
-
-    // Secondary particle
-
-    if (npc.DipoleState.has_value())
+    for (size_t p = 0; p < npc.ParticleMesh.Particles.size(); ++p)
     {
-        if (!npc.PrimaryParticleState.ConstrainedState.has_value())
+        if (p == 0)
         {
-            // When primary is free, also secondary is free (and thus whole NPC)
-            if (npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value())
-            {
-                npc.DipoleState->SecondaryParticleState.ConstrainedState.reset();
-            }
+            // Primary
+            npc.ParticleMesh.Particles[p].ConstrainedState = CalculateParticleConstrainedState(
+                mParticles.GetPosition(npc.ParticleMesh.Particles[p].ParticleIndex),
+                shipMesh,
+                primaryParticleTriangleIndex);
         }
         else
         {
-            npc.DipoleState->SecondaryParticleState.ConstrainedState = CalculateParticleConstrainedState(
-                mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex),
-                shipMesh,
-                std::nullopt);
+            // Secondaries
+
+            if (!npc.ParticleMesh.Particles[0].ConstrainedState.has_value())
+            {
+                // When primary is free, also secondary is free (and thus whole NPC)
+                if (npc.ParticleMesh.Particles[p].ConstrainedState.has_value())
+                {
+                    npc.ParticleMesh.Particles[p].ConstrainedState.reset();
+                }
+            }
+            else
+            {
+                npc.ParticleMesh.Particles[p].ConstrainedState = CalculateParticleConstrainedState(
+                    mParticles.GetPosition(npc.ParticleMesh.Particles[p].ParticleIndex),
+                    shipMesh,
+                    std::nullopt);
+            }
         }
     }
 
@@ -139,19 +148,11 @@ void Npcs::ResetNpcStateToWorld(
 
 void Npcs::TransitionParticleToConstrainedState(
     StateType & npc,
-    bool isPrimaryParticle,
+    int npcParticleOrdinal,
     StateType::NpcParticleStateType::ConstrainedStateType constrainedState)
 {
     // Transition
-    if (isPrimaryParticle)
-    {
-        npc.PrimaryParticleState.ConstrainedState = constrainedState;
-    }
-    else
-    {
-        assert(npc.DipoleState.has_value());
-        npc.DipoleState->SecondaryParticleState.ConstrainedState = constrainedState;
-    }
+    npc.ParticleMesh.Particles[npcParticleOrdinal].ConstrainedState = constrainedState;
 
     // Regime
     auto const oldRegime = npc.CurrentRegime;
@@ -161,29 +162,29 @@ void Npcs::TransitionParticleToConstrainedState(
 
 void Npcs::TransitionParticleToFreeState(
     StateType & npc,
-    bool isPrimaryParticle)
+    int npcParticleOrdinal)
 {
     // Transition
-    if (isPrimaryParticle)
+    npc.ParticleMesh.Particles[npcParticleOrdinal].ConstrainedState.reset();
+    if (npcParticleOrdinal == 0)
     {
-        npc.PrimaryParticleState.ConstrainedState.reset();
-
-        // When primary is free, also secondary is free (and thus whole NPC)
-        if (npc.DipoleState.has_value() && npc.DipoleState->SecondaryParticleState.ConstrainedState.has_value())
+        // When primary is free, also secondaries are free (and thus whole NPC)
+        for (size_t p = 1; p < npc.ParticleMesh.Particles.size(); ++p)
         {
-            npc.DipoleState->SecondaryParticleState.ConstrainedState.reset();
+            if (npc.ParticleMesh.Particles[p].ConstrainedState.has_value())
+            {
+                npc.ParticleMesh.Particles[p].ConstrainedState.reset();
+            }
         }
-    }
-    else
-    {
-        assert(npc.DipoleState.has_value());
-        npc.DipoleState->SecondaryParticleState.ConstrainedState.reset();
     }
 
     // Regime
     auto const oldRegime = npc.CurrentRegime;
     npc.CurrentRegime = CalculateRegime(npc);
     OnMayBeNpcRegimeChanged(oldRegime, npc);
+
+    // Note: we leave depth as-is, it sticks and the NPC will eventually
+    // get covered by other parts of the ship!
 }
 
 std::optional<Npcs::StateType::NpcParticleStateType::ConstrainedStateType> Npcs::CalculateParticleConstrainedState(
@@ -269,7 +270,8 @@ void Npcs::OnMayBeNpcRegimeChanged(
 Npcs::StateType::RegimeType Npcs::CalculateRegime(StateType const & npc)
 {
     // Constrained iff primary is constrained
-    return npc.PrimaryParticleState.ConstrainedState.has_value()
+    assert(npc.ParticleMesh.Particles.size() > 0);
+    return npc.ParticleMesh.Particles[0].ConstrainedState.has_value()
         ? StateType::RegimeType::Constrained
         : StateType::RegimeType::Free;
 }
@@ -289,75 +291,66 @@ void Npcs::UpdateNpcs(
     // Note: no need to reset PreliminaryForces as we'll recalculate all of them
 
     //
-    // 2. Check if a free secondary particle should become constrained
-    // 3. Calculate preliminary forces
+    // 2. Calculate preliminary forces
+    // 3. Check if a free secondary particle should become constrained
+    // 4. Calculate spring forces
+    // 5. Update physical state
     //
 
     for (auto & npcState : mStateBuffer)
     {
         if (npcState.has_value())
         {
-            // Secondary free becoming constrained
-
-            if (npcState->DipoleState.has_value()
-                && !npcState->DipoleState->SecondaryParticleState.ConstrainedState.has_value() // Secondary is free
-                && npcState->PrimaryParticleState.ConstrainedState.has_value()) // And primary is constrained
-            {
-                assert(mShips[npcState->CurrentShipId].has_value());
-
-                auto newConstrainedState = CalculateParticleConstrainedState(
-                    mParticles.GetPosition(npcState->DipoleState->SecondaryParticleState.ParticleIndex),
-                    mShips[npcState->CurrentShipId]->ShipMesh,
-                    std::nullopt);
-
-                if (newConstrainedState.has_value())
-                {
-                    TransitionParticleToConstrainedState(*npcState, false, std::move(*newConstrainedState));
-                }
-            }
-
-            // Preliminary Forces
-
-            CalculateNpcParticlePreliminaryForces(
-                *npcState,
-                true,
-                gameParameters);
-
-            if (npcState->DipoleState.has_value())
-            {
-                CalculateNpcParticlePreliminaryForces(
-                    *npcState,
-                    false,
-                    gameParameters);
-            }
-        }
-    }
-
-    //
-    // 4. Update physical state
-    //
-
-    for (auto & npcState : mStateBuffer)
-    {
-        if (npcState.has_value())
-        {
-            LogNpcDebug("NPC ", npcState->Id);
-
             assert(mShips[npcState->CurrentShipId].has_value());
             auto const & shipMesh = mShips[npcState->CurrentShipId]->ShipMesh;
 
-            UpdateNpcParticlePhysics(
+            // Preliminary forces for primary
+
+            assert(npcState->ParticleMesh.Particles.size() > 0);
+
+            CalculateNpcParticlePreliminaryForces(
                 *npcState,
-                true,
-                shipMesh,
-                currentSimulationTime,
+                0,
                 gameParameters);
 
-            if (npcState->DipoleState.has_value())
+            // Secondaries:free becoming constrained, and preliminary forces
+
+            for (auto p = 1; p < npcState->ParticleMesh.Particles.size(); ++p)
+            {
+                if (!npcState->ParticleMesh.Particles[p].ConstrainedState.has_value() // Secondary is free
+                    && npcState->ParticleMesh.Particles[0].ConstrainedState.has_value()) // And primary is constrained
+                {
+                    assert(mShips[npcState->CurrentShipId].has_value());
+
+                    auto newConstrainedState = CalculateParticleConstrainedState(
+                        mParticles.GetPosition(npcState->ParticleMesh.Particles[p].ParticleIndex),
+                        shipMesh,
+                        std::nullopt);
+
+                    if (newConstrainedState.has_value())
+                    {
+                        // Make this secondary constrained
+                        TransitionParticleToConstrainedState(*npcState, static_cast<int>(p), std::move(*newConstrainedState));
+                    }
+                }
+
+                CalculateNpcParticlePreliminaryForces(
+                    *npcState,
+                    static_cast<int>(p),
+                    gameParameters);
+            }
+
+            // Spring forces for whole NPC
+
+            CalculateNpcParticleSpringForces(*npcState);
+
+            // Update physical state for all particles
+
+            for (auto p = 0; p < npcState->ParticleMesh.Particles.size(); ++p)
             {
                 UpdateNpcParticlePhysics(
                     *npcState,
-                    false,
+                    static_cast<int>(p),
                     shipMesh,
                     currentSimulationTime,
                     gameParameters);
@@ -366,7 +359,8 @@ void Npcs::UpdateNpcs(
     }
 
     //
-    // 5. Update behavioral state machines
+    // 6. Update behavioral state machines
+    // 7. Update animation
     //
 
     LogNpcDebug("----------------------------------");
@@ -375,52 +369,33 @@ void Npcs::UpdateNpcs(
     {
         if (npcState.has_value())
         {
+            assert(mShips[npcState->CurrentShipId].has_value());
+            auto const & shipMesh = mShips[npcState->CurrentShipId]->ShipMesh;
+
+            // Behavior
+
             if (npcState->Kind == NpcKindType::Human)
             {
-                assert(mShips[npcState->CurrentShipId].has_value());
-                auto const & shipMesh = mShips[npcState->CurrentShipId]->ShipMesh;
-
                 UpdateHuman(
                     *npcState,
                     currentSimulationTime,
                     shipMesh,
                     gameParameters);
             }
-        }
-    }
 
-    //
-    // 6. Update animation
-    //
-
-    for (auto & npcState : mStateBuffer)
-    {
-        if (npcState.has_value())
-        {
-            assert(mShips[npcState->CurrentShipId].has_value());
-            auto const & shipMesh = mShips[npcState->CurrentShipId]->ShipMesh;
+            // Animation
 
             UpdateNpcAnimation(
                 *npcState,
-                true,
                 currentSimulationTime,
                 shipMesh);
-
-            if (npcState->DipoleState.has_value())
-            {
-                UpdateNpcAnimation(
-                    *npcState,
-                    false,
-                    currentSimulationTime,
-                    shipMesh);
-            }
         }
     }
 }
 
 void Npcs::UpdateNpcParticlePhysics(
     StateType & npc,
-    bool isPrimaryParticle,
+    int npcParticleOrdinal,
     Ship const & shipMesh,
     float currentSimulationTime,
     GameParameters const & gameParameters)
@@ -429,10 +404,10 @@ void Npcs::UpdateNpcParticlePhysics(
     // Here be dragons!
     //
 
-    auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
+    auto & npcParticle = npc.ParticleMesh.Particles[npcParticleOrdinal];
 
     LogNpcDebug("----------------------------------");
-    LogNpcDebug("  ", isPrimaryParticle ? "Primary" : "Secondary");
+    LogNpcDebug("  Particle ", npcParticleOrdinal);
 
     float const particleMass =
         mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).Mass
@@ -463,7 +438,7 @@ void Npcs::UpdateNpcParticlePhysics(
 
         vec2f const physicalForces = CalculateNpcParticleDefinitiveForces(
             npc,
-            isPrimaryParticle,
+            npcParticleOrdinal,
             particleMass,
             gameParameters);
 
@@ -471,10 +446,12 @@ void Npcs::UpdateNpcParticlePhysics(
     }
 
     if (npc.CurrentRegime == StateType::RegimeType::BeingPlaced
-        && ((npc.Kind == NpcKindType::Human && !isPrimaryParticle) || (npc.Kind != NpcKindType::Human)))
+        && (
+            (npc.Kind == NpcKindType::Human && npcParticleOrdinal == 1) // We move the head (secondary)
+            || (npc.Kind != NpcKindType::Human))) // We move all
     {
         //
-        // Particle is being placed
+        // Particle is being placed - nothing to do
         //
 
         LogNpcDebug("    Being placed");
@@ -499,7 +476,7 @@ void Npcs::UpdateNpcParticlePhysics(
 
         // Update total distance traveled
         if (npc.Kind == NpcKindType::Human
-            && isPrimaryParticle) // Human is represented by primary particle
+            && npcParticleOrdinal == 0) // Human is represented by primary particle
         {
             npc.KindSpecificState.HumanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition += physicsDeltaPos.length();
         }
@@ -675,7 +652,7 @@ void Npcs::UpdateNpcParticlePhysics(
 
                     auto const outcome = NavigateVertex(
                         npc,
-                        isPrimaryParticle,
+                        npcParticleOrdinal,
                         npcParticle.ConstrainedState->CurrentVirtualFloor,
                         *vertexOrdinal,
                         trajectory,
@@ -690,7 +667,7 @@ void Npcs::UpdateNpcParticlePhysics(
                         {
                             // Transition to free immediately
 
-                            TransitionParticleToFreeState(npc, true);
+                            TransitionParticleToFreeState(npc, npcParticleOrdinal);
 
                             UpdateNpcParticle_Free(
                                 npcParticle,
@@ -803,7 +780,7 @@ void Npcs::UpdateNpcParticlePhysics(
                         LogNpcDebug("    On an edge: ", edgeOrdinal, " of triangle ", npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex);
 
                         // Check if this is really a floor to this particle
-                        if (IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, edgeOrdinal, npc, isPrimaryParticle, mParticles, shipMesh))
+                        if (IsEdgeFloorToParticle(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, edgeOrdinal, npc, npcParticleOrdinal, mParticles, shipMesh))
                         {
                             // The edge is a floor
 
@@ -944,7 +921,7 @@ void Npcs::UpdateNpcParticlePhysics(
 
                 if (npc.Kind == NpcKindType::Human
                     && npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking
-                    && isPrimaryParticle)
+                    && npcParticleOrdinal == 0)
                 {
                     //
                     // Walking displacement projected along edge - what's needed to reach total desired walking
@@ -1079,7 +1056,7 @@ void Npcs::UpdateNpcParticlePhysics(
 
                 auto const [edgeTraveledActual, doStop, newFloorEdgeOrdinal] = UpdateNpcParticle_ConstrainedNonInertial(
                     npc,
-                    isPrimaryParticle,
+                    npcParticleOrdinal,
                     nonInertialEdgeOrdinal,
                     edgeDir,
                     particleStartAbsolutePosition,
@@ -1183,7 +1160,7 @@ void Npcs::UpdateNpcParticlePhysics(
 
                 // Update total human distance traveled
                 if (npc.Kind == NpcKindType::Human
-                    && isPrimaryParticle) // Human is represented by primary particle
+                    && npcParticleOrdinal == 0) // Human is represented by primary particle
                 {
                     // Note: does not include eventual distance traveled after becoming free; fine because we will transition and wipe out total traveled
                     npc.KindSpecificState.HumanNpcState.TotalDistanceTraveledOnEdgeSinceStateTransition += std::abs(edgeTraveledActual);
@@ -1245,7 +1222,7 @@ void Npcs::UpdateNpcParticlePhysics(
 
                 float totalTraveled = UpdateNpcParticle_ConstrainedInertial(
                     npc,
-                    isPrimaryParticle,
+                    npcParticleOrdinal,
                     particleStartAbsolutePosition,
                     trajectoryStartAbsolutePosition, // segmentTrajectoryStartAbsolutePosition
                     trajectoryEndAbsolutePosition,
@@ -1258,9 +1235,18 @@ void Npcs::UpdateNpcParticlePhysics(
                     currentSimulationTime,
                     gameParameters);
 
+                if (npcParticle.ConstrainedState.has_value())
+                {
+                    LogNpcDebug("    EndBCoords=", npcParticle.ConstrainedState->CurrentBCoords);
+                }
+                else
+                {
+                    LogNpcDebug("    Became free");
+                }
+
                 // Update total traveled
                 if (npc.Kind == NpcKindType::Human
-                    && isPrimaryParticle) // Human is represented by primary particle
+                    && npcParticleOrdinal == 0) // Human is represented by primary particle
                 {
                     // Note: does not include eventual disance traveled after becoming free; fine because we will transition and wipe out total traveled
                     npc.KindSpecificState.HumanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition += std::abs(totalTraveled);
@@ -1314,10 +1300,10 @@ void Npcs::UpdateNpcParticlePhysics(
 
 void Npcs::CalculateNpcParticlePreliminaryForces(
     StateType const & npc,
-    bool isPrimaryParticle,
+    int npcParticleOrdinal,
     GameParameters const & gameParameters)
 {
-    auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
+    auto & npcParticle = npc.ParticleMesh.Particles[npcParticleOrdinal];
 
     //
     // Calculate world forces
@@ -1346,11 +1332,10 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
         float constexpr BuoyancyInterfaceWidth = 0.4f;
 
         vec2f testParticlePosition = mParticles.GetPosition(npcParticle.ParticleIndex);
-        if (npc.Kind == NpcKindType::Human && !isPrimaryParticle)
+        if (npc.Kind == NpcKindType::Human && npcParticleOrdinal > 0)
         {
             // Head - use an offset
-            assert(npc.DipoleState.has_value());
-            testParticlePosition += (mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex) - testParticlePosition) * BuoyancyInterfaceWidth * 2.0f / 3.0f;
+            testParticlePosition += (mParticles.GetPosition(npc.ParticleMesh.Particles[0].ParticleIndex) - testParticlePosition) * BuoyancyInterfaceWidth * 2.0f / 3.0f;
         }
 
         float const particleDepth = mParentWorld.GetOceanSurface().GetDepth(testParticlePosition);
@@ -1376,15 +1361,20 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
         }
     }
 
-    // 3. Spring forces
+    // 3. External forces
 
-    if (npc.DipoleState.has_value())
+    preliminaryForces += mParticles.GetExternalForces(npcParticle.ParticleIndex);
+
+    mParticles.SetPreliminaryForces(npcParticle.ParticleIndex, preliminaryForces);
+}
+
+void Npcs::CalculateNpcParticleSpringForces(StateType const & npc)
+{
+    for (auto const & spring : npc.ParticleMesh.Springs)
     {
-        ElementIndex const otherParticleIndex = isPrimaryParticle ? npc.DipoleState->SecondaryParticleState.ParticleIndex : npc.PrimaryParticleState.ParticleIndex;
+        float constexpr dt = GameParameters::SimulationTimeStepDuration;
 
-        float const dt = GameParameters::SimulationTimeStepDuration;
-
-        vec2f const springDisplacement = mParticles.GetPosition(otherParticleIndex) - mParticles.GetPosition(npcParticle.ParticleIndex); // Towards other
+        vec2f const springDisplacement = mParticles.GetPosition(spring.EndpointAIndex) - mParticles.GetPosition(spring.EndpointBIndex); // Towards A
         float const springDisplacementLength = springDisplacement.length();
         vec2f const springDir = springDisplacement.normalise_approx(springDisplacementLength);
 
@@ -1394,8 +1384,8 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
 
         // Calculate spring force on this particle
         float const fSpring =
-            (springDisplacementLength - npc.DipoleState->DipoleProperties.DipoleLength)
-            * npc.DipoleState->DipoleProperties.SpringStiffnessCoefficient;
+            (springDisplacementLength - spring.DipoleLength)
+            * spring.SpringStiffnessFactor;
 
         //
         // 3b. Damper forces
@@ -1405,33 +1395,29 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
         //
 
         // Calculate damp force on this particle
-        vec2f const relVelocity = mParticles.GetVelocity(otherParticleIndex) - mParticles.GetVelocity(npcParticle.ParticleIndex);
+        vec2f const relVelocity = mParticles.GetVelocity(spring.EndpointAIndex) - mParticles.GetVelocity(spring.EndpointBIndex);
         float const fDamp =
             relVelocity.dot(springDir)
-            * npc.DipoleState->DipoleProperties.SpringDampingCoefficient;
+            * spring.SpringDampingFactor;
 
         //
         // Apply forces
         //
 
-        preliminaryForces += springDir * (fSpring + fDamp);
+        vec2f const springForce = springDir * (fSpring + fDamp);
+
+        mParticles.SetPreliminaryForces(spring.EndpointAIndex, mParticles.GetPreliminaryForces(spring.EndpointAIndex) - springForce);
+        mParticles.SetPreliminaryForces(spring.EndpointBIndex, mParticles.GetPreliminaryForces(spring.EndpointBIndex) + springForce);
     }
-
-    // 4. External forces
-
-    preliminaryForces += mParticles.GetExternalForces(npcParticle.ParticleIndex);
-
-
-    mParticles.SetPreliminaryForces(npcParticle.ParticleIndex, preliminaryForces);
 }
 
 vec2f Npcs::CalculateNpcParticleDefinitiveForces(
     StateType const & npc,
-    bool isPrimaryParticle,
+    int npcParticleOrdinal,
     float particleMass,
     GameParameters const & gameParameters) const
 {
-    auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
+    auto & npcParticle = npc.ParticleMesh.Particles[npcParticleOrdinal];
 
     vec2f definitiveForces = mParticles.GetPreliminaryForces(npcParticle.ParticleIndex);
 
@@ -1441,12 +1427,10 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
 
     if (npc.Kind == NpcKindType::Human
         && npc.KindSpecificState.HumanNpcState.EquilibriumTorque != 0.0f
-        && !isPrimaryParticle)
+        && npcParticleOrdinal > 0)
     {
-        assert(npc.DipoleState.has_value());
-
-        ElementIndex const primaryParticleIndex = npc.PrimaryParticleState.ParticleIndex;
-        ElementIndex const secondaryParticleIndex = npc.DipoleState->SecondaryParticleState.ParticleIndex;
+        ElementIndex const primaryParticleIndex = npc.ParticleMesh.Particles[0].ParticleIndex;
+        ElementIndex const secondaryParticleIndex = npcParticle.ParticleIndex;
 
         vec2f const feetPosition = mParticles.GetPosition(primaryParticleIndex);
 
@@ -1515,33 +1499,38 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
 
 void Npcs::RecalculateSpringForceParameters()
 {
-    // Visit all dipoles
+    // Visit all springs
 
     for (auto & npc : mStateBuffer)
     {
-        if (npc.has_value() && npc->DipoleState.has_value())
+        if (npc.has_value())
         {
-            RecalculateSpringForceParameters(npc->DipoleState->DipoleProperties);
+            for (auto & spring : npc->ParticleMesh.Springs)
+            {
+                RecalculateSpringForceParameters(spring);
+            }
         }
     }
 }
 
-void Npcs::RecalculateSpringForceParameters(StateType::DipolePropertiesType & dipoleProperties) const
+void Npcs::RecalculateSpringForceParameters(StateType::NpcSpringStateType & spring) const
 {
-    dipoleProperties.SpringStiffnessCoefficient =
-        mCurrentSpringReductionFraction
-        * dipoleProperties.MassFactor
+    spring.SpringStiffnessFactor =
+        spring.SpringReductionFraction
+        * spring.MassFactor
 #ifdef IN_BARYLAB
         * mCurrentMassAdjustment
 #endif
+        * mCurrentSpringReductionFractionAdjustment
         / (GameParameters::SimulationTimeStepDuration * GameParameters::SimulationTimeStepDuration);
 
-    dipoleProperties.SpringDampingCoefficient =
-        mCurrentSpringDampingCoefficient
-        * dipoleProperties.MassFactor
+    spring.SpringDampingFactor =
+        spring.SpringDampingCoefficient
+        * spring.MassFactor
 #ifdef IN_BARYLAB
         * mCurrentMassAdjustment
 #endif
+        * mCurrentSpringDampingCoefficientAdjustment
         / GameParameters::SimulationTimeStepDuration;
 }
 
@@ -1553,8 +1542,8 @@ void Npcs::RecalculateHumanNpcDipoleLengths()
         {
             if (state->Kind == NpcKindType::Human)
             {
-                assert(state->DipoleState.has_value());
-                state->DipoleState->DipoleProperties.DipoleLength = CalculateHumanNpcDipoleLength(state->KindSpecificState.HumanNpcState.Height);
+                assert(state->ParticleMesh.Springs.size() == 1);
+                state->ParticleMesh.Springs[0].DipoleLength = CalculateHumanNpcDipoleLength(state->KindSpecificState.HumanNpcState.Height);
             }
         }
     }
@@ -1588,7 +1577,7 @@ void Npcs::UpdateNpcParticle_Free(
 
 Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInertial(
     StateType & npc,
-    bool isPrimaryParticle,
+    int npcParticleOrdinal,
     int edgeOrdinal,
     vec2f const & edgeDir,
     vec2f const & particleStartAbsolutePosition,
@@ -1605,7 +1594,7 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
     float currentSimulationTime,
     GameParameters const & gameParameters)
 {
-    auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
+    auto & npcParticle = npc.ParticleMesh.Particles[npcParticleOrdinal];
     assert(npcParticle.ConstrainedState.has_value());
     auto & npcParticleConstrainedState = *npcParticle.ConstrainedState;
 
@@ -1741,7 +1730,7 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
 
     auto const navigationOutcome = NavigateVertex(
         npc,
-        isPrimaryParticle,
+        npcParticleOrdinal,
         TriangleAndEdge(npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex, edgeOrdinal),
         intersectionVertexOrdinal,
         flattenedTrajectory,
@@ -1756,7 +1745,7 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
         {
             // Become free
 
-            TransitionParticleToFreeState(npc, true);
+            TransitionParticleToFreeState(npc, npcParticleOrdinal);
 
             UpdateNpcParticle_Free(
                 npcParticle,
@@ -1819,7 +1808,7 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
 
             BounceConstrainedNpcParticle(
                 npc,
-                isPrimaryParticle,
+                npcParticleOrdinal,
                 flattenedTrajectory,
                 hasMovedInStep || (edgeTraveled != 0.0f),
                 bounceAbsolutePosition,
@@ -1848,7 +1837,7 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
 
 float Npcs::UpdateNpcParticle_ConstrainedInertial(
     StateType & npc,
-    bool isPrimaryParticle,
+    int npcParticleOrdinal,
     vec2f const & particleStartAbsolutePosition, // Since beginning of whole time quantum, not just this step
     vec2f const & segmentTrajectoryStartAbsolutePosition,
     vec2f const & segmentTrajectoryEndAbsolutePosition,
@@ -1861,7 +1850,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
     float currentSimulationTime,
     GameParameters const & gameParameters)
 {
-    auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
+    auto & npcParticle = npc.ParticleMesh.Particles[npcParticleOrdinal];
     assert(npcParticle.ConstrainedState.has_value());
     auto & npcParticleConstrainedState = *npcParticle.ConstrainedState;
 
@@ -1874,7 +1863,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
 
     for (int iIter = 0; ; ++iIter)
     {
-        assert(iIter < 8); // Detect and debug-break on infinite loops
+        assert(iIter < 32); // Detect and debug-break on infinite loops
 
         assert(npcParticleConstrainedState.CurrentBCoords.BCoords.is_on_edge_or_internal());
 
@@ -2019,9 +2008,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
             npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex,
             shipMesh.GetPoints());
 
-        assert(isPrimaryParticle || npc.DipoleState.has_value());
-
-        if (IsEdgeFloorToParticle(npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex, intersectionEdgeOrdinal, npc, isPrimaryParticle, mParticles, shipMesh))
+        if (IsEdgeFloorToParticle(npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex, intersectionEdgeOrdinal, npc, npcParticleOrdinal, mParticles, shipMesh))
         {
             //
             // Impact and bounce
@@ -2046,7 +2033,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
 
             BounceConstrainedNpcParticle(
                 npc,
-                isPrimaryParticle,
+                npcParticleOrdinal,
                 trajectory,
                 hasMovedInStep || ((intersectionAbsolutePosition - segmentTrajectoryStartAbsolutePosition).length() != 0.0f),
                 intersectionAbsolutePosition,
@@ -2089,7 +2076,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
             // Move to endpoint and exit, consuming whole quantum
             //
 
-            TransitionParticleToFreeState(npc, isPrimaryParticle);
+            TransitionParticleToFreeState(npc, npcParticleOrdinal);
 
             UpdateNpcParticle_Free(
                 npcParticle,
@@ -2141,7 +2128,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
 
 inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
     StateType const & npc,
-    bool isPrimaryParticle,
+    int npcParticleOrdinal,
     std::optional<TriangleAndEdge> const & walkedEdge,
     int vertexOrdinal, // Mutable
     vec2f const & trajectory,
@@ -2159,10 +2146,13 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
     // See whether this particle is the primary (feet) of a walking human
     //
 
+    auto const & npcParticle = npc.ParticleMesh.Particles[npcParticleOrdinal];
+    assert(npcParticle.ConstrainedState.has_value());
+
     if (npc.Kind == NpcKindType::Human
         && npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking
         && walkedEdge.has_value()
-        && isPrimaryParticle)
+        && npcParticleOrdinal == 0)
     {
         //
         // Navigate around this vertex according to CW/CCW and choose floors to walk on; we return any of these:
@@ -2171,9 +2161,6 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         // - We have detected an impact against a floor (iff no floors have been found)
         // - We become free
         //
-
-        StateType::NpcParticleStateType const & npcParticle = npc.PrimaryParticleState; // This is a primary particle
-        assert(npcParticle.ConstrainedState.has_value());
 
         //
         // When in walking state and arriving at a vertex at which there are more than two *viable* floors there (incl.incoming, so >= 2 + 1), choose which one to take
@@ -2291,7 +2278,7 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
             // Check whether this new edge is floor
             //
 
-            if (IsEdgeFloorToParticle(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal, npc, true, particles, shipMesh))
+            if (IsEdgeFloorToParticle(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal, npc, npcParticleOrdinal, particles, shipMesh))
             {
                 //
                 // Encountered floor
@@ -2586,16 +2573,13 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         // - We become free
         //
 
-        auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
-        assert(npcParticle.ConstrainedState.has_value());
-
         AbsoluteTriangleBCoords currentAbsoluteBCoords = npcParticle.ConstrainedState->CurrentBCoords;
 
         for (int iIter = 0; ; ++iIter)
         {
             LogNpcDebug("    NavigateVertex_NonWalking: iter=", iIter);
 
-            assert(iIter < 8); // Detect and debug-break on infinite loops
+            assert(iIter < 32); // Detect and debug-break on infinite loops
 
             // The two vertices around the vertex we are on - seen in clockwise order
             int const nextVertexOrdinal = (vertexOrdinal + 1) % 3;
@@ -2642,7 +2626,7 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
             // Check whether this new edge is floor
             //
 
-            if (IsEdgeFloorToParticle(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal, npc, isPrimaryParticle, particles, shipMesh))
+            if (IsEdgeFloorToParticle(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal, npc, npcParticleOrdinal, particles, shipMesh))
             {
                 //
                 // Encountered floor
@@ -2739,7 +2723,7 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
 
 void Npcs::BounceConstrainedNpcParticle(
     StateType & npc,
-    bool isPrimaryParticle,
+    int npcParticleOrdinal,
     vec2f const & trajectory,
     bool hasMovedInStep,
     vec2f const & bouncePosition,
@@ -2750,7 +2734,7 @@ void Npcs::BounceConstrainedNpcParticle(
     float currentSimulationTime,
     GameParameters const & gameParameters) const
 {
-    auto & npcParticle = isPrimaryParticle ? npc.PrimaryParticleState : npc.DipoleState->SecondaryParticleState;
+    auto & npcParticle = npc.ParticleMesh.Particles[npcParticleOrdinal];
     assert(npcParticle.ConstrainedState.has_value());
 
     // Calculate apparent velocity:
@@ -2823,7 +2807,7 @@ void Npcs::BounceConstrainedNpcParticle(
 
         OnImpact(
             npc,
-            isPrimaryParticle,
+            npcParticleOrdinal,
             normalVelocity,
             bounceEdgeNormal,
             currentSimulationTime);
@@ -2845,7 +2829,7 @@ void Npcs::BounceConstrainedNpcParticle(
 
 void Npcs::OnImpact(
     StateType & npc,
-    bool isPrimaryParticle,
+    int npcParticleOrdinal,
     vec2f const & normalResponse,
     vec2f const & bounceEdgeNormal, // Pointing outside of triangle
     float currentSimulationTime) const
@@ -2857,7 +2841,7 @@ void Npcs::OnImpact(
     {
         OnHumanImpact(
             npc,
-            isPrimaryParticle,
+            npcParticleOrdinal,
             normalResponse,
             bounceEdgeNormal,
             currentSimulationTime);
@@ -2866,21 +2850,20 @@ void Npcs::OnImpact(
 
 void Npcs::UpdateNpcAnimation(
     StateType & npc,
-    bool isPrimaryParticle,
     float currentSimulationTime,
     Ship const & shipMesh)
 {
-    if (npc.Kind == NpcKindType::Human && isPrimaryParticle) // Take the primary as the only representative of a human
+    if (npc.Kind == NpcKindType::Human) // Take the primary as the only representative of a human
     {
-        assert(npc.DipoleState.has_value());
         auto & humanNpcState = npc.KindSpecificState.HumanNpcState;
         auto & animationState = humanNpcState.AnimationState;
         using HumanNpcStateType = StateType::KindSpecificStateType::HumanNpcStateType;
 
-        ElementIndex const primaryParticleIndex = npc.PrimaryParticleState.ParticleIndex;
-        auto const & primaryContrainedState = npc.PrimaryParticleState.ConstrainedState;
-        ElementIndex const secondaryParticleIndex = npc.DipoleState->SecondaryParticleState.ParticleIndex;
-        auto const & secondaryConstrainedState = npc.DipoleState->SecondaryParticleState.ConstrainedState;
+        assert(npc.ParticleMesh.Particles.size() == 2);
+        ElementIndex const primaryParticleIndex = npc.ParticleMesh.Particles[0].ParticleIndex;
+        auto const & primaryContrainedState = npc.ParticleMesh.Particles[0].ConstrainedState;
+        ElementIndex const secondaryParticleIndex = npc.ParticleMesh.Particles[1].ParticleIndex;
+        auto const & secondaryConstrainedState = npc.ParticleMesh.Particles[1].ConstrainedState;
 
         //
         // Angles and thigh
@@ -3237,8 +3220,8 @@ void Npcs::UpdateNpcAnimation(
 
                 // The extent to which we move arms depends on the avg velocity or head+feet
 
-                vec2f const & headVelocity = npc.DipoleState->SecondaryParticleState.GetApplicableVelocity(mParticles);
-                vec2f const & feetVelocity = npc.PrimaryParticleState.GetApplicableVelocity(mParticles);
+                vec2f const & headVelocity = npc.ParticleMesh.Particles[1].GetApplicableVelocity(mParticles);
+                vec2f const & feetVelocity = npc.ParticleMesh.Particles[0].GetApplicableVelocity(mParticles);
 
                 float const avgVelocityAlongBodyPerp = (headVelocity + feetVelocity).dot(actualBodyDir.to_perpendicular());
                 float const targetDepth = LinearStep(0.0f, 3.0f, std::abs(avgVelocityAlongBodyPerp));

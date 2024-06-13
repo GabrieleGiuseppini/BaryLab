@@ -55,6 +55,8 @@ public:
     rgbaColor RenderColor;
 
     float Mass;
+    float SpringReductionFraction;
+    float SpringDampingCoefficient;
     float StaticFriction;
     float KineticFriction;
     float Elasticity;
@@ -69,6 +71,8 @@ public:
         KindType kind,
         rgbaColor const & renderColor,
         float mass,
+        float springReductionFraction,
+        float springDampingCoefficient,
         float staticFriction,
         float kineticFriction,
         float elasticity,
@@ -77,6 +81,8 @@ public:
         , Kind(kind)
         , RenderColor(renderColor)
         , Mass(mass)
+        , SpringReductionFraction(springReductionFraction)
+        , SpringDampingCoefficient(springDampingCoefficient)
         , StaticFriction(staticFriction)
         , KineticFriction(kineticFriction)
         , Elasticity(elasticity)

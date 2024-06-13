@@ -253,11 +253,13 @@ public:
     }
 
     template <typename ...TArgs>
-    void emplace_back(TArgs&&... args) noexcept
+    TElement & emplace_back(TArgs&&... args) noexcept
     {
         assert(mCurrentSize < MaxSize);
 
-        mArray[mCurrentSize++] = TElement(std::forward<TArgs>(args)...);
+        TElement & newElement = mArray[mCurrentSize++];
+        newElement = TElement(std::forward<TArgs>(args)...);
+        return newElement;
     }
 
     void erase(size_t index) noexcept

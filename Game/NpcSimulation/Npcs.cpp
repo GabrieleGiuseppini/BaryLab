@@ -8,6 +8,7 @@
 #include <GameCore/Colors.h>
 #include <GameCore/GameGeometry.h>
 
+#include <algorithm>
 #include <cassert>
 
 namespace Physics {
@@ -37,11 +38,11 @@ void Npcs::Update(
 		mCurrentHumanNpcWalkingSpeedAdjustment = gameParameters.HumanNpcWalkingSpeedAdjustment;
 	}
 
-	if (gameParameters.NpcSpringReductionFraction != mCurrentSpringReductionFraction
-		|| gameParameters.NpcSpringDampingCoefficient != mCurrentSpringDampingCoefficient)
+	if (gameParameters.NpcSpringReductionFractionAdjustment != mCurrentSpringReductionFractionAdjustment
+		|| gameParameters.NpcSpringDampingCoefficientAdjustment != mCurrentSpringDampingCoefficientAdjustment)
 	{
-		mCurrentSpringReductionFraction = gameParameters.NpcSpringReductionFraction;
-		mCurrentSpringDampingCoefficient = gameParameters.NpcSpringDampingCoefficient;
+		mCurrentSpringReductionFractionAdjustment = gameParameters.NpcSpringReductionFractionAdjustment;
+		mCurrentSpringDampingCoefficientAdjustment = gameParameters.NpcSpringDampingCoefficientAdjustment;
 
 		RecalculateSpringForceParameters();
 	}
@@ -74,30 +75,28 @@ void Npcs::RenderUpload(
 					assert(mStateBuffer[npcId].has_value());
 					auto const & state = *mStateBuffer[npcId];
 
-					auto const planeId = state.CurrentPlaneId.has_value()
-						? *(state.CurrentPlaneId)
-						: mShips[shipId]->ShipMesh.GetMaxPlaneId();
+					auto const planeId = (state.CurrentRegime == StateType::RegimeType::BeingPlaced)
+						? mShips[shipId]->ShipMesh.GetMaxPlaneId()
+						: state.CurrentPlaneId;
 
-					shipRenderContext.UploadNpcParticle(
-						planeId,
-						mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
-						mParticles.GetRenderColor(state.PrimaryParticleState.ParticleIndex),
-						1.0f,
-						state.Highlight);
-
-					if (state.DipoleState.has_value())
+					// Particles
+					for (auto const & particle: state.ParticleMesh.Particles)
 					{
 						shipRenderContext.UploadNpcParticle(
 							planeId,
-							mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
-							mParticles.GetRenderColor(state.DipoleState->SecondaryParticleState.ParticleIndex),
+							mParticles.GetPosition(particle.ParticleIndex),
+							mParticles.GetRenderColor(particle.ParticleIndex),
 							1.0f,
 							state.Highlight);
+					}
 
+					// Springs
+					for (auto const & spring : state.ParticleMesh.Springs)
+					{
 						renderContext.UploadNpcSpring(
 							planeId,
-							mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
-							mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
+							mParticles.GetPosition(spring.EndpointAIndex),
+							mParticles.GetPosition(spring.EndpointBIndex),
 							rgbaColor(0x4a, 0x4a, 0x4a, 0xff));
 					}
 				}
@@ -113,7 +112,8 @@ void Npcs::RenderUpload(
 
 	assert(renderContext.GetNpcRenderMode() == NpcRenderModeType::Limbs);
 
-	renderContext.UploadNpcQuadsStart(mFurnitureNpcCount + mHumanNpcCount * (6 + 2));
+	// Futurework
+	renderContext.UploadNpcQuadsStart(mFurnitureNpcCount * 4 + mHumanNpcCount * (6 + 2));
 
 #ifdef IN_BARYLAB
 	// For furniture
@@ -258,10 +258,10 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 	float /*currentSimulationTime*/)
 {
 	//
-	// Check if there are enough NPCs and particles
+	// Check if there are enough NPCs
 	//
 
-	if ((mHumanNpcCount + mFurnitureNpcCount) >= GameParameters::MaxNpcs || mParticles.GetRemainingParticlesCount() < 2)
+	if ((mHumanNpcCount + mFurnitureNpcCount) >= GameParameters::MaxNpcs)
 	{
 		return std::nullopt;
 	}
@@ -270,25 +270,149 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 	// Create NPC
 	//
 
-	// Futurework
-	assert(furnitureKind == FurnitureNpcKindType::Particle);
+	StateType::ParticleMeshType particleMesh;
 
-	// Primary
+	switch (furnitureKind)
+	{
+		case FurnitureNpcKindType::Quad:
+		{
+			// Check if there are enough particles
 
-	auto const & furnitureMaterial = mMaterialDatabase.GetNpcMaterial(NpcMaterial::KindType::Furniture);
+			if (mParticles.GetRemainingParticlesCount() < 4)
+			{
+				return std::nullopt;
+			}
 
-	auto const primaryParticleIndex = mParticles.Add(
-		furnitureMaterial.Mass,
-		furnitureMaterial.StaticFriction,
-		furnitureMaterial.KineticFriction,
-		furnitureMaterial.Elasticity,
-		furnitureMaterial.BuoyancyVolumeFill,
-		worldCoordinates,
-		furnitureMaterial.RenderColor);
+			// Particles
 
-	StateType::NpcParticleStateType primaryParticleState = StateType::NpcParticleStateType(
-		primaryParticleIndex,
-		std::nullopt);
+			float constexpr SideLength = 1.5f;
+			float constexpr DiagonalSideLength = SideLength * 1.41421356f; // sqrt(2)
+
+			auto const & furnitureMaterial = mMaterialDatabase.GetNpcMaterial(NpcMaterial::KindType::Furniture);
+
+			for (int p = 0; p < 4; ++p)
+			{
+				// CW order
+				vec2f particlePosition = worldCoordinates;
+				if (p == 1 || p == 2)
+				{
+					particlePosition.x += SideLength;
+				}
+				if (p == 2 || p == 3)
+				{
+					particlePosition.y -= SideLength;
+				}
+
+				auto const particleIndex = mParticles.Add(
+					furnitureMaterial.Mass,
+					furnitureMaterial.StaticFriction,
+					furnitureMaterial.KineticFriction,
+					furnitureMaterial.Elasticity,
+					furnitureMaterial.BuoyancyVolumeFill,
+					particlePosition,
+					furnitureMaterial.RenderColor);
+
+				particleMesh.Particles.emplace_back(particleIndex, std::nullopt);
+			}
+
+			// Springs
+
+			float const massFactor =
+				(furnitureMaterial.Mass * furnitureMaterial.Mass)
+				/ (furnitureMaterial.Mass + furnitureMaterial.Mass);
+
+			StateType::NpcSpringStateType baseSpring(
+				NoneElementIndex,
+				NoneElementIndex,
+				0,
+				furnitureMaterial.SpringReductionFraction,
+				furnitureMaterial.SpringDampingCoefficient,
+				massFactor);
+
+			// 0 - 1
+			{
+				baseSpring.EndpointAIndex = particleMesh.Particles[0].ParticleIndex;
+				baseSpring.EndpointBIndex = particleMesh.Particles[1].ParticleIndex;
+				baseSpring.DipoleLength = SideLength;
+				auto & spring = particleMesh.Springs.emplace_back(baseSpring);
+				RecalculateSpringForceParameters(spring);
+			}
+
+			// 0 | 3
+			{
+				baseSpring.EndpointAIndex = particleMesh.Particles[0].ParticleIndex;
+				baseSpring.EndpointBIndex = particleMesh.Particles[3].ParticleIndex;
+				baseSpring.DipoleLength = SideLength;
+				auto & spring = particleMesh.Springs.emplace_back(baseSpring);
+				RecalculateSpringForceParameters(spring);
+			}
+
+			// 0 \ 2
+			{
+				baseSpring.EndpointAIndex = particleMesh.Particles[0].ParticleIndex;
+				baseSpring.EndpointBIndex = particleMesh.Particles[2].ParticleIndex;
+				baseSpring.DipoleLength = DiagonalSideLength;
+				auto & spring = particleMesh.Springs.emplace_back(baseSpring);
+				RecalculateSpringForceParameters(spring);
+			}
+
+			// 1 | 2
+			{
+				baseSpring.EndpointAIndex = particleMesh.Particles[1].ParticleIndex;
+				baseSpring.EndpointBIndex = particleMesh.Particles[2].ParticleIndex;
+				baseSpring.DipoleLength = SideLength;
+				auto & spring = particleMesh.Springs.emplace_back(baseSpring);
+				RecalculateSpringForceParameters(spring);
+			}
+
+			// 2 - 3
+			{
+				baseSpring.EndpointAIndex = particleMesh.Particles[2].ParticleIndex;
+				baseSpring.EndpointBIndex = particleMesh.Particles[3].ParticleIndex;
+				baseSpring.DipoleLength = SideLength;
+				auto & spring = particleMesh.Springs.emplace_back(baseSpring);
+				RecalculateSpringForceParameters(spring);
+			}
+
+			// 1 / 3
+			{
+				baseSpring.EndpointAIndex = particleMesh.Particles[1].ParticleIndex;
+				baseSpring.EndpointBIndex = particleMesh.Particles[3].ParticleIndex;
+				baseSpring.DipoleLength = DiagonalSideLength;
+				auto & spring = particleMesh.Springs.emplace_back(baseSpring);
+				RecalculateSpringForceParameters(spring);
+			}
+
+			break;
+		}
+
+		case FurnitureNpcKindType::Particle:
+		{
+			// Check if there are enough particles
+
+			if (mParticles.GetRemainingParticlesCount() < 1)
+			{
+				return std::nullopt;
+			}
+
+			// Primary
+
+			auto const & furnitureMaterial = mMaterialDatabase.GetNpcMaterial(NpcMaterial::KindType::Furniture);
+
+			auto const primaryParticleIndex = mParticles.Add(
+				furnitureMaterial.Mass,
+				furnitureMaterial.StaticFriction,
+				furnitureMaterial.KineticFriction,
+				furnitureMaterial.Elasticity,
+				furnitureMaterial.BuoyancyVolumeFill,
+				worldCoordinates,
+				furnitureMaterial.RenderColor);
+
+			particleMesh.Particles.emplace_back(primaryParticleIndex, std::nullopt);
+
+			break;
+		}
+	}
 
 	// Furniture
 
@@ -309,10 +433,9 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 		npcId,
 		NpcKindType::Furniture,
 		shipId, // Topmost ship ID
-		std::nullopt, // Topmost plane ID
+		0, // PlaneID: irrelevant as long as BeingPlaced
 		StateType::RegimeType::BeingPlaced,
-		std::move(primaryParticleState),
-		std::nullopt, // DipoleState
+		std::move(particleMesh),
 		StateType::KindSpecificStateType(std::move(furnitureState)));
 
 	assert(mShips[shipId].has_value());
@@ -345,6 +468,8 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 	// Create NPC
 	//
 
+	StateType::ParticleMeshType particleMesh;
+
 	// Decide height
 
 	float const height = GameRandomEngine::GetInstance().GenerateNormalReal(
@@ -364,9 +489,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 		worldCoordinates - vec2f(0.0f, 1.0f) * height * mCurrentHumanNpcBodyLengthAdjustment,
 		feetMaterial.RenderColor);
 
-	StateType::NpcParticleStateType primaryParticleState = StateType::NpcParticleStateType(
-		primaryParticleIndex,
-		std::nullopt);
+	auto & primaryParticle = particleMesh.Particles.emplace_back(primaryParticleIndex, std::nullopt);
 
 	// Head (secondary)
 
@@ -381,25 +504,23 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 		worldCoordinates,
 		headMaterial.RenderColor);
 
-	StateType::NpcParticleStateType secondaryParticleState = StateType::NpcParticleStateType(
-		secondaryParticleIndex,
-		std::nullopt);
+	auto & secondaryParticle = particleMesh.Particles.emplace_back(secondaryParticleIndex, std::nullopt);
 
-	// Dipole
+	// Dipole spring
 
 	float const massFactor =
 		(feetMaterial.Mass * headMaterial.Mass)
 		/ (feetMaterial.Mass + headMaterial.Mass);
 
-	StateType::DipolePropertiesType dipoleProperties(
+	auto & dipoleSpring = particleMesh.Springs.emplace_back(
+		primaryParticleIndex,
+		secondaryParticleIndex,
 		CalculateHumanNpcDipoleLength(height),
+		headMaterial.SpringReductionFraction,
+		headMaterial.SpringDampingCoefficient,
 		massFactor);
 
-	RecalculateSpringForceParameters(dipoleProperties);
-
-	StateType::DipoleStateType dipoleState = StateType::DipoleStateType(
-		std::move(secondaryParticleState),
-		dipoleProperties);
+	RecalculateSpringForceParameters(dipoleSpring);
 
 	// Human
 
@@ -449,10 +570,9 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 		npcId,
 		NpcKindType::Human,
 		shipId, // Topmost ship ID
-		std::nullopt, // Topmost plane ID
+		0, // PlaneID: irrelevant as long as BeingPlaced
 		StateType::RegimeType::BeingPlaced,
-		std::move(primaryParticleState),
-		std::move(dipoleState),
+		std::move(particleMesh),
 		StateType::KindSpecificStateType(std::move(humanState)));
 
 	assert(mShips[shipId].has_value());
@@ -473,23 +593,25 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 {
 	float const squareSearchRadius = gameParameters.ToolSearchRadius * gameParameters.ToolSearchRadius;
 
-	NpcId nearestNpc = NoneNpcId;
-	float nearestNpcSquareDistance = std::numeric_limits<float>::max();
-	vec2f nearestNpcPosition = vec2f::zero();
+	struct NearestNpcType
+	{
+		NpcId Id{ NoneNpcId };
+		float SquareDistance{ std::numeric_limits<float>::max() };
+	};
+
+	NearestNpcType nearestOnPlaneNpc;
+	NearestNpcType nearestOffPlaneNpc;
 
 	//
 	// Determine ship and plane of this position - if any
 	//
 
+	std::pair<ShipId, PlaneId> probeDepth;
+
 	// Find topmost triangle containing this position
 	auto const topmostTriangle = FindTopmostTriangleContaining(position);
 	if (topmostTriangle)
 	{
-		//
-		// Probing in a triangle...
-		// ...search on this triangle's plane only
-		//
-
 		assert(topmostTriangle->GetShipId() < mShips.size());
 		assert(mShips[topmostTriangle->GetShipId()].has_value());
 		auto const & ship = *mShips[topmostTriangle->GetShipId()];
@@ -497,110 +619,154 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 		ElementIndex const trianglePointIndex = ship.ShipMesh.GetTriangles().GetPointAIndex(topmostTriangle->GetLocalObjectId());
 		PlaneId const planeId = ship.ShipMesh.GetPoints().GetPlaneId(trianglePointIndex);
 
-		for (auto const n : ship.Npcs)
-		{
-			assert(mStateBuffer[n].has_value());
-			auto const & state = *mStateBuffer[n];
+		probeDepth = { ship.ShipMesh.GetId(), planeId };
+	}
+	else
+	{
+		probeDepth = { 0, 0 }; // Bottommost
+	}
 
-			// Choose which particle to use as representative of this NPC
-			ElementIndex candidateParticle = NoneElementIndex;
-			std::optional<StateType::NpcParticleStateType::ConstrainedStateType> const * candidateNpcConstrainedState = nullptr;
-			switch (state.Kind)
+	//
+	// Visit all NPCs and find winner, if any
+	//
+
+	auto particleVisitor = [&](ElementIndex candidateParticleIndex, StateType const & npc, ShipId const & shipId) -> bool
+		{
+			bool aParticleWasFound = false;
+
+			vec2f const candidateNpcPosition = mParticles.GetPosition(candidateParticleIndex);
+			float const squareDistance = (candidateNpcPosition - position).squareLength();
+			if (squareDistance < squareSearchRadius)
+			{
+				if (std::make_pair(shipId, npc.CurrentPlaneId) >= probeDepth)
+				{
+					// It's on-plane
+					if (squareDistance < nearestOnPlaneNpc.SquareDistance)
+					{
+						nearestOnPlaneNpc = { npc.Id, squareDistance };
+						aParticleWasFound = true;
+					}
+				}
+				else
+				{
+					// It's off-plane
+					if (squareDistance < nearestOffPlaneNpc.SquareDistance)
+					{
+						nearestOffPlaneNpc = { npc.Id, squareDistance };
+						aParticleWasFound = true;
+					}
+				}
+			}
+
+			return aParticleWasFound;
+		};
+
+	for (auto const & state : mStateBuffer)
+	{
+		if (state.has_value())
+		{
+			auto const & ship = mShips[state->CurrentShipId];
+
+			switch (state->Kind)
 			{
 				case NpcKindType::Furniture:
 				{
-					candidateParticle = state.PrimaryParticleState.ParticleIndex;
-					candidateNpcConstrainedState = &(state.PrimaryParticleState.ConstrainedState);
+					// Proximity search for all particles
+
+					bool aParticleWasFound = false;
+					for (auto const & particle : state->ParticleMesh.Particles)
+					{
+						bool const r = particleVisitor(
+							particle.ParticleIndex,
+							*state,
+							state->CurrentShipId);
+
+						if (r)
+						{
+							aParticleWasFound = true;
+						}
+					}
+
+					if (!aParticleWasFound)
+					{
+						// Polygon test
+						//
+						// From https://wrfranklin.org/Research/Short_Notes/pnpoly.html
+
+						bool isHit = false;
+						for (size_t i = 0, j = state->ParticleMesh.Particles.size() - 1; i < state->ParticleMesh.Particles.size(); j = i++)
+						{
+							vec2f const & pos_i = mParticles.GetPosition(state->ParticleMesh.Particles[i].ParticleIndex);
+							vec2f const & pos_j = mParticles.GetPosition(state->ParticleMesh.Particles[j].ParticleIndex);
+							if (((pos_i.y > position.y) != (pos_j.y > position.y)) &&
+								(position.x < (pos_j.x - pos_i.x) * (position.y - pos_i.y) / (pos_j.y - pos_i.y) + pos_i.x))
+							{
+								isHit = !isHit;
+							}
+						}
+
+						if (isHit)
+						{
+							if (std::make_pair(state->CurrentShipId, state->CurrentPlaneId) >= probeDepth)
+							{
+								// It's on-plane
+								nearestOnPlaneNpc = { state->Id, squareSearchRadius };
+							}
+							else
+							{
+								// It's off-plane
+								nearestOffPlaneNpc = { state->Id, squareSearchRadius };
+							}
+						}
+					}
+
 					break;
 				}
 
 				case NpcKindType::Human:
 				{
 					// Head
-					assert(state.DipoleState.has_value());
-					candidateParticle = state.DipoleState->SecondaryParticleState.ParticleIndex;
-					candidateNpcConstrainedState = &(state.DipoleState->SecondaryParticleState.ConstrainedState);
+
+					assert(state->ParticleMesh.Particles.size() == 2);
+
+					particleVisitor(
+						state->ParticleMesh.Particles[1].ParticleIndex,
+						*state,
+						state->CurrentShipId);
+
 					break;
 				}
 			}
-
-			assert(candidateParticle != NoneElementIndex);
-			assert(candidateNpcConstrainedState != nullptr);
-
-			// Get plane of this NPC
-			PlaneId candidateNpcPlane;
-			if (candidateNpcConstrainedState->has_value())
-			{
-				assert(mShips[state.CurrentShipId].has_value());
-				candidateNpcPlane = mShips[state.CurrentShipId]->ShipMesh.GetPoints().GetPlaneId(
-					mShips[state.CurrentShipId]->ShipMesh.GetTriangles().GetPointAIndex(candidateNpcConstrainedState->value().CurrentBCoords.TriangleElementIndex));
-			}
-			else
-			{
-				candidateNpcPlane = NonePlaneId;
-			}
-
-			// Calculate distance of primary particle from search point
-			vec2f const candidateNpcPosition = mParticles.GetPosition(candidateParticle);
-			float const squareDistance = (candidateNpcPosition - position).squareLength();
-			if (squareDistance < squareSearchRadius && squareDistance < nearestNpcSquareDistance
-				&& (candidateNpcPlane == NonePlaneId || candidateNpcPlane == planeId))
-			{
-				nearestNpc = state.Id;
-				nearestNpcSquareDistance = squareDistance;
-				nearestNpcPosition = candidateNpcPosition;
-			}
-		}
-	}
-	else
-	{
-		//
-		// Probing in free space...
-		// ...find nearest NPC, regardless of ship (and of plane)
-		//
-
-		for (auto const & state : mStateBuffer)
-		{
-			if (state.has_value())
-			{
-				// Choose which particle to use as representative of this NPC
-				ElementIndex candidateParticle = NoneElementIndex;
-				switch (state->Kind)
-				{
-					case NpcKindType::Furniture:
-					{
-						candidateParticle = state->PrimaryParticleState.ParticleIndex;
-						break;
-					}
-
-					case NpcKindType::Human:
-					{
-						// Head
-						assert(state->DipoleState.has_value());
-						candidateParticle = state->DipoleState->SecondaryParticleState.ParticleIndex;
-						break;
-					}
-				}
-
-				assert(candidateParticle != NoneElementIndex);
-
-				vec2f const candidateNpcPosition = mParticles.GetPosition(candidateParticle);
-				float const squareDistance = (candidateNpcPosition - position).squareLength();
-				if (squareDistance < squareSearchRadius && squareDistance < nearestNpcSquareDistance)
-				{
-					nearestNpc = state->Id;
-					nearestNpcSquareDistance = squareDistance;
-					nearestNpcPosition = candidateNpcPosition;
-				}
-			}
 		}
 	}
 
-	if (nearestNpc != NoneNpcId)
+	//
+	// Pick a winner - on-plane has higher prio than off-place
+	//
+
+	NpcId foundId = NoneNpcId;
+	if (nearestOnPlaneNpc.Id != NoneNpcId)
 	{
+		foundId = nearestOnPlaneNpc.Id;
+	}
+	else if (nearestOffPlaneNpc.Id != NoneNpcId)
+	{
+		foundId = nearestOffPlaneNpc.Id;
+	}
+
+	if (foundId != NoneNpcId)
+	{
+		assert(mStateBuffer[foundId].has_value());
+
+		int referenceParticleOrdinal = mStateBuffer[foundId]->Kind == NpcKindType::Furniture
+			? 0
+			: 1;
+
+		ElementIndex referenceParticleIndex = mStateBuffer[foundId]->ParticleMesh.Particles[referenceParticleOrdinal].ParticleIndex;
+
 		return PickedObjectId<NpcId>(
-			nearestNpc,
-			position - nearestNpcPosition);
+			foundId,
+			position - mParticles.GetPosition(referenceParticleIndex));
 	}
 	else
 	{
@@ -616,21 +782,20 @@ void Npcs::BeginMoveNpc(
 	auto & npc = *mStateBuffer[id];
 
 	//
-	// Move NPC to topmost ship and its topmost plane
+	// Move NPC to topmost ship
 	//
 
 	TransferNpcToShip(npc, GetTopmostShipId());
-	npc.CurrentPlaneId = std::nullopt;
+	npc.CurrentPlaneId = 0; // Irrelevant as long as it's in BeingPlaced
 
 	//
 	// Move NPC to BeingPlaced
 	//
 
-	// Both particles become free
-	npc.PrimaryParticleState.ConstrainedState.reset();
-	if (npc.DipoleState.has_value())
+	// All particles become free
+	for (auto & particle : npc.ParticleMesh.Particles)
 	{
-		npc.DipoleState->SecondaryParticleState.ConstrainedState.reset();
+		particle.ConstrainedState.reset();
 	}
 
 	// Change regime
@@ -674,7 +839,7 @@ void Npcs::MoveNpcTo(
 	assert(mStateBuffer[id].has_value());
 	assert(mStateBuffer[id]->CurrentRegime == StateType::RegimeType::BeingPlaced);
 
-	vec2f const newPosition = position - offset;
+	vec2f const newTargetPosition = position - offset;
 
 	float constexpr InertialVelocityFactor = 0.5f; // Magic number for how much velocity we impart
 
@@ -682,19 +847,29 @@ void Npcs::MoveNpcTo(
 	{
 		case NpcKindType::Furniture:
 		{
-			// Move primary particle
+			// Move all particles
 
-			auto const particleIndex = mStateBuffer[id]->PrimaryParticleState.ParticleIndex;
-			vec2f const oldPosition = mParticles.GetPosition(particleIndex);
-			mParticles.SetPosition(particleIndex, newPosition);
-			vec2f const absoluteVelocity = (newPosition - oldPosition) / GameParameters::SimulationTimeStepDuration * InertialVelocityFactor;
-			mParticles.SetVelocity(particleIndex, absoluteVelocity);
+			// Get position of primary as reference
+			assert(mStateBuffer[id]->ParticleMesh.Particles.size() > 0);
+			vec2f const oldPrimaryPosition = mParticles.GetPosition(mStateBuffer[id]->ParticleMesh.Particles[0].ParticleIndex);
 
-			if (mStateBuffer[id]->PrimaryParticleState.ConstrainedState.has_value())
+			// Calculate new absolute velocity of primary
+			vec2f const newPrimaryAbsoluteVelocity = (newTargetPosition - oldPrimaryPosition) / GameParameters::SimulationTimeStepDuration * InertialVelocityFactor;
+
+			// Move all particles
+			for (auto & particle : mStateBuffer[id]->ParticleMesh.Particles)
 			{
-				// We can only assume here, and we assume the ship is still and since the user doesn't move with the ship,
-				// all this velocity is also relative to mesh
-				mStateBuffer[id]->PrimaryParticleState.ConstrainedState->MeshRelativeVelocity = absoluteVelocity;
+				auto const particleIndex = particle.ParticleIndex;
+				vec2f const newPosition = newTargetPosition + (mParticles.GetPosition(particleIndex) - oldPrimaryPosition); // Set to new position + offset from reference
+				mParticles.SetPosition(particleIndex, newPosition);
+				mParticles.SetVelocity(particleIndex, newPrimaryAbsoluteVelocity);
+
+				if (particle.ConstrainedState.has_value())
+				{
+					// We can only assume here, and we assume the ship is still and since the user doesn't move with the ship,
+					// all this velocity is also relative to mesh
+					particle.ConstrainedState->MeshRelativeVelocity = newPrimaryAbsoluteVelocity;
+				}
 			}
 
 			break;
@@ -704,19 +879,19 @@ void Npcs::MoveNpcTo(
 		{
 			// Move secondary particle
 
-			assert(mStateBuffer[id]->DipoleState.has_value());
+			assert(mStateBuffer[id]->ParticleMesh.Particles.size() == 2);
 
-			auto const particleIndex = mStateBuffer[id]->DipoleState->SecondaryParticleState.ParticleIndex;
+			auto const particleIndex = mStateBuffer[id]->ParticleMesh.Particles[1].ParticleIndex;
 			vec2f const oldPosition = mParticles.GetPosition(particleIndex);
-			mParticles.SetPosition(particleIndex, newPosition);
-			vec2f const absoluteVelocity = (newPosition - oldPosition) / GameParameters::SimulationTimeStepDuration * InertialVelocityFactor;
+			mParticles.SetPosition(particleIndex, newTargetPosition);
+			vec2f const absoluteVelocity = (newTargetPosition - oldPosition) / GameParameters::SimulationTimeStepDuration * InertialVelocityFactor;
 			mParticles.SetVelocity(particleIndex, absoluteVelocity);
 
-			if (mStateBuffer[id]->DipoleState->SecondaryParticleState.ConstrainedState.has_value())
+			if (mStateBuffer[id]->ParticleMesh.Particles[1].ConstrainedState.has_value())
 			{
 				// We can only assume here, and we assume the ship is still and since the user doesn't move with the ship,
 				// all this velocity is also relative to mesh
-				mStateBuffer[id]->DipoleState->SecondaryParticleState.ConstrainedState->MeshRelativeVelocity = absoluteVelocity;
+				mStateBuffer[id]->ParticleMesh.Particles[1].ConstrainedState->MeshRelativeVelocity = absoluteVelocity;
 			}
 
 			break;
@@ -744,7 +919,7 @@ void Npcs::EndMoveNpc(
 
 #ifdef IN_BARYLAB
 	// Select NPC's primary particle
-	SelectParticle(npc.PrimaryParticleState.ParticleIndex);
+	SelectParticle(npc.ParticleMesh.Particles[0].ParticleIndex);
 #endif
 }
 
@@ -916,8 +1091,10 @@ void Npcs::MoveParticleBy(
 	{
 		if (state.has_value())
 		{
-			if (state->PrimaryParticleState.ParticleIndex == particleIndex
-				|| (state->DipoleState.has_value() && state->DipoleState->SecondaryParticleState.ParticleIndex == particleIndex))
+			if (std::any_of(
+				state->ParticleMesh.Particles.cbegin(),
+				state->ParticleMesh.Particles.cend(),
+				[particleIndex](auto const & p) { return p.ParticleIndex == particleIndex;}))
 			{
 				auto const oldRegime = state->CurrentRegime;
 
@@ -962,17 +1139,10 @@ void Npcs::RotateParticlesWithShip(
 				auto & state = mStateBuffer[n];
 				assert(state.has_value());
 
-				RotateParticleWithShip(
-					state->PrimaryParticleState,
-					centerPos,
-					cosAngle,
-					sinAngle,
-					ship->ShipMesh);
-
-				if (state->DipoleState.has_value())
+				for (auto & particle : state->ParticleMesh.Particles)
 				{
 					RotateParticleWithShip(
-						state->DipoleState->SecondaryParticleState,
+						particle,
 						centerPos,
 						cosAngle,
 						sinAngle,
@@ -1044,17 +1214,15 @@ bool Npcs::IsTriangleConstrainingCurrentlySelectedParticle(ElementIndex triangle
 		{
 			if (state.has_value())
 			{
-				if (state->PrimaryParticleState.ParticleIndex == *mCurrentlySelectedParticle
-					&& state->PrimaryParticleState.ConstrainedState.has_value()
-					&& triangleIndex == state->PrimaryParticleState.ConstrainedState->CurrentBCoords.TriangleElementIndex)
-				{
-					return true;
-				}
-
-				if (state->DipoleState.has_value()
-					&& state->DipoleState->SecondaryParticleState.ParticleIndex == *mCurrentlySelectedParticle
-					&& state->DipoleState->SecondaryParticleState.ConstrainedState.has_value()
-					&& triangleIndex == state->DipoleState->SecondaryParticleState.ConstrainedState->CurrentBCoords.TriangleElementIndex)
+				if (std::any_of(
+					state->ParticleMesh.Particles.cbegin(),
+					state->ParticleMesh.Particles.cend(),
+					[triangleIndex, selectedParticleIndex = *mCurrentlySelectedParticle](auto const & p)
+					{
+						return p.ParticleIndex == selectedParticleIndex
+							&& p.ConstrainedState.has_value()
+							&& p.ConstrainedState->CurrentBCoords.TriangleElementIndex == triangleIndex;
+					}))
 				{
 					return true;
 				}
@@ -1082,24 +1250,13 @@ bool Npcs::IsSpringHostingCurrentlySelectedParticle(ElementIndex springIndex) co
 					auto & state = mStateBuffer[n];
 					assert(state.has_value());
 
-					if (state->PrimaryParticleState.ParticleIndex == *mCurrentlySelectedParticle
-						|| (state->DipoleState.has_value() && state->DipoleState->SecondaryParticleState.ParticleIndex == *mCurrentlySelectedParticle))
+					for (auto const & particle : state->ParticleMesh.Particles)
 					{
-						if (state->PrimaryParticleState.ConstrainedState.has_value()
-							&& state->PrimaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value()
-							&& springIndex == ship->ShipMesh.GetTriangles()
-								.GetSubSprings(state->PrimaryParticleState.ConstrainedState->CurrentVirtualFloor->TriangleElementIndex)
-								.SpringIndices[state->PrimaryParticleState.ConstrainedState->CurrentVirtualFloor->EdgeOrdinal])
-						{
-							return true;
-						}
-
-						if (state->DipoleState.has_value()
-							&& state->DipoleState->SecondaryParticleState.ConstrainedState.has_value()
-							&& state->DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value()
-							&& springIndex == ship->ShipMesh.GetTriangles()
-								.GetSubSprings(state->DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualFloor->TriangleElementIndex)
-								.SpringIndices[state->DipoleState->SecondaryParticleState.ConstrainedState->CurrentVirtualFloor->EdgeOrdinal])
+						if (particle.ParticleIndex == *mCurrentlySelectedParticle
+							&& particle.ConstrainedState.has_value()
+							&& particle.ConstrainedState->CurrentVirtualFloor.has_value()
+							&& ship->ShipMesh.GetTriangles()
+							.GetSubSprings(particle.ConstrainedState->CurrentVirtualFloor->TriangleElementIndex).SpringIndices[particle.ConstrainedState->CurrentVirtualFloor->EdgeOrdinal] == springIndex)
 						{
 							return true;
 						}
@@ -1134,40 +1291,25 @@ void Npcs::Publish() const
 				assert(mShips[state.CurrentShipId].has_value());
 				auto const & shipMesh = mShips[state.CurrentShipId]->ShipMesh;
 
-				if (state.PrimaryParticleState.ParticleIndex == *mCurrentlySelectedParticle)
+				for (auto const & particle : state.ParticleMesh.Particles)
 				{
-					if (state.PrimaryParticleState.ConstrainedState.has_value())
+					if (particle.ParticleIndex == *mCurrentlySelectedParticle)
 					{
-						constrainedRegimeParticleProbe.emplace(state.PrimaryParticleState.ConstrainedState->CurrentBCoords);
-
-						if (mCurrentOriginTriangle.has_value())
+						if (particle.ConstrainedState.has_value())
 						{
-							subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = shipMesh.GetTriangles().ToBarycentricCoordinates(
-								mParticles.GetPosition(state.PrimaryParticleState.ParticleIndex),
-								*mCurrentOriginTriangle,
-								shipMesh.GetPoints());
+							constrainedRegimeParticleProbe.emplace(particle.ConstrainedState->CurrentBCoords);
+
+							if (mCurrentOriginTriangle.has_value())
+							{
+								subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = shipMesh.GetTriangles().ToBarycentricCoordinates(
+									mParticles.GetPosition(particle.ParticleIndex),
+									*mCurrentOriginTriangle,
+									shipMesh.GetPoints());
+							}
 						}
+
+						physicsParticleProbe.emplace(mParticles.GetVelocity(particle.ParticleIndex));
 					}
-
-					physicsParticleProbe.emplace(mParticles.GetVelocity(state.PrimaryParticleState.ParticleIndex));
-				}
-				else if (state.DipoleState.has_value()
-					&& state.DipoleState->SecondaryParticleState.ParticleIndex == *mCurrentlySelectedParticle)
-				{
-					if (state.DipoleState->SecondaryParticleState.ConstrainedState.has_value())
-					{
-						constrainedRegimeParticleProbe.emplace(state.DipoleState->SecondaryParticleState.ConstrainedState->CurrentBCoords);
-
-						if (mCurrentOriginTriangle.has_value())
-						{
-							subjectParticleBarycentricCoordinatesWrtOriginTriangleChanged = shipMesh.GetTriangles().ToBarycentricCoordinates(
-								mParticles.GetPosition(state.DipoleState->SecondaryParticleState.ParticleIndex),
-								*mCurrentOriginTriangle,
-								shipMesh.GetPoints());
-						}
-					}
-
-					physicsParticleProbe.emplace(mParticles.GetVelocity(state.DipoleState->SecondaryParticleState.ParticleIndex));
 				}
 			}
 		}
@@ -1407,15 +1549,15 @@ void Npcs::RenderNpc(
 {
 	assert(mShips[npc.CurrentShipId].has_value());
 
-	auto const planeId = npc.CurrentPlaneId.has_value()
-		? *(npc.CurrentPlaneId)
-		: mShips[npc.CurrentShipId]->ShipMesh.GetMaxPlaneId();
+	auto const planeId = (npc.CurrentRegime == StateType::RegimeType::BeingPlaced)
+		? mShips[npc.CurrentShipId]->ShipMesh.GetMaxPlaneId()
+		: npc.CurrentPlaneId;
 
 	switch(npc.Kind)
 	{
 		case NpcKindType::Human:
 		{
-			assert(npc.DipoleState.has_value());
+			assert(npc.ParticleMesh.Particles.size() == 2);
 			auto const & humanNpcState = npc.KindSpecificState.HumanNpcState;
 			auto const & animationState = humanNpcState.AnimationState;
 
@@ -1424,9 +1566,9 @@ void Npcs::RenderNpc(
 			// - arms, legs : based on ideal (incl. adjustment)
 			//
 
-			vec2f const feetPosition = mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex);
+			vec2f const feetPosition = mParticles.GetPosition(npc.ParticleMesh.Particles[0].ParticleIndex);
 
-			vec2f const actualBodyVector = mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex) - feetPosition; // From feet to head
+			vec2f const actualBodyVector = mParticles.GetPosition(npc.ParticleMesh.Particles[1].ParticleIndex) - feetPosition; // From feet to head
 			vec2f const actualBodyVDir = -actualBodyVector.normalise_approx(); // From head to feet - facilitates arm and length angle-making
 			vec2f const actualBodyHDir = actualBodyVDir.to_perpendicular(); // Points R (of the screen)
 
@@ -1940,21 +2082,38 @@ void Npcs::RenderNpc(
 
 		case NpcKindType::Furniture:
 		{
-			shipRenderContext.UploadNpcParticle(
-				planeId,
-				mParticles.GetPosition(npc.PrimaryParticleState.ParticleIndex),
-				mParticles.GetRenderColor(npc.PrimaryParticleState.ParticleIndex),
-				1.0f,
-				npc.Highlight);
-
-			if (npc.DipoleState.has_value())
+			// Futurework
+			if (npc.ParticleMesh.Particles.size() == 4)
 			{
-				shipRenderContext.UploadNpcParticle(
+				// Quad
+				shipRenderContext.UploadNpcQuad(
 					planeId,
-					mParticles.GetPosition(npc.DipoleState->SecondaryParticleState.ParticleIndex),
-					mParticles.GetRenderColor(npc.DipoleState->SecondaryParticleState.ParticleIndex),
+					TextureQuad(
+						mParticles.GetPosition(npc.ParticleMesh.Particles[0].ParticleIndex),
+						vec2f{-1.0f, 1.0f},
+						mParticles.GetPosition(npc.ParticleMesh.Particles[1].ParticleIndex),
+						vec2f{ 1.0f, 1.0f },
+						mParticles.GetPosition(npc.ParticleMesh.Particles[3].ParticleIndex),
+						vec2f{ -1.0f, -1.0f },
+						mParticles.GetPosition(npc.ParticleMesh.Particles[2].ParticleIndex),
+						vec2f{ 1.0f, -1.0f }
+					),
 					1.0f,
 					npc.Highlight);
+			}
+			else
+			{
+				// Bunch-of-particles
+
+				for (auto const & particle : npc.ParticleMesh.Particles)
+				{
+					shipRenderContext.UploadNpcParticle(
+						planeId,
+						mParticles.GetPosition(particle.ParticleIndex),
+						mParticles.GetRenderColor(particle.ParticleIndex),
+						1.0f,
+						npc.Highlight);
+				}
 			}
 
 			break;
@@ -1964,10 +2123,9 @@ void Npcs::RenderNpc(
 
 void Npcs::PublishHumanNpcStats()
 {
-	// TODOTEST
-	////mGameEventHandler->OnHumanNpcCountsUpdated(
-	////	mConstrainedRegimeHumanNpcCount,
-	////	mFreeRegimeHumanNpcCount);
+	mGameEventHandler->OnHumanNpcCountsUpdated(
+		mConstrainedRegimeHumanNpcCount,
+		mFreeRegimeHumanNpcCount);
 }
 
 }
