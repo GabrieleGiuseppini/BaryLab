@@ -1,9 +1,11 @@
 /***************************************************************************************
 * Original Author:		Gabriele Giuseppini
-* Created:				2020-05-06
+* Created:				2018-02-06
 * Copyright:			Gabriele Giuseppini  (https://github.com/GabrieleGiuseppini)
 ***************************************************************************************/
 #pragma once
+
+#include "SysSpecifics.h"
 
 #include <algorithm>
 #include <array>
@@ -11,7 +13,7 @@
 #include <iterator>
 
 /*
- * This class is a fixed-size vector for value elements.
+ * This class is basically an array with a "current size" state member. The maximum size is specified at compile time.
  *
  * Elements can be added up to the specified maximum size, after which the behavior is undefined.
  *
@@ -185,6 +187,16 @@ public:
         return false;
     }
 
+    TElement const * data() const
+    {
+        return mArray.data();
+    }
+
+    TElement * data()
+    {
+        return mArray.data();
+    }
+
     //
     // Modifiers
     //
@@ -313,6 +325,15 @@ public:
     void clear() noexcept
     {
         mCurrentSize = 0u;
+    }
+
+    void fill(TElement value)
+    {
+        TElement * restrict const ptr = mArray.data();
+        for (size_t i = 0; i < MaxSize; ++i)
+            ptr[i] = value;
+
+        mCurrentSize = MaxSize;
     }
 
     template <typename TCompare>
