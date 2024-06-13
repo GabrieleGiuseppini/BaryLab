@@ -137,67 +137,6 @@ struct PickedObjectId
     {}
 };
 
-/*
- * Identifies the edge of a triangle among all edges on a ship.
- */
-struct TriangleAndEdge
-{
-    ElementIndex TriangleElementIndex;
-    int EdgeOrdinal;
-
-    TriangleAndEdge() = default;
-
-    TriangleAndEdge(
-        ElementIndex triangleElementIndex,
-        int edgeOrdinal)
-        : TriangleElementIndex(triangleElementIndex)
-        , EdgeOrdinal(edgeOrdinal)
-    {
-        assert(triangleElementIndex != NoneElementIndex);
-        assert(edgeOrdinal >= 0 && edgeOrdinal < 3);
-    }
-};
-
-/*
- * Barycentric coordinates in a specific triangle.
- */
-struct AbsoluteTriangleBCoords
-{
-    ElementIndex TriangleElementIndex;
-    bcoords3f BCoords;
-
-    AbsoluteTriangleBCoords() = default;
-
-    AbsoluteTriangleBCoords(
-        ElementIndex triangleElementIndex,
-        bcoords3f bCoords)
-        : TriangleElementIndex(triangleElementIndex)
-        , BCoords(bCoords)
-    {
-        assert(triangleElementIndex != NoneElementIndex);
-    }
-
-    bool operator==(AbsoluteTriangleBCoords const & other) const
-    {
-        return this->TriangleElementIndex == other.TriangleElementIndex
-            && this->BCoords == other.BCoords;
-    }
-
-    std::string ToString() const
-    {
-        std::stringstream ss;
-        ss << TriangleElementIndex << ":" << BCoords;
-        return ss.str();
-    }
-};
-
-inline std::basic_ostream<char> & operator<<(std::basic_ostream<char> & os, AbsoluteTriangleBCoords const & is)
-{
-    os << is.ToString();
-    return os;
-}
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Geometry
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -209,8 +148,10 @@ inline std::basic_ostream<char> & operator<<(std::basic_ostream<char> & os, Abso
  */
 using Octant = std::int32_t;
 
-// This is our local circular order (clockwise, starting from E), indexes by Octant.
-// Note: cardinal directions are labeled according to x growing to the right and y growing upwards
+/*
+ * Our local circular order (clockwise, starting from E), indexes by Octant.
+ * Note: cardinal directions are labeled according to x growing to the right and y growing upwards
+ */
 extern int const TessellationCircularOrderDirections[8][2];
 
 /*
@@ -712,6 +653,67 @@ using IntegralRect = _IntegralRect<struct IntegralTag>;
 using ImageRect = _IntegralRect<struct ImageTag>;
 using ShipSpaceRect = _IntegralRect<struct ShipSpaceTag>;
 
+
+/*
+ * Identifies the edge of a triangle among all edges on a ship.
+ */
+struct TriangleAndEdge
+{
+    ElementIndex TriangleElementIndex;
+    int EdgeOrdinal;
+
+    TriangleAndEdge() = default;
+
+    TriangleAndEdge(
+        ElementIndex triangleElementIndex,
+        int edgeOrdinal)
+        : TriangleElementIndex(triangleElementIndex)
+        , EdgeOrdinal(edgeOrdinal)
+    {
+        assert(triangleElementIndex != NoneElementIndex);
+        assert(edgeOrdinal >= 0 && edgeOrdinal < 3);
+    }
+};
+
+/*
+ * Barycentric coordinates in a specific triangle.
+ */
+struct AbsoluteTriangleBCoords
+{
+    ElementIndex TriangleElementIndex;
+    bcoords3f BCoords;
+
+    AbsoluteTriangleBCoords() = default;
+
+    AbsoluteTriangleBCoords(
+        ElementIndex triangleElementIndex,
+        bcoords3f bCoords)
+        : TriangleElementIndex(triangleElementIndex)
+        , BCoords(bCoords)
+    {
+        assert(triangleElementIndex != NoneElementIndex);
+    }
+
+    bool operator==(AbsoluteTriangleBCoords const & other) const
+    {
+        return this->TriangleElementIndex == other.TriangleElementIndex
+            && this->BCoords == other.BCoords;
+    }
+
+    std::string ToString() const
+    {
+        std::stringstream ss;
+        ss << TriangleElementIndex << ":" << BCoords;
+        return ss.str();
+    }
+};
+
+inline std::basic_ostream<char> & operator<<(std::basic_ostream<char> & os, AbsoluteTriangleBCoords const & is)
+{
+    os << is.ToString();
+    return os;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Rendering
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -797,6 +799,7 @@ enum class NpcKindType
 
 /*
  * Furniture NPC types (second level).
+ * TODO: will be replaced by opaque int, managed via NpcDatabase.
  */
 enum class FurnitureNpcKindType
 {
@@ -806,14 +809,13 @@ enum class FurnitureNpcKindType
 
 /*
  * Human NPC types (second level).
+ * TODO: will be replaced by opaque int, managed via NpcDatabase.
  */
 enum class HumanNpcKindType
 {
     Passenger,
     Programmer
 };
-
-// Futurework: FurnitureNpcKind
 
 enum class NpcFloorKindType
 {
