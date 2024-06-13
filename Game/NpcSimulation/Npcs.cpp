@@ -75,9 +75,9 @@ void Npcs::RenderUpload(
 					assert(mStateBuffer[npcId].has_value());
 					auto const & state = *mStateBuffer[npcId];
 
-					auto const planeId = state.CurrentPlaneId.has_value()
-						? *(state.CurrentPlaneId)
-						: mShips[shipId]->ShipMesh.GetMaxPlaneId();
+					auto const planeId = (state.CurrentRegime == StateType::RegimeType::BeingPlaced)
+						? mShips[shipId]->ShipMesh.GetMaxPlaneId()
+						: state.CurrentPlaneId;
 
 					// Particles
 					for (auto const & particle: state.ParticleMesh.Particles)
@@ -433,7 +433,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 		npcId,
 		NpcKindType::Furniture,
 		shipId, // Topmost ship ID
-		std::nullopt, // Topmost plane ID
+		0, // PlaneID: irrelevant as long as BeingPlaced
 		StateType::RegimeType::BeingPlaced,
 		std::move(particleMesh),
 		StateType::KindSpecificStateType(std::move(furnitureState)));
@@ -570,7 +570,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 		npcId,
 		NpcKindType::Human,
 		shipId, // Topmost ship ID
-		std::nullopt, // Topmost plane ID
+		0, // PlaneID: irrelevant as long as BeingPlaced
 		StateType::RegimeType::BeingPlaced,
 		std::move(particleMesh),
 		StateType::KindSpecificStateType(std::move(humanState)));
@@ -627,7 +627,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 	}
 
 	//
-	// Visit all NPCs and find winner. if any
+	// Visit all NPCs and find winner, if any
 	//
 
 	auto particleVisitor = [&](ElementIndex candidateParticleIndex, StateType const & npc, ShipId const & shipId) -> bool
@@ -638,8 +638,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 			float const squareDistance = (candidateNpcPosition - position).squareLength();
 			if (squareDistance < squareSearchRadius)
 			{
-				auto const candidatePlaneId = npc.CurrentPlaneId.value_or(std::numeric_limits<PlaneId>::max());
-				if (std::make_pair(shipId, candidatePlaneId) >= probeDepth)
+				if (std::make_pair(shipId, npc.CurrentPlaneId) >= probeDepth)
 				{
 					// It's on-plane
 					if (squareDistance < nearestOnPlaneNpc.SquareDistance)
@@ -708,7 +707,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 
 						if (isHit)
 						{
-							if (std::make_pair(state->CurrentShipId, state->CurrentPlaneId.value_or(std::numeric_limits<PlaneId>::max())) >= probeDepth)
+							if (std::make_pair(state->CurrentShipId, state->CurrentPlaneId) >= probeDepth)
 							{
 								// It's on-plane
 								nearestOnPlaneNpc = { state->Id, squareSearchRadius };
@@ -783,11 +782,11 @@ void Npcs::BeginMoveNpc(
 	auto & npc = *mStateBuffer[id];
 
 	//
-	// Move NPC to topmost ship and its topmost plane
+	// Move NPC to topmost ship
 	//
 
 	TransferNpcToShip(npc, GetTopmostShipId());
-	npc.CurrentPlaneId = std::nullopt;
+	npc.CurrentPlaneId = 0; // Irrelevant as long as it's in BeingPlaced
 
 	//
 	// Move NPC to BeingPlaced
@@ -1550,9 +1549,9 @@ void Npcs::RenderNpc(
 {
 	assert(mShips[npc.CurrentShipId].has_value());
 
-	auto const planeId = npc.CurrentPlaneId.has_value()
-		? *(npc.CurrentPlaneId)
-		: mShips[npc.CurrentShipId]->ShipMesh.GetMaxPlaneId();
+	auto const planeId = (npc.CurrentRegime == StateType::RegimeType::BeingPlaced)
+		? mShips[npc.CurrentShipId]->ShipMesh.GetMaxPlaneId()
+		: npc.CurrentPlaneId;
 
 	switch(npc.Kind)
 	{
@@ -2124,10 +2123,9 @@ void Npcs::RenderNpc(
 
 void Npcs::PublishHumanNpcStats()
 {
-	// TODOTEST
-	////mGameEventHandler->OnHumanNpcCountsUpdated(
-	////	mConstrainedRegimeHumanNpcCount,
-	////	mFreeRegimeHumanNpcCount);
+	mGameEventHandler->OnHumanNpcCountsUpdated(
+		mConstrainedRegimeHumanNpcCount,
+		mFreeRegimeHumanNpcCount);
 }
 
 }

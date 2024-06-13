@@ -548,9 +548,8 @@ private:
 		// course of their lives.
 		ShipId CurrentShipId;
 
-		// The current plane ID. When not set, it stands-in for the topmost
-		// plane ID in the current ship.
-		std::optional<PlaneId> CurrentPlaneId;
+		// The current plane ID.
+		PlaneId CurrentPlaneId;
 
 		// The current regime.
 		RegimeType CurrentRegime;
@@ -571,14 +570,14 @@ private:
 			NpcId id,
 			NpcKindType kind,
 			ShipId initialShipId,
-			std::optional<PlaneId> initialPlaneId,
+			PlaneId initialPlaneId,
 			RegimeType initialRegime,
 			ParticleMeshType && particleMesh,
 			KindSpecificStateType && kindSpecificState)
 			: Id(id)
 			, Kind(kind)
 			, CurrentShipId(initialShipId)
-			, CurrentPlaneId(std::move(initialPlaneId))
+			, CurrentPlaneId(initialPlaneId)
 			, CurrentRegime(initialRegime)
 			, ParticleMesh(std::move(particleMesh))
 			, KindSpecificState(std::move(kindSpecificState))

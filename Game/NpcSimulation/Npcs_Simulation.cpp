@@ -70,14 +70,17 @@ void Npcs::ResetNpcStateToWorld(
 
     if (primaryParticleTriangleIndex.has_value())
     {
+        // Constrained
+
         // Use the plane ID of this triangle
         ElementIndex const trianglePointIndex = shipMesh.GetTriangles().GetPointAIndex(*primaryParticleTriangleIndex);
         npc.CurrentPlaneId = shipMesh.GetPoints().GetPlaneId(trianglePointIndex);
     }
     else
     {
-        // Primary is free, hence this NPC is on the topmost plane ID of its current ship
-        npc.CurrentPlaneId = std::nullopt;
+        // Primary is free, hence this NPC is on the topmost plane ID of its current ship;
+        // fine to stick to this plane so that if new planes come up, they will cover the NPC!
+        npc.CurrentPlaneId = shipMesh.GetMaxPlaneId();
     }
 
     // Particles
@@ -176,10 +179,14 @@ void Npcs::TransitionParticleToFreeState(
             }
         }
     }
+
     // Regime
     auto const oldRegime = npc.CurrentRegime;
     npc.CurrentRegime = CalculateRegime(npc);
     OnMayBeNpcRegimeChanged(oldRegime, npc);
+
+    // Note: we leave depth as-is, it sticks and the NPC will eventually
+    // get covered by other parts of the ship!
 }
 
 std::optional<Npcs::StateType::NpcParticleStateType::ConstrainedStateType> Npcs::CalculateParticleConstrainedState(
