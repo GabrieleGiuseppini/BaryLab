@@ -767,18 +767,13 @@ Physics::Triangles ShipFactory::CreateTriangles(
             triangleInfos[t].Springs[0],
             triangleInfos[t].Springs[1],
             triangleInfos[t].Springs[2],
-            subSpringsOppositeTriangle[0].first,
-            subSpringsOppositeTriangle[0].second,
-            subSpringsOppositeTriangle[1].first,
-            subSpringsOppositeTriangle[1].second,
-            subSpringsOppositeTriangle[2].first,
-            subSpringsOppositeTriangle[2].second,
-            subSpringsFloorKind[0],
-            subSpringsFloorGeometry[0],
-            subSpringsFloorKind[1],
-            subSpringsFloorGeometry[1],
-            subSpringsFloorKind[2],
-            subSpringsFloorGeometry[2]);
+            { subSpringsOppositeTriangle[0].first, subSpringsOppositeTriangle[0].second },
+            { subSpringsOppositeTriangle[1].first, subSpringsOppositeTriangle[1].second },
+            { subSpringsOppositeTriangle[2].first, subSpringsOppositeTriangle[2].second },
+            { subSpringsFloorKind[0], subSpringsFloorGeometry[0] },
+            { subSpringsFloorKind[1], subSpringsFloorGeometry[1] },
+            { subSpringsFloorKind[2], subSpringsFloorGeometry[2] },
+            std::nullopt);
 
         // Add triangle to its endpoints
         points.AddConnectedTriangle(triangleInfos[t].PointIndices[0], t, true); // Owner

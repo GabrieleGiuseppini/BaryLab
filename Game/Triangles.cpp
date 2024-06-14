@@ -18,27 +18,22 @@ void Triangles::Add(
     ElementIndex subSpringAIndex,
     ElementIndex subSpringBIndex,
     ElementIndex subSpringCIndex,
-    ElementIndex subSpringAOppositeTriangle,
-    int subSpringAOppositeTriangleEdgeOrdinal,
-    ElementIndex subSpringBOppositeTriangle,
-    int subSpringBOppositeTriangleEdgeOrdinal,
-    ElementIndex subSpringCOppositeTriangle,
-    int subSpringCOppositeTriangleEdgeOrdinal,
-    NpcFloorKindType subSpringAFloorKind,
-    NpcFloorGeometryType subSpringAFloorGeometry,
-    NpcFloorKindType subSpringBFloorKind,
-    NpcFloorGeometryType subSpringBFloorGeometry,
-    NpcFloorKindType subSpringCFloorKind,
-    NpcFloorGeometryType subSpringCFloorGeometry)
+    std::tuple<ElementIndex, int> subSpringAOppositeTriangleInfo,
+    std::tuple<ElementIndex, int> subSpringBOppositeTriangleInfo,
+    std::tuple<ElementIndex, int> subSpringCOppositeTriangleInfo,
+    std::tuple<NpcFloorKindType, NpcFloorGeometryType> subSpringAFloorInfo,
+    std::tuple<NpcFloorKindType, NpcFloorGeometryType> subSpringBFloorInfo,
+    std::tuple<NpcFloorKindType, NpcFloorGeometryType> subSpringCFloorInfo,
+    std::optional<ElementIndex> /*coveredTraverseSpringIndex*/)
 {
     mEndpointsBuffer.emplace_back(pointAIndex, pointBIndex, pointCIndex);
     mSubSpringsBuffer.emplace_back(subSpringAIndex, subSpringBIndex, subSpringCIndex);
     mOppositeTrianglesBuffer.emplace_back(OppositeTrianglesInfo{
-        OppositeTriangleInfo(subSpringAOppositeTriangle, subSpringAOppositeTriangleEdgeOrdinal),
-        OppositeTriangleInfo(subSpringBOppositeTriangle, subSpringBOppositeTriangleEdgeOrdinal),
-        OppositeTriangleInfo(subSpringCOppositeTriangle, subSpringCOppositeTriangleEdgeOrdinal) });
-    mSubSpringNpcFloorKindsBuffer.emplace_back(SubSpringNpcFloorKinds({ subSpringAFloorKind, subSpringBFloorKind, subSpringCFloorKind }));
-    mSubSpringNpcFloorGeometriesBuffer.emplace_back(SubSpringNpcFloorGeometries({ subSpringAFloorGeometry, subSpringBFloorGeometry, subSpringCFloorGeometry }));
+        OppositeTriangleInfo(std::get<0>(subSpringAOppositeTriangleInfo), std::get<1>(subSpringAOppositeTriangleInfo)),
+        OppositeTriangleInfo(std::get<0>(subSpringBOppositeTriangleInfo), std::get<1>(subSpringBOppositeTriangleInfo)),
+        OppositeTriangleInfo(std::get<0>(subSpringCOppositeTriangleInfo), std::get<1>(subSpringCOppositeTriangleInfo)) });
+    mSubSpringNpcFloorKindsBuffer.emplace_back(SubSpringNpcFloorKinds({ std::get<0>(subSpringAFloorInfo), std::get<0>(subSpringBFloorInfo), std::get<0>(subSpringCFloorInfo) }));
+    mSubSpringNpcFloorGeometriesBuffer.emplace_back(SubSpringNpcFloorGeometries({ std::get<1>(subSpringAFloorInfo), std::get<1>(subSpringBFloorInfo), std::get<1>(subSpringCFloorInfo) }));
 }
 
 ElementIndex Triangles::FindContaining(

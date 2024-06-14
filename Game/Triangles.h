@@ -19,6 +19,7 @@
 #include <array>
 #include <cassert>
 #include <functional>
+#include <optional>
 
 namespace Physics {
 
@@ -105,18 +106,13 @@ public:
         ElementIndex subSpringAIndex,
         ElementIndex subSpringBIndex,
         ElementIndex subSpringCIndex,
-        ElementIndex subSpringAOppositeTriangle,
-        int subSpringAOppositeTriangleEdgeOrdinal,
-        ElementIndex subSpringBOppositeTriangle,
-        int subSpringBOppositeTriangleEdgeOrdinal,
-        ElementIndex subSpringCOppositeTriangle,
-        int subSpringCOppositeTriangleEdgeOrdinal,
-        NpcFloorKindType subSpringAFloorKind,
-        NpcFloorGeometryType subSpringAFloorGeometry,
-        NpcFloorKindType subSpringBFloorKind,
-        NpcFloorGeometryType subSpringBFloorGeometry,
-        NpcFloorKindType subSpringCFloorKind,
-        NpcFloorGeometryType subSpringCFloorGeometry);
+        std::tuple<ElementIndex, int> subSpringAOppositeTriangleInfo,
+        std::tuple<ElementIndex, int> subSpringBOppositeTriangleInfo,
+        std::tuple<ElementIndex, int> subSpringCOppositeTriangleInfo,
+        std::tuple<NpcFloorKindType, NpcFloorGeometryType> subSpringAFloorInfo,
+        std::tuple<NpcFloorKindType, NpcFloorGeometryType> subSpringBFloorInfo,
+        std::tuple<NpcFloorKindType, NpcFloorGeometryType> subSpringCFloorInfo,
+        std::optional<ElementIndex> coveredTraverseSpringIndex);
 
 public:
 
