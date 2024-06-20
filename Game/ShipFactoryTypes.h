@@ -29,7 +29,7 @@ struct ShipFactoryPoint
     std::optional<ShipSpaceCoordinates> DefinitionCoordinates; // From any of the layers that provide points
     vec2f Position;
     rgbColor RenderColor;
-    StructuralMaterial const & Material;
+    StructuralMaterial const & StructuralMtl;
 
     std::vector<ElementIndex> ConnectedSprings;
     std::vector<ElementIndex> ConnectedTriangles;
@@ -38,11 +38,11 @@ struct ShipFactoryPoint
         std::optional<ShipSpaceCoordinates> definitionCoordinates,
         vec2f position,
         rgbColor renderColor,
-        StructuralMaterial const & material)
+        StructuralMaterial const & structuralMtl)
         : DefinitionCoordinates(definitionCoordinates)
         , Position(position)
         , RenderColor(renderColor)
-        , Material(material)
+        , StructuralMtl(structuralMtl)
         , ConnectedSprings()
         , ConnectedTriangles()
     {

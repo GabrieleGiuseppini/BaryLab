@@ -136,6 +136,7 @@ std::unique_ptr<Physics::Ship> ShipFactory::BuildShip(
     ShipFactoryFloorPlan floorPlan = shipFloorplanizer.BuildFloorplan(
         pointIndexMatrix,
         pointInfos,
+        IndexRemap::MakeIdempotent(pointInfos.size()),
         springInfos);
 
     //
@@ -287,8 +288,8 @@ void ShipFactory::CreateElementInfos(
                             // may only exist on hull springs)
                             //
 
-                            bool const isP_SE_hull = pointInfos[pointIndex].Material.IsHull && pointInfos[*pointSE].Material.IsHull;
-                            bool const isS_E_hull = pointInfos[*pointS].Material.IsHull && pointInfos[*pointE].Material.IsHull;
+                            bool const isP_SE_hull = pointInfos[pointIndex].StructuralMtl.IsHull && pointInfos[*pointSE].StructuralMtl.IsHull;
+                            bool const isS_E_hull = pointInfos[*pointS].StructuralMtl.IsHull && pointInfos[*pointE].StructuralMtl.IsHull;
 
                             if (isS_E_hull)
                             {
@@ -301,12 +302,12 @@ void ShipFactory::CreateElementInfos(
                                     // S.SW
                                     auto contCoord = vec2i(pointSCoordinates.x + TessellationCircularOrderDirections[3][0], pointSCoordinates.y + TessellationCircularOrderDirections[3][1]);
                                     if (pointIndexMatrix[contCoord].has_value()
-                                        && pointInfos[*pointIndexMatrix[contCoord]].Material.IsHull)
+                                        && pointInfos[*pointIndexMatrix[contCoord]].StructuralMtl.IsHull)
                                         ++seCount;
                                     // E.NE
                                     contCoord = vec2i(pointECoordinates.x + TessellationCircularOrderDirections[7][0], pointECoordinates.y + TessellationCircularOrderDirections[7][1]);
                                     if (pointIndexMatrix[contCoord].has_value()
-                                        && pointInfos[*pointIndexMatrix[contCoord]].Material.IsHull)
+                                        && pointInfos[*pointIndexMatrix[contCoord]].StructuralMtl.IsHull)
                                         ++seCount;
 
                                     // P-SE
@@ -314,12 +315,12 @@ void ShipFactory::CreateElementInfos(
                                     // P.NW
                                     contCoord = vec2i(x + TessellationCircularOrderDirections[5][0], y + TessellationCircularOrderDirections[5][1]);
                                     if (pointIndexMatrix[contCoord].has_value()
-                                        && pointInfos[*pointIndexMatrix[contCoord]].Material.IsHull)
+                                        && pointInfos[*pointIndexMatrix[contCoord]].StructuralMtl.IsHull)
                                         ++pseCount;
                                     // SE.SE
                                     contCoord = vec2i(pointSECoordinates.x + TessellationCircularOrderDirections[1][0], pointSECoordinates.y + TessellationCircularOrderDirections[1][1]);
                                     if (pointIndexMatrix[contCoord].has_value()
-                                        && pointInfos[*pointIndexMatrix[contCoord]].Material.IsHull)
+                                        && pointInfos[*pointIndexMatrix[contCoord]].StructuralMtl.IsHull)
                                         ++pseCount;
 
                                     if (pseCount >= seCount)
@@ -623,7 +624,7 @@ Physics::Points ShipFactory::CreatePoints(
 
         points.Add(
             pointInfo.Position,
-            &pointInfo.Material);
+            &pointInfo.StructuralMtl);
     }
 
     return points;

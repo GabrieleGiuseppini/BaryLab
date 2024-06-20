@@ -26,6 +26,7 @@ set  (SOURCES
 	GameTypes.cpp
 	GameTypes.h
 	ImageData.h
+	IndexRemap.h
 	Log.cpp
 	Log.h
 	Matrix.h

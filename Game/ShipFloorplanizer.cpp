@@ -7,15 +7,20 @@
 
 #include "GameParameters.h"
 
+#include <GameCore/GameChronometer.h>
 #include <GameCore/Log.h>
 
 #include <cassert>
+#include <chrono>
 
 ShipFactoryFloorPlan ShipFloorplanizer::BuildFloorplan(
 	ShipFactoryPointIndexMatrix const & pointIndexMatrix,
-	std::vector<ShipFactoryPoint> const & pointInfos,
-	std::vector<ShipFactorySpring> const & springInfos) const
+	std::vector<ShipFactoryPoint> const & pointInfos2,
+	IndexRemap const & pointIndexRemap,
+	std::vector<ShipFactorySpring> const & springInfos2) const
 {
+	auto const startTime = GameChronometer::now();
+
 	//
 	// 1. Build list of springs that we do not want to use as floors;
 	//    we do so by detecting specific vertex patterns in 3x3 blocks
@@ -34,15 +39,19 @@ ShipFactoryFloorPlan ShipFloorplanizer::BuildFloorplan(
 			{
 				for (int xb = 0; xb < 3; ++xb)
 				{
-					if (pointIndexMatrix[{x + xb, y + yb}].has_value()
-						&& pointInfos[*pointIndexMatrix[{x + xb, y + yb}]].Material.IsHull)
+					ElementIndex vertexIndex = NoneElementIndex;
+
+					auto const pointIndex1 = pointIndexMatrix[{x + xb, y + yb}];
+					if (pointIndex1.has_value())
 					{
-						vertexBlock[xb][yb] = *pointIndexMatrix[{x + xb, y + yb}];
+						auto const pointIndex2 = pointIndexRemap.OldToNew(*pointIndex1);
+						if (pointInfos2[pointIndex2].StructuralMtl.IsHull)
+						{
+							vertexIndex = pointIndex2;
+						}
 					}
-					else
-					{
-						vertexBlock[xb][yb] = NoneElementIndex;
-					}
+
+					vertexBlock[xb][yb] = vertexIndex;
 				}
 			}
 
@@ -61,61 +70,67 @@ ShipFactoryFloorPlan ShipFloorplanizer::BuildFloorplan(
 	//
 
 	ShipFactoryFloorPlan floorPlan;
-	floorPlan.reserve(springInfos.size());
+	floorPlan.reserve(springInfos2.size());
 
-	for (size_t s = 0; s < springInfos.size(); ++s)
+	for (size_t s = 0; s < springInfos2.size(); ++s)
 	{
-		auto const & springInfo = springInfos[s];
+		auto const & springInfo2 = springInfos2[s];
 
 		// Make sure it's viable as a floor and, if it's a non-external edge, it's not in the exclusion list
-		if (IsSpringViableForFloor(springInfo, pointInfos)
-			&& (springInfo.Triangles.size() == 1 || springExclusionSet.count({springInfo.PointAIndex, springInfo.PointBIndex}) == 0))
+		if (IsSpringViableForFloor(springInfo2, pointInfos2)
+			&& (springInfo2.Triangles.size() == 1 || springExclusionSet.count({ springInfo2.PointAIndex, springInfo2.PointBIndex}) == 0))
 		{
 			//
 			// Take this spring
 			//
 
+			assert(pointInfos2[springInfo2.PointAIndex].DefinitionCoordinates.has_value());
+			auto const pointADefinitionCoordinates = *(pointInfos2[springInfo2.PointAIndex].DefinitionCoordinates);
+
+			assert(pointInfos2[springInfo2.PointBIndex].DefinitionCoordinates.has_value());
+			auto const pointBDefinitionCoordinates = *(pointInfos2[springInfo2.PointBIndex].DefinitionCoordinates);
+
 			NpcFloorGeometryType floorGeometry;
-			if (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x == pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x)
+			if (pointADefinitionCoordinates.x == pointBDefinitionCoordinates.x)
 			{
 				// Vertical
-				assert(std::abs(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y) == 1);
+				assert(std::abs(pointADefinitionCoordinates.y - pointBDefinitionCoordinates.y) == 1);
 				floorGeometry = NpcFloorGeometryType::Depth1V;
 			}
-			else if (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y == pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y)
+			else if (pointADefinitionCoordinates.y == pointBDefinitionCoordinates.y)
 			{
 				// Horizontal
-				assert(std::abs(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == 1);
+				assert(std::abs(pointADefinitionCoordinates.x - pointBDefinitionCoordinates.x) == 1);
 				floorGeometry = NpcFloorGeometryType::Depth1H;
 			}
 			else if (
-				(pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x < pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x)
-				== (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y < pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y)
+				(pointADefinitionCoordinates.x < pointBDefinitionCoordinates.x)
+				== (pointADefinitionCoordinates.y < pointBDefinitionCoordinates.y)
 				)
 			{
 				// Diagonal 1
 				assert(
-					((pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == 1
-						&& (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y) == 1)
+					((pointADefinitionCoordinates.x - pointBDefinitionCoordinates.x) == 1
+						&& (pointADefinitionCoordinates.y - pointBDefinitionCoordinates.y) == 1)
 					||
-					((pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == -1
-						&& (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y) == -1));
+					((pointADefinitionCoordinates.x - pointBDefinitionCoordinates.x) == -1
+						&& (pointADefinitionCoordinates.y - pointBDefinitionCoordinates.y) == -1));
 				floorGeometry = NpcFloorGeometryType::Depth2S1;
 			}
 			else
 			{
 				// Diagonal 2
 				assert(
-					((pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == 1
-						&& (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y) == -1)
+					((pointADefinitionCoordinates.x - pointBDefinitionCoordinates.x) == 1
+						&& (pointADefinitionCoordinates.y - pointBDefinitionCoordinates.y) == -1)
 					||
-					((pointInfos[springInfo.PointAIndex].DefinitionCoordinates->x - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->x) == -1
-						&& (pointInfos[springInfo.PointAIndex].DefinitionCoordinates->y - pointInfos[springInfo.PointBIndex].DefinitionCoordinates->y) == 1));
+					((pointADefinitionCoordinates.x - pointBDefinitionCoordinates.x) == -1
+						&& (pointADefinitionCoordinates.y - pointBDefinitionCoordinates.y) == 1));
 				floorGeometry = NpcFloorGeometryType::Depth2S2;
 			}
 
 			auto const [_, isInserted] = floorPlan.try_emplace(
-				{ springInfo.PointAIndex, springInfo.PointBIndex },
+				{ springInfo2.PointAIndex, springInfo2.PointBIndex },
 				NpcFloorKindType::DefaultFloor,
 				floorGeometry,
 				static_cast<ElementIndex>(s));
@@ -125,19 +140,22 @@ ShipFactoryFloorPlan ShipFloorplanizer::BuildFloorplan(
 		}
 	}
 
+	LogMessage("ShipFloorplanizer: completed floorplan: floorTiles=", floorPlan.size(),
+		" time=", std::chrono::duration_cast<std::chrono::microseconds>(GameChronometer::now() - startTime).count(), "us");
+
 	return floorPlan;
 }
 
 bool ShipFloorplanizer::IsSpringViableForFloor(
-	ShipFactorySpring const & springInfo,
-	std::vector<ShipFactoryPoint> const & pointInfos) const
+	ShipFactorySpring const & springInfo2,
+	std::vector<ShipFactoryPoint> const & pointInfos2) const
 {
 	return
-		pointInfos[springInfo.PointAIndex].DefinitionCoordinates.has_value() // Is point derived directly from structure?
-		&& pointInfos[springInfo.PointAIndex].Material.IsHull // Is point hull?
-		&& pointInfos[springInfo.PointBIndex].DefinitionCoordinates.has_value() // Is point derived directly from structure?
-		&& pointInfos[springInfo.PointBIndex].Material.IsHull // Is point hull?
-		&& springInfo.Triangles.size() > 0 // Is it an edge of a triangle?
+		pointInfos2[springInfo2.PointAIndex].DefinitionCoordinates.has_value() // Is point derived directly from structure?
+		&& pointInfos2[springInfo2.PointAIndex].StructuralMtl.IsHull // Is point hull?
+		&& pointInfos2[springInfo2.PointBIndex].DefinitionCoordinates.has_value() // Is point derived directly from structure?
+		&& pointInfos2[springInfo2.PointBIndex].StructuralMtl.IsHull // Is point hull?
+		&& springInfo2.Triangles.size() > 0 // Is it an edge of a triangle?
 		;
 }
 
