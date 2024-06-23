@@ -40,11 +40,11 @@ struct GameParameters
 
     static float constexpr SimulationTimeStepDuration = 1.0f / 64.0f;
 
+    // TODO: the following 4 should probably be renamed as "Npc_" for the port
+
     float GlobalDamping;
     static float constexpr MinGlobalDamping = 0.0f;
     static float constexpr MaxGlobalDamping = 1.0f;
-
-    // TODO: the following 3 should probably be renamed as "Npc_" for the port
 
     float ElasticityAdjustment;
     static float constexpr MinElasticityAdjustment = 0.0f;
