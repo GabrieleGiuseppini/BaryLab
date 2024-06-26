@@ -38,39 +38,20 @@ struct GameParameters
     // Physics
     //
 
-    static float constexpr SimulationTimeStepDuration = 1.0f / 64.0f;
-
-    // TODO: the following 4 should probably be renamed as "Npc_" for the port
-
-    float GlobalDamping;
-    static float constexpr MinGlobalDamping = 0.0f;
-    static float constexpr MaxGlobalDamping = 1.0f;
-
-    float ElasticityAdjustment;
-    static float constexpr MinElasticityAdjustment = 0.0f;
-    static float constexpr MaxElasticityAdjustment = 4.0f;
-
-    float StaticFrictionAdjustment;
-    static float constexpr MinStaticFrictionAdjustment = 0.0f;
-    static float constexpr MaxStaticFrictionAdjustment = 40.0f;
-
-    float KineticFrictionAdjustment;
-    static float constexpr MinKineticFrictionAdjustment = 0.0f;
-    static float constexpr MaxKineticFrictionAdjustment = 40.0f;
+    template <typename T>
+    static T constexpr SimulationStepTimeDuration = 1.0f / 64.0f;
 
     static float constexpr WaterFrictionDragCoefficient = 6.0f;
 
-    float WaterFrictionDragCoefficientAdjustment;
-    static float constexpr MinWaterFrictionDragCoefficientAdjustment = 0.0f;
-    static float constexpr MaxWaterFrictionDragCoefficientAdjustment = 4.0f;
+    float WaterFrictionDragAdjustment;
+    static float constexpr MinWaterFrictionDragAdjustment = 0.0f;
+    static float constexpr MaxWaterFrictionDragAdjustment = 4.0f;
 
     float BuoyancyAdjustment;
     static float constexpr MinBuoyancyAdjustment = 0.0f;
     static float constexpr MaxBuoyancyAdjustment = 4.0f;
 
     // Misc
-
-    float ToolSearchRadius;
 
     static float constexpr VertexRadius = 0.05f;
     static float constexpr EdgeThickness = 0.03f;
@@ -81,6 +62,22 @@ struct GameParameters
     //
     // NPCs
     //
+
+    float NpcDamping;
+    static float constexpr MinNpcDamping = 0.0f;
+    static float constexpr MaxNpcDamping = 1.0f;
+
+    float NpcMaterialElasticityAdjustment;
+    static float constexpr MinNpcMaterialElasticityAdjustment = 0.0f;
+    static float constexpr MaxNpcMaterialElasticityAdjustment = 4.0f;
+
+    float NpcMaterialStaticFrictionAdjustment;
+    static float constexpr MinNpcMaterialStaticFrictionAdjustment = 0.0f;
+    static float constexpr MaxNpcMaterialStaticFrictionAdjustment = 40.0f;
+
+    float NpcMaterialKineticFrictionAdjustment;
+    static float constexpr MinNpcMaterialKineticFrictionAdjustment = 0.0f;
+    static float constexpr MaxNpcMaterialKineticFrictionAdjustment = 40.0f;
 
     float NpcSpringReductionFractionAdjustment;
     static float constexpr MinNpcSpringReductionFractionAdjustment = 0.0f;

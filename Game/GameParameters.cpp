@@ -6,15 +6,13 @@
 #include "GameParameters.h"
 
 GameParameters::GameParameters()
-	: GlobalDamping(0.0078f)
-	, ElasticityAdjustment(1.0f)
-	, StaticFrictionAdjustment(1.0f)
-	, KineticFrictionAdjustment(1.0f)
-	, WaterFrictionDragCoefficientAdjustment(1.0f)
+	: WaterFrictionDragAdjustment(1.0f)
 	, BuoyancyAdjustment(1.0f)
-	// Misc
-	, ToolSearchRadius(0.3f)
 	// NPC
+	, NpcDamping(0.0078f)
+	, NpcMaterialElasticityAdjustment(1.0f)
+	, NpcMaterialStaticFrictionAdjustment(1.0f)
+	, NpcMaterialKineticFrictionAdjustment(1.0f)
 	, NpcSpringReductionFractionAdjustment(1.0f)
 	, NpcSpringDampingCoefficientAdjustment(1.0f)
 	, HumanNpcEquilibriumTorqueStiffnessCoefficient(0.0035f)

@@ -8,7 +8,6 @@
 #include "GameEventDispatcher.h"
 #include "GameParameters.h"
 #include "MaterialDatabase.h"
-#include "PerfStats.h"
 #include "Physics.h"
 #include "RenderContext.h"
 
@@ -42,6 +41,10 @@
 #else
 #define LogNpcDebug(...)
 #endif
+
+// TODOTEST
+////#undef LogNpcDebug
+////#define LogNpcDebug(...) LogMessage(__VA_ARGS__);
 
 namespace Physics {
 
@@ -592,12 +595,17 @@ private:
 
 	struct ShipNpcsType final
 	{
-		Ship const & ShipMesh;
+		Ship & HomeShip; // Non-const as we forward interactions to ships
 		std::vector<NpcId> Npcs;
 
-		ShipNpcsType(Ship const & shipMesh)
-			: ShipMesh(shipMesh)
+		size_t FurnitureNpcCount;
+		size_t HumanNpcCount;
+
+		ShipNpcsType(Ship & homeShip)
+			: HomeShip(homeShip)
 			, Npcs()
+			, FurnitureNpcCount(0)
+			, HumanNpcCount(0)
 		{}
 	};
 
@@ -606,8 +614,7 @@ public:
 	Npcs(
 		Physics::World & parentWorld,
 		MaterialDatabase const & materialDatabase,
-		std::shared_ptr<GameEventDispatcher> gameEventHandler,
-		GameParameters const & gameParameters)
+		std::shared_ptr<GameEventDispatcher> gameEventHandler)
 		: mParentWorld(parentWorld)
 		, mMaterialDatabase(materialDatabase)
 		, mGameEventHandler(std::move(gameEventHandler))
@@ -616,33 +623,24 @@ public:
 		, mShips()
 		, mParticles(GameParameters::MaxNpcs * GameParameters::MaxParticlesPerNpc)
 		// Stats
-		, mHumanNpcCount(0)
-		, mFurnitureNpcCount(0)
 		, mFreeRegimeHumanNpcCount(0)
 		, mConstrainedRegimeHumanNpcCount(0)
 		// Simulation Parameters
-		, mCurrentHumanNpcBodyLengthAdjustment(gameParameters.HumanNpcBodyLengthAdjustment)
-		, mCurrentHumanNpcWalkingSpeedAdjustment(gameParameters.HumanNpcWalkingSpeedAdjustment)
-		, mCurrentSpringReductionFractionAdjustment(gameParameters.NpcSpringReductionFractionAdjustment)
-		, mCurrentSpringDampingCoefficientAdjustment(gameParameters.NpcSpringReductionFractionAdjustment)
+		, mCurrentHumanNpcBodyLengthAdjustment(1.0f)
+		, mCurrentHumanNpcWalkingSpeedAdjustment(1.0f)
+		, mCurrentSpringReductionFractionAdjustment(1.0f)
+		, mCurrentSpringDampingCoefficientAdjustment(1.0f)
 	{}
 
 	void Update(
 		float currentSimulationTime,
 		GameParameters const & gameParameters);
 
-	void RenderUpload(
-		RenderContext & renderContext,
-		PerfStats & perfStats);
+	void Upload(Render::RenderContext & renderContext);
 
 	///////////////////////////////
 
-	NpcParticles const & GetParticles() const
-	{
-		return mParticles;
-	}
-
-	void OnShipAdded(Ship const & ship);
+	void OnShipAdded(Ship & ship);
 
 	void OnShipRemoved(ShipId shipId);
 
@@ -658,7 +656,7 @@ public:
 
 	std::optional<PickedObjectId<NpcId>> ProbeNpcAt(
 		vec2f const & position,
-		GameParameters const & gameParameters) const;
+		float radius) const;
 
 	void BeginMoveNpc(
 		NpcId id,
@@ -695,6 +693,11 @@ public:
 	// Barylab-specific
 	//
 
+	NpcParticles const & GetParticles() const
+	{
+		return mParticles;
+	}
+
 	bool AddHumanNpc(
 		HumanNpcKindType humanKind,
 		vec2f const & worldCoordinates,
@@ -719,7 +722,7 @@ public:
 		vec2f const & centerPos,
 		float cosAngle,
 		float sinAngle,
-		Ship const & shipMesh);
+		Ship const & homeShip);
 
 	void OnPointMoved(float currentSimulationTime);
 
@@ -817,13 +820,15 @@ private:
 
 	NpcId GetNewNpcId();
 
+	size_t CalculateTotalNpcCount() const;
+
 	ShipId GetTopmostShipId() const;
 
 	std::optional<ElementId> FindTopmostTriangleContaining(vec2f const & position) const;
 
 	static ElementIndex FindTriangleContaining(
 		vec2f const & position,
-		Ship const & shipMesh);
+		Ship const & homeShip);
 
 	void TransferNpcToShip(
 		StateType & npc,
@@ -831,7 +836,7 @@ private:
 
 	void RenderNpc(
 		StateType const & npc,
-		ShipRenderContext & shipRenderContext);
+		Render::ShipRenderContext & shipRenderContext);
 
 	void PublishHumanNpcStats();
 
@@ -848,7 +853,7 @@ private:
 	void ResetNpcStateToWorld(
 		StateType & npc,
 		float currentSimulationTime,
-		Ship const & shipMesh,
+		Ship const & homeShip,
 		std::optional<ElementIndex> primaryParticleTriangleIndex) const;
 
 	void TransitionParticleToConstrainedState(
@@ -862,7 +867,7 @@ private:
 
 	static std::optional<StateType::NpcParticleStateType::ConstrainedStateType> CalculateParticleConstrainedState(
 		vec2f const & position,
-		Ship const & shipMesh,
+		Ship const & homeShip,
 		std::optional<ElementIndex> triangleIndex);
 
 	void OnMayBeNpcRegimeChanged(
@@ -878,7 +883,7 @@ private:
 	void UpdateNpcParticlePhysics(
 		StateType & npc,
 		int npcParticleOrdinal,
-		Ship const & shipMesh,
+		Ship const & homeShip,
 		float currentSimulationTime,
 		GameParameters const & gameParameters);
 
@@ -932,7 +937,7 @@ private:
 		bool hasMovedInStep,
 		vec2f const meshVelocity,
 		float dt,
-		Ship const & shipMesh,
+		Ship const & homeShip,
 		NpcParticles & particles,
 		float currentSimulationTime,
 		GameParameters const & gameParameters);
@@ -947,7 +952,7 @@ private:
 		bool hasMovedInStep,
 		vec2f const meshVelocity,
 		float segmentDt,
-		Ship const & shipMesh,
+		Ship const & homeShip,
 		NpcParticles & particles,
 		float currentSimulationTime,
 		GameParameters const & gameParameters);
@@ -1011,7 +1016,7 @@ private:
 		vec2f const & trajectory,
 		vec2f const & trajectoryEndAbsolutePosition,
 		bcoords3f trajectoryEndBarycentricCoords,
-		Ship const & shipMesh,
+		Ship const & homeShip,
 		NpcParticles const & particles);
 
 	void BounceConstrainedNpcParticle(
@@ -1037,7 +1042,7 @@ private:
 	void UpdateNpcAnimation(
 		StateType & npc,
 		float currentSimulationTime,
-		Ship const & shipMesh);
+		Ship const & homeShip);
 
 	static bool IsEdgeFloorToParticle(
 		ElementIndex triangleElementIndex,
@@ -1045,11 +1050,11 @@ private:
 		StateType const & npc,
 		int npcParticleOrdinal,
 		NpcParticles const & npcParticles,
-		Ship const & shipMesh)
+		Ship const & homeShip)
 	{
 		// First off: if not a floor, it's not a floor
 
-		if (shipMesh.GetTriangles().GetSubSpringNpcFloorKind(triangleElementIndex, edgeOrdinal) == NpcFloorKindType::NotAFloor)
+		if (homeShip.GetTriangles().GetSubSpringNpcFloorKind(triangleElementIndex, edgeOrdinal) == NpcFloorKindType::NotAFloor)
 		{
 			return false;
 		}
@@ -1100,13 +1105,13 @@ private:
 			&& primaryParticle.ConstrainedState.has_value()
 			&& primaryParticle.ConstrainedState->CurrentVirtualFloor.has_value())
 		{
-			auto const floorGeometry = shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(
+			auto const floorGeometry = homeShip.GetTriangles().GetSubSpringNpcFloorGeometry(
 				triangleElementIndex,
 				edgeOrdinal);
 
 			auto const floorGeometryDepth = NpcFloorGeometryDepth(floorGeometry);
 
-			auto const primaryFloorGeometry = shipMesh.GetTriangles().GetSubSpringNpcFloorGeometry(
+			auto const primaryFloorGeometry = homeShip.GetTriangles().GetSubSpringNpcFloorGeometry(
 				primaryParticle.ConstrainedState->CurrentVirtualFloor->TriangleElementIndex,
 				primaryParticle.ConstrainedState->CurrentVirtualFloor->EdgeOrdinal);
 
@@ -1133,7 +1138,7 @@ private:
 		// If the primary is not on the other side of this edge, then every floor is a floor
 
 		vec2f const & primaryPosition = npcParticles.GetPosition(primaryParticle.ParticleIndex);
-		bcoords3f const primaryBaryCoords = shipMesh.GetTriangles().ToBarycentricCoordinates(primaryPosition, triangleElementIndex, shipMesh.GetPoints());
+		bcoords3f const primaryBaryCoords = homeShip.GetTriangles().ToBarycentricCoordinates(primaryPosition, triangleElementIndex, homeShip.GetPoints());
 
 		// It's on the other side of the edge if its "edge's" b-coord is negative
 		if (primaryBaryCoords[(edgeOrdinal + 2) % 3] >= 0.0f)
@@ -1184,7 +1189,7 @@ private:
 	void UpdateHuman(
 		StateType & npc,
 		float currentSimulationTime,
-		Ship const & shipMesh,
+		Ship const & homeShip,
 		GameParameters const & gameParameters);
 
 	inline bool CheckAndMaintainHumanEquilibrium(
@@ -1198,7 +1203,7 @@ private:
 	inline void RunWalkingHumanStateMachine(
 		StateType::KindSpecificStateType::HumanNpcStateType & humanState,
 		StateType::NpcParticleStateType const & primaryParticleState,
-		Ship const & shipMesh,
+		Ship const & homeShip,
 		GameParameters const & gameParameters);
 
 	void OnHumanImpact(
@@ -1251,9 +1256,12 @@ private:
 	//	3. Reaching an NPC by its ID
 	//
 
+#pragma warning(push)
+#pragma warning(disable : 4324) // std::optional of StateType gets padded because of alignment requirements
 	// The actual container of NPC states, indexed by NPC ID.
 	// Indices are stable; elements are null'ed when removed.
 	std::vector<std::optional<StateType>> mStateBuffer;
+#pragma warning(pop)
 
 	// All the ships - together with their NPCs - indexed by Ship ID.
 	// Indices are stable; elements are null'ed when removed.
@@ -1266,8 +1274,6 @@ private:
 	// Stats
 	//
 
-	ElementCount mHumanNpcCount;
-	ElementCount mFurnitureNpcCount;
 	ElementCount mFreeRegimeHumanNpcCount;
 	ElementCount mConstrainedRegimeHumanNpcCount;
 

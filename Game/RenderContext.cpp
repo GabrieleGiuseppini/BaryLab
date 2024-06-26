@@ -10,6 +10,8 @@
 
 #include <cmath>
 
+namespace Render {
+
 RenderContext::RenderContext(
     int canvasWidth,
     int canvasHeight)
@@ -453,7 +455,7 @@ void RenderContext::UploadEdgesEnd()
     }
 }
 
-void RenderContext::UploadNpcQuadsStart(size_t quadCount)
+void RenderContext::UploadNpcTextureQuadsStart(size_t quadCount)
 {
     //
     // Prepare buffer and indices
@@ -464,7 +466,7 @@ void RenderContext::UploadNpcQuadsStart(size_t quadCount)
     mElementIndices->EnsureSize(quadCount);
 }
 
-void RenderContext::UploadNpcQuadsEnd()
+void RenderContext::UploadNpcTextureQuadsEnd()
 {
     //
     // Upload buffer, if needed
@@ -1189,4 +1191,6 @@ void RenderContext::OnGridUpdated()
     mShaderManager->ActivateProgram<ShaderManager::ProgramType::Grid>();
     mShaderManager->SetProgramParameter<ShaderManager::ProgramType::Grid, ShaderManager::ProgramParameterType::WorldStep>(
         worldStepSize);
+}
+
 }

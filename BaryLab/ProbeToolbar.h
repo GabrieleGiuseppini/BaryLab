@@ -58,8 +58,8 @@ public:
         float value) override;
 
     void OnHumanNpcCountsUpdated(
-        unsigned int insideShipCount,
-        unsigned int outsideShipCount) override;
+        size_t insideShipCount,
+        size_t outsideShipCount) override;
 
 private:
 

@@ -5,6 +5,7 @@
 ***************************************************************************************/
 #include "Physics.h"
 
+#include <GameCore/GameException.h>
 #include <GameCore/Log.h>
 
 namespace Physics {
@@ -82,7 +83,7 @@ ElementIndex NpcParticles::FindFreeParticleIndex()
     }
 
     // If we're here, no luck
-    throw std::runtime_error("Cannot find free NPC particle");
+    throw GameException("Cannot find free NPC particle");
 }
 
 }

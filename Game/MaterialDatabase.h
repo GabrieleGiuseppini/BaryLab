@@ -88,7 +88,7 @@ public:
 
         // Read into map
 
-        std::map<NpcMaterial::KindType, NpcMaterial> npcMaterialsMap;
+        std::map<std::string, NpcMaterial> npcMaterialsMap;
 
         picojson::array const & npcMaterialsRootArray = npcMaterialsRoot.get<picojson::array>();
         for (auto const & materialElem : npcMaterialsRootArray)
@@ -104,7 +104,7 @@ public:
 
             // Store
             auto const storedEntry = npcMaterialsMap.emplace(
-                material.Kind,
+                material.Name,
                 material);
 
             if (!storedEntry.second)
@@ -131,16 +131,16 @@ public:
         return nullptr;
     }
 
-    NpcMaterial const & GetNpcMaterial(NpcMaterial::KindType kind) const
+    NpcMaterial const & GetNpcMaterial(std::string const & name) const
     {
-        return mNpcMaterialMap.at(kind);
+        return mNpcMaterialMap.at(name);
     }
 
 private:
 
     MaterialDatabase(
         std::map<ColorKey, StructuralMaterial> && structuralMaterialMap,
-        std::map<NpcMaterial::KindType, NpcMaterial> && npcMaterialMap)
+        std::map<std::string, NpcMaterial> && npcMaterialMap)
         : mStructuralMaterialMap(std::move(structuralMaterialMap))
         , mNpcMaterialMap(std::move(npcMaterialMap))
     {
@@ -150,5 +150,5 @@ private:
     std::map<ColorKey, StructuralMaterial> const mStructuralMaterialMap;
 
     // NPC
-    std::map<NpcMaterial::KindType, NpcMaterial> const mNpcMaterialMap;
+    std::map<std::string, NpcMaterial> const mNpcMaterialMap;
 };

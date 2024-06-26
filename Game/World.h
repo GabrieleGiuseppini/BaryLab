@@ -28,7 +28,6 @@ public:
 	World(
 		MaterialDatabase const & materialDatabase,
 		std::shared_ptr<GameEventDispatcher> gameEventHandler,
-		GameParameters const & gameParameters,
 		float oceanDepth)
 		: mGameEventHandler(std::move(gameEventHandler))
 		, mAllShips()
@@ -38,8 +37,7 @@ public:
 		mNpcs = std::make_unique<Physics::Npcs>(
 			*this,
 			materialDatabase,
-			mGameEventHandler,
-			gameParameters);
+			mGameEventHandler);
 	}
 
 	void AddShip(std::unique_ptr<Ship> ship)

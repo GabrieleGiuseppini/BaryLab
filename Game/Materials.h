@@ -41,17 +41,7 @@ struct NpcMaterial
 {
 public:
 
-    enum class KindType
-    {
-        Furniture,
-        HumanHead,
-        HumanFeet
-    };
-
-public:
-
     std::string Name;
-    KindType Kind;
     rgbaColor RenderColor;
 
     float Mass;
@@ -68,7 +58,6 @@ public:
 
     NpcMaterial(
         std::string name,
-        KindType kind,
         rgbaColor const & renderColor,
         float mass,
         float springReductionFraction,
@@ -78,7 +67,6 @@ public:
         float elasticity,
         float buoyancyVolumeFill)
         : Name(name)
-        , Kind(kind)
         , RenderColor(renderColor)
         , Mass(mass)
         , SpringReductionFraction(springReductionFraction)
@@ -88,8 +76,4 @@ public:
         , Elasticity(elasticity)
         , BuoyancyVolumeFill(buoyancyVolumeFill)
     {}
-
-private:
-
-    static KindType StrToKindType(std::string const & strKind);
 };

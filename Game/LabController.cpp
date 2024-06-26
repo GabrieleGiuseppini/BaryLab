@@ -25,7 +25,7 @@ std::unique_ptr<LabController> LabController::Create(
     MaterialDatabase structuralMaterialDatabase = MaterialDatabase::Load();
 
     // Create render context
-    std::unique_ptr<RenderContext> renderContext = std::make_unique<RenderContext>(
+    std::unique_ptr<Render::RenderContext> renderContext = std::make_unique<Render::RenderContext>(
         initialCanvasWidth,
         initialCanvasHeight);
 
@@ -41,7 +41,7 @@ std::unique_ptr<LabController> LabController::Create(
 
 LabController::LabController(
     MaterialDatabase && materialDatabase,
-    std::unique_ptr<RenderContext> renderContext)
+    std::unique_ptr<Render::RenderContext> renderContext)
     : mMaterialDatabase(std::move(materialDatabase))
     , mRenderContext(std::move(renderContext))
     , mGameEventHandler(std::make_shared<GameEventDispatcher>())
@@ -135,7 +135,7 @@ void LabController::Update()
         // Update rendering
         mCurrentShipTranslationAccelerationIndicator *= 0.98f;
 
-        mCurrentSimulationTime += GameParameters::SimulationTimeStepDuration;
+        mCurrentSimulationTime += GameParameters::SimulationStepTimeDuration<float>;
 
         auto const now = GameChronometer::now();
         if (now > mLastPerfPublishTimestamp + std::chrono::milliseconds(500))
@@ -305,7 +305,7 @@ void LabController::Render()
         // Npcs
         //
 
-        mWorld->GetNpcs().RenderUpload(*mRenderContext, mPerfStats);
+        mWorld->GetNpcs().Upload(*mRenderContext);
 
         //
         // Ship velocity
@@ -333,7 +333,7 @@ void LabController::UpdateShipTransformations()
     // Translation
     //
 
-    vec2f const translation = mCurrentShipTranslationVelocity * GameParameters::SimulationTimeStepDuration;
+    vec2f const translation = mCurrentShipTranslationVelocity * GameParameters::SimulationStepTimeDuration<float>;
 
     // Update ship
     for (auto p : points)
@@ -352,7 +352,7 @@ void LabController::UpdateShipTransformations()
     mCurrentWavesSpeed += (mTargetWavesSpeed - mCurrentWavesSpeed) * 0.05f;
     if (mCurrentWavesAmplitude != 0.0f && mCurrentWavesSpeed != 0.0f)
     {
-        float const newArg = mLastWaveTimeArg + mCurrentWavesSpeed * GameParameters::SimulationTimeStepDuration;
+        float const newArg = mLastWaveTimeArg + mCurrentWavesSpeed * GameParameters::SimulationStepTimeDuration<float>;
         float const rotationAngle = std::sinf(newArg) * mCurrentWavesAmplitude;
         float const deltaRotationAngle = rotationAngle - mLastWaveRotationAngle;
         for (auto p : points)
@@ -847,7 +847,7 @@ std::optional<PickedObjectId<NpcId>> LabController::ProbeNpcAt(vec2f const & scr
 
     return mWorld->GetNpcs().ProbeNpcAt(
         worldCoordinates,
-        mGameParameters);
+        0.3f);
 }
 
 void LabController::BeginMoveNpc(NpcId id)
@@ -946,7 +946,6 @@ void LabController::Reset(
     mWorld = std::make_unique<Physics::World>(
         mMaterialDatabase,
         mGameEventHandler,
-        mGameParameters,
         mOceanDepth);
 
     // Because we need to use a separate interface

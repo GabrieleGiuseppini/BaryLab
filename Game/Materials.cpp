@@ -31,11 +31,10 @@ StructuralMaterial StructuralMaterial::Create(
 
 NpcMaterial NpcMaterial::Create(picojson::object const & npcMaterialJson)
 {
-    std::string const strKind = Utils::GetMandatoryJsonMember<std::string>(npcMaterialJson, "kind");
+    std::string const name = Utils::GetMandatoryJsonMember<std::string>(npcMaterialJson, "name");
 
     try
     {
-        KindType const kind = StrToKindType(strKind);
         rgbColor const renderColor = Utils::Hex2RgbColor(Utils::GetMandatoryJsonMember<std::string>(npcMaterialJson, "render_color"));
 
         float const mass = Utils::GetMandatoryJsonMember<float>(npcMaterialJson, "mass");
@@ -47,8 +46,7 @@ NpcMaterial NpcMaterial::Create(picojson::object const & npcMaterialJson)
         float const buoyancyVolumeFill = Utils::GetMandatoryJsonMember<float>(npcMaterialJson, "buoyancy_volume_fill");
 
         return NpcMaterial(
-            strKind,
-            kind,
+            name,
             rgbaColor(renderColor, rgbaColor::data_type_max),
             mass,
             springReductionFraction,
@@ -60,18 +58,6 @@ NpcMaterial NpcMaterial::Create(picojson::object const & npcMaterialJson)
     }
     catch (GameException const & ex)
     {
-        throw GameException(std::string("Error parsing NPC material \"") + strKind + "\": " + ex.what());
+        throw GameException(std::string("Error parsing NPC material \"") + name + "\": " + ex.what());
     }
-}
-
-NpcMaterial::KindType NpcMaterial::StrToKindType(std::string const & strKind)
-{
-    if (strKind == "Furniture")
-        return KindType::Furniture;
-    else if (strKind == "HumanHead")
-        return KindType::HumanHead;
-    else if (strKind == "HumanFeet")
-        return KindType::HumanFeet;
-    else
-        throw GameException("Unrecognized NPC kind \"" + strKind + "\"");
 }

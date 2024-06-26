@@ -19,6 +19,8 @@
 #include <optional>
 #include <vector>
 
+namespace Render {
+
 class RenderContext;
 using ShipRenderContext = RenderContext;
 
@@ -182,11 +184,18 @@ public:
 
     void UploadEdgesEnd();
 
-    void UploadNpcQuadsStart(size_t quadCount);
+    void UploadNpcTextureQuadsStart(size_t quadCount);
 
-    inline void UploadNpcQuad(
+    inline void UploadNpcTextureQuad(
         PlaneId /*planeId*/,
-        TextureQuad const & quad,
+        vec2f topLeftPosition,
+        vec2f topLeftTexture,
+        vec2f topRightPosition,
+        vec2f topRightTexture,
+        vec2f bottomLeftPosition,
+        vec2f bottomLeftTexture,
+        vec2f bottomRightPosition,
+        vec2f bottomRightTexture,
         float faceOrientation,
         NpcHighlightType highlight)
     {
@@ -196,38 +205,38 @@ public:
 
         // TopLeft
         mNpcQuadVertexBuffer.emplace_back(
-            quad.TopLeftPosition,
-            quad.TopLeftTexture,
+            topLeftPosition,
+            topLeftTexture,
             backDepth,
             orientationDepth,
             overlayColor);
 
         // BottomLeft
         mNpcQuadVertexBuffer.emplace_back(
-            quad.BottomLeftPosition,
-            quad.BottomLeftTexture,
+            bottomLeftPosition,
+            bottomLeftTexture,
             backDepth,
             orientationDepth,
             overlayColor);
 
         // TopRight
         mNpcQuadVertexBuffer.emplace_back(
-            quad.TopRightPosition,
-            quad.TopRightTexture,
+            topRightPosition,
+            topRightTexture,
             backDepth,
             orientationDepth,
             overlayColor);
 
         // BottomRight
         mNpcQuadVertexBuffer.emplace_back(
-            quad.BottomRightPosition,
-            quad.BottomRightTexture,
+            bottomRightPosition,
+            bottomRightTexture,
             backDepth,
             orientationDepth,
             overlayColor);
     }
 
-    void UploadNpcQuadsEnd();
+    void UploadNpcTextureQuadsEnd();
 
     void UploadNpcParticlesStart();
 
@@ -619,3 +628,5 @@ private:
 
     NpcRenderModeType mNpcRenderMode;
 };
+
+}

@@ -602,8 +602,8 @@ void ProbeToolbar::OnCustomProbe(
 }
 
 void ProbeToolbar::OnHumanNpcCountsUpdated(
-    unsigned int insideShipCount,
-    unsigned int outsideShipCount)
+    size_t insideShipCount,
+    size_t outsideShipCount)
 {
     mHumanNpcInsideShipCountTextCtrl->SetValue(std::to_string(insideShipCount));
     mHumanNpcOutsideShipCountTextCtrl->SetValue(std::to_string(outsideShipCount));
