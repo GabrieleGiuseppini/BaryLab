@@ -15,6 +15,7 @@
 #include <GameCore/ElementIndexRangeIterator.h>
 #include <GameCore/FixedSizeVector.h>
 #include <GameCore/GameTypes.h>
+#include <GameCore/Log.h>
 #include <GameCore/Vectors.h>
 
 #include <algorithm>
@@ -158,6 +159,14 @@ public:
         vec2f const & value) noexcept
     {
         mPositionBuffer[pointElementIndex] = value;
+    }
+
+    void AddStaticForce(
+        ElementIndex /*pointElementIndex*/,
+        vec2f const & force) noexcept
+    {
+        LogDebug("Static force: ", force, " (", force / GameParameters::GravityMagnitude, " kg)");
+        (void)force;
     }
 
     StructuralMaterial const * GetMaterial(ElementIndex pointElementIndex) const noexcept
