@@ -41,6 +41,10 @@ struct GameParameters
     template <typename T>
     static T constexpr SimulationStepTimeDuration = 1.0f / 64.0f;
 
+    float GlobalDampingAdjustment;
+    static float constexpr MinGlobalDampingAdjustment = 0.0f;
+    static float constexpr MaxGlobalDampingAdjustment = 10.0f;
+
     static float constexpr WaterFrictionDragCoefficient = 6.0f;
 
     float WaterFrictionDragAdjustment;
@@ -63,9 +67,7 @@ struct GameParameters
     // NPCs
     //
 
-    float NpcDamping;
-    static float constexpr MinNpcDamping = 0.0f;
-    static float constexpr MaxNpcDamping = 1.0f;
+    static float constexpr NpcDamping = 0.0078f;
 
     float NpcMaterialElasticityAdjustment;
     static float constexpr MinNpcMaterialElasticityAdjustment = 0.0f;

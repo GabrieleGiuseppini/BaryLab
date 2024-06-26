@@ -28,7 +28,7 @@ BaseSettingsManager<SLabSettings>::BaseSettingsManagerFactory SettingsManager::M
     ADD_SETTING(float, NpcMaterialKineticFrictionAdjustment);
     ADD_SETTING(float, MassAdjustment);
     ADD_SETTING(float, GravityAdjustment);
-    ADD_SETTING(float, NpcDamping);
+    ADD_SETTING(float, GlobalDampingAdjustment);
     ADD_SETTING(float, SeaLevel);
     ADD_SETTING(float, SpringReductionFractionAdjustment);
     ADD_SETTING(float, SpringDampingCoefficientAdjustment);

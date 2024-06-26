@@ -16,7 +16,7 @@ enum class SLabSettings : size_t
     NpcMaterialKineticFrictionAdjustment,
     MassAdjustment,
     GravityAdjustment,
-    NpcDamping,
+    GlobalDampingAdjustment,
     SeaLevel,
     SpringReductionFractionAdjustment,
     SpringDampingCoefficientAdjustment,

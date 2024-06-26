@@ -208,6 +208,11 @@ public:
     // Simmulation parameters
     //
 
+    float GetGlobalDampingAdjustment() const { return mGameParameters.GlobalDampingAdjustment; }
+    void SetGlobalDampingAdjustment(float value) { mGameParameters.GlobalDampingAdjustment = value; }
+    float GetMinGlobalDampingAdjustment() const { return GameParameters::MinGlobalDampingAdjustment; }
+    float GetMaxGlobalDampingAdjustment() const { return GameParameters::MaxGlobalDampingAdjustment; }
+
     float GetNpcMaterialElasticityAdjustment() const { return mGameParameters.NpcMaterialElasticityAdjustment; }
     void SetNpcMaterialElasticityAdjustment(float value) { mGameParameters.NpcMaterialElasticityAdjustment = value; }
     float GetMinNpcMaterialElasticityAdjustment() const { return GameParameters::MinNpcMaterialElasticityAdjustment; }
@@ -232,11 +237,6 @@ public:
     void SetGravityAdjustment(float value) { mGravityAdjustment = value; if (mWorld) mWorld->GetNpcs().OnGravityAdjustmentChanged(mGravityAdjustment); }
     float GetMinGravityAdjustment() const { return 0.0f; }
     float GetMaxGravityAdjustment() const { return 100.0f; }
-
-    float GetNpcDamping() const { return mGameParameters.NpcDamping; }
-    void SetNpcDamping(float value) { mGameParameters.NpcDamping = value; }
-    float GetMinNpcDamping() const { return GameParameters::MinNpcDamping; }
-    float GetMaxNpcDamping() const { return GameParameters::MaxNpcDamping; }
 
     float GetSeaLevel() const { return mOceanDepth; }
     void SetSeaLevel(float value) { mOceanDepth = value; if (mWorld) mWorld->GetOceanSurface().SetDepth(value); }

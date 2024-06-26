@@ -6,10 +6,10 @@
 #include "GameParameters.h"
 
 GameParameters::GameParameters()
-	: WaterFrictionDragAdjustment(1.0f)
+	: GlobalDampingAdjustment(1.0f)
+	, WaterFrictionDragAdjustment(1.0f)
 	, BuoyancyAdjustment(1.0f)
 	// NPC
-	, NpcDamping(0.0078f)
 	, NpcMaterialElasticityAdjustment(1.0f)
 	, NpcMaterialStaticFrictionAdjustment(1.0f)
 	, NpcMaterialKineticFrictionAdjustment(1.0f)
