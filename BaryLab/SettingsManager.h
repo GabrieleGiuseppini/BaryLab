@@ -22,12 +22,12 @@ enum class SLabSettings : size_t
     SpringDampingCoefficientAdjustment,
     WaterFrictionDragAdjustment,
     BuoyancyAdjustment,
+    NpcSizeAdjustment,
     HumanNpcEquilibriumTorqueStiffnessCoefficient,
     HumanNpcEquilibriumTorqueDampingCoefficient,
     HumanNpcWalkingSpeedAdjustment,
-    HumanNpcBodyLengthAdjustment,
 
-    _Last = HumanNpcBodyLengthAdjustment
+    _Last = HumanNpcWalkingSpeedAdjustment
 };
 
 class SettingsManager final : public BaseSettingsManager<SLabSettings>

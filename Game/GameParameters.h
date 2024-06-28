@@ -89,6 +89,10 @@ struct GameParameters
     static float constexpr MinNpcSpringDampingCoefficientAdjustment = 0.0f;
     static float constexpr MaxNpcSpringDampingCoefficientAdjustment = 2.0f;
 
+    float NpcSizeAdjustment;
+    static float constexpr MinNpcSizeAdjustment = 0.2f;
+    static float constexpr MaxNpcSizeAdjustment = 10.0f;
+
     float HumanNpcEquilibriumTorqueStiffnessCoefficient;
     static float constexpr MinHumanNpcEquilibriumTorqueStiffnessCoefficient = 0.0f;
     static float constexpr MaxHumanNpcEquilibriumTorqueStiffnessCoefficient = 0.01f;
@@ -135,8 +139,4 @@ struct GameParameters
 
         static float constexpr StepLengthFraction = 0.43f; // From foot to foot at longest separation
     };
-
-    float HumanNpcBodyLengthAdjustment;
-    static float constexpr MinHumanNpcBodyLengthAdjustment = 0.2f;
-    static float constexpr MaxHumanNpcBodyLengthAdjustment = 10.0f;
 };

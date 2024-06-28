@@ -712,25 +712,25 @@ void SettingsDialog::PopulateNpcsPanel(wxPanel * panel)
                     CellBorder);
             }
 
-            // Human NPC Body Length Adjustment
+            // NPC Size Adjustment
             {
-                mHumanNpcBodyLengthAdjustmentSlider = new SliderControl<float>(
+                mNpcSizeAdjustmentSlider = new SliderControl<float>(
                     npcsBox,
                     SliderWidth,
                     SliderHeight,
-                    "Human Height Adjust",
-                    "Adjusts the height of human NPCs.",
+                    "NPC Size Adjust",
+                    "Adjusts the size of NPCs.",
                     [this](float value)
                     {
-                        this->mLiveSettings.SetValue(SLabSettings::HumanNpcBodyLengthAdjustment, value);
+                        this->mLiveSettings.SetValue(SLabSettings::NpcSizeAdjustment, value);
                         this->OnLiveSettingsChanged();
                     },
                     std::make_unique<LinearSliderCore>(
-                        mLabController->GetMinHumanNpcBodyLengthAdjustment(),
-                        mLabController->GetMaxHumanNpcBodyLengthAdjustment()));
+                        mLabController->GetMinNpcSizeAdjustment(),
+                        mLabController->GetMaxNpcSizeAdjustment()));
 
                 npcsSizer->Add(
-                    mHumanNpcBodyLengthAdjustmentSlider,
+                    mNpcSizeAdjustmentSlider,
                     wxGBPosition(0, 3),
                     wxGBSpan(1, 1),
                     wxEXPAND | wxALL,
@@ -777,7 +777,7 @@ void SettingsDialog::SyncControlsWithSettings(Settings<SLabSettings> const & set
     mHumanNpcEquilibriumTorqueStiffnessCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcEquilibriumTorqueStiffnessCoefficient));
     mHumanNpcEquilibriumTorqueDampingCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcEquilibriumTorqueDampingCoefficient));
     mHumanNpcWalkingSpeedAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcWalkingSpeedAdjustment));
-    mHumanNpcBodyLengthAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcBodyLengthAdjustment));
+    mNpcSizeAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::NpcSizeAdjustment));
 }
 
 void SettingsDialog::OnLiveSettingsChanged()

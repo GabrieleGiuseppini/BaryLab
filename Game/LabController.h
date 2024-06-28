@@ -263,6 +263,11 @@ public:
     float GetMinBuoyancyAdjustment() const { return GameParameters::MinBuoyancyAdjustment; }
     float GetMaxBuoyancyAdjustment() const { return GameParameters::MaxBuoyancyAdjustment; }
 
+    float GetNpcSizeAdjustment() const { return mGameParameters.NpcSizeAdjustment; }
+    void SetNpcSizeAdjustment(float value) { mGameParameters.NpcSizeAdjustment = value; }
+    float GetMinNpcSizeAdjustment() const { return GameParameters::MinNpcSizeAdjustment; }
+    float GetMaxNpcSizeAdjustment() const { return GameParameters::MaxNpcSizeAdjustment; }
+
     float GetHumanNpcEquilibriumTorqueStiffnessCoefficient() const { return mGameParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient; }
     void SetHumanNpcEquilibriumTorqueStiffnessCoefficient(float value) { mGameParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient = value; }
     float GetMinHumanNpcEquilibriumTorqueStiffnessCoefficient() const { return GameParameters::MinHumanNpcEquilibriumTorqueStiffnessCoefficient; }
@@ -277,11 +282,6 @@ public:
     void SetHumanNpcWalkingSpeedAdjustment(float value) { mGameParameters.HumanNpcWalkingSpeedAdjustment = value; }
     float GetMinHumanNpcWalkingSpeedAdjustment() const { return GameParameters::MinHumanNpcWalkingSpeedAdjustment; }
     float GetMaxHumanNpcWalkingSpeedAdjustment() const { return GameParameters::MaxHumanNpcWalkingSpeedAdjustment; }
-
-    float GetHumanNpcBodyLengthAdjustment() const { return mGameParameters.HumanNpcBodyLengthAdjustment; }
-    void SetHumanNpcBodyLengthAdjustment(float value) { mGameParameters.HumanNpcBodyLengthAdjustment = value; }
-    float GetMinHumanNpcBodyLengthAdjustment() const { return GameParameters::MinHumanNpcBodyLengthAdjustment; }
-    float GetMaxHumanNpcBodyLengthAdjustment() const { return GameParameters::MaxHumanNpcBodyLengthAdjustment; }
 
 private:
 

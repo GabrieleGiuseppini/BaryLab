@@ -1490,7 +1490,7 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
         //  - But we approximate the arc with the chord, i.e.the distance between source and destination
         //
 
-        vec2f const idealHeadPosition = feetPosition + vec2f(0.0f, npc.KindSpecificState.HumanNpcState.Height * mCurrentHumanNpcBodyLengthAdjustment);
+        vec2f const idealHeadPosition = feetPosition + vec2f(0.0f, npc.KindSpecificState.HumanNpcState.Height * mCurrentSizeAdjustment);
 
         float const stiffnessCoefficient =
             gameParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient
@@ -1520,13 +1520,28 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
         vec2f const equilibriumTorqueForce =
             radialDir
             * (force1Magnitude + force2Magnitude)
-            / mCurrentHumanNpcBodyLengthAdjustment // Note: we divide by human length adjustment to maintain torque independent from lever length
+            / mCurrentSizeAdjustment // Note: we divide by size adjustment to maintain torque independent from lever length
             * particleMass / (dt * dt);
 
         definitiveForces += equilibriumTorqueForce;
     }
 
     return definitiveForces;
+}
+
+void Npcs::RecalculateSizeParameters()
+{
+    for (auto & state : mStateBuffer)
+    {
+        if (state.has_value())
+        {
+            if (state->Kind == NpcKindType::Human)
+            {
+                assert(state->ParticleMesh.Springs.size() == 1);
+                state->ParticleMesh.Springs[0].DipoleLength = CalculateHumanNpcDipoleLength(state->KindSpecificState.HumanNpcState.Height);
+            }
+        }
+    }
 }
 
 void Npcs::RecalculateSpringForceParameters()
@@ -1568,24 +1583,9 @@ void Npcs::RecalculateSpringForceParameters(StateType::NpcSpringStateType & spri
         / dt;
 }
 
-void Npcs::RecalculateHumanNpcDipoleLengths()
-{
-    for (auto & state : mStateBuffer)
-    {
-        if (state.has_value())
-        {
-            if (state->Kind == NpcKindType::Human)
-            {
-                assert(state->ParticleMesh.Springs.size() == 1);
-                state->ParticleMesh.Springs[0].DipoleLength = CalculateHumanNpcDipoleLength(state->KindSpecificState.HumanNpcState.Height);
-            }
-        }
-    }
-}
-
 float Npcs::CalculateHumanNpcDipoleLength(float baseHeight) const
 {
-    return baseHeight * mCurrentHumanNpcBodyLengthAdjustment;
+    return baseHeight * mCurrentSizeAdjustment;
 }
 
 void Npcs::UpdateNpcParticle_Free(
@@ -1624,7 +1624,7 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
     bool hasMovedInStep,
     vec2f const meshVelocity,
     float dt,
-    Ship const & homeShip,
+    Ship & homeShip,
     NpcParticles & particles,
     float currentSimulationTime,
     GameParameters const & gameParameters)
@@ -1819,13 +1819,9 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
         {
             // Bounce
 
-            vec2f const floorEdgeDir =
-                homeShip.GetTriangles().GetSubSpringVector(
-                    navigationOutcome.TriangleBCoords.TriangleElementIndex,
-                    navigationOutcome.FloorEdgeOrdinal,
-                    homeShip.GetPoints())
-                .normalise();
-            vec2f const floorEdgeNormal = floorEdgeDir.to_perpendicular();
+            // Move to bounce position - so that we can eventually make a fresh new choice
+            // now that we have acquired a velocity in a different direction
+            npcParticleConstrainedState.CurrentBCoords = navigationOutcome.TriangleBCoords;
 
             vec2f const bounceAbsolutePosition = homeShip.GetTriangles().FromBarycentricCoordinates(
                 navigationOutcome.TriangleBCoords.BCoords,
@@ -1838,16 +1834,13 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
                 flattenedTrajectory,
                 hasMovedInStep || (edgeTraveled != 0.0f),
                 bounceAbsolutePosition,
-                floorEdgeNormal,
+                navigationOutcome.FloorEdgeOrdinal,
                 meshVelocity,
                 dt,
+                homeShip,
                 particles,
                 currentSimulationTime,
                 gameParameters);
-
-            // Move to bounce position - so that we can eventually make a fresh new choice
-            // now that we have acquired a velocity in a different direction
-            npcParticleConstrainedState.CurrentBCoords = navigationOutcome.TriangleBCoords;
 
             // Terminate
             return ConstrainedNonInertialOutcome::MakeStopOutcome(edgeTraveled, true);
@@ -1868,7 +1861,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
     bool hasMovedInStep,
     vec2f const meshVelocity,
     float segmentDt,
-    Ship const & homeShip,
+    Ship & homeShip,
     NpcParticles & particles,
     float currentSimulationTime,
     GameParameters const & gameParameters)
@@ -2058,9 +2051,10 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
                 trajectory,
                 hasMovedInStep || ((intersectionAbsolutePosition - segmentTrajectoryStartAbsolutePosition).length() != 0.0f),
                 intersectionAbsolutePosition,
-                intersectionEdgeNormal,
+                intersectionEdgeOrdinal,
                 meshVelocity,
                 segmentDt,
+                homeShip,
                 particles,
                 currentSimulationTime,
                 gameParameters);
@@ -2747,9 +2741,10 @@ void Npcs::BounceConstrainedNpcParticle(
     vec2f const & trajectory,
     bool hasMovedInStep,
     vec2f const & bouncePosition,
-    vec2f const & bounceEdgeNormal,
+    int bounceEdgeOrdinal,
     vec2f const meshVelocity,
     float dt,
+    Ship & homeShip,
     NpcParticles & particles,
     float currentSimulationTime,
     GameParameters const & gameParameters) const
@@ -2776,10 +2771,18 @@ void Npcs::BounceConstrainedNpcParticle(
     // If we end up with zero apparent velocity, it means we're just resting on this edge,
     // at this position
 
+    vec2f const floorEdgeDir =
+        homeShip.GetTriangles().GetSubSpringVector(
+            npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex,
+            bounceEdgeOrdinal,
+            homeShip.GetPoints())
+        .normalise();
+    vec2f const floorEdgeNormal = floorEdgeDir.to_perpendicular();
+
     vec2f const apparentParticleVelocity = hasMovedInStep
         ? trajectory / dt
         : npcParticle.ConstrainedState->MeshRelativeVelocity;
-    float const apparentParticleVelocityAlongNormal = apparentParticleVelocity.dot(bounceEdgeNormal);
+    float const apparentParticleVelocityAlongNormal = apparentParticleVelocity.dot(floorEdgeNormal);
 
     LogNpcDebug("      BounceConstrainedNpcParticle: apparentParticleVelocity=", apparentParticleVelocity, " (hasMovedInStep=", hasMovedInStep,
         " meshRelativeVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity, ")");
@@ -2787,7 +2790,7 @@ void Npcs::BounceConstrainedNpcParticle(
     if (apparentParticleVelocityAlongNormal != 0.0f)
     {
         // Decompose apparent particle velocity into normal and tangential
-        vec2f const normalVelocity = bounceEdgeNormal * apparentParticleVelocityAlongNormal;
+        vec2f const normalVelocity = floorEdgeNormal * apparentParticleVelocityAlongNormal;
         vec2f const tangentialVelocity = apparentParticleVelocity - normalVelocity;
 
         // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
@@ -2822,6 +2825,34 @@ void Npcs::BounceConstrainedNpcParticle(
         npcParticle.ConstrainedState->MeshRelativeVelocity = resultantRelativeVelocity;
 
         //
+        // Impart force against edge
+        //
+
+        float const particleMass =
+            mParticles.GetPhysicalProperties(npcParticle.ParticleIndex).Mass
+#ifdef IN_BARYLAB
+            * mCurrentMassAdjustment
+#endif
+            ;
+
+        vec2f const impartedForce =
+            (normalVelocity - normalResponse)
+            * particleMass
+            / dt;
+
+        // Divide among two vertices
+
+        int edgeVertex1Ordinal = bounceEdgeOrdinal;
+        ElementIndex edgeVertex1PointIndex = homeShip.GetTriangles().GetPointIndices(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex)[edgeVertex1Ordinal];
+        float const vertex1InterpCoeff = npcParticle.ConstrainedState->CurrentBCoords.BCoords[edgeVertex1Ordinal];
+        homeShip.GetPoints().AddStaticForce(edgeVertex1PointIndex, impartedForce * vertex1InterpCoeff);
+
+        int edgeVertex2Ordinal = (bounceEdgeOrdinal + 1) % 3;
+        ElementIndex edgeVertex2PointIndex = homeShip.GetTriangles().GetPointIndices(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex)[edgeVertex2Ordinal];
+        float const vertex2InterpCoeff = npcParticle.ConstrainedState->CurrentBCoords.BCoords[edgeVertex2Ordinal];
+        homeShip.GetPoints().AddStaticForce(edgeVertex2PointIndex, impartedForce * vertex2InterpCoeff);
+
+        //
         // Publish impact
         //
 
@@ -2829,7 +2860,7 @@ void Npcs::BounceConstrainedNpcParticle(
             npc,
             npcParticleOrdinal,
             normalVelocity,
-            bounceEdgeNormal,
+            floorEdgeNormal,
             currentSimulationTime);
     }
     else
@@ -3155,7 +3186,7 @@ void Npcs::UpdateNpcAnimation(
                     0.41f // std::atan((GameParameters::HumanNpcGeometry::StepLengthFraction / 2.0f) / GameParameters::HumanNpcGeometry::LegLengthFraction)
                     * std::sqrt(actualWalkingSpeed * 0.9f);
 
-                adjustedStandardHumanHeight = humanNpcState.Height * mCurrentHumanNpcBodyLengthAdjustment;
+                adjustedStandardHumanHeight = humanNpcState.Height * mCurrentSizeAdjustment;
                 float const stepLength = GameParameters::HumanNpcGeometry::StepLengthFraction * adjustedStandardHumanHeight;
                 float const distance =
                     humanNpcState.TotalDistanceTraveledOnEdgeSinceStateTransition
@@ -3327,6 +3358,12 @@ void Npcs::UpdateNpcAnimation(
                 // changing UpperLengthFraction immediately to 0.0 causes a "kick" (because leg angles are 90 degrees at that moment);
                 // smooth that kick here
                 targetUpperLegLengthFraction = animationState.UpperLegLengthFraction + (1.0f - animationState.UpperLegLengthFraction) * 0.3f;
+
+                // But converge to one definitely
+                if (targetUpperLegLengthFraction >= 0.98f)
+                {
+                    targetUpperLegLengthFraction = 1.0f;
+                }
 
                 break;
             }
