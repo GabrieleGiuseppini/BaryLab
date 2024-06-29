@@ -41,6 +41,14 @@ struct GameParameters
     template <typename T>
     static T constexpr SimulationStepTimeDuration = 1.0f / 64.0f;
 
+    float GravityAdjustment;
+    static float constexpr MinGravityAdjustment = 0.0f;
+    static float constexpr MaxGravityAdjustment = 100.0f;
+
+    float MassAdjustment;
+    static float constexpr MinMassAdjustment = 0.0001f;
+    static float constexpr MaxMassAdjustment = 100.0f;
+
     float GlobalDampingAdjustment;
     static float constexpr MinGlobalDampingAdjustment = 0.0f;
     static float constexpr MaxGlobalDampingAdjustment = 10.0f;

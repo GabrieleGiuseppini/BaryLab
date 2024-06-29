@@ -228,15 +228,15 @@ public:
     float GetMinNpcMaterialKineticFrictionAdjustment() const { return GameParameters::MinNpcMaterialKineticFrictionAdjustment; }
     float GetMaxNpcMaterialKineticFrictionAdjustment() const { return GameParameters::MaxNpcMaterialKineticFrictionAdjustment; }
 
-    float GetMassAdjustment() const { return mMassAdjustment; }
-    void SetMassAdjustment(float value) { mMassAdjustment = value; if (mWorld) mWorld->GetNpcs().OnMassAdjustmentChanged(mMassAdjustment); }
-    float GetMinMassAdjustment() const { return 0.0001f; }
-    float GetMaxMassAdjustment() const { return 100.0f; }
+    float GetGravityAdjustment() const { return mGameParameters.GravityAdjustment; }
+    void SetGravityAdjustment(float value) { mGameParameters.GravityAdjustment = value; }
+    float GetMinGravityAdjustment() const { return GameParameters::MinGravityAdjustment; }
+    float GetMaxGravityAdjustment() const { return GameParameters::MaxGravityAdjustment; }
 
-    float GetGravityAdjustment() const { return mGravityAdjustment; }
-    void SetGravityAdjustment(float value) { mGravityAdjustment = value; if (mWorld) mWorld->GetNpcs().OnGravityAdjustmentChanged(mGravityAdjustment); }
-    float GetMinGravityAdjustment() const { return 0.0f; }
-    float GetMaxGravityAdjustment() const { return 100.0f; }
+    float GetMassAdjustment() const { return mGameParameters.MassAdjustment; }
+    void SetMassAdjustment(float value) { mGameParameters.MassAdjustment = value; }
+    float GetMinMassAdjustment() const { return GameParameters::MinMassAdjustment; }
+    float GetMaxMassAdjustment() const { return GameParameters::MaxMassAdjustment;  }
 
     float GetSeaLevel() const { return mOceanDepth; }
     void SetSeaLevel(float value) { mOceanDepth = value; if (mWorld) mWorld->GetOceanSurface().SetDepth(value); }
@@ -319,8 +319,6 @@ private:
     // Simulation parameters owned by us
     //
 
-    float mMassAdjustment;
-    float mGravityAdjustment;
     float mOceanDepth;
 
     vec2f mCurrentShipTranslationVelocity;
