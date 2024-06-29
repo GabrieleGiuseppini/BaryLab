@@ -265,6 +265,8 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 
 	StateType::ParticleMeshType particleMesh;
 
+	vec2f anchorOffset;
+
 	switch (furnitureKind)
 	{
 		case FurnitureNpcKindType::Quad:
@@ -344,17 +346,12 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 
 			// Springs
 
-			float const baseMassFactor =
-				(furnitureMaterial.Mass * furnitureMaterial.Mass)
-				/ (furnitureMaterial.Mass + furnitureMaterial.Mass);
-
 			StateType::NpcSpringStateType baseSpring(
 				NoneElementIndex,
 				NoneElementIndex,
 				0,
 				furnitureMaterial.SpringReductionFraction,
-				furnitureMaterial.SpringDampingCoefficient,
-				baseMassFactor);
+				furnitureMaterial.SpringDampingCoefficient);
 
 			// 0 - 1
 			{
@@ -414,6 +411,8 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 				mParticles,
 				particleMesh);
 
+			anchorOffset = vec2f(width / 2.0f, -height / 2.0f);
+
 			break;
 		}
 
@@ -459,6 +458,8 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 
 			particleMesh.Particles.emplace_back(primaryParticleIndex, std::nullopt);
 
+			anchorOffset = vec2f(0.0f, 0.0f);
+
 			break;
 		}
 	}
@@ -497,7 +498,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 	++(mShips[shipId]->FurnitureNpcCount);
 	mGameEventHandler->OnNpcCountsUpdated(CalculateTotalNpcCount());
 
-	return PickedObjectId<NpcId>(npcId, vec2f::zero());
+	return PickedObjectId<NpcId>(npcId, anchorOffset);
 }
 
 std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
@@ -598,17 +599,12 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 
 	// Dipole spring
 
-	float const baseMassFactor =
-		(feetMaterial.Mass * headMaterial.Mass)
-		/ (feetMaterial.Mass + headMaterial.Mass);
-
 	particleMesh.Springs.emplace_back(
 		primaryParticleIndex,
 		secondaryParticleIndex,
 		baseHeight,
 		headMaterial.SpringReductionFraction,
-		headMaterial.SpringDampingCoefficient,
-		baseMassFactor);
+		headMaterial.SpringDampingCoefficient);
 
 	CalculateSprings(
 		mCurrentSizeAdjustment,

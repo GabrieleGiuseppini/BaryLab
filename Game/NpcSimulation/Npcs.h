@@ -175,7 +175,6 @@ private:
 			float BaseRestLength;
 			float BaseSpringReductionFraction;
 			float BaseSpringDampingCoefficient;
-			float BaseMassFactor;
 
 			// Calculated
 			float RestLength; // Adjusted
@@ -189,14 +188,12 @@ private:
 				ElementIndex endpointBIndex,
 				float baseRestLength,
 				float baseSpringReductionFraction,
-				float baseSpringDampingCoefficient,
-				float baseMassFactor)
+				float baseSpringDampingCoefficient)
 				: EndpointAIndex(endpointAIndex)
 				, EndpointBIndex(endpointBIndex)
 				, BaseRestLength(baseRestLength)
 				, BaseSpringReductionFraction(baseSpringReductionFraction)
 				, BaseSpringDampingCoefficient(baseSpringDampingCoefficient)
-				, BaseMassFactor(baseMassFactor)
 				, RestLength(0.0f) // Calculated later
 				, SpringStiffnessFactor(0.0f) // Calculated later
 				, SpringDampingFactor(0.0f) // Calculated later

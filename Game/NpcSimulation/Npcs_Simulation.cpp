@@ -1620,10 +1620,17 @@ void Npcs::CalculateSprings(
 
         // Spring force factors
 
+        float const baseMass1 = particles.GetMaterialProperties(spring.EndpointAIndex).Mass;
+        float const baseMass2 = particles.GetMaterialProperties(spring.EndpointBIndex).Mass;
+
+        float const baseMassFactor =
+            (baseMass1 * baseMass2)
+            / (baseMass1 + baseMass2);
+
         spring.SpringStiffnessFactor =
             spring.BaseSpringReductionFraction
             * springReductionFractionAdjustment
-            * spring.BaseMassFactor
+            * baseMassFactor
 #ifdef IN_BARYLAB
             * massAdjustment
 #endif
@@ -1633,7 +1640,7 @@ void Npcs::CalculateSprings(
         spring.SpringDampingFactor =
             spring.BaseSpringDampingCoefficient
             * springDampingCoefficientAdjustment
-            * spring.BaseMassFactor
+            * baseMassFactor
 #ifdef IN_BARYLAB
             * massAdjustment
 #endif

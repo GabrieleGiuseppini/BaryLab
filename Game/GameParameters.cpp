@@ -6,7 +6,9 @@
 #include "GameParameters.h"
 
 GameParameters::GameParameters()
-	: GlobalDampingAdjustment(1.0f)
+	: GravityAdjustment(1.0f)
+	, MassAdjustment(1.0f)
+	, GlobalDampingAdjustment(1.0f)
 	, WaterFrictionDragAdjustment(1.0f)
 	, BuoyancyAdjustment(1.0f)
 	// NPC

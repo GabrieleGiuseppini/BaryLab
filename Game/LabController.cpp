@@ -53,8 +53,6 @@ LabController::LabController(
     , mPerfStats()
     , mLastPublishedPerfStats()
     , mLastPerfPublishTimestamp(GameChronometer::now())
-    , mMassAdjustment(1.0f)
-    , mGravityAdjustment(1.0f)
     , mOceanDepth(-7.0f)
     , mCurrentShipTranslationVelocity(vec2f::zero())
     , mCurrentShipTranslationAccelerationIndicator(0.0f)
@@ -947,10 +945,6 @@ void LabController::Reset(
         mMaterialDatabase,
         mGameEventHandler,
         mOceanDepth);
-
-    // Because we need to use a separate interface
-    mWorld->GetNpcs().OnMassAdjustmentChanged(mMassAdjustment);
-    mWorld->GetNpcs().OnGravityAdjustmentChanged(mGravityAdjustment);
 
     mWorld->AddShip(std::move(ship));
 
