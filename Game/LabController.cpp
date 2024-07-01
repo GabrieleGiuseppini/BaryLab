@@ -671,6 +671,21 @@ void LabController::DoStepForVideo()
 
     ++mCurrentVideoStep;
 
+    int matchIndex = 1;
+    if (mCurrentVideoStep == matchIndex)
+    {
+        // Fold along X
+        for (auto p : mWorld->GetShip().GetPoints())
+        {
+            vec2f const origPos = mWorld->GetShip().GetPoints().GetPosition(p);
+            mWorld->GetShip().GetPoints().SetPosition(p,
+                vec2f(
+                    -origPos.x,
+                    origPos.y
+                ));
+        }
+    }
+
     ////// Segment 1
 
     ////int matchIndex = 1;
