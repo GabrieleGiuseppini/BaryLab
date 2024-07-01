@@ -1002,7 +1002,7 @@ void LabController::Reset(
     for (size_t i = 0; i < GameParameters::MaxNpcs; ++i)
     {
         float const posX = GameRandomEngine::GetInstance().GenerateUniformReal(shipAABB.BottomLeft.x, shipAABB.TopRight.x);
-        float const posY = GameRandomEngine::GetInstance().GenerateUniformReal(shipAABB.BottomLeft.y + GameParameters::HumanNpcGeometry::BodyLengthMean * 1.5f * mGameParameters.HumanNpcBodyLengthAdjustment, shipAABB.TopRight.y);
+        float const posY = GameRandomEngine::GetInstance().GenerateUniformReal(shipAABB.BottomLeft.y + GameParameters::HumanNpcGeometry::BodyLengthMean * 1.5f * mGameParameters.NpcSizeAdjustment, shipAABB.TopRight.y);
 
         bool const hasBeenAdded = mWorld->GetNpcs().AddHumanNpc(
             HumanNpcKindType::Passenger,

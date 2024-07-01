@@ -146,14 +146,15 @@ public:
         return mEndpointsBuffer[triangleElementIndex].PointIndices[2];
     }
 
-    inline bool ArePointsInCwOrder(
+    inline bool AreVerticesInCwOrder(
         ElementIndex triangleElementIndex,
-        ElementIndex point1Index,
-        ElementIndex point2Index) const
+        Points const & points) const
     {
-        return (GetPointAIndex(triangleElementIndex) == point1Index && GetPointBIndex(triangleElementIndex) == point2Index)
-            || (GetPointBIndex(triangleElementIndex) == point1Index && GetPointCIndex(triangleElementIndex) == point2Index)
-            || (GetPointCIndex(triangleElementIndex) == point1Index && GetPointAIndex(triangleElementIndex) == point2Index);
+        auto const pa = points.GetPosition(GetPointAIndex(triangleElementIndex));
+        auto const pb = points.GetPosition(GetPointBIndex(triangleElementIndex));
+        auto const pc = points.GetPosition(GetPointCIndex(triangleElementIndex));
+
+        return (pb.x - pa.x) * (pc.y - pa.y) - (pc.x - pa.x) * (pb.y - pa.y) < 0;
     }
 
     ElementIndex FindContaining(

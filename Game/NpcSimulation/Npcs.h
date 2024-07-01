@@ -1096,7 +1096,17 @@ private:
 		NpcParticles const & npcParticles,
 		Ship const & homeShip)
 	{
-		// First off: if not a floor, it's not a floor
+		// First off: if this edge, regardless of its floorness, separates us from a folded triangle,
+		// then we consider it as a floor, since we want to avoid folded triangles like the plague
+
+		if (auto const & oppositeTriangleInfo = homeShip.GetTriangles().GetOppositeTriangle(triangleElementIndex, edgeOrdinal);
+			oppositeTriangleInfo.TriangleElementIndex != NoneElementIndex
+			&& IsTriangleFolded(oppositeTriangleInfo.TriangleElementIndex, homeShip))
+		{
+			return true;
+		}
+
+		// Now: if not a floor, then it's not a floor
 
 		if (homeShip.GetTriangles().GetSubSpringNpcFloorKind(triangleElementIndex, edgeOrdinal) == NpcFloorKindType::NotAFloor)
 		{
@@ -1105,8 +1115,10 @@ private:
 
 		// Ok, it's a floor
 
-		// If ghost, not a floor
 		auto const & npcParticle = npc.ParticleMesh.Particles[npcParticleOrdinal];
+
+		// If ghost, not a floor
+
 		if (npcParticle.ConstrainedState.has_value()
 			&& npcParticle.ConstrainedState->GhostParticlePulse)
 		{
@@ -1207,6 +1219,13 @@ private:
 		}
 
 		return false;
+	}
+
+	static bool IsTriangleFolded(
+		ElementIndex triangleElementIndex,
+		Ship const & homeShip)
+	{
+		return !homeShip.GetTriangles().AreVerticesInCwOrder(triangleElementIndex, homeShip.GetPoints());
 	}
 
 	static vec2f CalculateSpringVector(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)
