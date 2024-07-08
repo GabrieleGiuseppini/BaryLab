@@ -189,8 +189,8 @@ void LabController::Render()
                 {
                     case NpcFloorGeometryType::NotAFloor:
                     {
-                        if (points.GetMaterial(springs.GetEndpointAIndex(triangles.GetSubSprings(t).SpringIndices[e]))->IsHull
-                            && points.GetMaterial(springs.GetEndpointBIndex(triangles.GetSubSprings(t).SpringIndices[e]))->IsHull)
+                        if (points.GetStructuralMaterial(springs.GetEndpointAIndex(triangles.GetSubSprings(t).SpringIndices[e])).IsHull
+                            && points.GetStructuralMaterial(springs.GetEndpointBIndex(triangles.GetSubSprings(t).SpringIndices[e])).IsHull)
                         {
                             return { { 0x6a, 0x6a, 0x6a, 0x80 }, 1.5f };
                         }

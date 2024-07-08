@@ -169,9 +169,9 @@ public:
         (void)force;
     }
 
-    StructuralMaterial const * GetMaterial(ElementIndex pointElementIndex) const noexcept
+    StructuralMaterial const & GetStructuralMaterial(ElementIndex pointElementIndex) const noexcept
     {
-        return mMaterialBuffer[pointElementIndex];
+        return *(mMaterialBuffer[pointElementIndex]);
     }
 
     PlaneId GetPlaneId(ElementIndex /*pointElementIndex*/) const

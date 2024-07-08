@@ -53,6 +53,18 @@ struct GameParameters
     static float constexpr MinGlobalDampingAdjustment = 0.0f;
     static float constexpr MaxGlobalDampingAdjustment = 10.0f;
 
+    float ElasticityAdjustment;
+    static float constexpr MinElasticityAdjustment = 0.0f;
+    static float constexpr MaxElasticityAdjustment = 10.0f;
+
+    float StaticFrictionAdjustment;
+    static float constexpr MinStaticFrictionAdjustment = 0.0f;
+    static float constexpr MaxStaticFrictionAdjustment = 10.0f;
+
+    float KineticFrictionAdjustment;
+    static float constexpr MinKineticFrictionAdjustment = 0.0f;
+    static float constexpr MaxKineticFrictionAdjustment = 10.0f;
+
     static float constexpr WaterFrictionDragCoefficient = 6.0f;
 
     float WaterFrictionDragAdjustment;
@@ -76,18 +88,6 @@ struct GameParameters
     //
 
     static float constexpr NpcDamping = 0.0078f;
-
-    float NpcMaterialElasticityAdjustment;
-    static float constexpr MinNpcMaterialElasticityAdjustment = 0.0f;
-    static float constexpr MaxNpcMaterialElasticityAdjustment = 4.0f;
-
-    float NpcMaterialStaticFrictionAdjustment;
-    static float constexpr MinNpcMaterialStaticFrictionAdjustment = 0.0f;
-    static float constexpr MaxNpcMaterialStaticFrictionAdjustment = 40.0f;
-
-    float NpcMaterialKineticFrictionAdjustment;
-    static float constexpr MinNpcMaterialKineticFrictionAdjustment = 0.0f;
-    static float constexpr MaxNpcMaterialKineticFrictionAdjustment = 40.0f;
 
     float NpcSpringReductionFractionAdjustment;
     static float constexpr MinNpcSpringReductionFractionAdjustment = 0.0f;

@@ -213,20 +213,20 @@ public:
     float GetMinGlobalDampingAdjustment() const { return GameParameters::MinGlobalDampingAdjustment; }
     float GetMaxGlobalDampingAdjustment() const { return GameParameters::MaxGlobalDampingAdjustment; }
 
-    float GetNpcMaterialElasticityAdjustment() const { return mGameParameters.NpcMaterialElasticityAdjustment; }
-    void SetNpcMaterialElasticityAdjustment(float value) { mGameParameters.NpcMaterialElasticityAdjustment = value; }
-    float GetMinNpcMaterialElasticityAdjustment() const { return GameParameters::MinNpcMaterialElasticityAdjustment; }
-    float GetMaxNpcMaterialElasticityAdjustment() const { return GameParameters::MaxNpcMaterialElasticityAdjustment; }
+    float GetElasticityAdjustment() const { return mGameParameters.ElasticityAdjustment; }
+    void SetElasticityAdjustment(float value) { mGameParameters.ElasticityAdjustment = value; }
+    float GetMinElasticityAdjustment() const { return GameParameters::MinElasticityAdjustment; }
+    float GetMaxElasticityAdjustment() const { return GameParameters::MaxElasticityAdjustment; }
 
-    float GetNpcMaterialStaticFrictionAdjustment() const { return mGameParameters.NpcMaterialStaticFrictionAdjustment; }
-    void SetNpcMaterialStaticFrictionAdjustment(float value) { mGameParameters.NpcMaterialStaticFrictionAdjustment = value; }
-    float GetMinNpcMaterialStaticFrictionAdjustment() const { return GameParameters::MinNpcMaterialStaticFrictionAdjustment; }
-    float GetMaxNpcMaterialStaticFrictionAdjustment() const { return GameParameters::MaxNpcMaterialStaticFrictionAdjustment; }
+    float GetStaticFrictionAdjustment() const { return mGameParameters.StaticFrictionAdjustment; }
+    void SetStaticFrictionAdjustment(float value) { mGameParameters.StaticFrictionAdjustment = value; }
+    float GetMinStaticFrictionAdjustment() const { return GameParameters::MinStaticFrictionAdjustment; }
+    float GetMaxStaticFrictionAdjustment() const { return GameParameters::MaxStaticFrictionAdjustment; }
 
-    float GetNpcMaterialKineticFrictionAdjustment() const { return mGameParameters.NpcMaterialKineticFrictionAdjustment; }
-    void SetNpcMaterialKineticFrictionAdjustment(float value) { mGameParameters.NpcMaterialKineticFrictionAdjustment = value; }
-    float GetMinNpcMaterialKineticFrictionAdjustment() const { return GameParameters::MinNpcMaterialKineticFrictionAdjustment; }
-    float GetMaxNpcMaterialKineticFrictionAdjustment() const { return GameParameters::MaxNpcMaterialKineticFrictionAdjustment; }
+    float GetKineticFrictionAdjustment() const { return mGameParameters.KineticFrictionAdjustment; }
+    void SetKineticFrictionAdjustment(float value) { mGameParameters.KineticFrictionAdjustment = value; }
+    float GetMinKineticFrictionAdjustment() const { return GameParameters::MinKineticFrictionAdjustment; }
+    float GetMaxKineticFrictionAdjustment() const { return GameParameters::MaxKineticFrictionAdjustment; }
 
     float GetGravityAdjustment() const { return mGameParameters.GravityAdjustment; }
     void SetGravityAdjustment(float value) { mGameParameters.GravityAdjustment = value; }

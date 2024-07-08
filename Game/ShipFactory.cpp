@@ -58,7 +58,7 @@ std::unique_ptr<Physics::Ship> ShipFactory::BuildShip(
         // From bottom to top
         for (int y = 0; y < shipHeight; ++y)
         {
-            MaterialDatabase::ColorKey const colorKey = structuralLayerBuffer[x + y * shipWidth];
+            MaterialColorKey const colorKey = structuralLayerBuffer[x + y * shipWidth];
             StructuralMaterial const * structuralMaterial = materialDatabase.FindStructuralMaterial(colorKey);
             if (nullptr != structuralMaterial)
             {

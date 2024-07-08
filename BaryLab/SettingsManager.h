@@ -11,9 +11,9 @@
 
 enum class SLabSettings : size_t
 {
-    NpcMaterialElasticityAdjustment = 0,
-    NpcMaterialStaticFrictionAdjustment,
-    NpcMaterialKineticFrictionAdjustment,
+    ElasticityAdjustment = 0,
+    StaticFrictionAdjustment,
+    KineticFrictionAdjustment,
     MassAdjustment,
     GravityAdjustment,
     GlobalDampingAdjustment,

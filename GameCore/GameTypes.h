@@ -6,6 +6,7 @@
 #pragma once
 
 #include "BarycentricCoords.h"
+#include "Colors.h"
 #include "Vectors.h"
 
 #include <picojson.h>
@@ -722,6 +723,11 @@ inline std::basic_ostream<char> & operator<<(std::basic_ostream<char> & os, Abso
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Misc
 ////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * The color key of materials.
+ */
+using MaterialColorKey = rgbColor;
 
 enum class SimulationControlStateType
 {

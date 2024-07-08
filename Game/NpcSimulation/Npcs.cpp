@@ -282,10 +282,10 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 
 			float const baseWidth = 1.5f; // Futurework: from NPC database
 			float const baseHeight = 1.5f; // Futurework: from NPC database
-			auto const & furnitureMaterial = mMaterialDatabase.GetNpcMaterial("Crate"); // Futurework: from NPC database
+			auto const & furnitureMaterial = mMaterialDatabase.GetStructuralMaterial("Solid Pine Wood I-Beam"); // Futurework: from NPC database
 
 			float const mass = CalculateParticleMass(
-				furnitureMaterial.Mass,
+				furnitureMaterial.GetMass(),
 				mCurrentSizeAdjustment
 #ifdef IN_BARYLAB
 				, mCurrentMassAdjustment
@@ -331,13 +331,9 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 				}
 
 				auto const particleIndex = mParticles.Add(
-					furnitureMaterial.Mass,
-					furnitureMaterial.StaticFriction,
-					furnitureMaterial.KineticFriction,
-					furnitureMaterial.Elasticity,
-					furnitureMaterial.BuoyancyVolumeFill,
 					mass,
 					buoyancyFactor,
+					&furnitureMaterial,
 					particlePosition,
 					furnitureMaterial.RenderColor);
 
@@ -350,8 +346,8 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 				NoneElementIndex,
 				NoneElementIndex,
 				0,
-				furnitureMaterial.SpringReductionFraction,
-				furnitureMaterial.SpringDampingCoefficient);
+				furnitureMaterial.NpcSpringReductionFraction,
+				furnitureMaterial.NpcSpringDampingCoefficient);
 
 			// 0 - 1
 			{
@@ -427,10 +423,10 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 
 			// Primary
 
-			auto const & furnitureMaterial = mMaterialDatabase.GetNpcMaterial("Crate"); // Futurework: from mNpcDatabase
+			auto const & furnitureMaterial = mMaterialDatabase.GetStructuralMaterial("Solid Pine Wood I-Beam"); // Futurework: from mNpcDatabase
 
 			float const mass = CalculateParticleMass(
-				furnitureMaterial.Mass,
+				furnitureMaterial.GetMass(),
 				mCurrentSizeAdjustment
 #ifdef IN_BARYLAB
 				, mCurrentMassAdjustment
@@ -446,13 +442,9 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 			);
 
 			auto const primaryParticleIndex = mParticles.Add(
-				furnitureMaterial.Mass,
-				furnitureMaterial.StaticFriction,
-				furnitureMaterial.KineticFriction,
-				furnitureMaterial.Elasticity,
-				furnitureMaterial.BuoyancyVolumeFill,
 				mass,
 				buoyancyFactor,
+				&furnitureMaterial,
 				worldCoordinates,
 				furnitureMaterial.RenderColor);
 
@@ -532,10 +524,10 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 	// Feet (primary)
 
 	// Futurework: from mNpcDatabase
-	auto const & feetMaterial = mMaterialDatabase.GetNpcMaterial("HumanFeet");
+	auto const & feetMaterial = mMaterialDatabase.GetStructuralMaterial("NPC Human Feet");
 
 	float const feetMass = CalculateParticleMass(
-		feetMaterial.Mass,
+		feetMaterial.GetMass(),
 		mCurrentSizeAdjustment
 #ifdef IN_BARYLAB
 		, mCurrentMassAdjustment
@@ -551,13 +543,9 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 	);
 
 	auto const primaryParticleIndex = mParticles.Add(
-		feetMaterial.Mass,
-		feetMaterial.StaticFriction,
-		feetMaterial.KineticFriction,
-		feetMaterial.Elasticity,
-		feetMaterial.BuoyancyVolumeFill,
 		feetMass,
 		feetBuoyancyFactor,
+		&feetMaterial,
 		worldCoordinates - vec2f(0.0f, 1.0f) * height,
 		feetMaterial.RenderColor);
 
@@ -566,10 +554,10 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 	// Head (secondary)
 
 	// Futurework: from mNpcDatabase
-	auto const & headMaterial = mMaterialDatabase.GetNpcMaterial("HumanHead");
+	auto const & headMaterial = mMaterialDatabase.GetStructuralMaterial("NPC Human Head");
 
 	float const headMass = CalculateParticleMass(
-		headMaterial.Mass,
+		headMaterial.GetMass(),
 		mCurrentSizeAdjustment
 #ifdef IN_BARYLAB
 		, mCurrentMassAdjustment
@@ -585,13 +573,9 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 	);
 
 	auto const secondaryParticleIndex = mParticles.Add(
-		headMaterial.Mass,
-		headMaterial.StaticFriction,
-		headMaterial.KineticFriction,
-		headMaterial.Elasticity,
-		headMaterial.BuoyancyVolumeFill,
 		headMass,
 		headBuoyancyFactor,
+		&headMaterial,
 		worldCoordinates,
 		headMaterial.RenderColor);
 
@@ -603,8 +587,8 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 		primaryParticleIndex,
 		secondaryParticleIndex,
 		baseHeight,
-		headMaterial.SpringReductionFraction,
-		headMaterial.SpringDampingCoefficient);
+		(headMaterial.NpcSpringReductionFraction + feetMaterial.NpcSpringReductionFraction) / 2.0f,
+		(headMaterial.NpcSpringDampingCoefficient + feetMaterial.NpcSpringDampingCoefficient) / 2.0f);
 
 	CalculateSprings(
 		mCurrentSizeAdjustment,
@@ -817,7 +801,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 
 				case NpcKindType::Human:
 				{
-					// Head
+					// Proximity search for Head only
 
 					assert(state->ParticleMesh.Particles.size() == 2);
 
@@ -1578,15 +1562,19 @@ std::optional<ElementId> Npcs::FindTopmostTriangleContaining(vec2f const & posit
 			PlaneId bestPlaneId = std::numeric_limits<PlaneId>::lowest();
 			for (auto const triangleIndex : homeShip.GetTriangles())
 			{
-				vec2f const aPosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointAIndex(triangleIndex));
-				vec2f const bPosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointBIndex(triangleIndex));
-				vec2f const cPosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointCIndex(triangleIndex));
-
-				if (IsPointInTriangle(position, aPosition, bPosition, cPosition)
-					&& (!bestTriangleIndex || homeShip.GetPoints().GetPlaneId(homeShip.GetTriangles().GetPointAIndex(triangleIndex)) > bestPlaneId))
+				if (!homeShip.GetTriangles().IsDeleted(triangleIndex))
 				{
-					bestTriangleIndex = triangleIndex;
-					bestPlaneId = homeShip.GetPoints().GetPlaneId(homeShip.GetTriangles().GetPointAIndex(triangleIndex));
+					vec2f const aPosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointAIndex(triangleIndex));
+					vec2f const bPosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointBIndex(triangleIndex));
+					vec2f const cPosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointCIndex(triangleIndex));
+
+					if (IsPointInTriangle(position, aPosition, bPosition, cPosition)
+						&& (!bestTriangleIndex || homeShip.GetPoints().GetPlaneId(homeShip.GetTriangles().GetPointAIndex(triangleIndex)) > bestPlaneId)
+						&& !IsTriangleFolded(triangleIndex, homeShip))
+					{
+						bestTriangleIndex = triangleIndex;
+						bestPlaneId = homeShip.GetPoints().GetPlaneId(homeShip.GetTriangles().GetPointAIndex(triangleIndex));
+					}
 				}
 			}
 
@@ -1612,13 +1600,17 @@ ElementIndex Npcs::FindTriangleContaining(
 {
 	for (auto const triangleIndex : homeShip.GetTriangles())
 	{
-		vec2f const aPosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointAIndex(triangleIndex));
-		vec2f const bPosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointBIndex(triangleIndex));
-		vec2f const cPosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointCIndex(triangleIndex));
-
-		if (IsPointInTriangle(position, aPosition, bPosition, cPosition))
+		if (!homeShip.GetTriangles().IsDeleted(triangleIndex))
 		{
-			return triangleIndex;
+			vec2f const aPosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointAIndex(triangleIndex));
+			vec2f const bPosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointBIndex(triangleIndex));
+			vec2f const cPosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointCIndex(triangleIndex));
+
+			if (IsPointInTriangle(position, aPosition, bPosition, cPosition)
+				&& !IsTriangleFolded(triangleIndex, homeShip))
+			{
+				return triangleIndex;
+			}
 		}
 	}
 

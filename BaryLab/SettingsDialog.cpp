@@ -330,12 +330,12 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
                     "Adjusts the elasticity of NPC particles' impacts.",
 					[this](float value)
                     {
-                        this->mLiveSettings.SetValue(SLabSettings::NpcMaterialElasticityAdjustment, value);
+                        this->mLiveSettings.SetValue(SLabSettings::ElasticityAdjustment, value);
                         this->OnLiveSettingsChanged();
                     },
                     std::make_unique<LinearSliderCore>(
-                        mLabController->GetMinNpcMaterialElasticityAdjustment(),
-                        mLabController->GetMaxNpcMaterialElasticityAdjustment()));
+                        mLabController->GetMinElasticityAdjustment(),
+                        mLabController->GetMaxElasticityAdjustment()));
 
                 mechanicsSizer->Add(
                     mElasticityAdjustmentSlider,
@@ -355,13 +355,13 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
                     "The adjustment for the static friction of NPC particles against floor surfaces.",
 					[this](float value)
                     {
-                        this->mLiveSettings.SetValue(SLabSettings::NpcMaterialStaticFrictionAdjustment, value);
+                        this->mLiveSettings.SetValue(SLabSettings::StaticFrictionAdjustment, value);
                         this->OnLiveSettingsChanged();
                     },
                     std::make_unique<ExponentialSliderCore>(
-                        mLabController->GetMinNpcMaterialStaticFrictionAdjustment(),
+                        mLabController->GetMinStaticFrictionAdjustment(),
                         1.0f,
-                        mLabController->GetMaxNpcMaterialStaticFrictionAdjustment()));
+                        mLabController->GetMaxStaticFrictionAdjustment()));
 
                 mechanicsSizer->Add(
                     mStaticFrictionAdjustmentSlider,
@@ -381,13 +381,13 @@ void SettingsDialog::PopulateSimulatorPanel(wxPanel * panel)
                     "The adjustment for the kinetic friction of NPC particles against floor surfaces.",
                     [this](float value)
                     {
-                        this->mLiveSettings.SetValue(SLabSettings::NpcMaterialKineticFrictionAdjustment, value);
+                        this->mLiveSettings.SetValue(SLabSettings::KineticFrictionAdjustment, value);
                         this->OnLiveSettingsChanged();
                     },
                     std::make_unique<ExponentialSliderCore>(
-                        mLabController->GetMinNpcMaterialKineticFrictionAdjustment(),
+                        mLabController->GetMinKineticFrictionAdjustment(),
                         1.0f,
-                        mLabController->GetMaxNpcMaterialKineticFrictionAdjustment()));
+                        mLabController->GetMaxKineticFrictionAdjustment()));
 
                 mechanicsSizer->Add(
                     mKineticFrictionAdjustmentSlider,
@@ -761,9 +761,9 @@ void SettingsDialog::PopulateNpcsPanel(wxPanel * panel)
 void SettingsDialog::SyncControlsWithSettings(Settings<SLabSettings> const & settings)
 {
     // Simulator
-    mElasticityAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::NpcMaterialElasticityAdjustment));
-    mStaticFrictionAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::NpcMaterialStaticFrictionAdjustment));
-    mKineticFrictionAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::NpcMaterialKineticFrictionAdjustment));
+    mElasticityAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::ElasticityAdjustment));
+    mStaticFrictionAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::StaticFrictionAdjustment));
+    mKineticFrictionAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::KineticFrictionAdjustment));
     mMassAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::MassAdjustment));
     mGravityAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::GravityAdjustment));
     mGlobalDampingAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::GlobalDampingAdjustment));
