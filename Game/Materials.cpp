@@ -23,7 +23,7 @@ StructuralMaterial StructuralMaterial::Create(
         picojson::object massJson = Utils::GetMandatoryJsonObject(structuralMaterialJson, "mass");
         float const nominalMass = Utils::GetMandatoryJsonMember<float>(massJson, "nominal_mass");
         float const density = Utils::GetMandatoryJsonMember<float>(massJson, "density");
-        float const buoyancyVolumeFill = Utils::GetMandatoryJsonMember<float>(structuralMaterialJson, "buoyancy_volume_fill");
+        float const buoyancyVolumeFill = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "buoyancy_volume_fill", 1.0f);
         float const stiffness = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "stiffness", 1.0);
         float const strainThresholdFraction = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "strain_threshold_fraction", 0.5f);
         float const elasticityCoefficient = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "elasticity_coefficient", 0.5f);
