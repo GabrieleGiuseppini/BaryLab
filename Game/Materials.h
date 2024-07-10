@@ -57,6 +57,7 @@ public:
     // NPC-specific
     float NpcSpringReductionFraction;
     float NpcSpringDampingCoefficient;
+    float NpcBuoyancyVolumeFill; // NPC particles do not get water (and hullness plays no role), hence we need a specific here
 
 public:
 
@@ -116,7 +117,8 @@ public:
         bool isLegacyElectrical,
         // NPC-specific
         float npcSpringReductionFraction,
-        float npcSpringDampingCoefficient)
+        float npcSpringDampingCoefficient,
+        float npcBuoyancyVolumeFill)
         : ColorKey(colorKey)
         , Name(name)
         , RenderColor(renderColor)
@@ -147,5 +149,6 @@ public:
         , IsLegacyElectrical(isLegacyElectrical)
         , NpcSpringReductionFraction(npcSpringReductionFraction)
         , NpcSpringDampingCoefficient(npcSpringDampingCoefficient)
+        , NpcBuoyancyVolumeFill(npcBuoyancyVolumeFill)
     {}
 };

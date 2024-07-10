@@ -5,6 +5,8 @@
  ***************************************************************************************/
 #include "Materials.h"
 
+#include "GameParameters.h"
+
 #include <GameCore/GameException.h>
 #include <GameCore/Utils.h>
 
@@ -60,6 +62,13 @@ StructuralMaterial StructuralMaterial::Create(
         float const npcSpringReductionFraction = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "npc_spring_reduction_fraction", 0.97f);
         float const npcSpringDampingCoefficient = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "npc_spring_damping_coefficient", 0.5f);
 
+        // Default buoyancy volume fill: so that particle has a specific upward acceleration
+        float constexpr TargetBuoyancyUpwardAcceleration = 4.4f; // Empirical
+        float const defaultNpcBuoyancyVolumeFill =
+            (nominalMass * density) * (TargetBuoyancyUpwardAcceleration + GameParameters::GravityMagnitude)
+            / (1000.0f * GameParameters::GravityMagnitude);
+        float const npcBuoyancyVolumeFill = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "npc_buoyancy_volume_fill", defaultNpcBuoyancyVolumeFill);
+
         return StructuralMaterial(
             colorKey,
             name,
@@ -93,7 +102,8 @@ StructuralMaterial StructuralMaterial::Create(
             isLegacyElectrical,
             // NPC-specific
             npcSpringReductionFraction,
-            npcSpringDampingCoefficient);
+            npcSpringDampingCoefficient,
+            npcBuoyancyVolumeFill);
     }
     catch (GameException const & ex)
     {
