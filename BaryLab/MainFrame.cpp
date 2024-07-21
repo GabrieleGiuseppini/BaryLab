@@ -734,7 +734,7 @@ void MainFrame::OnAddFurnitureQuadNpc(wxCommandEvent & /*event*/)
 void MainFrame::OnAddHumanNpc(wxCommandEvent & /*event*/)
 {
     assert(!!mToolController);
-    mToolController->SetHumanNpcPlaceTool(HumanNpcKindType::Passenger); // Futurework
+    mToolController->SetHumanNpcPlaceTool(0); // Whatever is this NPC
 }
 
 void MainFrame::OnMoveNpc(wxCommandEvent & /*event*/)

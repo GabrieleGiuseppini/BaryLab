@@ -8,7 +8,7 @@
 #include "Physics.h"
 
 #include "GameParameters.h"
-#include "MaterialDatabase.h"
+#include "NpcDatabase.h"
 #include "PerfStats.h"
 
 #include <GameCore/GameChronometer.h>
@@ -26,7 +26,7 @@ class World
 public:
 
 	World(
-		MaterialDatabase const & materialDatabase,
+		NpcDatabase const & npcDatabase,
 		std::shared_ptr<GameEventDispatcher> gameEventHandler,
 		float oceanDepth)
 		: mGameEventHandler(std::move(gameEventHandler))
@@ -36,7 +36,7 @@ public:
 	{
 		mNpcs = std::make_unique<Physics::Npcs>(
 			*this,
-			materialDatabase,
+			npcDatabase,
 			mGameEventHandler);
 	}
 

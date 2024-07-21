@@ -719,7 +719,6 @@ inline std::basic_ostream<char> & operator<<(std::basic_ostream<char> & os, Abso
 // Rendering
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Misc
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -772,24 +771,24 @@ enum class NpcKindType
 };
 
 /*
- * Furniture NPC types (second level).
- * TODO: will be replaced by opaque int, managed via NpcDatabase.
+ * Second level of NPC type hierarchy; domain is open
+ * as it may be expanded after compile time, via NPC packs.
+ * The unique identifier of an NPC kind is the whole
+ * <NpcKindType,NpcSubKindIdType> tuple; so, for example,
+ * NpcSubKindIdType=X means one thing for Humans and another
+ * thing for Furniture.
  */
-enum class FurnitureNpcKindType
-{
-    Particle,
-    Quad
-};
+using NpcSubKindIdType = std::uint32_t;
 
 /*
- * Human NPC types (second level).
- * TODO: will be replaced by opaque int, managed via NpcDatabase.
+ * Roles for humans.
  */
-enum class HumanNpcKindType
+enum class NpcHumanRoleType
 {
-    Passenger,
-    Programmer
+    Passenger
 };
+
+NpcHumanRoleType StrToNpcHumanRoleType(std::string const & str);
 
 enum class NpcFloorKindType
 {

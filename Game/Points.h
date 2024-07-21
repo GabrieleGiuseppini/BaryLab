@@ -122,9 +122,9 @@ public:
         vec2f const & position,
         StructuralMaterial const * material);
 
-    AABB GetAABB() const
+    Geometry::AABB GetAABB() const
     {
-        AABB box;
+        Geometry::AABB box;
         for (ElementIndex pointIndex : *this)
         {
             box.ExtendTo(GetPosition(pointIndex));

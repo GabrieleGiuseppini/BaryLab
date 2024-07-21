@@ -1,6 +1,6 @@
 /***************************************************************************************
  * Original Author:		Gabriele Giuseppini
- * Created:				2020-05-16
+ * Created:				2018-01-21
  * Copyright:			Gabriele Giuseppini  (https://github.com/GabrieleGiuseppini)
  ***************************************************************************************/
 #pragma once
@@ -9,10 +9,13 @@
 
 #include <limits>
 
+namespace Geometry {
+
 // Axis-Aligned Bounding Box
-class AABB
+struct AABB
 {
 public:
+
     vec2f TopRight;
     vec2f BottomLeft;
 
@@ -52,6 +55,18 @@ public:
         return vec2f(GetWidth(), GetHeight());
     }
 
+    inline vec2f CalculateCenter() const
+    {
+        return vec2f(
+            (TopRight.x + BottomLeft.x) / 2.0f,
+            (TopRight.y + BottomLeft.y) / 2.0f);
+    }
+
+    inline float CalculateArea() const
+    {
+        return GetWidth() * GetHeight();
+    }
+
     inline void ExtendTo(vec2f const & point)
     {
         if (point.x > TopRight.x)
@@ -76,11 +91,37 @@ public:
             BottomLeft.y = other.BottomLeft.y;
     }
 
-    inline bool Contains(vec2f const & point) const
+    inline AABB AdjustSize(
+        float widthMultiplier,
+        float heightMultiplier) const
+    {
+        float const newWidth = GetWidth() * widthMultiplier;
+        float const newHeight = GetHeight() * heightMultiplier;
+        auto const center = CalculateCenter();
+        return AABB(
+            center.x - newWidth / 2.0f,
+            center.x + newWidth / 2.0f,
+            center.y + newHeight / 2.0f,
+            center.y - newHeight / 2.0f);
+    }
+
+    inline bool Contains(vec2f const & point) const noexcept
     {
         return point.x >= BottomLeft.x
             && point.x <= TopRight.x
             && point.y >= BottomLeft.y
             && point.y <= TopRight.y;
     }
+
+    inline bool Contains(
+        vec2f const & point,
+        float margin) const noexcept
+    {
+        return point.x >= BottomLeft.x - margin
+            && point.x <= TopRight.x + margin
+            && point.y >= BottomLeft.y - margin
+            && point.y <= TopRight.y + margin;
+    }
 };
+
+}

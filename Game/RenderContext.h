@@ -5,6 +5,7 @@
 ***************************************************************************************/
 #pragma once
 
+#include "RenderTypes.h"
 #include "ViewModel.h"
 
 #include <GameOpenGL/GameOpenGL.h>
@@ -189,24 +190,22 @@ public:
     inline void UploadNpcTextureQuad(
         PlaneId /*planeId*/,
         vec2f topLeftPosition,
-        vec2f topLeftTexture,
         vec2f topRightPosition,
-        vec2f topRightTexture,
         vec2f bottomLeftPosition,
-        vec2f bottomLeftTexture,
         vec2f bottomRightPosition,
-        vec2f bottomRightTexture,
-        float faceOrientation,
+        TextureCoordinatesQuad const & textureCoords,
         NpcHighlightType highlight)
     {
-        float const backDepth = std::max(-faceOrientation, 0.0f);
-        float const orientationDepth = 1.0f - std::abs(faceOrientation);
+        //float const backDepth = std::max(-faceOrientation, 0.0f);
+        float const backDepth = 0.0f;
+        //float const orientationDepth = 1.0f - std::abs(faceOrientation);
+        float const orientationDepth = 0.0f;
         vec4f const overlayColor = NpcHighlightToOverlayColor(highlight);
 
         // TopLeft
         mNpcQuadVertexBuffer.emplace_back(
             topLeftPosition,
-            topLeftTexture,
+            vec2f(textureCoords.LeftX, textureCoords.TopY),
             backDepth,
             orientationDepth,
             overlayColor);
@@ -214,7 +213,7 @@ public:
         // BottomLeft
         mNpcQuadVertexBuffer.emplace_back(
             bottomLeftPosition,
-            bottomLeftTexture,
+            vec2f(textureCoords.LeftX, textureCoords.BottomY),
             backDepth,
             orientationDepth,
             overlayColor);
@@ -222,7 +221,7 @@ public:
         // TopRight
         mNpcQuadVertexBuffer.emplace_back(
             topRightPosition,
-            topRightTexture,
+            vec2f(textureCoords.RightX, textureCoords.TopY),
             backDepth,
             orientationDepth,
             overlayColor);
@@ -230,7 +229,7 @@ public:
         // BottomRight
         mNpcQuadVertexBuffer.emplace_back(
             bottomRightPosition,
-            bottomRightTexture,
+            vec2f(textureCoords.RightX, textureCoords.BottomY),
             backDepth,
             orientationDepth,
             overlayColor);

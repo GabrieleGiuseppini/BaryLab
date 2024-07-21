@@ -37,10 +37,10 @@ public:
         mCurrentTool->Initialize(mInputState);
     }
 
-    void SetHumanNpcPlaceTool(HumanNpcKindType humanNpcKind)
+    void SetHumanNpcPlaceTool(NpcSubKindIdType subKind)
     {
         AddHumanNpcTool * tool = dynamic_cast<AddHumanNpcTool *>(mAllTools[static_cast<size_t>(ToolType::AddHumanNpc)].get());
-        tool->SetHumanNpcKind(humanNpcKind);
+        tool->SetHumanNpcKind(subKind);
         SetTool(ToolType::AddHumanNpc);
     }
 

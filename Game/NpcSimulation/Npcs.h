@@ -7,13 +7,15 @@
 
 #include "GameEventDispatcher.h"
 #include "GameParameters.h"
-#include "MaterialDatabase.h"
+#include "NpcDatabase.h"
 #include "Physics.h"
 #include "RenderContext.h"
+#include "RenderTypes.h"
 
 #include <GameCore/BarycentricCoords.h>
 #include <GameCore/ElementIndexRangeIterator.h>
 #include <GameCore/FixedSizeVector.h>
+#include <GameCore/GameGeometry.h>
 #include <GameCore/GameRandomEngine.h>
 #include <GameCore/GameTypes.h>
 #include <GameCore/Log.h>
@@ -211,18 +213,27 @@ private:
 		{
 			struct FurnitureNpcStateType final
 			{
-				FurnitureNpcKindType const Kind;
+				NpcSubKindIdType const SubKindId;
 
-				FurnitureNpcStateType(FurnitureNpcKindType kind)
-					: Kind(kind)
+				Render::TextureCoordinatesQuad const TextureCoordinatesQuad;
+
+				FurnitureNpcStateType(
+					NpcSubKindIdType subKindId,
+					Render::TextureCoordinatesQuad const & textureCoordinatesQuad)
+					: SubKindId(subKindId)
+					, TextureCoordinatesQuad(textureCoordinatesQuad)
 				{}
 			} FurnitureNpcState;
 
 			struct HumanNpcStateType final
 			{
-				HumanNpcKindType const Kind;
+				NpcSubKindIdType const SubKindId;
+				NpcHumanRoleType const Role;
 				float const WidthMultipier; // Randomization
 				float const WalkingSpeedBase;
+
+				NpcDatabase::HumanDimensionsType const & Dimensions;
+				NpcDatabase::HumanTextureFramesType const & TextureFrames;
 
 				enum class BehaviorType
 				{
@@ -417,14 +428,20 @@ private:
 				} AnimationState;
 
 				HumanNpcStateType(
-					HumanNpcKindType kind,
+					NpcSubKindIdType subKindId,
+					NpcHumanRoleType role,
 					float widthMultipier,
 					float walkingSpeedBase,
+					NpcDatabase::HumanDimensionsType const & dimensions,
+					NpcDatabase::HumanTextureFramesType const & textureFrames,
 					BehaviorType initialBehavior,
 					float currentSimulationTime)
-					: Kind(kind)
+					: SubKindId(subKindId)
+					, Role(role)
 					, WidthMultipier(widthMultipier)
 					, WalkingSpeedBase(walkingSpeedBase)
+					, Dimensions(dimensions)
+					, TextureFrames(textureFrames)
 					, EquilibriumTorque(0.0f)
 					, CurrentEquilibriumSoftTerminationDecision(0.0f)
 					, CurrentFaceOrientation(1.0f)
@@ -610,10 +627,10 @@ public:
 
 	Npcs(
 		Physics::World & parentWorld,
-		MaterialDatabase const & materialDatabase,
+		NpcDatabase const & npcDatabase,
 		std::shared_ptr<GameEventDispatcher> gameEventHandler)
 		: mParentWorld(parentWorld)
-		, mMaterialDatabase(materialDatabase)
+		, mNpcDatabase(npcDatabase)
 		, mGameEventHandler(std::move(gameEventHandler))
 		// Container
 		, mStateBuffer()
@@ -641,17 +658,21 @@ public:
 
 	///////////////////////////////
 
+	Geometry::AABB GetAABB(NpcId npcId) const;
+
+	///////////////////////////////
+
 	void OnShipAdded(Ship & ship);
 
 	void OnShipRemoved(ShipId shipId);
 
 	std::optional<PickedObjectId<NpcId>> BeginPlaceNewFurnitureNpc(
-		FurnitureNpcKindType furnitureKind,
+		NpcSubKindIdType subKind,
 		vec2f const & worldCoordinates,
 		float currentSimulationTime);
 
 	std::optional<PickedObjectId<NpcId>> BeginPlaceNewHumanNpc(
-		HumanNpcKindType humanKind,
+		NpcSubKindIdType subKind,
 		vec2f const & worldCoordinates,
 		float currentSimulationTime);
 
@@ -700,7 +721,7 @@ public:
 	}
 
 	bool AddHumanNpc(
-		HumanNpcKindType humanKind,
+		NpcSubKindIdType subKind,
 		vec2f const & worldCoordinates,
 		float currentSimulationTime);
 
@@ -1197,7 +1218,7 @@ private:
 		bcoords3f const primaryBaryCoords = homeShip.GetTriangles().ToBarycentricCoordinates(primaryPosition, triangleElementIndex, homeShip.GetPoints());
 
 		// It's on the other side of the edge if its "edge's" b-coord is negative
-		if (primaryBaryCoords[(edgeOrdinal + 2) % 3] >= -0.05f)
+		if (primaryBaryCoords[(edgeOrdinal + 2) % 3] >= -0.05f) // Some slack
 		{
 			return true;
 		}
@@ -1307,7 +1328,7 @@ private:
 private:
 
 	World & mParentWorld;
-	MaterialDatabase const & mMaterialDatabase;
+	NpcDatabase const & mNpcDatabase;
 	std::shared_ptr<GameEventDispatcher> mGameEventHandler;
 
 	//

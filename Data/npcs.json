@@ -1,0 +1,63 @@
+{
+	"humans": {
+		"global": {
+			"head_material": "NPC Human Head",
+			"feet_material": "NPC Human Feet"
+		},
+		"kinds": [
+
+			{
+				"name": [
+					{ "value": "Dummy", "language": "en" },
+					{ "value": "Dummy", "language": "it" }
+				],
+				"role": "Passenger",
+				"body_width_randomization_sensitivity": 0.0,
+				"texture_filename_stems": {
+					"head_f": "dummy_head_f",
+					"head_b": "dummy_head_b",
+					"head_s": "dummy_head_s",
+					"torso_f": "dummy_torso_f",
+					"torso_b": "dummy_torso_b",
+					"torso_s": "dummy_torso_s",
+					"arm_f": "dummy_arm_f",
+					"arm_b": "dummy_arm_b",
+					"arm_s": "dummy_arm_s",
+					"leg_f": "dummy_leg_f",
+					"leg_b": "dummy_leg_b",
+					"leg_s": "dummy_leg_s"
+				}
+			}
+		]
+	},
+
+	"furniture": {
+		"kinds": [
+
+			{
+				"name": [
+					{ "value": "Crate", "language": "en" },
+					{ "value": "Cassa", "language": "it" }
+				],
+				"material": "Solid Pine Wood I-Beam",
+				"particle_mesh": {
+					"kind": "Quad",
+					"height": 0.5
+				},
+				"texture_filename_stem": "crate_1"
+			},
+
+			{
+				"name": [
+					{ "value": "Particle", "language": "en" },
+					{ "value": "Particella", "language": "it" }
+				],
+				"material": "Stainless Steel",
+				"particle_mesh": {
+					"kind": "Particle"
+				},
+				"texture_filename_stem": "particle_1"
+			}
+		]
+	}
+}

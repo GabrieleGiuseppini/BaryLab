@@ -26,9 +26,9 @@ public:
         return std::filesystem::absolute(std::filesystem::path("Data") / "materials_structural.json");
     }
 
-    static std::filesystem::path GetNpcMaterialDatabaseFilePath()
+    static std::filesystem::path GetNpcDatabaseFilePath()
     {
-        return std::filesystem::absolute(std::filesystem::path("Data") / "materials_npc.json");
+        return std::filesystem::absolute(std::filesystem::path("Data") / "npcs.json");
     }
 
     static std::filesystem::path GetResourcesFolderPath()

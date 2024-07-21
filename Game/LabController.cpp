@@ -43,6 +43,7 @@ LabController::LabController(
     MaterialDatabase && materialDatabase,
     std::unique_ptr<Render::RenderContext> renderContext)
     : mMaterialDatabase(std::move(materialDatabase))
+    , mNpcDatabase(NpcDatabase::Load(mMaterialDatabase))
     , mRenderContext(std::move(renderContext))
     , mGameEventHandler(std::make_shared<GameEventDispatcher>())
     // Simulation state
@@ -811,7 +812,7 @@ void LabController::DoStepForVideo()
 ////////////////////////////////////////////////
 
 std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewFurnitureNpc(
-    FurnitureNpcKindType furnitureKind,
+    NpcSubKindIdType subKind,
     vec2f const & screenCoordinates)
 {
     assert(!!mWorld);
@@ -819,7 +820,7 @@ std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewFurnitureNpc(
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
     auto const pickedObjectId = mWorld->GetNpcs().BeginPlaceNewFurnitureNpc(
-        furnitureKind,
+        subKind,
         worldCoordinates,
         mCurrentSimulationTime);
 
@@ -832,7 +833,7 @@ std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewFurnitureNpc(
 }
 
 std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewHumanNpc(
-    HumanNpcKindType humanKind,
+    NpcSubKindIdType subKind,
     vec2f const & screenCoordinates)
 {
     assert(!!mWorld);
@@ -840,7 +841,7 @@ std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewHumanNpc(
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
     auto const pickedObjectId = mWorld->GetNpcs().BeginPlaceNewHumanNpc(
-        humanKind,
+        subKind,
         worldCoordinates,
         mCurrentSimulationTime);
 
@@ -948,7 +949,7 @@ void LabController::Reset(
     std::unique_ptr<Physics::Ship> ship,
     std::filesystem::path const & shipDefinitionFilepath)
 {
-    AABB const shipAABB = ship->GetPoints().GetAABB();
+    Geometry::AABB const shipAABB = ship->GetPoints().GetAABB();
 
     //
     // Make new world
@@ -957,7 +958,7 @@ void LabController::Reset(
     mWorld.reset();
 
     mWorld = std::make_unique<Physics::World>(
-        mMaterialDatabase,
+        mNpcDatabase,
         mGameEventHandler,
         mOceanDepth);
 

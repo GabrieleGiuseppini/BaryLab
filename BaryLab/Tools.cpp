@@ -120,7 +120,7 @@ AddHumanNpcTool::AddHumanNpcTool(
         ToolType::AddHumanNpc,
         cursorWindow,
         std::move(labController))
-    , mHumanNpcKind(HumanNpcKindType::Passenger) // Will be given one when needed
+    , mSubKind(0) // Will be given one when needed
 {
 }
 

@@ -831,7 +831,7 @@ protected:
     std::optional<PickedObjectId<NpcId>> InternalBeginPlaceNewNpc(vec2f const & screenCoordinates) override
     {
         return mLabController->BeginPlaceNewFurnitureNpc(
-            FurnitureNpcKindType::Particle,
+            1, // Particle
             screenCoordinates);
     }
 };
@@ -849,7 +849,7 @@ protected:
     std::optional<PickedObjectId<NpcId>> InternalBeginPlaceNewNpc(vec2f const & screenCoordinates) override
     {
         return mLabController->BeginPlaceNewFurnitureNpc(
-            FurnitureNpcKindType::Quad,
+            0, // Crate
             screenCoordinates);
     }
 };
@@ -863,9 +863,9 @@ public:
         wxWindow * cursorWindow,
         std::shared_ptr<LabController> labController);
 
-    void SetHumanNpcKind(HumanNpcKindType humanNpcKind)
+    void SetHumanNpcKind(NpcSubKindIdType subKind)
     {
-        mHumanNpcKind = humanNpcKind;
+        mSubKind = subKind;
     }
 
 protected:
@@ -873,13 +873,13 @@ protected:
     std::optional<PickedObjectId<NpcId>> InternalBeginPlaceNewNpc(vec2f const & screenCoordinates) override
     {
         return mLabController->BeginPlaceNewHumanNpc(
-            mHumanNpcKind,
+            mSubKind,
             screenCoordinates);
     }
 
 private:
 
-    HumanNpcKindType mHumanNpcKind;
+    NpcSubKindIdType mSubKind;
 };
 
 class MoveNpcTool final : public Tool

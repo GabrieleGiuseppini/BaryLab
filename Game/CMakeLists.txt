@@ -15,7 +15,10 @@ set  (GAME_SOURCES
 	MaterialDatabase.h
 	Materials.cpp
 	Materials.h
+	NpcDatabase.cpp
+	NpcDatabase.h
 	PerfStats.h
+	RenderTypes.h
 	ResourceLocator.h
 	ShipDefinition.cpp
 	ShipDefinition.h

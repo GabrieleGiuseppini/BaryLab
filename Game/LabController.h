@@ -8,6 +8,7 @@
 #include "GameEventDispatcher.h"
 #include "GameParameters.h"
 #include "MaterialDatabase.h"
+#include "NpcDatabase.h"
 #include "PerfStats.h"
 #include "Physics.h"
 #include "RenderContext.h"
@@ -108,8 +109,8 @@ public:
     // NPC
     //
 
-    std::optional<PickedObjectId<NpcId>> BeginPlaceNewFurnitureNpc(FurnitureNpcKindType humanKind, vec2f const & screenCoordinates);
-    std::optional<PickedObjectId<NpcId>> BeginPlaceNewHumanNpc(HumanNpcKindType humanKind, vec2f const & screenCoordinates);
+    std::optional<PickedObjectId<NpcId>> BeginPlaceNewFurnitureNpc(NpcSubKindIdType subKind, vec2f const & screenCoordinates);
+    std::optional<PickedObjectId<NpcId>> BeginPlaceNewHumanNpc(NpcSubKindIdType subKind, vec2f const & screenCoordinates);
     std::optional<PickedObjectId<NpcId>> ProbeNpcAt(vec2f const & screenCoordinates) const;
     void BeginMoveNpc(NpcId id);
     void MoveNpcTo(NpcId id, vec2f const & screenCoordinates, vec2f const & worldOffset);
@@ -298,6 +299,7 @@ private:
 private:
 
     MaterialDatabase mMaterialDatabase;
+    NpcDatabase mNpcDatabase;
     std::unique_ptr<Render::RenderContext> mRenderContext;
     std::shared_ptr<GameEventDispatcher> mGameEventHandler;
 
