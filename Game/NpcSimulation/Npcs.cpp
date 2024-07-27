@@ -35,7 +35,7 @@ void Npcs::Update(
 		RecalculateGlobalDampingFactor();
 	}
 
-	if (gameParameters.NpcSizeAdjustment != mCurrentSizeAdjustment
+	if (gameParameters.NpcSizeMultiplier != mCurrentSizeMultiplier
 		|| gameParameters.NpcSpringReductionFractionAdjustment != mCurrentSpringReductionFractionAdjustment
 		|| gameParameters.NpcSpringDampingCoefficientAdjustment != mCurrentSpringDampingCoefficientAdjustment
 #ifdef IN_BARYLAB
@@ -45,7 +45,7 @@ void Npcs::Update(
 #endif
 		)
 	{
-		mCurrentSizeAdjustment = gameParameters.NpcSizeAdjustment;
+		mCurrentSizeMultiplier = gameParameters.NpcSizeMultiplier;
 		mCurrentSpringReductionFractionAdjustment = gameParameters.NpcSpringReductionFractionAdjustment;
 		mCurrentSpringDampingCoefficientAdjustment = gameParameters.NpcSpringDampingCoefficientAdjustment;
 #ifdef IN_BARYLAB
@@ -263,7 +263,8 @@ void Npcs::OnShipRemoved(ShipId shipId)
 std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 	NpcSubKindIdType subKind,
 	vec2f const & worldCoordinates,
-	float /*currentSimulationTime*/)
+	float /*currentSimulationTime*/,
+	bool doMoveWholeMesh)
 {
 	//
 	// Check if there are too many NPCs
@@ -304,7 +305,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 
 			float const mass = CalculateParticleMass(
 				furnitureMaterial.GetMass(),
-				mCurrentSizeAdjustment
+				mCurrentSizeMultiplier
 #ifdef IN_BARYLAB
 				, mCurrentMassAdjustment
 #endif
@@ -312,7 +313,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 
 			float const buoyancyFactor = CalculateParticleBuoyancyFactor(
 				furnitureMaterial.NpcBuoyancyVolumeFill,
-				mCurrentSizeAdjustment
+				mCurrentSizeMultiplier
 #ifdef IN_BARYLAB
 				, mCurrentBuoyancyAdjustment
 #endif
@@ -348,7 +349,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 
 			float const mass = CalculateParticleMass(
 				furnitureMaterial.GetMass(),
-				mCurrentSizeAdjustment
+				mCurrentSizeMultiplier
 #ifdef IN_BARYLAB
 				, mCurrentMassAdjustment
 #endif
@@ -356,7 +357,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 
 			float const buoyancyFactor = CalculateParticleBuoyancyFactor(
 				furnitureMaterial.NpcBuoyancyVolumeFill,
-				mCurrentSizeAdjustment
+				mCurrentSizeMultiplier
 #ifdef IN_BARYLAB
 				, mCurrentBuoyancyAdjustment
 #endif
@@ -367,8 +368,8 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 			// 0 - 1
 			// |   |
 			// 3 - 2
-			float const width = CalculateSpringLength(baseWidth, mCurrentSizeAdjustment);
-			float const height = CalculateSpringLength(baseHeight, mCurrentSizeAdjustment);
+			float const width = CalculateSpringLength(baseWidth, mCurrentSizeMultiplier);
+			float const height = CalculateSpringLength(baseHeight, mCurrentSizeMultiplier);
 			for (int p = 0; p < 4; ++p)
 			{
 				// CW order
@@ -460,7 +461,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 			}
 
 			CalculateSprings(
-				mCurrentSizeAdjustment,
+				mCurrentSizeMultiplier,
 #ifdef IN_BARYLAB
 				mCurrentMassAdjustment,
 #endif
@@ -496,9 +497,11 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 		NpcKindType::Furniture,
 		shipId, // Topmost ship ID
 		0, // PlaneID: irrelevant as long as BeingPlaced
+		std::nullopt, // Connected component: irrelevant as long as BeingPlaced
 		StateType::RegimeType::BeingPlaced,
 		std::move(particleMesh),
-		StateType::KindSpecificStateType(std::move(furnitureState)));
+		StateType::KindSpecificStateType(std::move(furnitureState)),
+		StateType::BeingPlacedStateType({0, doMoveWholeMesh})); // Furniture: anchor is first particle
 
 	assert(mShips[shipId].has_value());
 	mShips[shipId]->Npcs.push_back(npcId);
@@ -516,7 +519,8 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewFurnitureNpc(
 std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 	NpcSubKindIdType subKind,
 	vec2f const & worldCoordinates,
-	float currentSimulationTime)
+	float currentSimulationTime,
+	bool doMoveWholeMesh)
 {
 	//
 	// Check if there are enough NPCs and particles
@@ -541,14 +545,14 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 			GameParameters::HumanNpcGeometry::BodyLengthStdDev)
 		* mNpcDatabase.GetHumanSizeMultiplier(subKind);
 
-	float const height = CalculateSpringLength(baseHeight, mCurrentSizeAdjustment);
+	float const height = CalculateSpringLength(baseHeight, mCurrentSizeMultiplier);
 
 	// Feet (primary)
 
 	auto const & feetMaterial = mNpcDatabase.GetHumanFeetMaterial(subKind);
 	float const feetMass = CalculateParticleMass(
 		feetMaterial.GetMass(),
-		mCurrentSizeAdjustment
+		mCurrentSizeMultiplier
 #ifdef IN_BARYLAB
 		, mCurrentMassAdjustment
 #endif
@@ -556,7 +560,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 
 	float const feetBuoyancyFactor = CalculateParticleBuoyancyFactor(
 		feetMaterial.NpcBuoyancyVolumeFill,
-		mCurrentSizeAdjustment
+		mCurrentSizeMultiplier
 #ifdef IN_BARYLAB
 		, mCurrentBuoyancyAdjustment
 #endif
@@ -576,7 +580,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 	auto const & headMaterial = mNpcDatabase.GetHumanHeadMaterial(subKind);
 	float const headMass = CalculateParticleMass(
 		headMaterial.GetMass(),
-		mCurrentSizeAdjustment
+		mCurrentSizeMultiplier
 #ifdef IN_BARYLAB
 		, mCurrentMassAdjustment
 #endif
@@ -584,7 +588,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 
 	float const headBuoyancyFactor = CalculateParticleBuoyancyFactor(
 		headMaterial.NpcBuoyancyVolumeFill,
-		mCurrentSizeAdjustment
+		mCurrentSizeMultiplier
 #ifdef IN_BARYLAB
 		, mCurrentBuoyancyAdjustment
 #endif
@@ -609,7 +613,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 		(headMaterial.NpcSpringDampingCoefficient + feetMaterial.NpcSpringDampingCoefficient) / 2.0f);
 
 	CalculateSprings(
-		mCurrentSizeAdjustment,
+		mCurrentSizeMultiplier,
 #ifdef IN_BARYLAB
 		mCurrentMassAdjustment,
 #endif
@@ -673,9 +677,11 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 		NpcKindType::Human,
 		shipId, // Topmost ship ID
 		0, // PlaneID: irrelevant as long as BeingPlaced
+		std::nullopt, // Connected component: irrelevant as long as BeingPlaced
 		StateType::RegimeType::BeingPlaced,
 		std::move(particleMesh),
-		StateType::KindSpecificStateType(std::move(humanState)));
+		StateType::KindSpecificStateType(std::move(humanState)),
+		StateType::BeingPlacedStateType({ 1, doMoveWholeMesh })); // Human: anchor is head (second particle)
 
 	assert(mShips[shipId].has_value());
 	mShips[shipId]->Npcs.push_back(npcId);
@@ -692,9 +698,10 @@ std::optional<PickedObjectId<NpcId>> Npcs::BeginPlaceNewHumanNpc(
 
 std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 	vec2f const & position,
-	float radius) const
+	float radius,
+	GameParameters const & gameParameters) const
 {
-	float const squareSearchRadius = radius * radius;
+	float const squareSearchRadius = radius * radius * gameParameters.NpcSizeMultiplier;
 
 	struct NearestNpcType
 	{
@@ -712,7 +719,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 	std::pair<ShipId, PlaneId> probeDepth;
 
 	// Find topmost triangle containing this position
-	auto const topmostTriangle = FindTopmostTriangleContaining(position);
+	auto const topmostTriangle = FindTopmostWorkableTriangleContaining(position);
 	if (topmostTriangle)
 	{
 		assert(topmostTriangle->GetShipId() < mShips.size());
@@ -733,58 +740,41 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 	// Visit all NPCs and find winner, if any
 	//
 
-	auto particleVisitor = [&](ElementIndex candidateParticleIndex, StateType const & npc, ShipId const & shipId) -> bool
-		{
-			bool aParticleWasFound = false;
-
-			vec2f const candidateNpcPosition = mParticles.GetPosition(candidateParticleIndex);
-			float const squareDistance = (candidateNpcPosition - position).squareLength();
-			if (squareDistance < squareSearchRadius)
-			{
-				if (std::make_pair(shipId, npc.CurrentPlaneId) >= probeDepth)
-				{
-					// It's on-plane
-					if (squareDistance < nearestOnPlaneNpc.SquareDistance)
-					{
-						nearestOnPlaneNpc = { npc.Id, squareDistance };
-						aParticleWasFound = true;
-					}
-				}
-				else
-				{
-					// It's off-plane
-					if (squareDistance < nearestOffPlaneNpc.SquareDistance)
-					{
-						nearestOffPlaneNpc = { npc.Id, squareDistance };
-						aParticleWasFound = true;
-					}
-				}
-			}
-
-			return aParticleWasFound;
-		};
-
-	for (auto const & state : mStateBuffer)
+	for (auto const & npc : mStateBuffer)
 	{
-		if (state.has_value())
+		if (npc.has_value())
 		{
-			switch (state->Kind)
+			switch (npc->Kind)
 			{
 				case NpcKindType::Furniture:
 				{
 					// Proximity search for all particles
 
 					bool aParticleWasFound = false;
-					for (auto const & particle : state->ParticleMesh.Particles)
+					for (auto const & particle : npc->ParticleMesh.Particles)
 					{
-						bool const r = particleVisitor(
-							particle.ParticleIndex,
-							*state,
-							state->CurrentShipId);
-
-						if (r)
+						vec2f const candidateNpcPosition = mParticles.GetPosition(particle.ParticleIndex);
+						float const squareDistance = (candidateNpcPosition - position).squareLength();
+						if (squareDistance < squareSearchRadius)
 						{
-							aParticleWasFound = true;
+							if (std::make_pair(npc->CurrentShipId, npc->CurrentPlaneId) >= probeDepth)
+							{
+								// It's on-plane
+								if (squareDistance < nearestOnPlaneNpc.SquareDistance)
+								{
+									nearestOnPlaneNpc = { npc->Id, squareDistance };
+									aParticleWasFound = true;
+								}
+							}
+							else
+							{
+								// It's off-plane
+								if (squareDistance < nearestOffPlaneNpc.SquareDistance)
+								{
+									nearestOffPlaneNpc = { npc->Id, squareDistance };
+									aParticleWasFound = true;
+								}
+							}
 						}
 					}
 
@@ -795,10 +785,10 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 						// From https://wrfranklin.org/Research/Short_Notes/pnpoly.html
 
 						bool isHit = false;
-						for (size_t i = 0, j = state->ParticleMesh.Particles.size() - 1; i < state->ParticleMesh.Particles.size(); j = i++)
+						for (size_t i = 0, j = npc->ParticleMesh.Particles.size() - 1; i < npc->ParticleMesh.Particles.size(); j = i++)
 						{
-							vec2f const & pos_i = mParticles.GetPosition(state->ParticleMesh.Particles[i].ParticleIndex);
-							vec2f const & pos_j = mParticles.GetPosition(state->ParticleMesh.Particles[j].ParticleIndex);
+							vec2f const & pos_i = mParticles.GetPosition(npc->ParticleMesh.Particles[i].ParticleIndex);
+							vec2f const & pos_j = mParticles.GetPosition(npc->ParticleMesh.Particles[j].ParticleIndex);
 							if (((pos_i.y > position.y) != (pos_j.y > position.y)) &&
 								(position.x < (pos_j.x - pos_i.x) * (position.y - pos_i.y) / (pos_j.y - pos_i.y) + pos_i.x))
 							{
@@ -808,15 +798,15 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 
 						if (isHit)
 						{
-							if (std::make_pair(state->CurrentShipId, state->CurrentPlaneId) >= probeDepth)
+							if (std::make_pair(npc->CurrentShipId, npc->CurrentPlaneId) >= probeDepth)
 							{
 								// It's on-plane
-								nearestOnPlaneNpc = { state->Id, squareSearchRadius };
+								nearestOnPlaneNpc = { npc->Id, squareSearchRadius };
 							}
 							else
 							{
 								// It's off-plane
-								nearestOffPlaneNpc = { state->Id, squareSearchRadius };
+								nearestOffPlaneNpc = { npc->Id, squareSearchRadius };
 							}
 						}
 					}
@@ -827,17 +817,17 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 				case NpcKindType::Human:
 				{
 					float const squareDistance = Segment::SquareDistanceToPoint(
-						mParticles.GetPosition(state->ParticleMesh.Particles[0].ParticleIndex),
-						mParticles.GetPosition(state->ParticleMesh.Particles[1].ParticleIndex),
+						mParticles.GetPosition(npc->ParticleMesh.Particles[0].ParticleIndex),
+						mParticles.GetPosition(npc->ParticleMesh.Particles[1].ParticleIndex),
 						position);
 					if (squareDistance < squareSearchRadius)
 					{
-						if (std::make_pair(state->CurrentShipId, state->CurrentPlaneId) >= probeDepth)
+						if (std::make_pair(npc->CurrentShipId, npc->CurrentPlaneId) >= probeDepth)
 						{
 							// It's on-plane
 							if (squareDistance < nearestOnPlaneNpc.SquareDistance)
 							{
-								nearestOnPlaneNpc = { state->Id, squareDistance };
+								nearestOnPlaneNpc = { npc->Id, squareDistance };
 							}
 						}
 						else
@@ -845,7 +835,7 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 							// It's off-plane
 							if (squareDistance < nearestOffPlaneNpc.SquareDistance)
 							{
-								nearestOffPlaneNpc = { state->Id, squareDistance };
+								nearestOffPlaneNpc = { npc->Id, squareDistance };
 							}
 						}
 					}
@@ -892,7 +882,8 @@ std::optional<PickedObjectId<NpcId>> Npcs::ProbeNpcAt(
 
 void Npcs::BeginMoveNpc(
 	NpcId id,
-	float currentSimulationTime)
+	float currentSimulationTime,
+	bool doMoveWholeMesh)
 {
 	assert(mStateBuffer[id].has_value());
 	auto & npc = *mStateBuffer[id];
@@ -913,6 +904,11 @@ void Npcs::BeginMoveNpc(
 	{
 		particle.ConstrainedState.reset();
 	}
+
+	// Setup being placed state
+	npc.BeingPlacedState = StateType::BeingPlacedStateType({
+		(npc.Kind == NpcKindType::Human) ? 1 : 0,
+		doMoveWholeMesh });
 
 	// Change regime
 	auto const oldRegime = npc.CurrentRegime;
@@ -950,69 +946,46 @@ void Npcs::BeginMoveNpc(
 void Npcs::MoveNpcTo(
 	NpcId id,
 	vec2f const & position,
-	vec2f const & offset)
+	vec2f const & offset,
+	bool doMoveWholeMesh)
 {
 	assert(mStateBuffer[id].has_value());
 	assert(mStateBuffer[id]->CurrentRegime == StateType::RegimeType::BeingPlaced);
+	assert(mStateBuffer[id]->BeingPlacedState.has_value());
 
-	vec2f const newTargetPosition = position - offset;
+	// Defeat - we cannot make quads move nicely with our current spring length maintenance algorithm :-(
+	doMoveWholeMesh = (mStateBuffer[id]->ParticleMesh.Particles.size() > 2)
+		? true
+		: doMoveWholeMesh;
 
+	// Calculate delta movement for anchor particle
+	ElementIndex anchorParticleIndex = mStateBuffer[id]->ParticleMesh.Particles[mStateBuffer[id]->BeingPlacedState->AnchorParticleOrdinal].ParticleIndex;
+	vec2f const deltaAnchorPosition = (position - offset) - mParticles.GetPosition(anchorParticleIndex);
+
+	// Calculate absolute velocity for this delta movement
 	float constexpr InertialVelocityFactor = 0.5f; // Magic number for how much velocity we impart
+	vec2f const targetAbsoluteVelocity = deltaAnchorPosition / GameParameters::SimulationStepTimeDuration<float> * InertialVelocityFactor;
 
-	switch (mStateBuffer[id]->Kind)
+	// Move particles
+	for (int p = 0; p < mStateBuffer[id]->ParticleMesh.Particles.size(); ++p)
 	{
-		case NpcKindType::Furniture:
+		if (doMoveWholeMesh || p == mStateBuffer[id]->BeingPlacedState->AnchorParticleOrdinal)
 		{
-			// Move all particles
+			auto const particleIndex = mStateBuffer[id]->ParticleMesh.Particles[p].ParticleIndex;
+			mParticles.SetPosition(particleIndex, mParticles.GetPosition(particleIndex) + deltaAnchorPosition);
+			mParticles.SetVelocity(particleIndex, targetAbsoluteVelocity);
 
-			// Get position of primary as reference
-			assert(mStateBuffer[id]->ParticleMesh.Particles.size() > 0);
-			vec2f const oldPrimaryPosition = mParticles.GetPosition(mStateBuffer[id]->ParticleMesh.Particles[0].ParticleIndex);
-
-			// Calculate new absolute velocity of primary
-			vec2f const newPrimaryAbsoluteVelocity = (newTargetPosition - oldPrimaryPosition) / GameParameters::SimulationStepTimeDuration<float> * InertialVelocityFactor;
-
-			// Move all particles
-			for (auto & particle : mStateBuffer[id]->ParticleMesh.Particles)
-			{
-				auto const particleIndex = particle.ParticleIndex;
-				vec2f const newPosition = newTargetPosition + (mParticles.GetPosition(particleIndex) - oldPrimaryPosition); // Set to new position + offset from reference
-				mParticles.SetPosition(particleIndex, newPosition);
-				mParticles.SetVelocity(particleIndex, newPrimaryAbsoluteVelocity);
-
-				if (particle.ConstrainedState.has_value())
-				{
-					// We can only assume here, and we assume the ship is still and since the user doesn't move with the ship,
-					// all this velocity is also relative to mesh
-					particle.ConstrainedState->MeshRelativeVelocity = newPrimaryAbsoluteVelocity;
-				}
-			}
-
-			break;
-		}
-
-		case NpcKindType::Human:
-		{
-			// Move secondary particle
-
-			assert(mStateBuffer[id]->ParticleMesh.Particles.size() == 2);
-
-			auto const particleIndex = mStateBuffer[id]->ParticleMesh.Particles[1].ParticleIndex;
-			vec2f const oldPosition = mParticles.GetPosition(particleIndex);
-			mParticles.SetPosition(particleIndex, newTargetPosition);
-			vec2f const absoluteVelocity = (newTargetPosition - oldPosition) / GameParameters::SimulationStepTimeDuration<float> * InertialVelocityFactor;
-			mParticles.SetVelocity(particleIndex, absoluteVelocity);
-
-			if (mStateBuffer[id]->ParticleMesh.Particles[1].ConstrainedState.has_value())
+			if (mStateBuffer[id]->ParticleMesh.Particles[p].ConstrainedState.has_value())
 			{
 				// We can only assume here, and we assume the ship is still and since the user doesn't move with the ship,
 				// all this velocity is also relative to mesh
-				mStateBuffer[id]->ParticleMesh.Particles[1].ConstrainedState->MeshRelativeVelocity = absoluteVelocity;
+				mStateBuffer[id]->ParticleMesh.Particles[p].ConstrainedState->MeshRelativeVelocity = targetAbsoluteVelocity;
 			}
-
-			break;
 		}
 	}
+
+	// Update state
+	mStateBuffer[id]->BeingPlacedState->DoMoveWholeMesh = doMoveWholeMesh;
 }
 
 void Npcs::EndMoveNpc(
@@ -1032,6 +1005,8 @@ void Npcs::EndMoveNpc(
 	OnMayBeNpcRegimeChanged(
 		StateType::RegimeType::BeingPlaced,
 		npc);
+
+	npc.BeingPlacedState.reset();
 
 #ifdef IN_BARYLAB
 	// Select NPC's primary particle
@@ -1122,6 +1097,99 @@ void Npcs::HighlightNpc(
 	mStateBuffer[id]->Highlight = highlight;
 }
 
+void Npcs::MoveBy(
+	ShipId shipId,
+	std::optional<ConnectedComponentId> connectedComponent,
+	vec2f const & offset,
+	vec2f const & inertialVelocity,
+	GameParameters const & gameParameters)
+{
+	vec2f const actualInertialVelocity =
+		inertialVelocity
+		* gameParameters.MoveToolInertia
+		* (gameParameters.IsUltraViolentMode ? 5.0f : 1.0f);
+
+	assert(mShips[shipId].has_value());
+	auto const & homeShip = mShips[shipId]->HomeShip;
+	for (auto npcId : mShips[shipId]->Npcs)
+	{
+		assert(mStateBuffer[npcId].has_value());
+
+		// Check if this NPC is in scope: it is iff:
+		//	- We're moving all, OR
+		//	- The primary is constrained and in this connected component
+		auto const & primaryParticle = mStateBuffer[npcId]->ParticleMesh.Particles[0];
+		if (!connectedComponent
+			|| (primaryParticle.ConstrainedState.has_value()
+				&& homeShip.GetPoints().GetConnectedComponentId(homeShip.GetTriangles().GetPointAIndex(primaryParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex)) == *connectedComponent))
+		{
+			// In scope - move all of its particles
+			for (auto const & particle : mStateBuffer[npcId]->ParticleMesh.Particles)
+			{
+				auto const p = particle.ParticleIndex;
+				mParticles.SetPosition(p, mParticles.GetPosition(p) + offset);
+				mParticles.SetVelocity(p, actualInertialVelocity);
+
+				// Zero-out already-existing forces
+				mParticles.SetExternalForces(p, vec2f::zero());
+			}
+		}
+	}
+
+	MaintainInWorldBounds(gameParameters);
+}
+
+void Npcs::RotateBy(
+	ShipId shipId,
+	std::optional<ConnectedComponentId> connectedComponent,
+	float angle,
+	vec2f const & center,
+	float inertialAngle,
+	GameParameters const & gameParameters)
+{
+	vec2f const rotX(cos(angle), sin(angle));
+	vec2f const rotY(-sin(angle), cos(angle));
+
+	float const inertiaMagnitude =
+		gameParameters.MoveToolInertia
+		* (gameParameters.IsUltraViolentMode ? 5.0f : 1.0f);
+
+	vec2f const inertialRotX(cos(inertialAngle), sin(inertialAngle));
+	vec2f const inertialRotY(-sin(inertialAngle), cos(inertialAngle));
+
+	assert(mShips[shipId].has_value());
+	auto const & homeShip = mShips[shipId]->HomeShip;
+	for (auto npcId : mShips[shipId]->Npcs)
+	{
+		assert(mStateBuffer[npcId].has_value());
+
+		// Check if this NPC is in scope: it is iff:
+		//	- We're rotating all, OR
+		//	- The primary is constrained and in this connected component
+		auto const & primaryParticle = mStateBuffer[npcId]->ParticleMesh.Particles[0];
+		if (!connectedComponent
+			|| (primaryParticle.ConstrainedState.has_value()
+				&& homeShip.GetPoints().GetConnectedComponentId(homeShip.GetTriangles().GetPointAIndex(primaryParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex)) == *connectedComponent))
+		{
+			for (auto const & particle : mStateBuffer[npcId]->ParticleMesh.Particles)
+			{
+				auto const p = particle.ParticleIndex;
+				vec2f const centeredPos = mParticles.GetPosition(p) - center;
+				vec2f const newPosition = vec2f(centeredPos.dot(rotX), centeredPos.dot(rotY)) + center;
+				mParticles.SetPosition(p, newPosition);
+
+				vec2f const linearInertialVelocity = (vec2f(centeredPos.dot(inertialRotX), centeredPos.dot(inertialRotY)) - centeredPos) * inertiaMagnitude;
+				mParticles.SetVelocity(p, linearInertialVelocity);
+
+				// Zero-out already-existing forces
+				mParticles.SetExternalForces(p, vec2f::zero());
+			}
+		}
+	}
+
+	MaintainInWorldBounds(gameParameters);
+}
+
 void Npcs::SetGeneralizedPanicLevelForAllHumans(float panicLevel)
 {
 	for (auto & npc : mStateBuffer)
@@ -1148,7 +1216,8 @@ bool Npcs::AddHumanNpc(
 	auto const npcId = BeginPlaceNewHumanNpc(
 		subKind,
 		worldCoordinates,
-		currentSimulationTime);
+		currentSimulationTime,
+		false);
 
 	if (npcId.has_value())
 	{
@@ -1584,7 +1653,7 @@ ShipId Npcs::GetTopmostShipId() const
 	return 0;
 }
 
-std::optional<ElementId> Npcs::FindTopmostTriangleContaining(vec2f const & position) const
+std::optional<GlobalElementId> Npcs::FindTopmostWorkableTriangleContaining(vec2f const & position) const
 {
 	// Visit all ships in reverse ship ID order (i.e. from topmost to bottommost)
 	assert(mShips.size() > 0);
@@ -1596,24 +1665,25 @@ std::optional<ElementId> Npcs::FindTopmostTriangleContaining(vec2f const & posit
 
 			auto const & homeShip = mShips[s]->HomeShip;
 
-			// TODO: this might be optimized
-
 			std::optional<ElementIndex> bestTriangleIndex;
 			PlaneId bestPlaneId = std::numeric_limits<PlaneId>::lowest();
 			for (auto const triangleIndex : homeShip.GetTriangles())
 			{
 				if (!homeShip.GetTriangles().IsDeleted(triangleIndex))
 				{
-					vec2f const aPosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointAIndex(triangleIndex));
+					// Arbitrary representative for plane and connected component
+					auto const pointAIndex = homeShip.GetTriangles().GetPointAIndex(triangleIndex);
+
+					vec2f const aPosition = homeShip.GetPoints().GetPosition(pointAIndex);
 					vec2f const bPosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointBIndex(triangleIndex));
 					vec2f const cPosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointCIndex(triangleIndex));
 
 					if (IsPointInTriangle(position, aPosition, bPosition, cPosition)
-						&& (!bestTriangleIndex || homeShip.GetPoints().GetPlaneId(homeShip.GetTriangles().GetPointAIndex(triangleIndex)) > bestPlaneId)
+						&& (!bestTriangleIndex || homeShip.GetPoints().GetPlaneId(pointAIndex) > bestPlaneId)
 						&& !IsTriangleFolded(triangleIndex, homeShip))
 					{
 						bestTriangleIndex = triangleIndex;
-						bestPlaneId = homeShip.GetPoints().GetPlaneId(homeShip.GetTriangles().GetPointAIndex(triangleIndex));
+						bestPlaneId = homeShip.GetPoints().GetPlaneId(pointAIndex);
 					}
 				}
 			}
@@ -1621,7 +1691,7 @@ std::optional<ElementId> Npcs::FindTopmostTriangleContaining(vec2f const & posit
 			if (bestTriangleIndex)
 			{
 				// Found a triangle on this ship
-				return ElementId(static_cast<ShipId>(s), *bestTriangleIndex);
+				return GlobalElementId(static_cast<ShipId>(s), *bestTriangleIndex);
 			}
 		}
 
@@ -1634,20 +1704,25 @@ std::optional<ElementId> Npcs::FindTopmostTriangleContaining(vec2f const & posit
 	return std::nullopt;
 }
 
-ElementIndex Npcs::FindTriangleContaining(
+ElementIndex Npcs::FindWorkableTriangleContaining(
 	vec2f const & position,
-	Ship const & homeShip)
+	Ship const & homeShip,
+	std::optional<ConnectedComponentId> constrainedConnectedComponentId)
 {
 	for (auto const triangleIndex : homeShip.GetTriangles())
 	{
 		if (!homeShip.GetTriangles().IsDeleted(triangleIndex))
 		{
-			vec2f const aPosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointAIndex(triangleIndex));
+			// Arbitrary representative for plane and connected component
+			auto const pointAIndex = homeShip.GetTriangles().GetPointAIndex(triangleIndex);
+
+			vec2f const aPosition = homeShip.GetPoints().GetPosition(pointAIndex);
 			vec2f const bPosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointBIndex(triangleIndex));
 			vec2f const cPosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointCIndex(triangleIndex));
 
 			if (IsPointInTriangle(position, aPosition, bPosition, cPosition)
-				&& !IsTriangleFolded(triangleIndex, homeShip))
+				&& !IsTriangleFolded(triangleIndex, homeShip)
+				&& (!constrainedConnectedComponentId.has_value() || homeShip.GetPoints().GetConnectedComponentId(pointAIndex) == *constrainedConnectedComponentId))
 			{
 				return triangleIndex;
 			}
@@ -2295,5 +2370,28 @@ void Npcs::PublishHumanNpcStats()
 		mConstrainedRegimeHumanNpcCount,
 		mFreeRegimeHumanNpcCount);
 }
+
+int Npcs::GetSpringAmongEndpoints(
+	int particleEndpoint1,
+	int particleEndpoint2,
+	StateType::ParticleMeshType const & particleMesh)
+{
+	assert(particleMesh.Particles.size() >= 2);
+	ElementIndex p1 = particleMesh.Particles[particleEndpoint1].ParticleIndex;
+	ElementIndex p2 = particleMesh.Particles[particleEndpoint2].ParticleIndex;
+	for (int s = 0; s < particleMesh.Springs.size(); ++s)
+	{
+		auto const & spring = particleMesh.Springs[s];
+		if ((spring.EndpointAIndex == p1 && spring.EndpointBIndex == p2)
+			|| (spring.EndpointBIndex == p1 && spring.EndpointAIndex == p2))
+		{
+			return s;
+		}
+	}
+
+	assert(false);
+	return -1;
+}
+
 
 }

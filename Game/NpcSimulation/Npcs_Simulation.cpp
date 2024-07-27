@@ -23,9 +23,9 @@ void Npcs::ResetNpcStateToWorld(
     //
 
     // Take the position of the primary particle as representative of the NPC
-    auto const & position = mParticles.GetPosition(npc.ParticleMesh.Particles[0].ParticleIndex);
+    auto const & primaryPosition = mParticles.GetPosition(npc.ParticleMesh.Particles[0].ParticleIndex);
 
-    auto const topmostTriangle = FindTopmostTriangleContaining(position);
+    auto const topmostTriangle = FindTopmostWorkableTriangleContaining(primaryPosition);
     if (topmostTriangle.has_value())
     {
         // Primary is in a triangle!
@@ -68,7 +68,7 @@ void Npcs::ResetNpcStateToWorld(
     Ship const & homeShip,
     std::optional<ElementIndex> primaryParticleTriangleIndex) const
 {
-    // Plane ID
+    // Plane ID, connected component ID
 
     if (primaryParticleTriangleIndex.has_value())
     {
@@ -77,12 +77,18 @@ void Npcs::ResetNpcStateToWorld(
         // Use the plane ID of this triangle
         ElementIndex const trianglePointIndex = homeShip.GetTriangles().GetPointAIndex(*primaryParticleTriangleIndex);
         npc.CurrentPlaneId = homeShip.GetPoints().GetPlaneId(trianglePointIndex);
+
+        // Use the connected component ID of this triangle
+        npc.CurrentConnectedComponentId = homeShip.GetPoints().GetConnectedComponentId(trianglePointIndex);
     }
     else
     {
         // Primary is free, hence this NPC is on the topmost plane ID of its current ship;
         // fine to stick to this plane so that if new planes come up, they will cover the NPC!
         npc.CurrentPlaneId = homeShip.GetMaxPlaneId();
+
+        // Primary if free, hence this NPC does not belong to any connected components
+        npc.CurrentConnectedComponentId.reset();
     }
 
     // Particles
@@ -95,7 +101,8 @@ void Npcs::ResetNpcStateToWorld(
             npc.ParticleMesh.Particles[p].ConstrainedState = CalculateParticleConstrainedState(
                 mParticles.GetPosition(npc.ParticleMesh.Particles[p].ParticleIndex),
                 homeShip,
-                primaryParticleTriangleIndex);
+                primaryParticleTriangleIndex,
+                std::nullopt); // No need to search
         }
         else
         {
@@ -114,7 +121,8 @@ void Npcs::ResetNpcStateToWorld(
                 npc.ParticleMesh.Particles[p].ConstrainedState = CalculateParticleConstrainedState(
                     mParticles.GetPosition(npc.ParticleMesh.Particles[p].ParticleIndex),
                     homeShip,
-                    std::nullopt);
+                    std::nullopt,
+                    npc.CurrentConnectedComponentId); // Constrain this secondary's triangle to NPC's connected component ID
             }
         }
     }
@@ -162,6 +170,8 @@ void Npcs::TransitionParticleToConstrainedState(
     auto const oldRegime = npc.CurrentRegime;
     npc.CurrentRegime = CalculateRegime(npc);
     OnMayBeNpcRegimeChanged(oldRegime, npc);
+
+    // We'll update plane ID for constrained NPCs at end of Update()
 }
 
 void Npcs::TransitionParticleToFreeState(
@@ -172,7 +182,10 @@ void Npcs::TransitionParticleToFreeState(
     npc.ParticleMesh.Particles[npcParticleOrdinal].ConstrainedState.reset();
     if (npcParticleOrdinal == 0)
     {
-        // When primary is free, also secondaries are free (and thus whole NPC)
+        //
+        // When primary is free, also secondaries are free - and thus transition whole NPC
+        //
+
         for (size_t p = 1; p < npc.ParticleMesh.Particles.size(); ++p)
         {
             if (npc.ParticleMesh.Particles[p].ConstrainedState.has_value())
@@ -180,6 +193,8 @@ void Npcs::TransitionParticleToFreeState(
                 npc.ParticleMesh.Particles[p].ConstrainedState.reset();
             }
         }
+
+        npc.CurrentConnectedComponentId.reset();
     }
 
     // Regime
@@ -187,25 +202,28 @@ void Npcs::TransitionParticleToFreeState(
     npc.CurrentRegime = CalculateRegime(npc);
     OnMayBeNpcRegimeChanged(oldRegime, npc);
 
-    // Note: we leave depth as-is, it sticks and the NPC will eventually
+    // Note: we leave plane ID as-is, it sticks and the NPC will eventually
     // get covered by other parts of the ship!
 }
 
 std::optional<Npcs::StateType::NpcParticleStateType::ConstrainedStateType> Npcs::CalculateParticleConstrainedState(
     vec2f const & position,
     Ship const & homeShip,
-    std::optional<ElementIndex> triangleIndex)
+    std::optional<ElementIndex> triangleIndex,
+    std::optional<ConnectedComponentId> constrainedConnectedComponentId)
 {
     std::optional<StateType::NpcParticleStateType::ConstrainedStateType> constrainedState;
 
     if (!triangleIndex.has_value())
     {
-        triangleIndex = FindTriangleContaining(position, homeShip);
+        triangleIndex = FindWorkableTriangleContaining(position, homeShip, constrainedConnectedComponentId);
     }
 
     assert(triangleIndex.has_value());
+    // At this point, if we have a triangle it's not deleted (nor folded)
+    assert(*triangleIndex == NoneElementIndex || !homeShip.GetTriangles().IsDeleted(*triangleIndex));
 
-    if (triangleIndex != NoneElementIndex && !homeShip.GetTriangles().IsDeleted(*triangleIndex))
+    if (triangleIndex != NoneElementIndex)
     {
         bcoords3f const barycentricCoords = homeShip.GetTriangles().ToBarycentricCoordinatesFromWithinTriangle(
             position,
@@ -295,10 +313,11 @@ void Npcs::UpdateNpcs(
     // Note: no need to reset PreliminaryForces as we'll recalculate all of them
 
     //
-    // 2. Calculate preliminary forces
+    // 2. Check if constrained states are still coherent (connectivity changes, etc.)
     // 3. Check if a free secondary particle should become constrained
-    // 4. Calculate spring forces
-    // 5. Update physical state
+    // 4. Calculate preliminary forces
+    // 5. Calculate spring forces
+    // 6. Update physical state
     //
 
     for (auto & npcState : mStateBuffer)
@@ -308,39 +327,71 @@ void Npcs::UpdateNpcs(
             assert(mShips[npcState->CurrentShipId].has_value());
             auto & homeShip = mShips[npcState->CurrentShipId]->HomeShip;
 
-            // Preliminary forces for primary
+            // Invariant checks
 
+            assert((npcState->CurrentRegime == StateType::RegimeType::BeingPlaced) == npcState->BeingPlacedState.has_value());
             assert(npcState->ParticleMesh.Particles.size() > 0);
 
-            CalculateNpcParticlePreliminaryForces(
-                *npcState,
-                0,
-                gameParameters);
+            // Enforce constrained state coherence and calculate preliminary forces
 
-            // Secondaries:free becoming constrained, and preliminary forces
-
-            for (auto p = 1; p < npcState->ParticleMesh.Particles.size(); ++p)
+            for (auto p = 0; p < npcState->ParticleMesh.Particles.size(); ++p)
             {
-                if (!npcState->ParticleMesh.Particles[p].ConstrainedState.has_value() // Secondary is free
-                    && npcState->ParticleMesh.Particles[0].ConstrainedState.has_value()) // And primary is constrained
+                auto const & particleConstrainedState = npcState->ParticleMesh.Particles[p].ConstrainedState;
+                if (particleConstrainedState.has_value())
                 {
-                    assert(mShips[npcState->CurrentShipId].has_value());
-
-                    auto newConstrainedState = CalculateParticleConstrainedState(
-                        mParticles.GetPosition(npcState->ParticleMesh.Particles[p].ParticleIndex),
-                        homeShip,
-                        std::nullopt);
-
-                    if (newConstrainedState.has_value())
+                    // If triangle is not workable anymore, become free
+                    if (homeShip.GetTriangles().IsDeleted(particleConstrainedState->CurrentBCoords.TriangleElementIndex)
+                        || IsTriangleFolded(particleConstrainedState->CurrentBCoords.TriangleElementIndex, homeShip))
                     {
-                        // Make this secondary constrained
-                        TransitionParticleToConstrainedState(*npcState, static_cast<int>(p), std::move(*newConstrainedState));
+                        TransitionParticleToFreeState(*npcState, p);
+                    }
+                    else
+                    {
+                        auto const triangleRepresentativePoint = homeShip.GetTriangles().GetPointAIndex(particleConstrainedState->CurrentBCoords.TriangleElementIndex);
+                        if (p == 0)
+                        {
+                            // Primary particle: take its PlaneID and connected component as representatives for the whole NPC;
+                            // we do this here as these might have changed/reassigned in this simulation step
+
+                            npcState->CurrentPlaneId = homeShip.GetPoints().GetPlaneId(triangleRepresentativePoint);
+                            npcState->CurrentConnectedComponentId = homeShip.GetPoints().GetConnectedComponentId(triangleRepresentativePoint);
+                        }
+                        else
+                        {
+                            // Non-primary particle: make sure its connected component ID matches NPC's;
+                            // if not, we've been separated from primary and thus we become free
+                            if (homeShip.GetPoints().GetConnectedComponentId(triangleRepresentativePoint) != npcState->CurrentConnectedComponentId)
+                            {
+                                TransitionParticleToFreeState(*npcState, p);
+                            }
+                        }
+                    }
+                }
+                else if (p > 0)
+                {
+                    // Secondary free: check if should become constrained
+
+                    if (npcState->ParticleMesh.Particles[0].ConstrainedState.has_value())
+                    {
+                        auto newConstrainedState = CalculateParticleConstrainedState(
+                            mParticles.GetPosition(npcState->ParticleMesh.Particles[p].ParticleIndex),
+                            homeShip,
+                            std::nullopt,
+                            npcState->CurrentConnectedComponentId); // Constrain search to NPC's connected component
+
+                        if (newConstrainedState.has_value())
+                        {
+                            // Make this secondary constrained
+                            TransitionParticleToConstrainedState(*npcState, static_cast<int>(p), std::move(*newConstrainedState));
+                        }
                     }
                 }
 
+                // Preliminary forces
+
                 CalculateNpcParticlePreliminaryForces(
                     *npcState,
-                    static_cast<int>(p),
+                    p,
                     gameParameters);
             }
 
@@ -363,8 +414,8 @@ void Npcs::UpdateNpcs(
     }
 
     //
-    // 6. Update behavioral state machines
-    // 7. Update animation
+    // 7. Update behavioral state machines
+    // 8. Update animation
     //
 
     LogNpcDebug("----------------------------------");
@@ -447,9 +498,7 @@ void Npcs::UpdateNpcParticlePhysics(
     }
 
     if (npc.CurrentRegime == StateType::RegimeType::BeingPlaced
-        && (
-            (npc.Kind == NpcKindType::Human && npcParticleOrdinal == 1) // We move the head (secondary)
-            || (npc.Kind != NpcKindType::Human))) // We move all
+        && (npc.BeingPlacedState->DoMoveWholeMesh || npcParticleOrdinal == npc.BeingPlacedState->AnchorParticleOrdinal))
     {
         //
         // Particle is being placed - nothing to do
@@ -457,22 +506,56 @@ void Npcs::UpdateNpcParticlePhysics(
 
         LogNpcDebug("    Being placed");
     }
-    else if (!npcParticle.ConstrainedState.has_value()
-        // We do not want to be in a folded triangle
-        || IsTriangleFolded(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, homeShip))
+    else if (!npcParticle.ConstrainedState.has_value())
     {
         //
-        // Particle is free or its triangle became folded
+        // Particle is free
         //
 
-        LogNpcDebug("    Free (folded=", npcParticle.ConstrainedState ? IsTriangleFolded(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, homeShip) : false, "):",
-            "velocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " prelimF=", mParticles.GetPreliminaryForces(npcParticle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos);
+        LogNpcDebug("    Free: velocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " prelimF=", mParticles.GetPreliminaryForces(npcParticle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos);
         LogNpcDebug("    StartPosition=", particleStartAbsolutePosition, " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
 
-        // Transition to free if we are not
-        if (npcParticle.ConstrainedState.has_value())
+        // Strive to maintain spring lengths if we're being placed
+        if (npc.CurrentRegime == StateType::RegimeType::BeingPlaced
+            && npcParticleOrdinal != npc.BeingPlacedState->AnchorParticleOrdinal
+            && npc.ParticleMesh.Springs.size() > 0)
         {
-            TransitionParticleToFreeState(npc, npcParticleOrdinal);
+            for (int p = 0; ; )
+            {
+                // Decide next endpoint of spring: previous, unless this is 0,
+                // in which case we go for anchor
+
+                int otherP;
+                if (npcParticleOrdinal == 0)
+                {
+                    assert(npc.BeingPlacedState->AnchorParticleOrdinal > 0);
+                    otherP = npc.BeingPlacedState->AnchorParticleOrdinal;
+                }
+                else
+                {
+                    otherP = p;
+                }
+
+                assert(otherP != npcParticleOrdinal);
+
+                // Adjust physicsDeltaPos to maintain spring length
+
+                int const s = GetSpringAmongEndpoints(npcParticleOrdinal, otherP, npc.ParticleMesh);
+                float const targetSpringLength = npc.ParticleMesh.Springs[s].RestLength;
+                vec2f const & otherPPosition = mParticles.GetPosition(npc.ParticleMesh.Particles[otherP].ParticleIndex);
+                vec2f const particleAdjustedPosition =
+                    otherPPosition
+                    + (particleStartAbsolutePosition + physicsDeltaPos - otherPPosition).normalise() * targetSpringLength;
+                physicsDeltaPos = particleAdjustedPosition - particleStartAbsolutePosition;
+
+                // Advance
+
+                p = otherP + 1;
+                if (p >= npcParticleOrdinal)
+                {
+                    break;
+                }
+            }
         }
 
         UpdateNpcParticle_Free(
@@ -499,6 +582,10 @@ void Npcs::UpdateNpcParticlePhysics(
         //
 
         assert(npcParticle.ConstrainedState.has_value());
+
+        // Triangle is workable
+        assert(!homeShip.GetTriangles().IsDeleted(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex));
+        assert(!IsTriangleFolded(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex, homeShip));
 
         // Loop tracing trajectory from TrajectoryStart (== current bary coords in new mesh state) to TrajectoryEnd (== start absolute pos + deltaPos);
         // each step moves the next TrajectoryStart a bit ahead.
@@ -1521,7 +1608,7 @@ vec2f Npcs::CalculateNpcParticleDefinitiveForces(
         vec2f const equilibriumTorqueForce =
             radialDir
             * (force1Magnitude + force2Magnitude)
-            / mCurrentSizeAdjustment // Note: we divide by size adjustment to maintain torque independent from lever length
+            / mCurrentSizeMultiplier // Note: we divide by size adjustment to maintain torque independent from lever length
             * mParticles.GetMass(npcParticle.ParticleIndex) / (dt * dt);
 
         definitiveForces += equilibriumTorqueForce;
@@ -1545,7 +1632,7 @@ void Npcs::RecalculateSizeAndMassParameters()
                 mParticles.SetMass(particle.ParticleIndex,
                     CalculateParticleMass(
                         mParticles.GetMaterial(particle.ParticleIndex).GetMass(),
-                        mCurrentSizeAdjustment
+                        mCurrentSizeMultiplier
 #ifdef IN_BARYLAB
                         , mCurrentMassAdjustment
 #endif
@@ -1554,7 +1641,7 @@ void Npcs::RecalculateSizeAndMassParameters()
                 mParticles.SetBuoyancyFactor(particle.ParticleIndex,
                     CalculateParticleBuoyancyFactor(
                         mParticles.GetMaterial(particle.ParticleIndex).NpcBuoyancyVolumeFill,
-                        mCurrentSizeAdjustment
+                        mCurrentSizeMultiplier
 #ifdef IN_BARYLAB
                         , mCurrentBuoyancyAdjustment
 #endif
@@ -1566,7 +1653,7 @@ void Npcs::RecalculateSizeAndMassParameters()
             //
 
             CalculateSprings(
-                mCurrentSizeAdjustment,
+                mCurrentSizeMultiplier,
 #ifdef IN_BARYLAB
                 mCurrentMassAdjustment,
 #endif
@@ -1580,7 +1667,7 @@ void Npcs::RecalculateSizeAndMassParameters()
 
 float Npcs::CalculateParticleMass(
     float baseMass,
-    float sizeAdjustment
+    float sizeMultiplier
 #ifdef IN_BARYLAB
     , float massAdjustment
 #endif
@@ -1588,7 +1675,7 @@ float Npcs::CalculateParticleMass(
 {
     float const particleMass =
         baseMass
-        * (sizeAdjustment * sizeAdjustment) // 2D "volume" adjustment
+        * (sizeMultiplier * sizeMultiplier) // 2D "volume" adjustment
 #ifdef IN_BARYLAB
         * massAdjustment
 #endif
@@ -1599,7 +1686,7 @@ float Npcs::CalculateParticleMass(
 
 float Npcs::CalculateParticleBuoyancyFactor(
     float baseBuoyancyVolumeFill,
-    float sizeAdjustment
+    float sizeMultiplier
 #ifdef IN_BARYLAB
     , float buoyancyAdjustment
 #endif
@@ -1607,7 +1694,7 @@ float Npcs::CalculateParticleBuoyancyFactor(
 {
     float const buoyancyFactor =
         GameParameters::GravityMagnitude * 1000.0f
-        * (sizeAdjustment * sizeAdjustment) // 2D "volume" adjustment
+        * (sizeMultiplier * sizeMultiplier) // 2D "volume" adjustment
         * baseBuoyancyVolumeFill
 #ifdef IN_BARYLAB
         * buoyancyAdjustment
@@ -1618,7 +1705,7 @@ float Npcs::CalculateParticleBuoyancyFactor(
 }
 
 void Npcs::CalculateSprings(
-    float sizeAdjustment,
+    float sizeMultiplier,
 #ifdef IN_BARYLAB
     float massAdjustment,
 #endif
@@ -1633,7 +1720,7 @@ void Npcs::CalculateSprings(
     {
         // Spring rest length
 
-        spring.RestLength = CalculateSpringLength(spring.BaseRestLength, sizeAdjustment);
+        spring.RestLength = CalculateSpringLength(spring.BaseRestLength, sizeMultiplier);
 
         // Spring force factors
 
@@ -1651,7 +1738,7 @@ void Npcs::CalculateSprings(
 #ifdef IN_BARYLAB
             * massAdjustment
 #endif
-            * (sizeAdjustment * sizeAdjustment) // 2D
+            * (sizeMultiplier * sizeMultiplier) // 2D
             / (dt * dt);
 
         spring.SpringDampingFactor =
@@ -1661,16 +1748,16 @@ void Npcs::CalculateSprings(
 #ifdef IN_BARYLAB
             * massAdjustment
 #endif
-            * (sizeAdjustment * sizeAdjustment) // 2D
+            * (sizeMultiplier * sizeMultiplier) // 2D
             / dt;
     }
 }
 
 float Npcs::CalculateSpringLength(
     float baseLength,
-    float sizeAdjustment)
+    float sizeMultiplier)
 {
-    return baseLength * sizeAdjustment;
+    return baseLength * sizeMultiplier;
 }
 
 void Npcs::RecalculateGlobalDampingFactor()
@@ -2990,6 +3077,12 @@ void Npcs::OnImpact(
             bounceEdgeNormal,
             currentSimulationTime);
     }
+}
+
+void Npcs::MaintainInWorldBounds(GameParameters const & gameParameters)
+{
+    // TODOHERE
+    (void)gameParameters;
 }
 
 void Npcs::UpdateNpcAnimation(

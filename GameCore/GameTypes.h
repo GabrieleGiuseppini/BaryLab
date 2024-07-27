@@ -43,6 +43,14 @@ using ShipId = std::uint32_t;
 static ShipId constexpr NoneShip = std::numeric_limits<ShipId>::max();
 
 /*
+ * Connected component identifiers.
+ *
+ * Comparable and ordered. Start from 0.
+ */
+using ConnectedComponentId = std::uint32_t;
+static ConnectedComponentId constexpr NoneConnectedComponentId = std::numeric_limits<ConnectedComponentId>::max();
+
+/*
  * Plane (depth) identifiers.
  *
  * Comparable and ordered. Start from 0.
@@ -68,11 +76,11 @@ static NpcId constexpr NoneNpcId = std::numeric_limits<NpcId>::max();
  * Not comparable, not ordered.
  */
 template<typename TLocalObjectId, typename TTypeTag>
-struct ObjectId
+struct GlobalObjectId
 {
     using LocalObjectId = TLocalObjectId;
 
-    ObjectId(
+    GlobalObjectId(
         ShipId shipId,
         LocalObjectId localObjectId)
         : mShipId(shipId)
@@ -89,15 +97,15 @@ struct ObjectId
         return mLocalObjectId;
     }
 
-    ObjectId & operator=(ObjectId const & other) = default;
+    GlobalObjectId & operator=(GlobalObjectId const & other) = default;
 
-    inline bool operator==(ObjectId const & other) const
+    inline bool operator==(GlobalObjectId const & other) const
     {
         return this->mShipId == other.mShipId
             && this->mLocalObjectId == other.mLocalObjectId;
     }
 
-    inline bool operator<(ObjectId const & other) const
+    inline bool operator<(GlobalObjectId const & other) const
     {
         return this->mShipId < other.mShipId
             || (this->mShipId == other.mShipId && this->mLocalObjectId < other.mLocalObjectId);
@@ -119,7 +127,7 @@ private:
 };
 
 // Generic ID for generic elements (points, springs, etc.)
-using ElementId = ObjectId<ElementIndex, struct _ElementIdTag>;
+using GlobalElementId = GlobalObjectId<ElementIndex, struct _ElementIdTag>;
 
 /*
  * Return type of picking an object.

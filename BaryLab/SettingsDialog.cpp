@@ -712,25 +712,25 @@ void SettingsDialog::PopulateNpcsPanel(wxPanel * panel)
                     CellBorder);
             }
 
-            // NPC Size Adjustment
+            // NPC Size Multiplier
             {
-                mNpcSizeAdjustmentSlider = new SliderControl<float>(
+                mNpcSizeMultiplierSlider = new SliderControl<float>(
                     npcsBox,
                     SliderWidth,
                     SliderHeight,
-                    "NPC Size Adjust",
+                    "NPC Size Multiplier",
                     "Adjusts the size of NPCs.",
                     [this](float value)
                     {
-                        this->mLiveSettings.SetValue(SLabSettings::NpcSizeAdjustment, value);
+                        this->mLiveSettings.SetValue(SLabSettings::NpcSizeMultiplier, value);
                         this->OnLiveSettingsChanged();
                     },
                     std::make_unique<LinearSliderCore>(
-                        mLabController->GetMinNpcSizeAdjustment(),
-                        mLabController->GetMaxNpcSizeAdjustment()));
+                        mLabController->GetMinNpcSizeMultiplier(),
+                        mLabController->GetMaxNpcSizeMultiplier()));
 
                 npcsSizer->Add(
-                    mNpcSizeAdjustmentSlider,
+                    mNpcSizeMultiplierSlider,
                     wxGBPosition(0, 3),
                     wxGBSpan(1, 1),
                     wxEXPAND | wxALL,
@@ -777,7 +777,7 @@ void SettingsDialog::SyncControlsWithSettings(Settings<SLabSettings> const & set
     mHumanNpcEquilibriumTorqueStiffnessCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcEquilibriumTorqueStiffnessCoefficient));
     mHumanNpcEquilibriumTorqueDampingCoefficientSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcEquilibriumTorqueDampingCoefficient));
     mHumanNpcWalkingSpeedAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::HumanNpcWalkingSpeedAdjustment));
-    mNpcSizeAdjustmentSlider->SetValue(settings.GetValue<float>(SLabSettings::NpcSizeAdjustment));
+    mNpcSizeMultiplierSlider->SetValue(settings.GetValue<float>(SLabSettings::NpcSizeMultiplier));
 }
 
 void SettingsDialog::OnLiveSettingsChanged()

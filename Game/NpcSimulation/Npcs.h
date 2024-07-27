@@ -550,6 +550,12 @@ private:
 			{}
 		};
 
+		struct BeingPlacedStateType
+		{
+			int AnchorParticleOrdinal; // In NPC's mesh
+			bool DoMoveWholeMesh;
+		};
+
 		//
 		// Members
 		//
@@ -565,8 +571,14 @@ private:
 		// course of their lives.
 		ShipId CurrentShipId;
 
-		// The current plane ID.
+		// The current plane ID. Since NPCs always belong to a ship, they also always
+		// are on a plane.
 		PlaneId CurrentPlaneId;
+
+		// The current connected component of the NPC, when it's constrained; particles
+		// are always constrained to belong to this connected component.
+		// Its presence is correlated with the NPC being contrained.
+		std::optional<ConnectedComponentId> CurrentConnectedComponentId;
 
 		// The current regime.
 		RegimeType CurrentRegime;
@@ -583,23 +595,30 @@ private:
 		// Randomness specific to this NPC.
 		float RandomNormalizedUniformSeed; // [-1.0f ... +1.0f]
 
+		// Info for placing (presence is correlated with regime==BeingPlaced)
+		std::optional<BeingPlacedStateType> BeingPlacedState;
+
 		StateType(
 			NpcId id,
 			NpcKindType kind,
 			ShipId initialShipId,
 			PlaneId initialPlaneId,
+			std::optional<ConnectedComponentId> currentConnectedComponentId,
 			RegimeType initialRegime,
 			ParticleMeshType && particleMesh,
-			KindSpecificStateType && kindSpecificState)
+			KindSpecificStateType && kindSpecificState,
+			BeingPlacedStateType beingPlacedState)
 			: Id(id)
 			, Kind(kind)
 			, CurrentShipId(initialShipId)
 			, CurrentPlaneId(initialPlaneId)
+			, CurrentConnectedComponentId(currentConnectedComponentId)
 			, CurrentRegime(initialRegime)
 			, ParticleMesh(std::move(particleMesh))
 			, KindSpecificState(std::move(kindSpecificState))
 			, Highlight(NpcHighlightType::None)
 			, RandomNormalizedUniformSeed(GameRandomEngine::GetInstance().GenerateUniformReal(-1.0f, 1.0f))
+			, BeingPlacedState(beingPlacedState)
 		{}
 	};
 
@@ -642,7 +661,7 @@ public:
 		// Simulation parameters
 		, mGlobalDampingFactor(0.0f) // Will be calculated
 		, mCurrentGlobalDampingAdjustment(1.0f)
-		, mCurrentSizeAdjustment(1.0f)
+		, mCurrentSizeMultiplier(1.0f)
 		, mCurrentHumanNpcWalkingSpeedAdjustment(1.0f)
 		, mCurrentSpringReductionFractionAdjustment(1.0f)
 		, mCurrentSpringDampingCoefficientAdjustment(1.0f)
@@ -669,25 +688,30 @@ public:
 	std::optional<PickedObjectId<NpcId>> BeginPlaceNewFurnitureNpc(
 		NpcSubKindIdType subKind,
 		vec2f const & worldCoordinates,
-		float currentSimulationTime);
+		float currentSimulationTime,
+		bool doMoveWholeMesh);
 
 	std::optional<PickedObjectId<NpcId>> BeginPlaceNewHumanNpc(
 		NpcSubKindIdType subKind,
 		vec2f const & worldCoordinates,
-		float currentSimulationTime);
+		float currentSimulationTime,
+		bool doMoveWholeMesh);
 
 	std::optional<PickedObjectId<NpcId>> ProbeNpcAt(
 		vec2f const & position,
-		float radius) const;
+		float radius,
+		GameParameters const & gameParameters) const;
 
 	void BeginMoveNpc(
 		NpcId id,
-		float currentSimulationTime);
+		float currentSimulationTime,
+		bool doMoveWholeMesh);
 
 	void MoveNpcTo(
 		NpcId id,
 		vec2f const & position,
-		vec2f const & offset);
+		vec2f const & offset,
+		bool doMoveWholeMesh);
 
 	void EndMoveNpc(
 		NpcId id,
@@ -704,6 +728,21 @@ public:
 	void HighlightNpc(
 		NpcId id,
 		NpcHighlightType highlight);
+
+	void MoveBy(
+		ShipId shipId,
+		std::optional<ConnectedComponentId> connectedComponent,
+		vec2f const & offset,
+		vec2f const & inertialVelocity,
+		GameParameters const & gameParameters);
+
+	void RotateBy(
+		ShipId shipId,
+		std::optional<ConnectedComponentId> connectedComponent,
+		float angle,
+		vec2f const & center,
+		float inertialAngle,
+		GameParameters const & gameParameters);
 
 	void SetGeneralizedPanicLevelForAllHumans(float panicLevel);
 
@@ -828,11 +867,12 @@ private:
 
 	ShipId GetTopmostShipId() const;
 
-	std::optional<ElementId> FindTopmostTriangleContaining(vec2f const & position) const;
+	std::optional<GlobalElementId> FindTopmostWorkableTriangleContaining(vec2f const & position) const;
 
-	static ElementIndex FindTriangleContaining(
+	static ElementIndex FindWorkableTriangleContaining(
 		vec2f const & position,
-		Ship const & homeShip);
+		Ship const & homeShip,
+		std::optional<ConnectedComponentId> constrainedConnectedComponentId);
 
 	void TransferNpcToShip(
 		StateType & npc,
@@ -843,6 +883,11 @@ private:
 		Render::ShipRenderContext & shipRenderContext);
 
 	void PublishHumanNpcStats();
+
+	static int GetSpringAmongEndpoints(
+		int particleEndpoint1,
+		int particleEndpoint2,
+		StateType::ParticleMeshType const & particleMesh);
 
 private:
 
@@ -872,7 +917,8 @@ private:
 	static std::optional<StateType::NpcParticleStateType::ConstrainedStateType> CalculateParticleConstrainedState(
 		vec2f const & position,
 		Ship const & homeShip,
-		std::optional<ElementIndex> triangleIndex);
+		std::optional<ElementIndex> triangleIndex,
+		std::optional<ConnectedComponentId> constrainedConnectedComponentId);
 
 	void OnMayBeNpcRegimeChanged(
 		StateType::RegimeType oldRegime,
@@ -907,7 +953,7 @@ private:
 
 	static float CalculateParticleMass(
 		float baseMass,
-		float sizeAdjustment
+		float sizeMultiplier
 #ifdef IN_BARYLAB
 		, float massAdjustment
 #endif
@@ -915,14 +961,14 @@ private:
 
 	static float CalculateParticleBuoyancyFactor(
 		float baseBuoyancyVolumeFill,
-		float sizeAdjustment
+		float sizeMultiplier
 #ifdef IN_BARYLAB
 		, float buoyancyAdjustment
 #endif
 		);
 
 	static void CalculateSprings(
-		float sizeAdjustment,
+		float sizeMultiplier,
 #ifdef IN_BARYLAB
 		float massAdjustment,
 #endif
@@ -933,7 +979,7 @@ private:
 
 	static float CalculateSpringLength(
 		float baseLength,
-		float sizeAdjustment);
+		float sizeMultiplier);
 
 	void RecalculateGlobalDampingFactor();
 
@@ -1103,6 +1149,8 @@ private:
 		vec2f const & normalResponse,
 		vec2f const & bounceEdgeNormal,
 		float currentSimulationTime) const;
+
+	void MaintainInWorldBounds(GameParameters const & gameParameters);
 
 	void UpdateNpcAnimation(
 		StateType & npc,
@@ -1369,7 +1417,7 @@ private:
 
 	// Cached from game parameters
 	float mCurrentGlobalDampingAdjustment;
-	float mCurrentSizeAdjustment;
+	float mCurrentSizeMultiplier;
 	float mCurrentHumanNpcWalkingSpeedAdjustment;
 	float mCurrentSpringReductionFractionAdjustment;
 	float mCurrentSpringDampingCoefficientAdjustment;

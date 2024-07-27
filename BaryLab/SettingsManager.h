@@ -22,7 +22,7 @@ enum class SLabSettings : size_t
     SpringDampingCoefficientAdjustment,
     WaterFrictionDragAdjustment,
     BuoyancyAdjustment,
-    NpcSizeAdjustment,
+    NpcSizeMultiplier,
     HumanNpcEquilibriumTorqueStiffnessCoefficient,
     HumanNpcEquilibriumTorqueDampingCoefficient,
     HumanNpcWalkingSpeedAdjustment,

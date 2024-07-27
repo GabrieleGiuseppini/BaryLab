@@ -264,10 +264,10 @@ public:
     float GetMinBuoyancyAdjustment() const { return GameParameters::MinBuoyancyAdjustment; }
     float GetMaxBuoyancyAdjustment() const { return GameParameters::MaxBuoyancyAdjustment; }
 
-    float GetNpcSizeAdjustment() const { return mGameParameters.NpcSizeAdjustment; }
-    void SetNpcSizeAdjustment(float value) { mGameParameters.NpcSizeAdjustment = value; }
-    float GetMinNpcSizeAdjustment() const { return GameParameters::MinNpcSizeAdjustment; }
-    float GetMaxNpcSizeAdjustment() const { return GameParameters::MaxNpcSizeAdjustment; }
+    float GetNpcSizeMultiplier() const { return mGameParameters.NpcSizeMultiplier; }
+    void SetNpcSizeMultiplier(float value) { mGameParameters.NpcSizeMultiplier = value; }
+    float GetMinNpcSizeMultiplier() const { return GameParameters::MinNpcSizeMultiplier; }
+    float GetMaxNpcSizeMultiplier() const { return GameParameters::MaxNpcSizeMultiplier; }
 
     float GetHumanNpcEquilibriumTorqueStiffnessCoefficient() const { return mGameParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient; }
     void SetHumanNpcEquilibriumTorqueStiffnessCoefficient(float value) { mGameParameters.HumanNpcEquilibriumTorqueStiffnessCoefficient = value; }

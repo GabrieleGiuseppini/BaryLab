@@ -439,12 +439,12 @@ void LabController::RotateShipBy(
         points.SetPosition(p, rotatedPos + worldCenter);
     }
 
-    // TODOTEST
+    ////// TODOTEST
     //////
     ////// Rotate particles
     //////
 
-    ////mModel->GetNpcs().RotateParticlesWithShip(
+    ////mWorld->GetNpcs().RotateParticlesWithShip(
     ////    worldCenter,
     ////    cosAngle,
     ////    sinAngle);
@@ -822,7 +822,8 @@ std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewFurnitureNpc(
     auto const pickedObjectId = mWorld->GetNpcs().BeginPlaceNewFurnitureNpc(
         subKind,
         worldCoordinates,
-        mCurrentSimulationTime);
+        mCurrentSimulationTime,
+        false);
 
     if (pickedObjectId.has_value())
     {
@@ -843,7 +844,8 @@ std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewHumanNpc(
     auto const pickedObjectId = mWorld->GetNpcs().BeginPlaceNewHumanNpc(
         subKind,
         worldCoordinates,
-        mCurrentSimulationTime);
+        mCurrentSimulationTime,
+        false);
 
     if (pickedObjectId.has_value())
     {
@@ -861,7 +863,8 @@ std::optional<PickedObjectId<NpcId>> LabController::ProbeNpcAt(vec2f const & scr
 
     return mWorld->GetNpcs().ProbeNpcAt(
         worldCoordinates,
-        0.3f);
+        0.3f,
+        mGameParameters);
 }
 
 void LabController::BeginMoveNpc(NpcId id)
@@ -870,7 +873,8 @@ void LabController::BeginMoveNpc(NpcId id)
 
     mWorld->GetNpcs().BeginMoveNpc(
         id,
-        mCurrentSimulationTime);
+        mCurrentSimulationTime,
+        false);
 }
 
 void LabController::MoveNpcTo(
@@ -885,7 +889,8 @@ void LabController::MoveNpcTo(
     mWorld->GetNpcs().MoveNpcTo(
         id,
         worldCoordinates,
-        worldOffset);
+        worldOffset,
+        false);
 }
 
 void LabController::EndMoveNpc(NpcId id)
@@ -1003,10 +1008,10 @@ void LabController::Reset(
     for (size_t i = 0; i < GameParameters::MaxNpcs; ++i)
     {
         float const posX = GameRandomEngine::GetInstance().GenerateUniformReal(shipAABB.BottomLeft.x, shipAABB.TopRight.x);
-        float const posY = GameRandomEngine::GetInstance().GenerateUniformReal(shipAABB.BottomLeft.y + GameParameters::HumanNpcGeometry::BodyLengthMean * 1.5f * mGameParameters.NpcSizeAdjustment, shipAABB.TopRight.y);
+        float const posY = GameRandomEngine::GetInstance().GenerateUniformReal(shipAABB.BottomLeft.y + GameParameters::HumanNpcGeometry::BodyLengthMean * 1.5f * mGameParameters.NpcSizeMultiplier, shipAABB.TopRight.y);
 
         bool const hasBeenAdded = mWorld->GetNpcs().AddHumanNpc(
-            HumanNpcKindType::Passenger,
+            0,
             vec2f(posX, posY),
             mCurrentSimulationTime);
 
