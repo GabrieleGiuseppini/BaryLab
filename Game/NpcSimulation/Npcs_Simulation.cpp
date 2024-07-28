@@ -3576,29 +3576,22 @@ void Npcs::UpdateNpcAnimation(
                 targetAngles.RightArm = armAngle;
                 targetAngles.LeftArm = -targetAngles.RightArm;
 
-                if (humanNpcState.CurrentBehavior != HumanNpcStateType::BehaviorType::Constrained_KnockedOut)
-                {
-                    // Legs inclined in direction opposite of resvel, by an amount proportional to resvel itself
+                // Legs: inclined in direction opposite of resvel, by an amount proportional to resvel itself
 
-                    vec2f const resultantVelocity = (mParticles.GetVelocity(primaryParticleIndex) + mParticles.GetVelocity(secondaryParticleIndex)) / 2.0f;
-                    float const resVelPerpToBody = resultantVelocity.dot(actualBodyDir.to_perpendicular()); // Positive when pointing towards right
-                    float const legAngle = SmoothStep(0.0f, 4.0f, std::abs(resVelPerpToBody)) * 0.5f;
-                    if (resVelPerpToBody >= 0.0f)
-                    {
-                        // Res vel to the right - legs to the left
-                        targetAngles.RightLeg = -legAngle;
-                        targetAngles.LeftLeg = targetAngles.RightLeg - 0.6f;
-                    }
-                    else
-                    {
-                        // Res vel to the left - legs to the right
-                        targetAngles.LeftLeg = legAngle;
-                        targetAngles.RightLeg = targetAngles.LeftLeg + 0.6f;
-                    }
+                vec2f const resultantVelocity = (mParticles.GetVelocity(primaryParticleIndex) + mParticles.GetVelocity(secondaryParticleIndex)) / 2.0f;
+                float const resVelPerpToBody = resultantVelocity.dot(actualBodyDir.to_perpendicular()); // Positive when pointing towards right
+                float const legAngle = SmoothStep(0.0f, 4.0f, std::abs(resVelPerpToBody)) * 0.5f;
+                if (resVelPerpToBody >= 0.0f)
+                {
+                    // Res vel to the right - legs to the left
+                    targetAngles.RightLeg = -legAngle;
+                    targetAngles.LeftLeg = targetAngles.RightLeg - 0.6f;
                 }
                 else
                 {
-                    // Leave legs as-is
+                    // Res vel to the left - legs to the right
+                    targetAngles.LeftLeg = legAngle;
+                    targetAngles.RightLeg = targetAngles.LeftLeg + 0.6f;
                 }
 
                 convergenceRate = 0.1f;
