@@ -3101,7 +3101,6 @@ void Npcs::UpdateNpcAnimation(
         ElementIndex const primaryParticleIndex = npc.ParticleMesh.Particles[0].ParticleIndex;
         auto const & primaryContrainedState = npc.ParticleMesh.Particles[0].ConstrainedState;
         ElementIndex const secondaryParticleIndex = npc.ParticleMesh.Particles[1].ParticleIndex;
-        auto const & secondaryConstrainedState = npc.ParticleMesh.Particles[1].ConstrainedState;
 
         //
         // Angles and thigh
@@ -3462,7 +3461,7 @@ void Npcs::UpdateNpcAnimation(
                 vec2f const & feetVelocity = npc.ParticleMesh.Particles[0].GetApplicableVelocity(mParticles);
 
                 float const avgVelocityAlongBodyPerp = ((headVelocity + feetVelocity) / 2.0f).dot(actualBodyDir.to_perpendicular()); // When positive points to the right of the human vector
-                float const targetDepth = LinearStep(0.0f, 1.5f, std::abs(avgVelocityAlongBodyPerp));
+                float const targetDepth = LinearStep(0.0f, 0.8f, std::abs(avgVelocityAlongBodyPerp));
 
                 if (humanNpcState.CurrentFaceDirectionX >= 0.0f)
                 {
@@ -3475,11 +3474,11 @@ void Npcs::UpdateNpcAnimation(
                     targetAngles.RightArm = targetAngles.LeftArm + 0.08f;
                 }
 
-                convergenceRate = 0.08f;
-
                 // ~Close legs
                 targetAngles.RightLeg = 0.05f;
                 targetAngles.LeftLeg = -0.05f;
+
+                convergenceRate = 0.1f;
 
                 break;
             }
@@ -3542,7 +3541,7 @@ void Npcs::UpdateNpcAnimation(
                 actualBodyVector = feetPosition - headPosition;
                 actualBodyDir = actualBodyVector.normalise_approx();
 
-                // Arms: always up, unless horizontal or foot on the floor
+                // Arms: always up, unless horizontal or foot on the floor, in which case PI/2
 
                 float const horizontality = std::abs(actualBodyDir.dot(GameParameters::GravityDir));
 
