@@ -44,7 +44,7 @@
 #define LogNpcDebug(...)
 #endif
 
-// TODOTEST
+// TEST
 ////#undef LogNpcDebug
 ////#define LogNpcDebug(...) LogMessage(__VA_ARGS__);
 
