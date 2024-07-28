@@ -269,12 +269,12 @@ private:
 					struct Constrained_FallingStateType
 					{
 						float ProgressToAerial;
-						float ProgressToKnockedOut;
+						float ProgressToPreRising;
 
 						void Reset()
 						{
 							ProgressToAerial = 0.0f;
-							ProgressToKnockedOut = 0.0f;
+							ProgressToPreRising = 0.0f;
 						}
 					} Constrained_Falling;
 

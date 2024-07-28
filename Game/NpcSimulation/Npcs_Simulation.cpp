@@ -3464,38 +3464,20 @@ void Npcs::UpdateNpcAnimation(
                 float const avgVelocityAlongBodyPerp = ((headVelocity + feetVelocity) / 2.0f).dot(actualBodyDir.to_perpendicular()); // When positive points to the right of the human vector
                 float const targetDepth = LinearStep(0.0f, 1.5f, std::abs(avgVelocityAlongBodyPerp));
 
-                if (avgVelocityAlongBodyPerp * humanNpcState.CurrentFaceDirectionX >= 0.0f)
+                if (humanNpcState.CurrentFaceDirectionX >= 0.0f)
                 {
-                    // Velocity is in the direction we're facing - arms are in that direction
-                    if (humanNpcState.CurrentFaceDirectionX >= 0.0f)
-                    {
-                        targetAngles.RightArm = Pi<float> / 2.0f * targetDepth + 0.04f;
-                        targetAngles.LeftArm = targetAngles.RightArm - 0.08f;
-                    }
-                    else
-                    {
-                        targetAngles.LeftArm = -Pi<float> / 2.0f * targetDepth - 0.04f;
-                        targetAngles.RightArm = targetAngles.LeftArm + 0.08f;
-                    }
+                    targetAngles.RightArm = Pi<float> / 2.0f * targetDepth + 0.04f;
+                    targetAngles.LeftArm = targetAngles.RightArm - 0.08f;
                 }
                 else
                 {
-                    // Velocity is in the direction opposite we're facing - arms are 90deg in that direction
-                    if (humanNpcState.CurrentFaceDirectionX >= 0.0f)
-                    {
-                        targetAngles.RightArm = Pi<float> / 2.0f;
-                        targetAngles.LeftArm = Pi<float> / 2.0f;
-                    }
-                    else
-                    {
-                        targetAngles.RightArm = -Pi<float> / 2.0f;
-                        targetAngles.LeftArm = -Pi<float> / 2.0f;
-                    }
+                    targetAngles.LeftArm = -Pi<float> / 2.0f * targetDepth - 0.04f;
+                    targetAngles.RightArm = targetAngles.LeftArm + 0.08f;
                 }
 
-                convergenceRate = 0.08f * (0.2f + targetDepth);
+                convergenceRate = 0.08f;
 
-                // Close legs
+                // ~Close legs
                 targetAngles.RightLeg = 0.05f;
                 targetAngles.LeftLeg = -0.05f;
 
@@ -3504,32 +3486,26 @@ void Npcs::UpdateNpcAnimation(
 
             case HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
             {
-                // Check if both head and feet are on a floor
-                bool const isHeadOnEdge = primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualFloor.has_value();
-                bool const areFootOnEdge = secondaryConstrainedState.has_value() && secondaryConstrainedState->CurrentVirtualFloor.has_value();
-                if (isHeadOnEdge && areFootOnEdge)
+                // Arms: +/- PI or 0, depending on where they are now
+
+                if (animationState.LimbAngles.RightArm >= -Pi<float> / 2.0f
+                    && animationState.LimbAngles.RightArm <= Pi<float> / 2.0f)
                 {
-                    // Arms: +/- PI or 0, depending on where they are now
+                    targetAngles.RightArm = 0.0f;
+                }
+                else
+                {
+                    targetAngles.RightArm = Pi<float>;
+                }
 
-                    if (animationState.LimbAngles.RightArm >= -Pi<float> / 2.0f
-                        && animationState.LimbAngles.RightArm <= Pi<float> / 2.0f)
-                    {
-                        targetAngles.RightArm = 0.0f;
-                    }
-                    else
-                    {
-                        targetAngles.RightArm = Pi<float>;
-                    }
-
-                    if (animationState.LimbAngles.LeftArm >= -Pi<float> / 2.0f
-                        && animationState.LimbAngles.LeftArm <= Pi<float> / 2.0f)
-                    {
-                        targetAngles.LeftArm = 0.0f;
-                    }
-                    else
-                    {
-                        targetAngles.LeftArm = Pi<float>;
-                    }
+                if (animationState.LimbAngles.LeftArm >= -Pi<float> / 2.0f
+                    && animationState.LimbAngles.LeftArm <= Pi<float> / 2.0f)
+                {
+                    targetAngles.LeftArm = 0.0f;
+                }
+                else
+                {
+                    targetAngles.LeftArm = Pi<float>;
                 }
 
                 // Legs: 0
@@ -3537,7 +3513,7 @@ void Npcs::UpdateNpcAnimation(
                 targetAngles.RightLeg = 0.0f;
                 targetAngles.LeftLeg = 0.0f;
 
-                convergenceRate = 0.05f; // Quite slow
+                convergenceRate = 0.2f;
 
                 // Upper length fraction: when we transition from Rising (which has UpperLengthFraction < 1.0) to KnockedOut,
                 // changing UpperLengthFraction immediately to 0.0 causes a "kick" (because leg angles are 90 degrees at that moment);
