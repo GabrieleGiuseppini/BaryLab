@@ -3545,9 +3545,10 @@ void Npcs::UpdateNpcAnimation(
 
                 float const horizontality = std::abs(actualBodyDir.dot(GameParameters::GravityDir));
 
+                float constexpr exceptionAngle = Pi<float> / 1.5f;
                 float const armAngle = (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualFloor.has_value())
-                    ? Pi<float> / 2.0f
-                    : Pi<float> - (Pi<float> / 2.0f) / std::exp(horizontality * 2.2f);
+                    ? exceptionAngle
+                    : Pi<float> - (Pi<float> - exceptionAngle) / std::exp(horizontality * 2.2f);
                 targetAngles.RightArm = armAngle;
                 targetAngles.LeftArm = -targetAngles.RightArm;
 
