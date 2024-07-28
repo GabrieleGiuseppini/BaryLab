@@ -3461,37 +3461,35 @@ void Npcs::UpdateNpcAnimation(
                 vec2f const & headVelocity = npc.ParticleMesh.Particles[1].GetApplicableVelocity(mParticles);
                 vec2f const & feetVelocity = npc.ParticleMesh.Particles[0].GetApplicableVelocity(mParticles);
 
-                float const avgVelocityAlongBodyPerp = (headVelocity + feetVelocity).dot(actualBodyDir.to_perpendicular());
-                float const targetDepth = LinearStep(0.0f, 3.0f, std::abs(avgVelocityAlongBodyPerp));
+                float const avgVelocityAlongBodyPerp = ((headVelocity + feetVelocity) / 2.0f).dot(actualBodyDir.to_perpendicular()); // When positive points to the right of the human vector
+                float const targetDepth = LinearStep(0.0f, 1.5f, std::abs(avgVelocityAlongBodyPerp));
 
-                if (humanNpcState.CurrentFaceDirectionX >= 0.0f)
+                if (avgVelocityAlongBodyPerp * humanNpcState.CurrentFaceDirectionX >= 0.0f)
                 {
-                    // We want to send arms to the right...
-                    // ...but not against face direction
+                    // Velocity is in the direction we're facing - arms are in that direction
                     if (humanNpcState.CurrentFaceDirectionX >= 0.0f)
                     {
-                        targetAngles.RightArm = Pi<float> / 2.0f * targetDepth + 0.09f;
-                        targetAngles.LeftArm = targetAngles.RightArm - 0.18f;
+                        targetAngles.RightArm = Pi<float> / 2.0f * targetDepth + 0.04f;
+                        targetAngles.LeftArm = targetAngles.RightArm - 0.08f;
                     }
                     else
                     {
-                        targetAngles.RightArm = 0.0f;
-                        targetAngles.LeftArm = 0.0f;
+                        targetAngles.LeftArm = -Pi<float> / 2.0f * targetDepth - 0.04f;
+                        targetAngles.RightArm = targetAngles.LeftArm + 0.08f;
                     }
                 }
                 else
                 {
-                    // We want to send arms to the left...
-                   // ...but not against face direction
-                    if (humanNpcState.CurrentFaceDirectionX <= 0.0f)
+                    // Velocity is in the direction opposite we're facing - arms are 90deg in that direction
+                    if (humanNpcState.CurrentFaceDirectionX >= 0.0f)
                     {
-                        targetAngles.LeftArm = -Pi<float> / 2.0f * targetDepth - 0.09f;
-                        targetAngles.RightArm = targetAngles.LeftArm + 0.18f;
+                        targetAngles.RightArm = Pi<float> / 2.0f;
+                        targetAngles.LeftArm = Pi<float> / 2.0f;
                     }
                     else
                     {
-                        targetAngles.RightArm = 0.0f;
-                        targetAngles.LeftArm = 0.0f;
+                        targetAngles.RightArm = -Pi<float> / 2.0f;
+                        targetAngles.LeftArm = -Pi<float> / 2.0f;
                     }
                 }
 
