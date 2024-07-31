@@ -27,6 +27,12 @@ struct GameParameters
     // Structural constants
     //
 
+    static float constexpr MaxWorldWidth = 10000.0f;
+    static float constexpr HalfMaxWorldWidth = MaxWorldWidth / 2.0f;
+
+    static float constexpr MaxWorldHeight = 22000.0f;
+    static float constexpr HalfMaxWorldHeight = MaxWorldHeight / 2.0f;
+
     static size_t constexpr MaxSpringsPerPoint = 8u;
     static size_t constexpr MaxTrianglesPerPoint = 8u;
     static size_t constexpr MaxNpcs = 8192u;
@@ -74,6 +80,8 @@ struct GameParameters
     float BuoyancyAdjustment;
     static float constexpr MinBuoyancyAdjustment = 0.0f;
     static float constexpr MaxBuoyancyAdjustment = 4.0f;
+
+    float OceanFloorElasticityCoefficient;
 
     // Misc
 

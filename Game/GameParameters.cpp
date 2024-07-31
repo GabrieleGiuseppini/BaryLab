@@ -14,6 +14,7 @@ GameParameters::GameParameters()
 	, KineticFrictionAdjustment(1.0f)
 	, WaterFrictionDragAdjustment(1.0f)
 	, BuoyancyAdjustment(1.0f)
+	, OceanFloorElasticityCoefficient(0.5f)
 	, MoveToolInertia(3.0f)
 	, IsUltraViolentMode(false)
 	// NPC
