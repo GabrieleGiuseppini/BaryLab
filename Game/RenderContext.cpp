@@ -494,7 +494,7 @@ void RenderContext::UploadNpcParticle(
     vec2f const & particlePosition,
     rgbaColor const & particleColor,
     float alpha,
-    NpcHighlightType highlight)
+    rgbaColor const & overlayColor)
 {
     float const xLeft = particlePosition.x - GameParameters::ParticleRadius;
     float const xRight = particlePosition.x + GameParameters::ParticleRadius;
@@ -504,49 +504,49 @@ void RenderContext::UploadNpcParticle(
     vec4f color = particleColor.toVec4f();
     color.w *= alpha;
 
-    vec4f const overlayColor = NpcHighlightToOverlayColor(highlight);
+    vec4f const overlayColorf = overlayColor.toVec4f();
 
     // Left, bottom
     mNpcParticleVertexBuffer.emplace_back(
         vec2f(xLeft, yBottom),
         vec2f(-1.0f, -1.0f),
         color,
-        overlayColor);
+        overlayColorf);
 
     // Left, top
     mNpcParticleVertexBuffer.emplace_back(
         vec2f(xLeft, yTop),
         vec2f(-1.0f, 1.0f),
         color,
-        overlayColor);
+        overlayColorf);
 
     // Right, bottom
     mNpcParticleVertexBuffer.emplace_back(
         vec2f(xRight, yBottom),
         vec2f(1.0f, -1.0f),
         color,
-        overlayColor);
+        overlayColorf);
 
     // Left, top
     mNpcParticleVertexBuffer.emplace_back(
         vec2f(xLeft, yTop),
         vec2f(-1.0f, 1.0f),
         color,
-        overlayColor);
+        overlayColorf);
 
     // Right, bottom
     mNpcParticleVertexBuffer.emplace_back(
         vec2f(xRight, yBottom),
         vec2f(1.0f, -1.0f),
         color,
-        overlayColor);
+        overlayColorf);
 
     // Right, top
     mNpcParticleVertexBuffer.emplace_back(
         vec2f(xRight, yTop),
         vec2f(1.0f, 1.0f),
         color,
-        overlayColor);
+        overlayColorf);
 }
 
 void RenderContext::UploadNpcParticlesEnd()

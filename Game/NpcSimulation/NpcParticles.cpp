@@ -6,12 +6,14 @@
 #include "Physics.h"
 
 #include <GameCore/GameException.h>
+#include <GameCore/GameRandomEngine.h>
 #include <GameCore/Log.h>
 
 namespace Physics {
 
 ElementIndex NpcParticles::Add(
     float mass,
+    float buoyancyVolumeFill,
     float buoyancyFactor,
     StructuralMaterial const * material,
     vec2f const & position,
@@ -22,13 +24,19 @@ ElementIndex NpcParticles::Add(
 
     mIsInUseBuffer[p] = true;
 
+    mMaterialBuffer[p] = material;
+    mBuoyancyVolumeFillBuffer[p] = buoyancyVolumeFill;
     mMassBuffer[p] = mass;
     mBuoyancyFactorBuffer[p] = buoyancyFactor;
-    mMaterialBuffer[p] = material;
     mPositionBuffer[p] = position;
     mVelocityBuffer[p] = vec2f::zero();
     mPreliminaryForcesBuffer[p] = vec2f::zero();
     mExternalForcesBuffer[p] = vec2f::zero();
+
+    mMeshWaternessBuffer[p] = 0.0f;
+    mMeshWaterVelocityBuffer[p] = vec2f::zero();
+    mAnyWaternessBuffer[p] = 0.0f;
+    mRandomNormalizedUniformFloatBuffer[p] = GameRandomEngine::GetInstance().GenerateNormalizedUniformReal();
 
     mRenderColorBuffer[p] = color;
 

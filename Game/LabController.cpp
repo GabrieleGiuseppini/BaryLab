@@ -915,7 +915,7 @@ void LabController::RemoveNpc(NpcId id)
 
     if (id == mWorld->GetNpcs().GetCurrentlySelectedNpc())
     {
-        mWorld->GetNpcs().DeselectNpc();
+        mWorld->GetNpcs().SelectNpc(std::nullopt);
     }
 }
 
@@ -927,19 +927,15 @@ void LabController::AbortNewNpc(NpcId id)
 
     if (id == mWorld->GetNpcs().GetCurrentlySelectedNpc())
     {
-        mWorld->GetNpcs().DeselectNpc();
+        mWorld->GetNpcs().SelectNpc(std::nullopt);
     }
 }
 
-void LabController::HighlightNpc(
-    NpcId id,
-    NpcHighlightType highlight)
+void LabController::SelectNpc(NpcId id)
 {
     assert(!!mWorld);
 
-    mWorld->GetNpcs().HighlightNpc(
-        id,
-        highlight);
+    mWorld->GetNpcs().SelectNpc(id);
 }
 
 void LabController::SetNpcPanicLevelForAllHumans(float panicLevel)

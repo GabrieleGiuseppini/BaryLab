@@ -35,12 +35,17 @@ public:
         , mIsInUseBuffer(maxParticleCount, false)
         // Physics
         , mMaterialBuffer(maxParticleCount, nullptr)
+        , mBuoyancyVolumeFillBuffer(maxParticleCount, 0.0f)
         , mMassBuffer(maxParticleCount, 0.0f)
         , mBuoyancyFactorBuffer(maxParticleCount, 0.0f)
         , mPositionBuffer(maxParticleCount, vec2f::zero())
         , mVelocityBuffer(maxParticleCount, vec2f::zero())
         , mPreliminaryForcesBuffer(maxParticleCount, vec2f::zero())
         , mExternalForcesBuffer(maxParticleCount, vec2f::zero())
+        , mMeshWaternessBuffer(maxParticleCount, 0.0f)
+        , mMeshWaterVelocityBuffer(maxParticleCount, vec2f::zero())
+        , mAnyWaternessBuffer(maxParticleCount, 0.0f)
+        , mRandomNormalizedUniformFloatBuffer(maxParticleCount, 0.0f)
         // Render
         , mRenderColorBuffer(maxParticleCount, rgbaColor::zero())
         //////////////////////////////////
@@ -61,6 +66,7 @@ public:
 
     ElementIndex Add(
         float mass,
+        float buoyancyVolumeFill,
         float buoyancyFactor,
         StructuralMaterial const * material,
         vec2f const & position,
@@ -81,6 +87,11 @@ public:
     {
         assert(mMaterialBuffer[particleElementIndex] != nullptr);
         return *(mMaterialBuffer[particleElementIndex]);
+    }
+
+    float GetBuoyancyVolumeFill(ElementIndex particleElementIndex) const noexcept
+    {
+        return mBuoyancyVolumeFillBuffer[particleElementIndex];
     }
 
     float const GetMass(ElementIndex particleElementIndex) const noexcept
@@ -195,6 +206,60 @@ public:
         mExternalForcesBuffer[particleElementIndex] = value;
     }
 
+    void AddExternalForce(
+        ElementIndex particleElementIndex,
+        vec2f const & value) noexcept
+    {
+        mExternalForcesBuffer[particleElementIndex] += value;
+    }
+
+    void ResetExternalForces()
+    {
+        mExternalForcesBuffer.fill(vec2f::zero());
+    }
+
+    // [0.0, ~1.0]
+    float const GetMeshWaterness(ElementIndex particleElementIndex) const noexcept
+    {
+        return mMeshWaternessBuffer[particleElementIndex];
+    }
+
+    void SetMeshWaterness(
+        ElementIndex particleElementIndex,
+        float value) noexcept
+    {
+        mMeshWaternessBuffer[particleElementIndex] = value;
+    }
+
+    vec2f const & GetMeshWaterVelocity(ElementIndex particleElementIndex) const noexcept
+    {
+        return mMeshWaterVelocityBuffer[particleElementIndex];
+    }
+
+    void SetMeshWaterVelocity(
+        ElementIndex particleElementIndex,
+        vec2f const & value) noexcept
+    {
+        mMeshWaterVelocityBuffer[particleElementIndex] = value;
+    }
+
+    float const GetAnyWaterness(ElementIndex particleElementIndex) const noexcept
+    {
+        return mAnyWaternessBuffer[particleElementIndex];
+    }
+
+    void SetAnyWaterness(
+        ElementIndex particleElementIndex,
+        float value) noexcept
+    {
+        mAnyWaternessBuffer[particleElementIndex] = value;
+    }
+
+    float GetRandomNormalizedUniformPersonalitySeed(ElementIndex pointElementIndex) const
+    {
+        return mRandomNormalizedUniformFloatBuffer[pointElementIndex];
+    }
+
     //
     // Render
     //
@@ -236,12 +301,19 @@ private:
     //
 
     Buffer<StructuralMaterial const *> mMaterialBuffer;
+    Buffer<float> mBuoyancyVolumeFillBuffer;
     Buffer<float> mMassBuffer; // Adjusted
     Buffer<float> mBuoyancyFactorBuffer; // Adjusted
     Buffer<vec2f> mPositionBuffer;
     Buffer<vec2f> mVelocityBuffer;
     Buffer<vec2f> mPreliminaryForcesBuffer;
     Buffer<vec2f> mExternalForcesBuffer;
+
+    Buffer<float> mMeshWaternessBuffer; // Mesh water at triangle (when constrained); // [0.0, ~1.0]
+    Buffer<vec2f> mMeshWaterVelocityBuffer; // (when constrained)
+    Buffer<float> mAnyWaternessBuffer; // Mesh water at triangle (when constrained), depth (when free); [0.0, 1.0]
+
+    Buffer<float> mRandomNormalizedUniformFloatBuffer;
 
     //
     // Render

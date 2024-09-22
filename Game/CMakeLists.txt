@@ -30,12 +30,15 @@ set  (GAME_SOURCES
 )
 
 set  (PHYSICS_SOURCES
+	Formulae.h
 	NpcSimulation/NpcParticles.cpp
 	NpcSimulation/NpcParticles.h
 	NpcSimulation/Npcs.cpp
 	NpcSimulation/Npcs.h
 	NpcSimulation/Npcs_HumanSimulation.cpp
 	NpcSimulation/Npcs_Simulation.cpp
+	OceanFloor.cpp
+	OceanFloor.h
 	OceanSurface.h
 	Physics.h
 	Points.cpp
@@ -43,14 +46,18 @@ set  (PHYSICS_SOURCES
 	Ship.h
 	Springs.cpp
 	Springs.h
+	Storm.h
 	Triangles.cpp
 	Triangles.h
+	Wind.h
+	World.cpp
 	World.h
 )
 
 set  (RENDER_SOURCES
 	RenderContext.cpp
 	RenderContext.h
+	StockColors.h
 	ViewModel.h
 )
 

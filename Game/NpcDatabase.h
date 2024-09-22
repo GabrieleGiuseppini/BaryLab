@@ -26,8 +26,16 @@ public:
         Quad
     };
 
+    struct ParticleAttributesType
+    {
+        float BuoyancyVolumeFill;
+        float SpringReductionFraction;
+        float SpringDampingCoefficient;
+    };
+
     struct HumanDimensionsType
     {
+        float HeadWFactor; // Multiplier of "standard" head width
         float HeadWidthToHeightFactor; // To recover head texture quad height from its physical width
         float TorsoHeightToWidthFactor; // To recover torso texture quad width from its physical height
         float ArmHeightToWidthFactor; // To recover arm texture quad width from its physical height
@@ -87,6 +95,18 @@ public:
         return mHumanKinds.at(subKindId).FeetMaterial;
     }
 
+    ParticleAttributesType const & GetHumanHeadParticleAttributes(NpcSubKindIdType subKindId) const
+    {
+        assert(mHumanKinds.at(subKindId).ParticleAttributes.size() == 2);
+        return mHumanKinds.at(subKindId).ParticleAttributes[1];
+    }
+
+    ParticleAttributesType const & GetHumanFeetParticleAttributes(NpcSubKindIdType subKindId) const
+    {
+        assert(mHumanKinds.at(subKindId).ParticleAttributes.size() == 2);
+        return mHumanKinds.at(subKindId).ParticleAttributes[0];
+    }
+
     float GetHumanSizeMultiplier(NpcSubKindIdType subKindId) const
     {
         return mHumanKinds.at(subKindId).SizeMultiplier;
@@ -110,6 +130,12 @@ public:
     StructuralMaterial const & GetFurnitureMaterial(NpcSubKindIdType subKindId) const
     {
         return mFurnitureKinds.at(subKindId).Material;
+    }
+
+    ParticleAttributesType const & GetFurnitureParticleAttributes(NpcSubKindIdType subKindId, int particleOrdinal) const
+    {
+        assert(particleOrdinal < mFurnitureKinds.at(subKindId).ParticleAttributes.size());
+        return mFurnitureKinds.at(subKindId).ParticleAttributes[particleOrdinal];
     }
 
     ParticleMeshKindType const & GetFurnitureParticleMeshKindType(NpcSubKindIdType subKindId) const
@@ -157,6 +183,8 @@ private:
         StructuralMaterial const & HeadMaterial;
         StructuralMaterial const & FeetMaterial;
 
+        std::array<ParticleAttributesType, 2> ParticleAttributes;
+
         float SizeMultiplier;
 
         HumanDimensionsType Dimensions;
@@ -169,6 +197,8 @@ private:
         MultiLingualText Name;
 
         StructuralMaterial const & Material;
+
+        std::vector<ParticleAttributesType> ParticleAttributes;
 
         ParticleMeshKindType ParticleMeshKind;
 
@@ -189,11 +219,24 @@ private:
     static HumanKind ParseHumanKind(
         picojson::object const & kindObject,
         StructuralMaterial const & headMaterial,
-        StructuralMaterial const & feetMaterial);
+        StructuralMaterial const & feetMaterial,
+        ParticleAttributesType const & globalHeadParticleAttributes,
+        ParticleAttributesType const & globalFeetParticleAttributes);
 
     static FurnitureKind ParseFurnitureKind(
         picojson::object const & kindObject,
         MaterialDatabase const & materialDatabase);
+
+    static ParticleAttributesType MakeParticleAttributes(
+        picojson::object const & containerObject,
+        std::string const & particleAttributesOverrideMemberName,
+        ParticleAttributesType const & defaultParticleAttributes);
+
+    static ParticleAttributesType MakeParticleAttributes(
+        picojson::object const & particleAttributesOverrideJsonObject,
+        ParticleAttributesType const & defaultParticleAttributes);
+
+    static ParticleAttributesType MakeDefaultParticleAttributes(StructuralMaterial const & baseMaterial);
 
     static MultiLingualText ParseMultilingualText(
         picojson::object const & containerObject,

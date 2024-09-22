@@ -2,30 +2,302 @@
 	"humans": {
 		"global": {
 			"head_material": "NPC Human Head",
-			"feet_material": "NPC Human Feet"
+			"head_particle_attributes_overrides": {
+				"spring_damping_coefficient": 0.5,
+				"spring_reduction_fraction": 0.39
+			},
+			"feet_material": "NPC Human Feet",
+			"feet_particle_attributes_overrides": {
+				"spring_damping_coefficient": 0.5,
+				"spring_reduction_fraction": 0.39
+			}
 		},
 		"kinds": [
+
+			{
+				"name": [
+					{ "value": "Baker", "language": "en" },
+					{ "value": "Cuoco", "language": "it" }
+				],
+				"role": "Crew",
+				"texture_filename_stems": {
+					"head_f": "baker_head_front",
+					"head_b": "baker_head_back",
+					"head_s": "baker_head_side",
+					"torso_f": "baker_torso_front",
+					"torso_b": "baker_torso_back",
+					"torso_s": "baker_torso_side",
+					"arm_f": "baker_arm_front",
+					"arm_b": "baker_arm_back",
+					"arm_s": "baker_arm_side",
+					"leg_f": "baker_leg_front",
+					"leg_b": "baker_leg_back",
+					"leg_s": "baker_leg_side"
+				}
+			},
+
+			{
+				"name": [
+					{ "value": "Civilian Passenger 1 (Female)", "language": "en" },
+					{ "value": "Passeggero 1 (Donna)", "language": "it" }
+				],
+				"role": "Passenger",
+				"texture_filename_stems": {
+					"head_f": "female_civilian_passenger_1_head_front",
+					"head_b": "female_civilian_passenger_1_head_back",
+					"head_s": "female_civilian_passenger_1_head_side",
+					"torso_f": "female_civilian_passenger_1_torso_front",
+					"torso_b": "female_civilian_passenger_1_torso_back",
+					"torso_s": "female_civilian_passenger_1_torso_side",
+					"arm_f": "female_civilian_passenger_1_arm_front",
+					"arm_b": "female_civilian_passenger_1_arm_back",
+					"arm_s": "female_civilian_passenger_1_arm_side",
+					"leg_f": "female_civilian_passenger_1_leg_front",
+					"leg_b": "female_civilian_passenger_1_leg_back",
+					"leg_s": "female_civilian_passenger_1_leg_side"
+				}
+			},
+
+			{
+				"name": [
+					{ "value": "Civilian Passenger 1 (Male)", "language": "en" },
+					{ "value": "Passeggero Seconda Classe 1 (Uomo)", "language": "it" }
+				],
+				"role": "Passenger",
+				"texture_filename_stems": {
+					"head_f": "male_civ_1_head_front",
+					"head_b": "male_civ_1_head_back",
+					"head_s": "male_civ_1_head_side",
+					"torso_f": "male_civ_1_torso_front",
+					"torso_b": "male_civ_1_torso_back",
+					"torso_s": "male_civ_1_torso_side",
+					"arm_f": "male_civ_1_arm_front",
+					"arm_b": "male_civ_1_arm_back",
+					"arm_s": "male_civ_1_arm_side",
+					"leg_f": "male_civ_1_leg_front",
+					"leg_b": "male_civ_1_leg_back",
+					"leg_s": "male_civ_1_leg_side"
+				}
+			},
+
+			{
+				"name": [
+					{ "value": "Civilian Passenger 2 (Female)", "language": "en" },
+					{ "value": "Passeggero 2 (Donna)", "language": "it" }
+				],
+				"role": "Passenger",
+				"texture_filename_stems": {
+					"head_f": "female_civilian_passenger_2_head_front",
+					"head_b": "female_civilian_passenger_2_head_back",
+					"head_s": "female_civilian_passenger_2_head_side",
+					"torso_f": "female_civilian_passenger_2_torso_front",
+					"torso_b": "female_civilian_passenger_2_torso_back",
+					"torso_s": "female_civilian_passenger_2_torso_side",
+					"arm_f": "female_civilian_passenger_2_arm_front",
+					"arm_b": "female_civilian_passenger_2_arm_back",
+					"arm_s": "female_civilian_passenger_2_arm_side",
+					"leg_f": "female_civilian_passenger_2_leg_front",
+					"leg_b": "female_civilian_passenger_2_leg_back",
+					"leg_s": "female_civilian_passenger_2_leg_side"
+				}
+			},
+
+			{
+				"name": [
+					{ "value": "Civilian Passenger 2 (Male)", "language": "en" },
+					{ "value": "Passeggero Seconda Classe 2 (Uomo)", "language": "it" }
+				],
+				"role": "Passenger",
+				"texture_filename_stems": {
+					"head_f": "male_civ_2_head_front",
+					"head_b": "male_civ_2_head_back",
+					"head_s": "male_civ_2_head_side",
+					"torso_f": "male_civ_2_torso_front",
+					"torso_b": "male_civ_2_torso_back",
+					"torso_s": "male_civ_2_torso_side",
+					"arm_f": "male_civ_2_arm_front",
+					"arm_b": "male_civ_2_arm_back",
+					"arm_s": "male_civ_2_arm_side",
+					"leg_f": "male_civ_2_leg_front",
+					"leg_b": "male_civ_2_leg_back",
+					"leg_s": "male_civ_2_leg_side"
+				}
+			},
+
+			{
+				"name": [
+					{ "value": "Civilian Passenger 3 (Female)", "language": "en" },
+					{ "value": "Passeggero 3 (Donna)", "language": "it" }
+				],
+				"role": "Passenger",
+				"texture_filename_stems": {
+					"head_f": "female_civilian_passenger_3_head_front",
+					"head_b": "female_civilian_passenger_3_head_back",
+					"head_s": "female_civilian_passenger_3_head_side",
+					"torso_f": "female_civilian_passenger_3_torso_front",
+					"torso_b": "female_civilian_passenger_3_torso_back",
+					"torso_s": "female_civilian_passenger_3_torso_side",
+					"arm_f": "female_civilian_passenger_3_arm_front",
+					"arm_b": "female_civilian_passenger_3_arm_back",
+					"arm_s": "female_civilian_passenger_3_arm_side",
+					"leg_f": "female_civilian_passenger_3_leg_front",
+					"leg_b": "female_civilian_passenger_3_leg_back",
+					"leg_s": "female_civilian_passenger_3_leg_side"
+				}
+			},
+
+			{
+				"name": [
+					{ "value": "Civilian Passenger 3 (Male)", "language": "en" },
+					{ "value": "Passeggero Seconda Classe 3 (Uomo)", "language": "it" }
+				],
+				"role": "Passenger",
+				"texture_filename_stems": {
+					"head_f": "male_civ_3_head_front",
+					"head_b": "male_civ_3_head_back",
+					"head_s": "male_civ_3_head_side",
+					"torso_f": "male_civ_3_torso_front",
+					"torso_b": "male_civ_3_torso_back",
+					"torso_s": "male_civ_3_torso_side",
+					"arm_f": "male_civ_3_arm_front",
+					"arm_b": "male_civ_3_arm_back",
+					"arm_s": "male_civ_3_arm_side",
+					"leg_f": "male_civ_3_leg_front",
+					"leg_b": "male_civ_3_leg_back",
+					"leg_s": "male_civ_3_leg_side"
+				}
+			},
+
+			{
+				"name": [
+					{ "value": "Deckhand", "language": "en" },
+					{ "value": "Mozzo", "language": "it" }
+				],
+				"role": "Crew",
+				"texture_filename_stems": {
+					"head_f": "deckhand_head_front",
+					"head_b": "deckhand_head_back",
+					"head_s": "deckhand_head_side",
+					"torso_f": "deckhand_torso_front",
+					"torso_b": "deckhand_torso_back",
+					"torso_s": "deckhand_torso_side",
+					"arm_f": "deckhand_arm_front",
+					"arm_b": "deckhand_arm_back",
+					"arm_s": "deckhand_arm_side",
+					"leg_f": "deckhand_leg_front",
+					"leg_b": "deckhand_leg_back",
+					"leg_s": "deckhand_leg_side"
+				}
+			},
+
+			{
+				"name": [
+					{ "value": "Engineer", "language": "en" },
+					{ "value": "Ingegnere", "language": "it" }
+				],
+				"role": "Crew",
+				"texture_filename_stems": {
+					"head_f": "engineer_head_front",
+					"head_b": "engineer_head_back",
+					"head_s": "engineer_head_side",
+					"torso_f": "engineer_torso_front",
+					"torso_b": "engineer_torso_back",
+					"torso_s": "engineer_torso_side",
+					"arm_f": "engineer_arm_front",
+					"arm_b": "engineer_arm_back",
+					"arm_s": "engineer_arm_side",
+					"leg_f": "engineer_leg_front",
+					"leg_b": "engineer_leg_back",
+					"leg_s": "engineer_leg_side"
+				}
+			},
+
+			{
+				"name": [
+					{ "value": "Officer", "language": "en" },
+					{ "value": "Ufficiale", "language": "it" }
+				],
+				"role": "Crew",
+				"texture_filename_stems": {
+					"head_f": "officer_head_front",
+					"head_b": "officer_head_back",
+					"head_s": "officer_head_side",
+					"torso_f": "officer_torso_front",
+					"torso_b": "officer_torso_back",
+					"torso_s": "officer_torso_side",
+					"arm_f": "officer_arm_front",
+					"arm_b": "officer_arm_back",
+					"arm_s": "officer_arm_side",
+					"leg_f": "officer_leg_front",
+					"leg_b": "officer_leg_back",
+					"leg_s": "officer_leg_side"
+				}
+			},
+
+			{
+				"name": [
+					{ "value": "Oiler", "language": "en" },
+					{ "value": "Oliatore", "language": "it" }
+				],
+				"role": "Crew",
+				"texture_filename_stems": {
+					"head_f": "oiler_head_front",
+					"head_b": "oiler_head_back",
+					"head_s": "oiler_head_side",
+					"torso_f": "oiler_torso_front",
+					"torso_b": "oiler_torso_back",
+					"torso_s": "oiler_torso_side",
+					"arm_f": "oiler_arm_front",
+					"arm_b": "oiler_arm_back",
+					"arm_s": "oiler_arm_side",
+					"leg_f": "oiler_leg_front",
+					"leg_b": "oiler_leg_back",
+					"leg_s": "oiler_leg_side"
+				}
+			},
+
+			{
+				"name": [
+					{ "value": "Wealthy Passenger 2 (Male)", "language": "en" },
+					{ "value": "Passeggero Prima Classe 2 (Uomo)", "language": "it" }
+				],
+				"role": "Passenger",
+				"texture_filename_stems": {
+					"head_f": "male_wealthy_passenger_2_head_front",
+					"head_b": "male_wealthy_passenger_2_head_back",
+					"head_s": "male_wealthy_passenger_2_head_side",
+					"torso_f": "male_wealthy_passenger_2_torso_front",
+					"torso_b": "male_wealthy_passenger_2_torso_back",
+					"torso_s": "male_wealthy_passenger_2_torso_side",
+					"arm_f": "male_wealthy_passenger_2_arm_front",
+					"arm_b": "male_wealthy_passenger_2_arm_back",
+					"arm_s": "male_wealthy_passenger_2_arm_side",
+					"leg_f": "male_wealthy_passenger_2_leg_front",
+					"leg_b": "male_wealthy_passenger_2_leg_back",
+					"leg_s": "male_wealthy_passenger_2_leg_side"
+				}
+			},
 
 			{
 				"name": [
 					{ "value": "Dummy", "language": "en" },
 					{ "value": "Dummy", "language": "it" }
 				],
-				"role": "Passenger",
-				"body_width_randomization_sensitivity": 0.0,
+				"role": "Other",
+				"body_width_randomization_sensitivity": 0.1,
 				"texture_filename_stems": {
-					"head_f": "dummy_head_f",
-					"head_b": "dummy_head_b",
-					"head_s": "dummy_head_s",
-					"torso_f": "dummy_torso_f",
-					"torso_b": "dummy_torso_b",
-					"torso_s": "dummy_torso_s",
-					"arm_f": "dummy_arm_f",
-					"arm_b": "dummy_arm_b",
-					"arm_s": "dummy_arm_s",
-					"leg_f": "dummy_leg_f",
-					"leg_b": "dummy_leg_b",
-					"leg_s": "dummy_leg_s"
+					"head_f": "dummy_head_front",
+					"head_b": "dummy_head_back",
+					"head_s": "dummy_head_side",
+					"torso_f": "dummy_torso_front",
+					"torso_b": "dummy_torso_back",
+					"torso_s": "dummy_torso_side",
+					"arm_f": "dummy_arm_front",
+					"arm_b": "dummy_arm_back",
+					"arm_s": "dummy_arm_side",
+					"leg_f": "dummy_leg_front",
+					"leg_b": "dummy_leg_back",
+					"leg_s": "dummy_leg_side"
 				}
 			}
 		]
@@ -33,6 +305,146 @@
 
 	"furniture": {
 		"kinds": [
+			{	
+				"name": [
+					{ "value": "Barrel", "language": "en" },
+					{ "value": "Barile", "language": "it" }
+				],
+				"material": "Solid Pine Wood I-Beam",
+				"particle_mesh": {
+					"kind": "Quad",
+					"height": 0.4,
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.0847
+						}
+					]
+				},
+				"texture_filename_stem": "barrel_1"
+			},
+
+			{	
+				"name": [
+					{ "value": "Bed 1", "language": "en" },
+					{ "value": "Letto 1", "language": "it" }
+				],
+				"material": "Solid Pine Wood I-Beam",
+				"particle_mesh": {
+					"kind": "Quad",
+					"height": 0.8,
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.07
+						}
+					]
+				},
+				"texture_filename_stem": "bed_1"
+			},
+
+			{	
+				"name": [
+					{ "value": "Bed 2", "language": "en" },
+					{ "value": "Letto 2", "language": "it" }
+				],
+				"material": "Iron Hull",
+				"particle_mesh": {
+					"kind": "Quad",
+					"height": 0.8,
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.7
+						}
+					]
+				},
+				"texture_filename_stem": "bed_2"
+			},
+
+			{	
+				"name": [
+					{ "value": "Cabin Desk", "language": "en" },
+					{ "value": "Tavolo da Cabina", "language": "it" }
+				],
+				"material": "Solid Pine Wood I-Beam",
+				"particle_mesh": {
+					"kind": "Quad",
+					"height": 0.8,
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.0847
+						}
+					]
+				},
+				"texture_filename_stem": "cabin_desk_1"
+			},
+			{	
+				"name": [
+					{ "value": "Chest 1", "language": "en" },
+					{ "value": "Scrigno 1", "language": "it" }
+				],
+				"material": "Solid Pine Wood I-Beam",
+				"particle_mesh": {
+					"kind": "Quad",
+					"height": 0.3,
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.0847
+						}
+					]
+				},
+				"texture_filename_stem": "chest_1"
+			},
+			{	
+				"name": [
+					{ "value": "Chest 2", "language": "en" },
+					{ "value": "Scrigno 2", "language": "it" }
+				],
+				"material": "Solid Pine Wood I-Beam",
+				"particle_mesh": {
+					"kind": "Quad",
+					"height": 0.3,
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.06
+						}
+					]
+				},
+				"texture_filename_stem": "chest_2"
+			},
+			{	
+				"name": [
+					{ "value": "Chest 3", "language": "en" },
+					{ "value": "Scrigno 3", "language": "it" }
+				],
+				"material": "Solid Pine Wood I-Beam",
+				"particle_mesh": {
+					"kind": "Quad",
+					"height": 0.3,
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.05
+						}
+					]
+				},
+				"texture_filename_stem": "chest_3"
+			},
+
+			{	
+				"name": [
+					{ "value": "Coal Cart", "language": "en" },
+					{ "value": "Carriola con Carbone", "language": "it" }
+				],
+				"material": "Iron Hull",
+				"particle_mesh": {
+					"kind": "Quad",
+					"height": 0.65,
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.7
+						}
+					]
+				},
+				"texture_filename_stem": "coal_cart"
+			},
 
 			{
 				"name": [
@@ -42,9 +454,122 @@
 				"material": "Solid Pine Wood I-Beam",
 				"particle_mesh": {
 					"kind": "Quad",
-					"height": 0.5
+					"height": 0.5,
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.0847
+						}
+					]
 				},
 				"texture_filename_stem": "crate_1"
+			},
+
+			{	
+				"name": [
+					{ "value": "Dining Chair 1", "language": "en" },
+					{ "value": "Sedia da Tavolo 1", "language": "it" }
+				],
+				"material": "Solid Pine Wood I-Beam",
+				"particle_mesh": {
+					"kind": "Quad",
+					"height": 0.8,
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.0847
+						}
+					]
+				},
+				"texture_filename_stem": "dining_chair_1"
+			},
+
+			{	
+				"name": [
+					{ "value": "Dining Chair 2", "language": "en" },
+					{ "value": "Sedia da Tavolo 2", "language": "it" }
+				],
+				"material": "Solid Pine Wood I-Beam",
+				"particle_mesh": {
+					"kind": "Quad",
+					"height": 0.8,
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.0847
+						}
+					]
+				},
+				"texture_filename_stem": "dining_chair_2"
+			},
+
+			{	
+				"name": [
+					{ "value": "Dining Table 1", "language": "en" },
+					{ "value": "Tavolo da Pranzo 1", "language": "it" }
+				],
+				"material": "Solid Pine Wood I-Beam",
+				"particle_mesh": {
+					"kind": "Quad",
+					"height": 0.72,
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.0847
+						}
+					]
+				},
+				"texture_filename_stem": "large_dining_table_1"
+			},
+
+			{	
+				"name": [
+					{ "value": "Dining Table 2", "language": "en" },
+					{ "value": "Tavolo da Pranzo 2", "language": "it" }
+				],
+				"material": "Iron Hull",
+				"particle_mesh": {
+					"kind": "Quad",
+					"height": 0.72,
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.75
+						}
+					]
+				},
+				"texture_filename_stem": "large_dining_table_2"
+			},
+
+			{	
+				"name": [
+					{ "value": "Drum (Heavy)", "language": "en" },
+					{ "value": "Fusto (Pesante)", "language": "it" }
+				],
+				"material": "Iron Hull",
+				"particle_mesh": {
+					"kind": "Quad",
+					"height": 0.5,
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.7
+						}
+					]
+				},
+				"texture_filename_stem": "drum_1"
+			},
+
+			{	
+				"name": [
+					{ "value": "Drum (Light)", "language": "en" },
+					{ "value": "Fusto (Leggero)", "language": "it" }
+				],
+				"material": "Light Iron Bulkhead",
+				"particle_mesh": {
+					"kind": "Quad",
+					"height": 0.5,
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.14
+						}
+					]
+				},
+				"texture_filename_stem": "drum_2"
 			},
 
 			{
@@ -54,10 +579,70 @@
 				],
 				"material": "Stainless Steel",
 				"particle_mesh": {
-					"kind": "Particle"
+					"kind": "Particle",
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.0847
+						}
+					]
 				},
 				"texture_filename_stem": "particle_1"
+			},
+
+			{	
+				"name": [
+					{ "value": "Piano", "language": "en" },
+					{ "value": "Pianoforte", "language": "it" }
+				],
+				"material": "Iron Hull",
+				"particle_mesh": {
+					"kind": "Quad",
+					"height": 0.8,
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.7
+						}
+					]
+				},
+				"texture_filename_stem": "piano_1"
+			},
+
+			{	
+				"name": [
+					{ "value": "Small Table 1", "language": "en" },
+					{ "value": "Tavolino 1", "language": "it" }
+				],
+				"material": "Solid Pine Wood I-Beam",
+				"particle_mesh": {
+					"kind": "Quad",
+					"height": 0.4,
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.0847
+						}
+					]
+				},
+				"texture_filename_stem": "small_table_1"
+			},
+
+			{	
+				"name": [
+					{ "value": "Small Table 2", "language": "en" },
+					{ "value": "Tavolino 2", "language": "it" }
+				],
+				"material": "Solid Pine Wood I-Beam",
+				"particle_mesh": {
+					"kind": "Quad",
+					"height": 0.4,
+					"particle_attributes_overrides": [
+						{
+							"buoyancy_volume_fill": 0.0847
+						}
+					]
+				},
+				"texture_filename_stem": "small_table_2"
 			}
+
 		]
 	}
 }

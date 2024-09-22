@@ -118,7 +118,7 @@ public:
     void CompleteNewNpc(NpcId id);
     void RemoveNpc(NpcId id);
     void AbortNewNpc(NpcId id);
-    void HighlightNpc(NpcId id, NpcHighlightType highlight);
+    void SelectNpc(NpcId id);
 
     void SetNpcPanicLevelForAllHumans(float panicLevel);
 

@@ -8,6 +8,8 @@
 GameParameters::GameParameters()
 	: GravityAdjustment(1.0f)
 	, MassAdjustment(1.0f)
+	, AirDensityAdjustment(1.0f)
+	, WaterDensityAdjustment(1.0f)
 	, GlobalDampingAdjustment(1.0f)
 	, ElasticityAdjustment(1.0f)
 	, StaticFrictionAdjustment(1.0f)

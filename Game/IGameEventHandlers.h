@@ -74,8 +74,27 @@ struct IBLabEventHandler
     }
 };
 
+struct IPlaceholderEventHandler
+{
+    virtual void OnPointCombustionBegin()
+    {
+        // Default-implemented
+    }
+
+    virtual void OnPointCombustionEnd()
+    {
+        // Default-implemented
+    }
+};
+
 struct INpcGameEventHandler
 {
+    virtual void OnNpcSelectionChanged(
+        std::optional<NpcId> /*selectedNpc*/)
+    {
+        // Default-implemented
+    }
+
     virtual void OnNpcCountsUpdated(
         size_t /*totalNpcCount*/)
     {

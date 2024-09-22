@@ -194,13 +194,14 @@ public:
         vec2f bottomLeftPosition,
         vec2f bottomRightPosition,
         TextureCoordinatesQuad const & textureCoords,
-        NpcHighlightType highlight)
+        rgbaColor const & overlayColor)
     {
         //float const backDepth = std::max(-faceOrientation, 0.0f);
         float const backDepth = 0.0f;
         //float const orientationDepth = 1.0f - std::abs(faceOrientation);
         float const orientationDepth = 0.0f;
-        vec4f const overlayColor = NpcHighlightToOverlayColor(highlight);
+
+        vec4f const overlayColorf = overlayColor.toVec4f();
 
         // TopLeft
         mNpcQuadVertexBuffer.emplace_back(
@@ -208,7 +209,7 @@ public:
             vec2f(textureCoords.LeftX, textureCoords.TopY),
             backDepth,
             orientationDepth,
-            overlayColor);
+            overlayColorf);
 
         // BottomLeft
         mNpcQuadVertexBuffer.emplace_back(
@@ -216,7 +217,7 @@ public:
             vec2f(textureCoords.LeftX, textureCoords.BottomY),
             backDepth,
             orientationDepth,
-            overlayColor);
+            overlayColorf);
 
         // TopRight
         mNpcQuadVertexBuffer.emplace_back(
@@ -224,7 +225,7 @@ public:
             vec2f(textureCoords.RightX, textureCoords.TopY),
             backDepth,
             orientationDepth,
-            overlayColor);
+            overlayColorf);
 
         // BottomRight
         mNpcQuadVertexBuffer.emplace_back(
@@ -232,7 +233,7 @@ public:
             vec2f(textureCoords.RightX, textureCoords.BottomY),
             backDepth,
             orientationDepth,
-            overlayColor);
+            overlayColorf);
     }
 
     void UploadNpcTextureQuadsEnd();
@@ -244,7 +245,7 @@ public:
         vec2f const & particlePosition,
         rgbaColor const & particleColor,
         float alpha,
-        NpcHighlightType highlight);
+        rgbaColor const & overlayColor);
 
     void UploadNpcParticlesEnd();
 
@@ -257,6 +258,28 @@ public:
         rgbaColor const & springColor);
 
     void UploadNpcSpringsEnd();
+
+    void UploadNpcFlame(
+        PlaneId /*planeId*/,
+        vec2f const & /*baseCenterPosition*/,
+        vec2f const & /*flameVector*/,
+        float /*flameWindRotationAngle*/,
+        float /*scale*/,
+        float /*flamePersonalitySeed*/)
+    {
+        // Nop, placeholder
+    }
+
+    void UploadRectSelection(
+        vec2f const & /*centerPosition*/,
+        vec2f const & /*verticalDir*/,
+        float /*width*/,
+        float /*height*/,
+        rgbColor const & /*color*/,
+        float /*elapsedSimulationTime*/)
+    {
+        // Nop, placeholder
+    }
 
     void UploadParticleTrajectoriesStart();
 
@@ -305,29 +328,6 @@ private:
 
     bool mIsGridDirty;
     void OnGridUpdated();
-
-    ////////////////////////////////////////////////////////////////
-    // Helpers
-    ////////////////////////////////////////////////////////////////
-
-    vec4f NpcHighlightToOverlayColor(NpcHighlightType highlight)
-    {
-        switch (highlight)
-        {
-            case NpcHighlightType::None:
-            {
-                return vec4f::zero();
-            }
-
-            case NpcHighlightType::Candidate:
-            {
-                return vec4f(0.981f, 1.00f, 0.0800f, 1.0f);
-            }
-        }
-
-        assert(false);
-        return vec4f::zero();
-    }
 
 private:
 

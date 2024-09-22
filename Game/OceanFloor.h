@@ -11,40 +11,16 @@
 
 namespace Physics {
 
-class OceanSurface
+class OceanFloor
 {
 public:
 
-	OceanSurface(float depth)
-		: mDepth(depth)
+	OceanFloor()
 	{}
 
-	static float constexpr MinDepth = -100.0f;
-	static float constexpr MaxDepth = 100.0f;
+	std::tuple<bool, float, int> GetHeightIfUnderneathAt(float x, float y) const;
 
-	float GetDepth() const
-	{
-		return mDepth;
-	}
-
-	void SetDepth(float value)
-	{
-		mDepth = value;
-	}
-
-	float GetHeightAt(float /*x*/) const noexcept
-	{
-		return mDepth;
-	}
-
-	inline float GetDepth(vec2f const & position) const noexcept
-	{
-		return mDepth - position.y;
-	}
-
-private:
-
-	float mDepth;
+	vec2f GetNormalAt(int) const;
 };
 
 }

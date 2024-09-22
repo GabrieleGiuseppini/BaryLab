@@ -67,6 +67,21 @@ public:
         return mTriangles;
     }
 
+    bool AreBombsInProximity(ElementIndex /*pointElementIndex*/) const
+    {
+        return false;
+    }
+
+    void SpawnAirBubble(
+        vec2f const & /*position*/,
+        float /*finalScale*/,
+        float /*temperature*/,
+        float /*currentSimulationTime*/,
+        PlaneId /*planeId*/,
+        GameParameters const & /*gameParameters*/)
+    {
+    }
+
 public:
 
     bool QueryPointAt(vec2f const & worldCoordinates) const

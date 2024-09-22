@@ -12,6 +12,7 @@ set  (SOURCES
 	CircularList.h
 	Colors.cpp
 	Colors.h
+	Conversions.h
 	ElementContainer.h
 	ElementIndexRangeIterator.h
 	FileSystem.h
@@ -25,6 +26,7 @@ set  (SOURCES
 	GameRandomEngine.h
 	GameTypes.cpp
 	GameTypes.h
+	GameWallClock.h
 	ImageData.h
 	IndexRemap.h
 	Log.cpp

@@ -910,10 +910,6 @@ public:
 
     virtual void Deinitialize(InputState const & /*inputState*/) override
     {
-        if (mNpc.has_value() && !mIsMouseDown)
-        {
-            mLabController->HighlightNpc(mNpc->ObjectId, NpcHighlightType::None);
-        }
     }
 
     virtual void SetCurrentCursor() override
@@ -940,11 +936,6 @@ public:
                 if (mNpc.has_value())
                 {
                     mLabController->BeginMoveNpc(mNpc->ObjectId);
-
-                    // Now that it's moving, un-highlight it
-                    mLabController->HighlightNpc(
-                        mNpc->ObjectId,
-                        NpcHighlightType::None);
                 }
 
                 mIsMouseDown = true;
@@ -981,34 +972,7 @@ public:
             }
 
             // Probe at new position
-            auto const probeOutcome = mLabController->ProbeNpcAt(inputState.MousePosition);
-            if (probeOutcome)
-            {
-                if (mNpc.has_value() && mNpc->ObjectId != probeOutcome->ObjectId)
-                {
-                    mLabController->HighlightNpc(
-                        mNpc->ObjectId,
-                        NpcHighlightType::None);
-                }
-
-                if (!mNpc.has_value() || mNpc->ObjectId != probeOutcome->ObjectId)
-                {
-                    mLabController->HighlightNpc(
-                        probeOutcome->ObjectId,
-                        NpcHighlightType::Candidate);
-                }
-            }
-            else
-            {
-                if (mNpc.has_value())
-                {
-                    mLabController->HighlightNpc(
-                        mNpc->ObjectId,
-                        NpcHighlightType::None);
-                }
-            }
-
-            mNpc = probeOutcome; // Always update so to pick latest offset
+            mNpc = mLabController->ProbeNpcAt(inputState.MousePosition);
         }
     }
 
@@ -1051,10 +1015,6 @@ public:
 
     virtual void Deinitialize(InputState const & /*inputState*/) override
     {
-        if (mNpc.has_value() && !mIsMouseDown)
-        {
-            mLabController->HighlightNpc(*mNpc, NpcHighlightType::None);
-        }
     }
 
     virtual void SetCurrentCursor() override
@@ -1109,19 +1069,8 @@ public:
             auto const probeOutcome = mLabController->ProbeNpcAt(inputState.MousePosition);
             if (probeOutcome)
             {
-                if (mNpc.has_value() && *mNpc != probeOutcome->ObjectId)
-                {
-                    mLabController->HighlightNpc(
-                        *mNpc,
-                        NpcHighlightType::None);
-                }
-
                 if (!mNpc.has_value() || *mNpc != probeOutcome->ObjectId)
                 {
-                    mLabController->HighlightNpc(
-                        probeOutcome->ObjectId,
-                        NpcHighlightType::Candidate);
-
                     mNpc = probeOutcome->ObjectId;
                 }
             }
@@ -1129,10 +1078,6 @@ public:
             {
                 if (mNpc.has_value())
                 {
-                    mLabController->HighlightNpc(
-                        *mNpc,
-                        NpcHighlightType::None);
-
                     mNpc = std::nullopt;
                 }
             }

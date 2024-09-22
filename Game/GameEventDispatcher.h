@@ -9,7 +9,10 @@
 
 #include <vector>
 
-class GameEventDispatcher final : public IBLabEventHandler, public INpcGameEventHandler
+class GameEventDispatcher final : 
+    public IBLabEventHandler, 
+    public IPlaceholderEventHandler,
+    public INpcGameEventHandler
 {
 public:
 
@@ -100,6 +103,19 @@ public:
         }
     }
 
+    //
+    // NPC
+    //
+
+    void OnNpcSelectionChanged(
+        std::optional<NpcId> selectedNpc) override
+    {
+        for (auto sink : mNpcSinks)
+        {
+            sink->OnNpcSelectionChanged(selectedNpc);
+        }
+    }
+
     void OnNpcCountsUpdated(
         size_t totalNpcCount) override
     {
@@ -108,7 +124,6 @@ public:
             sink->OnNpcCountsUpdated(totalNpcCount);
         }
     }
-
 
     void OnHumanNpcCountsUpdated(
         size_t insideShipCount,

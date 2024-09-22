@@ -43,7 +43,7 @@ Npcs::StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType Npcs::Ca
 void Npcs::UpdateHuman(
 	StateType & npc,
 	float currentSimulationTime,
-	Ship const & homeShip,
+	Ship & homeShip,
 	GameParameters const & gameParameters)
 {
 	assert(npc.ParticleMesh.Particles.size() == 2);
@@ -57,6 +57,8 @@ void Npcs::UpdateHuman(
 	//
 	// Constants
 	//
+
+	unsigned int constexpr LowFrequencyUpdatePeriod = 4;
 
 	float constexpr MaxRelativeVelocityMagnitudeForEquilibrium = 3.0f; // So high because we slip a lot while we try to stand up, and thus need to be immune to ourselves
 
@@ -76,12 +78,14 @@ void Npcs::UpdateHuman(
 	//
 
 	humanState.ResultantPanicLevel =
-		humanState.ShipOnFirePanicLevel
+		humanState.OnFirePanicLevel
+		+ humanState.BombProximityPanicLevel
 		+ humanState.GeneralizedPanicLevel;
 
 	// Decay
 
-	humanState.ShipOnFirePanicLevel -= humanState.ShipOnFirePanicLevel * 0.01f;
+	humanState.OnFirePanicLevel -= humanState.OnFirePanicLevel * 0.01f;
+	humanState.BombProximityPanicLevel -= humanState.BombProximityPanicLevel * 0.0025f;
 
 	//
 	// Process human
@@ -222,6 +226,26 @@ void Npcs::UpdateHuman(
 				if (npc.Id == mCurrentlySelectedNpc)
 				{
 					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Rising");
+				}
+#endif
+
+				break;
+			}
+
+			// Check if moved to water
+
+			// It's in water if at least one in water
+			if (mParticles.GetAnyWaterness(primaryParticleState.ParticleIndex) > 0.5f
+				|| mParticles.GetAnyWaterness(secondaryParticleState.ParticleIndex) > 0.5f)
+			{
+				// Transition
+
+				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_InWater, currentSimulationTime);
+
+#ifdef BARYLAB_PROBING
+				if (npc.Id == mCurrentlySelectedNpc)
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_InWater");
 				}
 #endif
 
@@ -604,6 +628,73 @@ void Npcs::UpdateHuman(
 				break;
 			}
 
+			// Check progress to electrified, bomb
+
+			if (mCurrentSimulationSequenceNumber.IsStepOf(npc.Id % LowFrequencyUpdatePeriod, LowFrequencyUpdatePeriod))
+			{
+				if (humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_Equilibrium || humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_Walking)
+				{
+					// Check electrification
+
+					if (IsElectrified(npc, homeShip))
+					{
+						// Transition
+
+						humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Electrified, currentSimulationTime);
+
+						// Face: rnd/0.0
+						humanState.CurrentFaceOrientation = GameRandomEngine::GetInstance().GenerateUniformBoolean(0.5f) ? +1.0f : -1.0f;
+						humanState.CurrentFaceDirectionX = 0.0f;
+
+						// Keep torque
+						humanState.EquilibriumTorque = 1.0f;
+
+#ifdef BARYLAB_PROBING
+						if (npc.Id == mCurrentlySelectedNpc)
+						{
+							mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Electrified");
+						}
+#endif
+
+						break;
+					}
+
+					// Check bomb panic
+
+					if (HasBomb(npc, homeShip))
+					{
+						if (humanState.BombProximityPanicLevel < 0.6)
+						{
+							// Time to flip
+							humanState.CurrentFaceDirectionX *= -1.0f;
+						}
+
+						// Panic
+						humanState.BombProximityPanicLevel = 1.0f;
+
+						// Continue
+					}
+				}
+			}
+
+			// Check fire panic
+
+			if (npc.CombustionState.has_value())
+			{
+				if (humanState.OnFirePanicLevel < 0.6)
+				{
+					// Time to flip
+					humanState.CurrentFaceDirectionX *= -1.0f;
+				}
+
+				// Panic
+				humanState.OnFirePanicLevel = 1.0f;
+
+				// Continue
+			}
+
+			// Check progress to walking
+
 			bool const areFeetOnFloor = primaryParticleState.ConstrainedState.has_value() && primaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value();
 			if (humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_Equilibrium)
 			{
@@ -859,6 +950,132 @@ void Npcs::UpdateHuman(
 			break;
 		}
 
+		case HumanNpcStateType::BehaviorType::Constrained_InWater:
+		case HumanNpcStateType::BehaviorType::Constrained_Swimming_Style1:
+		case HumanNpcStateType::BehaviorType::Constrained_Swimming_Style2:
+		{
+			if (isFree)
+			{
+				// Transition
+				TransitionHumanBehaviorToFree(npc, currentSimulationTime);
+
+				break;
+			}
+
+			// Check if moved to air
+
+			// It's in air if both in air
+			if (mParticles.GetAnyWaterness(primaryParticleState.ParticleIndex) < 0.25f
+				&& mParticles.GetAnyWaterness(secondaryParticleState.ParticleIndex) < 0.25f)
+			{
+				// Transition
+
+				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Aerial, currentSimulationTime);
+
+#ifdef BARYLAB_PROBING
+				if (npc.Id == mCurrentlySelectedNpc)
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Aerial");
+				}
+#endif
+
+				break;
+			}
+
+			// Advance state machine
+
+			if (humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_InWater)
+			{
+				// Progress to swimming after a while here
+
+				float constexpr ToSwimmingConvergenceRate = 0.01f;
+				humanState.CurrentBehaviorState.Constrained_InWater.ProgressToSwimming +=
+					(1.0f - humanState.CurrentBehaviorState.Constrained_InWater.ProgressToSwimming)
+					* ToSwimmingConvergenceRate;
+
+#ifdef BARYLAB_PROBING
+				publishStateQuantity = std::make_tuple("ProgressToSwimming", std::to_string(humanState.CurrentBehaviorState.Constrained_InWater.ProgressToSwimming));
+#endif
+
+				if (IsAtTarget(humanState.CurrentBehaviorState.Constrained_InWater.ProgressToSwimming, 0.98f))
+				{
+					// Transition
+
+					StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType const swimStyle = (humanState.CurrentFaceOrientation != 0.0f)
+						? HumanNpcStateType::BehaviorType::Constrained_Swimming_Style1
+						: HumanNpcStateType::BehaviorType::Constrained_Swimming_Style2;
+
+					humanState.TransitionToState(swimStyle, currentSimulationTime);
+
+#ifdef BARYLAB_PROBING
+					if (npc.Id == mCurrentlySelectedNpc)
+					{
+						mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Swimming");
+					}
+#endif
+
+					break;
+				}
+			}
+
+			break;
+		}
+
+		case HumanNpcStateType::BehaviorType::Constrained_Electrified:
+		{
+			if (isFree)
+			{
+				// Transition
+				TransitionHumanBehaviorToFree(npc, currentSimulationTime);
+
+				break;
+			}
+
+			// Advance towards leaving
+
+			float toLeavingIncrement;
+			if (!IsElectrified(npc, homeShip))
+			{
+				toLeavingIncrement = 1.0f;
+			}
+			else
+			{
+				toLeavingIncrement = -1.0f;
+			}
+
+			humanState.CurrentBehaviorState.Constrained_Electrified.ProgressToLeaving = std::max(
+				humanState.CurrentBehaviorState.Constrained_Electrified.ProgressToLeaving + toLeavingIncrement,
+				0.0f);
+
+			float constexpr ToLeavingTarget = 8.0f;
+
+#ifdef BARYLAB_PROBING
+			publishStateQuantity = std::make_tuple("ProgressToLeaving", std::to_string(humanState.CurrentBehaviorState.Constrained_Electrified.ProgressToLeaving / ToLeavingTarget));
+#endif
+
+			if (humanState.CurrentBehaviorState.Constrained_Electrified.ProgressToLeaving >= ToLeavingTarget)
+			{
+				// Transition
+
+				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
+
+#ifdef BARYLAB_PROBING
+				if (npc.Id == mCurrentlySelectedNpc)
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+				}
+#endif
+
+				break;
+			}
+
+			// Maintain state
+
+			humanState.EquilibriumTorque = 1.0f;
+
+			break;
+		}
+
 		case HumanNpcStateType::BehaviorType::Free_Aerial:
 		{
 			if (!isFree)
@@ -879,12 +1096,9 @@ void Npcs::UpdateHuman(
 
 			// Check if moved to water
 
-			auto const & headPosition = mParticles.GetPosition(secondaryParticleState.ParticleIndex);
-			auto const & feetPosition = mParticles.GetPosition(primaryParticleState.ParticleIndex);
-
 			// It's in water if at least one in water
-			if (mParentWorld.GetOceanSurface().GetDepth(headPosition) > 0.0f
-				|| mParentWorld.GetOceanSurface().GetDepth(feetPosition) > 0.0f)
+			if (mParticles.GetAnyWaterness(primaryParticleState.ParticleIndex) > 0.0f
+				|| mParticles.GetAnyWaterness(secondaryParticleState.ParticleIndex) > 0.0f)
 			{
 				// Transition
 
@@ -894,6 +1108,153 @@ void Npcs::UpdateHuman(
 				if (npc.Id == mCurrentlySelectedNpc)
 				{
 					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_InWater");
+				}
+#endif
+
+				break;
+			}
+
+			// Progress to knocked out (when still)
+
+			float knockedOutTarget;
+
+			auto const velocityMagnitude =
+				(primaryParticleState.GetApplicableVelocity(mParticles).length() + secondaryParticleState.GetApplicableVelocity(mParticles).length())
+				/ 2.0f;
+
+			if (velocityMagnitude < 0.1f)
+			{
+				knockedOutTarget = 1.0f;
+			}
+			else
+			{
+				knockedOutTarget = 0.0f;
+			}
+
+			float constexpr ToKnockedOutConvergenceRate = 0.2f;
+
+			humanState.CurrentBehaviorState.Free_Aerial.ProgressToKnockedOut +=
+				(knockedOutTarget - humanState.CurrentBehaviorState.Free_Aerial.ProgressToKnockedOut)
+				* ToKnockedOutConvergenceRate;
+
+#ifdef BARYLAB_PROBING
+			publishStateQuantity = std::make_tuple("ProgressToKnockedOut", std::to_string(humanState.CurrentBehaviorState.Free_Aerial.ProgressToKnockedOut));
+#endif
+
+			if (IsAtTarget(humanState.CurrentBehaviorState.Free_Aerial.ProgressToKnockedOut, 1.0f))
+			{
+				// Transition
+
+				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Free_KnockedOut, currentSimulationTime);
+
+#ifdef BARYLAB_PROBING
+				if (npc.Id == mCurrentlySelectedNpc)
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_KnockedOut");
+				}
+#endif
+
+				break;
+			}
+
+			break;
+		}
+
+		case HumanNpcStateType::BehaviorType::Free_KnockedOut:
+		{
+			if (!isFree)
+			{
+				// Transition
+
+				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
+
+#ifdef BARYLAB_PROBING
+				if (npc.Id == mCurrentlySelectedNpc)
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+				}
+#endif
+
+				break;
+			}
+
+			// Progress to in-water (when at least one particle in water)
+
+			float inWaterTarget;
+
+			if (mParticles.GetAnyWaterness(primaryParticleState.ParticleIndex) > 0.0f
+				|| mParticles.GetAnyWaterness(secondaryParticleState.ParticleIndex) > 0.0f)
+			{
+				inWaterTarget = 1.0f;
+			}
+			else
+			{
+				inWaterTarget = 0.0f;
+			}
+
+			float constexpr ToInWaterConvergenceRate = 0.2f;
+
+			humanState.CurrentBehaviorState.Free_KnockedOut.ProgressToInWater +=
+				(inWaterTarget - humanState.CurrentBehaviorState.Free_KnockedOut.ProgressToInWater)
+				* ToInWaterConvergenceRate;
+
+#ifdef BARYLAB_PROBING
+			publishStateQuantity = std::make_tuple("ProgressToInWater", std::to_string(humanState.CurrentBehaviorState.Free_KnockedOut.ProgressToInWater));
+#endif
+
+			if (IsAtTarget(humanState.CurrentBehaviorState.Free_KnockedOut.ProgressToInWater, 1.0f))
+			{
+				// Transition
+
+				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Free_InWater, currentSimulationTime);
+
+#ifdef BARYLAB_PROBING
+				if (npc.Id == mCurrentlySelectedNpc)
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_InWater");
+				}
+#endif
+
+				break;
+			}
+
+			// Progress to aerial (when moving and out-of-water)
+
+			float aerialTarget;
+
+			auto const velocityMagnitude =
+				(primaryParticleState.GetApplicableVelocity(mParticles).length() + secondaryParticleState.GetApplicableVelocity(mParticles).length())
+				/ 2.0f;
+
+			if (velocityMagnitude > 0.5f)
+			{
+				aerialTarget = 1.0f;
+			}
+			else
+			{
+				aerialTarget = 0.0f;
+			}
+
+			float constexpr ToAerialConvergenceRate = 0.2f;
+
+			humanState.CurrentBehaviorState.Free_KnockedOut.ProgressToAerial +=
+				(aerialTarget - humanState.CurrentBehaviorState.Free_KnockedOut.ProgressToAerial)
+				* ToAerialConvergenceRate;
+
+#ifdef BARYLAB_PROBING
+			publishStateQuantity = std::make_tuple("ProgressToAerial", std::to_string(humanState.CurrentBehaviorState.Free_KnockedOut.ProgressToAerial));
+#endif
+
+			if (IsAtTarget(humanState.CurrentBehaviorState.Free_KnockedOut.ProgressToAerial, 1.0f))
+			{
+				// Transition
+
+				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Free_Aerial, currentSimulationTime);
+
+#ifdef BARYLAB_PROBING
+				if (npc.Id == mCurrentlySelectedNpc)
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Aerial");
 				}
 #endif
 
@@ -926,12 +1287,9 @@ void Npcs::UpdateHuman(
 
 			// Check if moved to air
 
-			auto const & headPosition = mParticles.GetPosition(secondaryParticleState.ParticleIndex);
-			auto const & feetPosition = mParticles.GetPosition(primaryParticleState.ParticleIndex);
-
 			// It's in air if both in air
-			if (mParentWorld.GetOceanSurface().GetDepth(headPosition) <= 0.0f
-				&& mParentWorld.GetOceanSurface().GetDepth(feetPosition) <= 0.0f)
+			if (mParticles.GetAnyWaterness(primaryParticleState.ParticleIndex) == 0.0f
+				&& mParticles.GetAnyWaterness(secondaryParticleState.ParticleIndex) == 0.0f)
 			{
 				// Transition
 
@@ -949,13 +1307,23 @@ void Npcs::UpdateHuman(
 
 			// Advance state machine
 
+			vec2f const feetVelocity = mParticles.GetVelocity(primaryParticleState.ParticleIndex);
+			vec2f const headVelocity = mParticles.GetVelocity(secondaryParticleState.ParticleIndex);
+			float constexpr MaxRelativeVelocityForSwimming = 2.0f;
+			float const isRelativeVelocityOk = Step((headVelocity - feetVelocity).length(), MaxRelativeVelocityForSwimming); // Also rotation
+			float constexpr MaxVelocityForSwimming = 4.0f;
+			float const isAbsoluteVelocityOk = Step(feetVelocity.length(), MaxVelocityForSwimming) * Step(headVelocity.length(), MaxVelocityForSwimming);
+
 			if (humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Free_InWater)
 			{
-				// Progress to swimming if not rotating and head above feet
+				// Progress to swimming if velocities ok, and head above feet
 
-				float const rotationMagnitude = (mParticles.GetVelocity(secondaryParticleState.ParticleIndex) - mParticles.GetVelocity(primaryParticleState.ParticleIndex)).length();
+				auto const & headPosition = mParticles.GetPosition(secondaryParticleState.ParticleIndex);
+				auto const & feetPosition = mParticles.GetPosition(primaryParticleState.ParticleIndex);
+
 				float const targetSwim =
-					(1.0f - Step(2.0f, rotationMagnitude))
+					isRelativeVelocityOk
+					* isAbsoluteVelocityOk
 					* Step(feetPosition.y, headPosition.y);
 
 				float constexpr ToSwimmingConvergenceRate = 0.12f;
@@ -970,24 +1338,23 @@ void Npcs::UpdateHuman(
 					// Transition
 
 					StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType swimStyle;
-					switch (GameRandomEngine::GetInstance().Choose(4))
+					switch (GameRandomEngine::GetInstance().Choose(5))
 					{
 						case 0:
-						case 1:
-						{
-							swimStyle = HumanNpcStateType::BehaviorType::Free_Swimming_Style1;
-							break;
-						}
-
-						case 2:
 						{
 							swimStyle = HumanNpcStateType::BehaviorType::Free_Swimming_Style2;
 							break;
 						}
 
-						default:
+						case 1:
 						{
 							swimStyle = HumanNpcStateType::BehaviorType::Free_Swimming_Style3;
+							break;
+						}
+
+						default:
+						{
+							swimStyle = HumanNpcStateType::BehaviorType::Free_Swimming_Style1;
 							break;
 						}
 					}
@@ -995,7 +1362,7 @@ void Npcs::UpdateHuman(
 					humanState.TransitionToState(swimStyle, currentSimulationTime);
 
 					// Face: FvB/0
-					humanState.CurrentFaceOrientation = 1.0f; // TODO: random: back
+					humanState.CurrentFaceOrientation = (GameRandomEngine::GetInstance().Choose(3) == 0) ? -1.0f : 1.0f;
 					humanState.CurrentFaceDirectionX = 0.0f;
 
 #ifdef BARYLAB_PROBING
@@ -1007,6 +1374,104 @@ void Npcs::UpdateHuman(
 
 					break;
 				}
+			}
+			else
+			{
+				// Leave swimming if velocities not ok
+
+				float const targetLeavingSwimming = 1.0f -
+					isRelativeVelocityOk
+					* isAbsoluteVelocityOk;
+
+				float constexpr ToLeavingSwimmingConvergenceRate = 0.12f;
+				humanState.CurrentBehaviorState.Free_Swimming.ProgressToLeavingSwimming += (targetLeavingSwimming - humanState.CurrentBehaviorState.Free_Swimming.ProgressToLeavingSwimming) * ToLeavingSwimmingConvergenceRate;
+
+#ifdef BARYLAB_PROBING
+				publishStateQuantity = std::make_tuple("ProgressToLeavingSwimming", std::to_string(humanState.CurrentBehaviorState.Free_Swimming.ProgressToLeavingSwimming));
+#endif
+
+				if (IsAtTarget(humanState.CurrentBehaviorState.Free_Swimming.ProgressToLeavingSwimming, 1.0f))
+				{
+					// Transition
+
+					humanState.TransitionToState(HumanNpcStateType::BehaviorType::Free_InWater, currentSimulationTime);
+
+#ifdef BARYLAB_PROBING
+					if (npc.Id == mCurrentlySelectedNpc)
+					{
+						mGameEventHandler->OnHumanNpcBehaviorChanged("Free_InWater");
+					}
+#endif
+
+					break;
+				}
+			}
+
+			// We are staying at this state...
+			// ...update this state then
+
+			// See if time to emit a bubble
+
+			float & nextBubbleSimulationTime = (humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Free_InWater)
+				? humanState.CurrentBehaviorState.Free_InWater.NextBubbleEmissionSimulationTimestamp
+				: humanState.CurrentBehaviorState.Free_Swimming.NextBubbleEmissionSimulationTimestamp;
+
+			if (currentSimulationTime > nextBubbleSimulationTime)
+			{
+				homeShip.SpawnAirBubble(
+					mParticles.GetPosition(secondaryParticleState.ParticleIndex),
+					GameParameters::NpcAirBubbleFinalScale,
+					GameParameters::HumanNpcTemperature,
+					currentSimulationTime,
+					npc.CurrentPlaneId,
+					gameParameters);
+
+				// Calculate next emission timestamp
+				nextBubbleSimulationTime =
+					currentSimulationTime
+					+ 1.0f // Min delay
+					+ std::min(GameRandomEngine::GetInstance().GenerateExponentialReal(0.5f), 2.0f);
+			}
+
+			break;
+		}
+
+		case HumanNpcStateType::BehaviorType::ConstrainedOrFree_Smashed:
+		{
+			// Advance towards leaving
+
+			humanState.CurrentBehaviorState.ConstrainedOrFree_Smashed.ProgressToLeaving +=
+				(1.0f - humanState.CurrentBehaviorState.ConstrainedOrFree_Smashed.ProgressToLeaving)
+				* 0.04f;
+
+			if (IsAtTarget(humanState.CurrentBehaviorState.ConstrainedOrFree_Smashed.ProgressToLeaving, 1.0f))
+			{
+				// Transition
+
+				if (isFree)
+				{
+					humanState.TransitionToState(HumanNpcStateType::BehaviorType::Free_KnockedOut, currentSimulationTime);
+
+#ifdef BARYLAB_PROBING
+					if (npc.Id == mCurrentlySelectedNpc)
+					{
+						mGameEventHandler->OnHumanNpcBehaviorChanged("Free_KnockedOut");
+					}
+#endif
+				}
+				else
+				{
+					humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_KnockedOut, currentSimulationTime);
+
+#ifdef BARYLAB_PROBING
+					if (npc.Id == mCurrentlySelectedNpc)
+					{
+						mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_KnockedOut");
+					}
+#endif
+				}
+
+				break;
 			}
 
 			break;

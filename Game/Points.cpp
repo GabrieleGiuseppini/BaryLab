@@ -55,4 +55,40 @@ void Points::Query(ElementIndex vertexElementIndex) const
     LogMessage("Triangles: ", mConnectedTrianglesBuffer[vertexElementIndex].ConnectedTriangles.size());
 }
 
+float Points::GetWater(ElementIndex /*pointElementIndex*/) const
+{
+    return 0.0f;
+}
+
+vec2f Points::GetWaterVelocity(ElementIndex /*pointElementIndex*/) const
+{
+    return vec2f::zero();
+}
+
+void Points::AddTransientAdditionalMass(
+    ElementIndex /*pointElementIndex*/,
+    float /*mass*/)
+{
+}
+
+float Points::GetTemperature(ElementIndex /*pointElementIndex*/) const
+{
+    return GameParameters::Temperature0;
+}
+
+bool Points::GetIsHull(ElementIndex /*pointElementIndex*/) const
+{
+    return false;
+}
+
+bool Points::IsBurning(ElementIndex /*pointElementIndex*/) const
+{
+    return false;
+}
+
+bool Points::GetIsElectrified(ElementIndex /*pointElementIndex*/) const
+{
+    return false;
+}
+
 }

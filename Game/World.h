@@ -15,6 +15,7 @@
 
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <vector>
 
  // Placeholder for real World
@@ -31,6 +32,8 @@ public:
 		float oceanDepth)
 		: mGameEventHandler(std::move(gameEventHandler))
 		, mAllShips()
+		, mStorm()
+		, mOceanFloor()
 		, mOceanSurface(oceanDepth)
 		, mNpcs()
 	{
@@ -60,6 +63,15 @@ public:
 		return *mAllShips[0];
 	}
 
+	vec2f GetCurrentWindSpeed() const;
+
+	std::optional<Wind::RadialWindField> GetCurrentRadialWindField() const;
+
+	OceanFloor const & GetOceanFloor()
+	{
+		return mOceanFloor;
+	}
+
 	OceanSurface const & GetOceanSurface() const
 	{
 		return mOceanSurface;
@@ -68,6 +80,11 @@ public:
 	OceanSurface & GetOceanSurface()
 	{
 		return mOceanSurface;
+	}
+
+	void DisplaceOceanSurfaceAt(float /*x*/, float /*quantity*/)
+	{
+		// Nop
 	}
 
 	Physics::Npcs const & GetNpcs() const
@@ -114,6 +131,7 @@ public:
 
 		mNpcs->Update(
 			currentSimulationTime,
+			mStorm.GetParameters(),
 			gameParameters);
 
 		perfStats.TotalNpcUpdateDuration.Update(GameChronometer::now() - startTime);
@@ -125,6 +143,8 @@ private:
 
 	// Repository
 	std::vector<std::unique_ptr<Ship>> mAllShips;
+	Storm mStorm;
+	OceanFloor mOceanFloor;
 	OceanSurface mOceanSurface;
 	std::unique_ptr<Npcs> mNpcs;
 

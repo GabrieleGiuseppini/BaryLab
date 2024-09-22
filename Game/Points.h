@@ -228,6 +228,24 @@ public:
             isAtOwner);
     }
 
+    // Placeholders
+
+    float GetWater(ElementIndex pointElementIndex) const;
+
+    vec2f GetWaterVelocity(ElementIndex pointElementIndex) const;
+
+    void AddTransientAdditionalMass(
+        ElementIndex pointElementIndex,
+        float mass);
+
+    float GetTemperature(ElementIndex pointElementIndex) const;
+
+    bool GetIsHull(ElementIndex pointElementIndex) const;
+
+    bool IsBurning(ElementIndex pointElementIndex) const;
+
+    bool GetIsElectrified(ElementIndex pointElementIndex) const;
+
 private:
 
     Buffer<vec2f> mPositionBuffer;

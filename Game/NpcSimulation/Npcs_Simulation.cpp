@@ -5,6 +5,7 @@
  ***************************************************************************************/
 #include "Physics.h"
 
+#include <GameCore/Conversions.h>
 #include <GameCore/GameMath.h>
 
 #include <array>
@@ -66,7 +67,7 @@ void Npcs::ResetNpcStateToWorld(
     StateType & npc,
     float currentSimulationTime,
     Ship const & homeShip,
-    std::optional<ElementIndex> primaryParticleTriangleIndex) const
+    std::optional<ElementIndex> primaryParticleTriangleIndex)
 {
     // Plane ID, connected component ID
 
@@ -87,7 +88,7 @@ void Npcs::ResetNpcStateToWorld(
         // fine to stick to this plane so that if new planes come up, they will cover the NPC!
         npc.CurrentPlaneId = homeShip.GetMaxPlaneId();
 
-        // Primary if free, hence this NPC does not belong to any connected components
+        // Primary is free, hence this NPC does not belong to any connected components
         npc.CurrentConnectedComponentId.reset();
     }
 
@@ -95,11 +96,13 @@ void Npcs::ResetNpcStateToWorld(
 
     for (size_t p = 0; p < npc.ParticleMesh.Particles.size(); ++p)
     {
+        ElementIndex const particleIndex = npc.ParticleMesh.Particles[p].ParticleIndex;
+
         if (p == 0)
         {
             // Primary
             npc.ParticleMesh.Particles[p].ConstrainedState = CalculateParticleConstrainedState(
-                mParticles.GetPosition(npc.ParticleMesh.Particles[p].ParticleIndex),
+                mParticles.GetPosition(particleIndex),
                 homeShip,
                 primaryParticleTriangleIndex,
                 std::nullopt); // No need to search
@@ -119,7 +122,7 @@ void Npcs::ResetNpcStateToWorld(
             else
             {
                 npc.ParticleMesh.Particles[p].ConstrainedState = CalculateParticleConstrainedState(
-                    mParticles.GetPosition(npc.ParticleMesh.Particles[p].ParticleIndex),
+                    mParticles.GetPosition(particleIndex),
                     homeShip,
                     std::nullopt,
                     npc.CurrentConnectedComponentId); // Constrain this secondary's triangle to NPC's connected component ID
@@ -176,7 +179,8 @@ void Npcs::TransitionParticleToConstrainedState(
 
 void Npcs::TransitionParticleToFreeState(
     StateType & npc,
-    int npcParticleOrdinal)
+    int npcParticleOrdinal,
+    Ship const & homeShip)
 {
     // Transition
     npc.ParticleMesh.Particles[npcParticleOrdinal].ConstrainedState.reset();
@@ -194,6 +198,7 @@ void Npcs::TransitionParticleToFreeState(
             }
         }
 
+        npc.CurrentPlaneId = homeShip.GetMaxPlaneId();
         npc.CurrentConnectedComponentId.reset();
     }
 
@@ -201,9 +206,6 @@ void Npcs::TransitionParticleToFreeState(
     auto const oldRegime = npc.CurrentRegime;
     npc.CurrentRegime = CalculateRegime(npc);
     OnMayBeNpcRegimeChanged(oldRegime, npc);
-
-    // Note: we leave plane ID as-is, it sticks and the NPC will eventually
-    // get covered by other parts of the ship!
 }
 
 std::optional<Npcs::StateType::NpcParticleStateType::ConstrainedStateType> Npcs::CalculateParticleConstrainedState(
@@ -300,6 +302,7 @@ Npcs::StateType::RegimeType Npcs::CalculateRegime(StateType const & npc)
 
 void Npcs::UpdateNpcs(
     float currentSimulationTime,
+    Storm::Parameters const & stormParameters,
     GameParameters const & gameParameters)
 {
     LogNpcDebug("----------------------------------");
@@ -313,13 +316,31 @@ void Npcs::UpdateNpcs(
     // Note: no need to reset PreliminaryForces as we'll recalculate all of them
 
     //
-    // 2. Check if constrained states are still coherent (connectivity changes, etc.)
-    // 3. Check if a free secondary particle should become constrained
-    // 4. Calculate preliminary forces
-    // 5. Calculate spring forces
-    // 6. Update physical state
-    // 7. Maintain world bounds
+    // 2. Low-frequency and high-frequency updates of Npc and NpcParticle attributes
+    // 3. Check if a particle's constrained state is still valid (deleted/folded triangles)
+    // 4. Check if a free secondary particle should become constrained
+    // 5. Calculate preliminary forces
+    // 6. Calculate spring forces
+    // 7. Update physical state
+    // 8. Maintain world bounds
     //
+
+    // Calculate all physics constants needed for physics update
+
+    float const effectiveAirDensity = Formulae::CalculateAirDensity(
+        gameParameters.AirTemperature + stormParameters.AirTemperatureDelta,
+        gameParameters);
+
+    vec2f const globalWindForce = Formulae::WindSpeedToForceDensity(
+        Conversions::KmhToMs(mParentWorld.GetCurrentWindSpeed()),
+        effectiveAirDensity);
+
+    ////// FUTUREWORK
+    ////float const effectiveWaterDensity = Formulae::CalculateWaterDensity(
+    ////    gameParameters.WaterTemperature,
+    ////    gameParameters);
+
+    // Visit all NPCs
 
     for (auto & npcState : mStateBuffer)
     {
@@ -333,39 +354,161 @@ void Npcs::UpdateNpcs(
             assert((npcState->CurrentRegime == StateType::RegimeType::BeingPlaced) == npcState->BeingPlacedState.has_value());
             assert(npcState->ParticleMesh.Particles.size() > 0);
 
-            // Enforce constrained state coherence and calculate preliminary forces
+            // Low-frequency updates
+
+            unsigned int constexpr LowFrequencyUpdatePeriod = 4;
+            if (mCurrentSimulationSequenceNumber.IsStepOf(npcState->Id % LowFrequencyUpdatePeriod, LowFrequencyUpdatePeriod))
+            {
+                // Waterness, Water Velocity, Combustion
+
+                bool atLeastOneNpcParticleOnFire = false;
+                bool atLeastOneNpcParticleInFreeWater = false;
+
+                for (auto p = 0; p < npcState->ParticleMesh.Particles.size(); ++p)
+                {
+                    auto const & particle = npcState->ParticleMesh.Particles[p];
+
+                    if (particle.ConstrainedState.has_value())
+                    {
+                        auto const t = particle.ConstrainedState->CurrentBCoords.TriangleElementIndex;
+
+                        float totalWaterness = 0.0f;
+                        vec2f totalWaterVelocity = vec2f::zero();
+                        float waterablePointCount = 0.0f;
+                        bool isAtLeastOneMeshPointOnFire = false;
+                        for (int v = 0; v < 3; ++v)
+                        {
+                            ElementIndex const pointElementIndex = homeShip.GetTriangles().GetPointIndices(t)[v];
+
+                            float const w = std::min(homeShip.GetPoints().GetWater(pointElementIndex), 1.0f);
+                            totalWaterness += w;
+
+                            totalWaterVelocity += homeShip.GetPoints().GetWaterVelocity(pointElementIndex) * w;
+
+                            if (!homeShip.GetPoints().GetIsHull(pointElementIndex))
+                                waterablePointCount += 1.0f;
+
+                            if (homeShip.GetPoints().GetTemperature(pointElementIndex) >= mParticles.GetMaterial(particle.ParticleIndex).IgnitionTemperature * gameParameters.IgnitionTemperatureAdjustment
+                                || homeShip.GetPoints().IsBurning(pointElementIndex))
+                            {
+                                isAtLeastOneMeshPointOnFire = true;
+                            }
+                        }
+
+                        float const meshWaterness = totalWaterness / (std::max(waterablePointCount, 1.0f));
+                        mParticles.SetMeshWaterness(particle.ParticleIndex, meshWaterness);
+
+                        vec2f const meshWaterVelocity = totalWaterVelocity / (std::max(waterablePointCount, 1.0f));
+                        mParticles.SetMeshWaterVelocity(particle.ParticleIndex, meshWaterVelocity);
+
+                        if (meshWaterness < 0.4f) // Otherwise too much water for fire
+                        {
+                            atLeastOneNpcParticleOnFire = atLeastOneNpcParticleOnFire || isAtLeastOneMeshPointOnFire;
+                        }
+                    }
+                    else
+                    {
+                        // Free - check if underwater (using AnyWaterness as proxy)
+                        if (mParticles.GetAnyWaterness(particle.ParticleIndex) > 0.4f)
+                        {
+                            atLeastOneNpcParticleInFreeWater = true;
+                        }
+                    }
+                } // For all NPC particles
+
+                // Update NPC's fire progress
+
+                if (atLeastOneNpcParticleInFreeWater)
+                {
+                    // Smother immediately
+                    npcState->CombustionProgress += (-1.0f - npcState->CombustionProgress) * 0.1f;
+                }
+                else
+                {
+                    if (atLeastOneNpcParticleOnFire)
+                    {
+                        // Increase
+                        npcState->CombustionProgress += (1.0f - npcState->CombustionProgress) * 0.3f;
+                    }
+                    else
+                    {
+                        // Decrease
+                        npcState->CombustionProgress += (-1.0f - npcState->CombustionProgress) * 0.007f;
+                    }
+                }
+            }
+
+            // High-frequency updates
+
+            {
+                // Combustion state machine: ignite or smother
+
+                if (npcState->CombustionProgress > 0.0f)
+                {
+                    // See if we've just ignited
+                    if (!npcState->CombustionState.has_value())
+                    {
+                        // Init state (will be evolved right now)
+                        npcState->CombustionState.emplace(
+                            vec2f(0.0f, 1.0f),
+                            0.0f);
+
+                        // Add to burning set
+                        auto & shipNpcs = *mShips[npcState->CurrentShipId];
+                        assert(std::find(shipNpcs.BurningNpcs.cbegin(), shipNpcs.BurningNpcs.cend(), npcState->Id) == shipNpcs.BurningNpcs.cend());
+                        shipNpcs.BurningNpcs.push_back(npcState->Id);
+
+                        // Emit event
+                        mGameEventHandler->OnPointCombustionBegin();
+                    }
+
+                    // Update flame progress
+                    ElementIndex reprParticleIndex = npcState->Kind == NpcKindType::Human // Approx
+                        ? npcState->ParticleMesh.Particles[1].ParticleIndex
+                        : npcState->ParticleMesh.Particles[0].ParticleIndex;
+                    Formulae::EvolveFlameGeometry(
+                        npcState->CombustionState->FlameVector,
+                        npcState->CombustionState->FlameWindRotationAngle,
+                        mParticles.GetPosition(reprParticleIndex),
+                        // Exhaggerate; using absolute V (instead of more correct rel) to be in sync w/Ship
+                        mParticles.GetVelocity(reprParticleIndex) * 4.0f,
+                        mParentWorld.GetCurrentWindSpeed(),
+                        mParentWorld.GetCurrentRadialWindField());
+                }
+                else
+                {
+                    // See if we've stopped
+                    if (npcState->CombustionState.has_value())
+                    {
+                        // Reset combustion state
+                        npcState->CombustionState.reset();
+
+                        // Remove from burning set
+                        auto & shipNpcs = *mShips[npcState->CurrentShipId];
+                        auto npcIt = std::find(shipNpcs.BurningNpcs.begin(), shipNpcs.BurningNpcs.end(), npcState->Id);
+                        assert(npcIt != shipNpcs.BurningNpcs.end());
+                        shipNpcs.BurningNpcs.erase(npcIt);
+
+                        // Emit event
+                        mGameEventHandler->OnPointCombustionEnd();
+                    }
+                }
+            }
+
+            // Check validity of constrained triangles, and calculate preliminary forces
 
             for (auto p = 0; p < npcState->ParticleMesh.Particles.size(); ++p)
             {
                 auto const & particleConstrainedState = npcState->ParticleMesh.Particles[p].ConstrainedState;
                 if (particleConstrainedState.has_value())
                 {
+                    // Constrained any particle: check if its triangle is still valid
+
                     // If triangle is not workable anymore, become free
                     if (homeShip.GetTriangles().IsDeleted(particleConstrainedState->CurrentBCoords.TriangleElementIndex)
                         || IsTriangleFolded(particleConstrainedState->CurrentBCoords.TriangleElementIndex, homeShip))
                     {
-                        TransitionParticleToFreeState(*npcState, p);
-                    }
-                    else
-                    {
-                        auto const triangleRepresentativePoint = homeShip.GetTriangles().GetPointAIndex(particleConstrainedState->CurrentBCoords.TriangleElementIndex);
-                        if (p == 0)
-                        {
-                            // Primary particle: take its PlaneID and connected component as representatives for the whole NPC;
-                            // we do this here as these might have changed/reassigned in this simulation step
-
-                            npcState->CurrentPlaneId = homeShip.GetPoints().GetPlaneId(triangleRepresentativePoint);
-                            npcState->CurrentConnectedComponentId = homeShip.GetPoints().GetConnectedComponentId(triangleRepresentativePoint);
-                        }
-                        else
-                        {
-                            // Non-primary particle: make sure its connected component ID matches NPC's;
-                            // if not, we've been separated from primary and thus we become free
-                            if (homeShip.GetPoints().GetConnectedComponentId(triangleRepresentativePoint) != npcState->CurrentConnectedComponentId)
-                            {
-                                TransitionParticleToFreeState(*npcState, p);
-                            }
-                        }
+                        TransitionParticleToFreeState(*npcState, p, homeShip);
                     }
                 }
                 else if (p > 0)
@@ -393,6 +536,7 @@ void Npcs::UpdateNpcs(
                 CalculateNpcParticlePreliminaryForces(
                     *npcState,
                     p,
+                    globalWindForce,
                     gameParameters);
             }
 
@@ -414,14 +558,25 @@ void Npcs::UpdateNpcs(
                 MaintainInWorldBounds(
                     *npcState,
                     p,
+                    homeShip,
                     gameParameters);
+
+                if (npcState->CurrentRegime == StateType::RegimeType::Free)
+                {
+                    // Only maintain over land if _all_ particles are free
+                    MaintainOverLand(
+                        *npcState,
+                        p,
+                        homeShip,
+                        gameParameters);
+                }
             }
         }
     }
 
     //
-    // 8. Update behavioral state machines
-    // 9. Update animation
+    // 9. Update behavioral state machines
+    // 10. Update animation
     //
 
     LogNpcDebug("----------------------------------");
@@ -431,7 +586,7 @@ void Npcs::UpdateNpcs(
         if (npcState.has_value())
         {
             assert(mShips[npcState->CurrentShipId].has_value());
-            auto const & homeShip = mShips[npcState->CurrentShipId]->HomeShip;
+            auto & homeShip = mShips[npcState->CurrentShipId]->HomeShip;
 
             // Behavior
 
@@ -452,6 +607,12 @@ void Npcs::UpdateNpcs(
                 homeShip);
         }
     }
+}
+
+void Npcs::UpdateNpcsEnd()
+{
+    // We consume this one
+    mParticles.ResetExternalForces();
 }
 
 void Npcs::UpdateNpcParticlePhysics(
@@ -769,7 +930,7 @@ void Npcs::UpdateNpcParticlePhysics(
                         {
                             // Transition to free immediately
 
-                            TransitionParticleToFreeState(npc, npcParticleOrdinal);
+                            TransitionParticleToFreeState(npc, npcParticleOrdinal, homeShip);
 
                             UpdateNpcParticle_Free(
                                 npcParticle,
@@ -1201,25 +1362,18 @@ void Npcs::UpdateNpcParticlePhysics(
 
                     if (!nonInertialOutcome.HasBounced)
                     {
-                        // We have reached destination, impart force onto mesh
-                        // for the component of the original trajectory that was
-                        // stopped by the edge
+                        // We have reached destination and thus we're lying on this edge;
+                        // impart mass onto mesh, divided among the two vertices
 
-                        vec2f const edgeN = edgeDir.to_perpendicular();
-                        vec2f const trajectoryN = edgeN * (trajectory.dot(edgeN));
-                        vec2f const impartedForce = trajectoryN * particleMass / (dt * dt);
-
-                        // Divide among two vertices
-
-                        int edgeVertex1Ordinal = nonInertialEdgeOrdinal;
-                        ElementIndex edgeVertex1PointIndex = homeShip.GetTriangles().GetPointIndices(edgeTouchPointBCoords.TriangleElementIndex)[edgeVertex1Ordinal];
+                        int const edgeVertex1Ordinal = nonInertialEdgeOrdinal;
+                        ElementIndex const edgeVertex1PointIndex = homeShip.GetTriangles().GetPointIndices(edgeTouchPointBCoords.TriangleElementIndex)[edgeVertex1Ordinal];
                         float const vertex1InterpCoeff = edgeTouchPointBCoords.BCoords[edgeVertex1Ordinal];
-                        homeShip.GetPoints().AddStaticForce(edgeVertex1PointIndex, impartedForce * vertex1InterpCoeff);
+                        homeShip.GetPoints().AddTransientAdditionalMass(edgeVertex1PointIndex, particleMass * vertex1InterpCoeff);
 
-                        int edgeVertex2Ordinal = (nonInertialEdgeOrdinal + 1) % 3;
-                        ElementIndex edgeVertex2PointIndex = homeShip.GetTriangles().GetPointIndices(edgeTouchPointBCoords.TriangleElementIndex)[edgeVertex2Ordinal];
+                        int const edgeVertex2Ordinal = (nonInertialEdgeOrdinal + 1) % 3;
+                        ElementIndex const edgeVertex2PointIndex = homeShip.GetTriangles().GetPointIndices(edgeTouchPointBCoords.TriangleElementIndex)[edgeVertex2Ordinal];
                         float const vertex2InterpCoeff = edgeTouchPointBCoords.BCoords[edgeVertex2Ordinal];
-                        homeShip.GetPoints().AddStaticForce(edgeVertex2PointIndex, impartedForce * vertex2InterpCoeff);
+                        homeShip.GetPoints().AddTransientAdditionalMass(edgeVertex2PointIndex, particleMass * vertex2InterpCoeff);
                     }
                 }
                 else
@@ -1434,6 +1588,7 @@ void Npcs::UpdateNpcParticlePhysics(
 void Npcs::CalculateNpcParticlePreliminaryForces(
     StateType const & npc,
     int npcParticleOrdinal,
+    vec2f const & globalWindForce,
     GameParameters const & gameParameters)
 {
     auto & npcParticle = npc.ParticleMesh.Particles[npcParticleOrdinal];
@@ -1443,6 +1598,10 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
     //
 
     float const particleMass = mParticles.GetMass(npcParticle.ParticleIndex);
+    vec2f const & particlePosition = mParticles.GetPosition(npcParticle.ParticleIndex);
+    float const effectiveParticleWindReceptivity = std::min(
+        mParticles.GetMaterial(npcParticle.ParticleIndex).WindReceptivity * gameParameters.NpcWindReceptivityAdjustment,
+        1.0f);
 
     // 1. World forces - gravity
 
@@ -1453,41 +1612,183 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
 #endif
         * particleMass;
 
-    if (!npcParticle.ConstrainedState.has_value() && npc.CurrentRegime != StateType::RegimeType::BeingPlaced)
+    if (npc.CurrentRegime != StateType::RegimeType::BeingPlaced)
     {
-        // Check whether we are underwater
+        // Calculate waterness of this point: from mesh waterness if we're free, from water in mesh if we're constrained
 
-        float constexpr BuoyancyInterfaceWidth = 0.4f;
-
-        vec2f testParticlePosition = mParticles.GetPosition(npcParticle.ParticleIndex);
-        if (npc.Kind == NpcKindType::Human && npcParticleOrdinal > 0)
+        float anyWaterness;
+        if (npcParticle.ConstrainedState.has_value())
         {
-            // Head - use an offset
-            testParticlePosition += (mParticles.GetPosition(npc.ParticleMesh.Particles[0].ParticleIndex) - testParticlePosition) * BuoyancyInterfaceWidth * 2.0f / 3.0f;
+            // Constrained - use ship points' water
+
+            anyWaterness = mParticles.GetMeshWaterness(npcParticle.ParticleIndex);
+
+            // Converge particle's mesh-relative velocity to mesh water velocity
+            //
+            // Now, our target is that the point's relative velocity ends up like the resultant water velocity;
+            // that is reached by adding (resultantWaterVelocity - pointRelVel) to pointRelVel. This increment
+            // also ends up being the same increment to the *absolute* point velocity, hence we can calculate
+            // the absolute point's velocity delta as (resultantWaterVelocity - pointRelVel).
+            // Note that we use the point's *prior* relative velocity
+
+            vec2f const & waterVelocity = mParticles.GetMeshWaterVelocity(npcParticle.ParticleIndex);
+            float const waterVelocityMagnitude = waterVelocity.length();
+            vec2f const waterVelocityDir = waterVelocity.normalise_approx(waterVelocityMagnitude);
+            float const dampedWaterVelocityMagnitude = std::min(waterVelocityMagnitude, 4.0f);
+
+            vec2f const & particleVelocity = npcParticle.ConstrainedState->MeshRelativeVelocity;
+            float const particleVelocityMagnitude = particleVelocity.length();
+            vec2f const particleVelocityDir = particleVelocity.normalise_approx(particleVelocityMagnitude);
+
+            float constexpr MaxParticleVelocityForApplyingWaterVelocity = 15.0f;
+
+            float velocityIncrement;
+            float const particlVelocityDirAlongWaterDir = particleVelocityDir.dot(waterVelocityDir);
+            if (particlVelocityDirAlongWaterDir >= 0.0f)
+            {
+                // The particle's relative velocity is in the same direction as the water; fill-in the remaining part
+                // (but don't slow it down)
+
+                // Water velocity accrual is zero as the particle's velocity (in the water direction) approaches
+                // a maximum - so that we don't accelerate particles to the crazy velocities of the water
+                float const damper = std::max(
+                    (MaxParticleVelocityForApplyingWaterVelocity - particleVelocityMagnitude) / MaxParticleVelocityForApplyingWaterVelocity,
+                    0.0f);
+
+                velocityIncrement =
+                    std::max(dampedWaterVelocityMagnitude - particleVelocityMagnitude * particlVelocityDirAlongWaterDir, 0.0f)
+                    * damper;
+            }
+            else
+            {
+                // The particle's relative velocity is opposite water; add what it takes to match it, but converge slowly
+
+                velocityIncrement = std::min(
+                    (dampedWaterVelocityMagnitude - particleVelocityMagnitude * particlVelocityDirAlongWaterDir) * 0.3f,
+                    MaxParticleVelocityForApplyingWaterVelocity);
+            }
+
+            // Make it harder for orthogonal directions to change velocity,
+            // so to avoid too-quick vortices
+            float const orthoDamper = std::abs(particlVelocityDirAlongWaterDir * particlVelocityDirAlongWaterDir);
+
+            vec2f const absoluteVelocityDelta =
+                waterVelocityDir
+                * velocityIncrement
+                * orthoDamper;
+
+            // 2. World forces - inside water tide
+
+            // Since we do forces here, we apply this as a force - but not dependent on the mass of the particle
+            // (because heavy particles should practically not move)
+            preliminaryForces +=
+                absoluteVelocityDelta
+                / GameParameters::SimulationStepTimeDuration<float>
+                * anyWaterness // Mess with velocity only if enough water
+                * (1.0f - SmoothStep(0.0f, 0.9f, waterVelocityDir.y)) // Lower acceleration with verticality - water close to surface pushes up and we don't like that
+                * std::min(particleMass, 35.0f); // This magic number is to ensure the numbers above perform OK on the reference human particles
+        }
+        else
+        {
+            // Free - there is waterness if we are underwater
+
+            float constexpr BuoyancyInterfaceWidth = 0.4f; // Nature abhorrs discontinuity
+
+            vec2f testParticlePosition = particlePosition;
+            if (npc.Kind == NpcKindType::Human && npcParticleOrdinal == 1)
+            {
+                // Head - use an offset
+                testParticlePosition.y += 
+                    (mParticles.GetPosition(npc.ParticleMesh.Particles[0].ParticleIndex).y - testParticlePosition.y) 
+                    * (BuoyancyInterfaceWidth / 2.0f + GameParameters::HumanNpcGeometry::HeadWidthFraction);
+            }
+
+            float const waterHeight = mParentWorld.GetOceanSurface().GetHeightAt(testParticlePosition.x);
+            float const particleDepth = waterHeight - testParticlePosition.y;
+            anyWaterness = Clamp(particleDepth, 0.0f, BuoyancyInterfaceWidth) / BuoyancyInterfaceWidth; // Same as uwCoefficient
+
+            // 3. World forces - wind: iff free and above-water
+
+            preliminaryForces +=
+                globalWindForce
+                * effectiveParticleWindReceptivity
+                * (1.0f - anyWaterness); // Only above-water (modulated)
+
+            // Generate waves if on the air-water interface, magnitude
+            // proportional to (signed) vertical velocity
+            
+            float const verticalVelocity = mParticles.GetVelocity(npcParticle.ParticleIndex).y;
+            float const particleDepthBefore = waterHeight - (particlePosition.y - verticalVelocity * GameParameters::SimulationStepTimeDuration<float>);
+            if (particleDepth * particleDepthBefore < 0.0f) // Check if we've just entered/left the air-water interface
+            {
+                float const waveDisplacement =
+                    SmoothStep(0.0f, 6.0f, std::abs(verticalVelocity))
+                    * SignStep(0.0f, verticalVelocity) // Displacement has same sign as vertical velocity
+                    * std::min(1.0f, 2.0f / static_cast<float>(npc.ParticleMesh.Particles.size())) // Other particles in this mesh will generate waves
+                    * 0.6f; // Magic number
+
+                mParentWorld.DisplaceOceanSurfaceAt(particlePosition.x, waveDisplacement);
+            }
         }
 
-        float const particleDepth = mParentWorld.GetOceanSurface().GetDepth(testParticlePosition);
-        float const uwCoefficient = Clamp(particleDepth, 0.0f, BuoyancyInterfaceWidth) / BuoyancyInterfaceWidth;
-        if (uwCoefficient > 0.0f)
-        {
-            // Underwater
+        // Store it for future use
+        mParticles.SetAnyWaterness(npcParticle.ParticleIndex, anyWaterness);
 
-            // 2. World forces - buoyancy
+        if (anyWaterness > 0.0f)
+        {
+            // Underwater (even if partially)
+
+            // 4. World forces - buoyancy
 
             preliminaryForces.y +=
-                mParticles.GetBuoyancyFactor(npcParticle.ParticleIndex)\
-                * uwCoefficient;
+                mParticles.GetBuoyancyFactor(npcParticle.ParticleIndex)
+                * anyWaterness;
 
-            // 3. World forces - water drag
+            // 5. World forces - water drag
 
             preliminaryForces +=
                 -mParticles.GetVelocity(npcParticle.ParticleIndex)
                 * GameParameters::WaterFrictionDragCoefficient
                 * gameParameters.WaterFrictionDragAdjustment;
         }
+        else
+        {
+            // Completely above-water
+
+            // 6. World forces - radial wind (if any)
+
+            auto const & radialWindField = mParentWorld.GetCurrentRadialWindField();
+            if (radialWindField.has_value())
+            {
+                vec2f const displacement = particlePosition - radialWindField->SourcePos;
+                float const radius = displacement.length();
+                if (radius < radialWindField->PreFrontRadius) // Within sphere
+                {
+                    // Calculate force magnitude
+                    float windForceMagnitude;
+                    if (radius < radialWindField->MainFrontRadius)
+                    {
+                        windForceMagnitude = radialWindField->MainFrontWindForceMagnitude;
+                    }
+                    else
+                    {
+                        windForceMagnitude = radialWindField->PreFrontWindForceMagnitude;
+                    }
+
+                    // Calculate force
+                    vec2f const force =
+                        displacement.normalise_approx(radius)
+                        * windForceMagnitude
+                        * effectiveParticleWindReceptivity;
+
+                    // Apply force
+                    preliminaryForces += force;
+                }
+            }
+        }
     }
 
-    // 3. External forces
+    // 7. External forces
 
     preliminaryForces += mParticles.GetExternalForces(npcParticle.ParticleIndex);
 
@@ -1646,7 +1947,7 @@ void Npcs::RecalculateSizeAndMassParameters()
 
                 mParticles.SetBuoyancyFactor(particle.ParticleIndex,
                     CalculateParticleBuoyancyFactor(
-                        mParticles.GetMaterial(particle.ParticleIndex).NpcBuoyancyVolumeFill,
+                        mParticles.GetBuoyancyVolumeFill(particle.ParticleIndex),
                         mCurrentSizeMultiplier
 #ifdef IN_BARYLAB
                         , mCurrentBuoyancyAdjustment
@@ -1960,7 +2261,7 @@ Npcs::ConstrainedNonInertialOutcome Npcs::UpdateNpcParticle_ConstrainedNonInerti
         {
             // Become free
 
-            TransitionParticleToFreeState(npc, npcParticleOrdinal);
+            TransitionParticleToFreeState(npc, npcParticleOrdinal, homeShip);
 
             UpdateNpcParticle_Free(
                 npcParticle,
@@ -2274,7 +2575,7 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
             // Move to endpoint and exit, consuming whole quantum
             //
 
-            TransitionParticleToFreeState(npc, npcParticleOrdinal);
+            TransitionParticleToFreeState(npc, npcParticleOrdinal, homeShip);
 
             UpdateNpcParticle_Free(
                 npcParticle,
@@ -2960,12 +3261,12 @@ void Npcs::BounceConstrainedNpcParticle(
             bounceEdgeOrdinal,
             homeShip.GetPoints())
         .normalise();
-    vec2f const floorEdgeNormal = floorEdgeDir.to_perpendicular();
+    vec2f const floorEdgeNormal = floorEdgeDir.to_perpendicular(); // Outside of triangle
 
     vec2f const apparentParticleVelocity = hasMovedInStep
         ? trajectory / dt
         : npcParticle.ConstrainedState->MeshRelativeVelocity;
-    float const apparentParticleVelocityAlongNormal = apparentParticleVelocity.dot(floorEdgeNormal);
+    float const apparentParticleVelocityAlongNormal = apparentParticleVelocity.dot(floorEdgeNormal); // Should be positive
 
     LogNpcDebug("      BounceConstrainedNpcParticle: apparentParticleVelocity=", apparentParticleVelocity, " (hasMovedInStep=", hasMovedInStep,
         " meshRelativeVelocity=", npcParticle.ConstrainedState->MeshRelativeVelocity, ")");
@@ -2981,11 +3282,12 @@ void Npcs::BounceConstrainedNpcParticle(
             homeShip.GetTriangles().GetPointIndices(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex)[bounceEdgeOrdinal]);
 
         // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
-        float const materialElasticityCoefficient = (particles.GetMaterial(npcParticle.ParticleIndex).ElasticityCoefficient + meshMaterial.ElasticityCoefficient) / 2.0f;
+        float const elasticityCoefficient = Clamp(
+            (particles.GetMaterial(npcParticle.ParticleIndex).ElasticityCoefficient + meshMaterial.ElasticityCoefficient) / 2.0f * gameParameters.ElasticityAdjustment,
+            0.0f, 1.0f);
         vec2f const normalResponse =
             -normalVelocity
-            * materialElasticityCoefficient
-            * gameParameters.ElasticityAdjustment;
+            * elasticityCoefficient;
 
         // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
         float const materialFrictionCoefficient = (particles.GetMaterial(npcParticle.ParticleIndex).KineticFrictionCoefficient + meshMaterial.KineticFrictionCoefficient) / 2.0f;
@@ -3018,22 +3320,28 @@ void Npcs::BounceConstrainedNpcParticle(
         // we don't end up in infinite loops bouncing against a soft mesh
         //
 
-        if (apparentParticleVelocityAlongNormal > 2.0f)
+        if (apparentParticleVelocityAlongNormal > 2.0f) // Magic number
         {
+            // Calculate impact force: Dp/Dt
+            //
+            //  Dp = v2*m - v1*m (using _relative_ velocities)
+            //  Dt = duration of impact - and here we are conservative, taking a whole simulation dt
+            //       ...but then it's too much
             vec2f const impartedForce =
-                (normalVelocity - normalResponse)
+                (normalVelocity - normalResponse) // normalVelocity is directed outside of triangle
                 * mParticles.GetMass(npcParticle.ParticleIndex)
-                / dt;
+                / GameParameters::SimulationStepTimeDuration<float>
+                * 0.2f; // Magic damper
 
             // Divide among two vertices
 
-            int edgeVertex1Ordinal = bounceEdgeOrdinal;
-            ElementIndex edgeVertex1PointIndex = homeShip.GetTriangles().GetPointIndices(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex)[edgeVertex1Ordinal];
+            int const edgeVertex1Ordinal = bounceEdgeOrdinal;
+            ElementIndex const edgeVertex1PointIndex = homeShip.GetTriangles().GetPointIndices(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex)[edgeVertex1Ordinal];
             float const vertex1InterpCoeff = npcParticle.ConstrainedState->CurrentBCoords.BCoords[edgeVertex1Ordinal];
             homeShip.GetPoints().AddStaticForce(edgeVertex1PointIndex, impartedForce * vertex1InterpCoeff);
 
-            int edgeVertex2Ordinal = (bounceEdgeOrdinal + 1) % 3;
-            ElementIndex edgeVertex2PointIndex = homeShip.GetTriangles().GetPointIndices(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex)[edgeVertex2Ordinal];
+            int const edgeVertex2Ordinal = (bounceEdgeOrdinal + 1) % 3;
+            ElementIndex const edgeVertex2PointIndex = homeShip.GetTriangles().GetPointIndices(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex)[edgeVertex2Ordinal];
             float const vertex2InterpCoeff = npcParticle.ConstrainedState->CurrentBCoords.BCoords[edgeVertex2Ordinal];
             homeShip.GetPoints().AddStaticForce(edgeVertex2PointIndex, impartedForce * vertex2InterpCoeff);
         }
@@ -3085,814 +3393,77 @@ void Npcs::OnImpact(
     }
 }
 
-void Npcs::UpdateNpcAnimation(
+void Npcs::MaintainOverLand(
     StateType & npc,
-    float currentSimulationTime,
-    Ship const & homeShip)
+    int npcParticleOrdinal,
+    Ship const & homeShip,
+    GameParameters const & gameParameters)
 {
-    if (npc.Kind == NpcKindType::Human) // Take the primary as the only representative of a human
+    ElementIndex const p = npc.ParticleMesh.Particles[npcParticleOrdinal].ParticleIndex;
+    auto const & pos = mParticles.GetPosition(p);
+
+    // Check if particle is below the sea floor
+    //
+    // At this moment the particle is guaranteed to be inside world boundaries
+    OceanFloor const & oceanFloor = mParentWorld.GetOceanFloor();
+    auto const [isUnderneathFloor, oceanFloorHeight, integralIndex] = oceanFloor.GetHeightIfUnderneathAt(pos.x, pos.y);
+    if (isUnderneathFloor)
     {
-        auto & humanNpcState = npc.KindSpecificState.HumanNpcState;
-        auto & animationState = humanNpcState.AnimationState;
-        using HumanNpcStateType = StateType::KindSpecificStateType::HumanNpcStateType;
-
-        assert(npc.ParticleMesh.Particles.size() == 2);
-        assert(npc.ParticleMesh.Springs.size() == 1);
-        ElementIndex const primaryParticleIndex = npc.ParticleMesh.Particles[0].ParticleIndex;
-        auto const & primaryContrainedState = npc.ParticleMesh.Particles[0].ConstrainedState;
-        ElementIndex const secondaryParticleIndex = npc.ParticleMesh.Particles[1].ParticleIndex;
+        // Collision!
 
         //
-        // Angles and thigh
+        // Calculate post-bounce velocity
         //
 
-        // Target: begin with current
-        FS_ALIGN16_BEG LimbVector targetAngles(animationState.LimbAngles) FS_ALIGN16_END;
+        vec2f const particleVelocity = mParticles.GetVelocity(p);
 
-        float convergenceRate = 0.0f;
+        // Calculate sea floor anti-normal
+        // (positive points down)
+        vec2f const seaFloorAntiNormal = -oceanFloor.GetNormalAt(integralIndex);
 
-        // Stuff we calc in some cases and which we need again later for lengths
-        float humanEdgeAngle = 0.0f;
-        float adjustedStandardHumanHeight = 0.0f;
-        vec2f edg1, edg2, edgVector, edgDir;
-        vec2f feetPosition, actualBodyVector, actualBodyDir;
-        float periodicValue = 0.0f;
+        // Calculate the component of the particle's velocity along the anti-normal,
+        // i.e. towards the interior of the floor...
+        float const particleVelocityAlongAntiNormal = particleVelocity.dot(seaFloorAntiNormal);
 
-        float targetUpperLegLengthFraction = 1.0f;
-
-        // Angle of human wrt edge until which arm is angled to the max
-        // (extent of early stage during rising)
-        float constexpr MaxHumanEdgeAngleForArms = 0.40489178628508342331207292900944f;
-        //static_assert(MaxHumanEdgeAngleForArms == std::atan(GameParameters::HumanNpcGeometry::ArmLengthFraction / (1.0f - GameParameters::HumanNpcGeometry::HeadLengthFraction)));
-
-        switch (humanNpcState.CurrentBehavior)
+        // ...if negative, it's already pointing outside the floor, hence we leave it as-is
+        if (particleVelocityAlongAntiNormal > 0.0f)
         {
-            case HumanNpcStateType::BehaviorType::BeingPlaced:
-            {
-                float const arg =
-                    (
-                        (currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp) * 1.0f
-                        + humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition * 0.2f
-                    ) * (1.0f + humanNpcState.ResultantPanicLevel * 0.2f)
-                    * (Pi<float> * 2.0f + npc.RandomNormalizedUniformSeed * 4.0f);
-
-                float const yArms = std::sin(arg);
-                targetAngles.RightArm = Pi<float> / 2.0f + Pi<float> / 2.0f * 0.7f * yArms;
-                targetAngles.LeftArm = -targetAngles.RightArm;
-
-                float const yLegs = std::sin(arg + npc.RandomNormalizedUniformSeed * Pi<float> * 2.0f);
-                targetAngles.RightLeg = (1.0f + yLegs) / 2.0f * Pi<float> / 2.0f * 0.3f;
-                targetAngles.LeftLeg = -targetAngles.RightLeg;
-
-                convergenceRate = 0.3f;
-
-                break;
-            }
-
-            case HumanNpcStateType::BehaviorType::Constrained_PreRising:
-            {
-                // Move arms against floor (PI/2 wrt body)
-
-                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualFloor.has_value())
-                {
-                    vec2f const edgeVector = homeShip.GetTriangles().GetSubSpringVector(
-                        primaryContrainedState->CurrentVirtualFloor->TriangleElementIndex,
-                        primaryContrainedState->CurrentVirtualFloor->EdgeOrdinal,
-                        homeShip.GetPoints());
-                    vec2f const head = mParticles.GetPosition(secondaryParticleIndex);
-                    vec2f const feet = mParticles.GetPosition(primaryParticleIndex);
-
-                    float const humanFloorAlignment = (head - feet).dot(edgeVector);
-
-                    float constexpr MaxArmAngle = Pi<float> / 2.0f;
-                    float constexpr OtherArmDeltaAngle = 0.3f;
-
-                    if (humanFloorAlignment >= 0.0f)
-                    {
-                        targetAngles.LeftArm = -MaxArmAngle;
-                        targetAngles.RightArm = -MaxArmAngle + OtherArmDeltaAngle;
-                    }
-                    else
-                    {
-                        targetAngles.RightArm = MaxArmAngle;
-                        targetAngles.LeftArm = MaxArmAngle - OtherArmDeltaAngle;
-                    }
-                }
-
-                // Legs stay
-
-                convergenceRate = 0.09f;
-
-                break;
-            }
-
-            case HumanNpcStateType::BehaviorType::Constrained_Rising:
-            {
-                //
-                // Leg and arm that are against floor "help"
-                //
-
-                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualFloor.has_value())
-                {
-                    // Remember the virtual edge that we're rising against, so we can survive
-                    // small bursts of being off the edge
-                    humanNpcState.CurrentBehaviorState.Constrained_Rising.VirtualEdgeRisingAgainst = *primaryContrainedState->CurrentVirtualFloor;
-                }
-
-                if (humanNpcState.CurrentBehaviorState.Constrained_Rising.VirtualEdgeRisingAgainst.TriangleElementIndex != NoneElementIndex)
-                {
-
-                    vec2f const edgeVector = homeShip.GetTriangles().GetSubSpringVector(
-                        humanNpcState.CurrentBehaviorState.Constrained_Rising.VirtualEdgeRisingAgainst.TriangleElementIndex,
-                        humanNpcState.CurrentBehaviorState.Constrained_Rising.VirtualEdgeRisingAgainst.EdgeOrdinal,
-                        homeShip.GetPoints());
-                    vec2f const head = mParticles.GetPosition(secondaryParticleIndex);
-                    vec2f const feet = mParticles.GetPosition(primaryParticleIndex);
-
-                    // First off, we calculate the max possible human-edge vector, considering that
-                    // human converges towards full vertical (gravity-only :-( )
-                    float maxHumanEdgeAngle = edgeVector.angleCw(vec2f(0.0f, 1.0f)); // Also angle between edge and vertical
-
-                    // Calculate angle between human and edge (angle that we need to rotate human CW to get onto edge)
-                    humanEdgeAngle = edgeVector.angleCw(head - feet); // [0.0 ... PI]
-                    if (humanEdgeAngle < 0.0f)
-                    {
-                        // Two possible inaccuracies here:
-                        // o -8.11901e-06: this is basically 0.0
-                        // o -3.14159: this is basically +PI
-
-                        if (humanEdgeAngle >= -Pi<float> / 2.0f) // Just sentinel for side of inaccuracy
-                        {
-                            humanEdgeAngle = 0.0f;
-                        }
-                        else
-                        {
-                            humanEdgeAngle = Pi<float>;
-                        }
-                    }
-
-                    bool isOnLeftSide; // Of screen - i.e. head to the left side of the edge (exploiting CWness of edge)
-                    if (humanEdgeAngle <= maxHumanEdgeAngle)
-                    {
-                        isOnLeftSide = true;
-                    }
-                    else
-                    {
-                        isOnLeftSide = false;
-
-                        // Normalize to simplify math below
-                        humanEdgeAngle = Pi<float> - humanEdgeAngle;
-                        maxHumanEdgeAngle = Pi<float> - maxHumanEdgeAngle;
-                    }
-
-                    // Max angle of arm wrt body - kept until MaxAngle
-                    float constexpr MaxArmAngle = Pi<float> / 2.0f;
-
-                    // Rest angle of arm wrt body - reached when fully erect
-                    float constexpr RestArmAngle = HumanNpcStateType::AnimationStateType::InitialArmAngle * 0.3f;
-
-                    // DeltaAngle of other arm
-                    float constexpr OtherArmDeltaAngle = 0.3f;
-
-                    // AngleMultiplier of other leg when closing knees
-                    float constexpr OtherLegAlphaAngle = 0.7f;
-
-                    // Shortening of angle path for legs becoming straight when closing knees
-                    float const AnglePathShorteningForLegsInLateStage = 0.9f;
-
-                    //
-
-                    //  *  0 --> maxHumanEdgeAngle (which is PI/2 when edge is flat)
-                    //   \
-                    //   |\
-                    // -----
-
-                    // Arm: at MaxArmAngle until MaxHumanEdgeAngleForArms, then goes down to rest
-
-                    float targetArm;
-                    float targetLeg = 0.0f; // Start with legs closed - we'll change if we're in the early stage of rising and we're L/R
-
-                    if (humanEdgeAngle <= MaxHumanEdgeAngleForArms)
-                    {
-                        // Early stage
-
-                        // Arms: leave them where they are (MaxArmAngle)
-                        targetArm = MaxArmAngle;
-
-                        // Legs: we want a knee (iff we're facing L/R)
-
-                        if (humanNpcState.CurrentFaceOrientation == 0.0f)
-                        {
-                            targetLeg = MaxArmAngle;
-                            targetUpperLegLengthFraction = humanEdgeAngle / MaxHumanEdgeAngleForArms * 0.5f; // 0.0 @ 0.0 -> 0.5 @ MaxHumanEdgeAngleForArms
-                        }
-                    }
-                    else
-                    {
-                        // Late stage: -> towards maxHumanEdgeAngle
-
-                        // Arms: MaxArmAngle -> RestArmAngle
-
-                        targetArm = MaxArmAngle + (MaxHumanEdgeAngleForArms - humanEdgeAngle) / (MaxHumanEdgeAngleForArms - maxHumanEdgeAngle) * (RestArmAngle - MaxArmAngle); // MaxArmAngle @ MaxHumanEdgeAngleForArms -> RestArmAngle @ maxHumanEdgeAngle
-
-                        // Legs: towards zero
-
-                        if (humanNpcState.CurrentFaceOrientation == 0.0f)
-                        {
-                            targetLeg = std::max(
-                                MaxArmAngle - (MaxHumanEdgeAngleForArms - humanEdgeAngle) / (MaxHumanEdgeAngleForArms - maxHumanEdgeAngle * AnglePathShorteningForLegsInLateStage) * MaxArmAngle, // MaxArmAngle @ MaxHumanEdgeAngleForArms -> 0 @ maxHumanEdgeAngle-e
-                                0.0f);
-                            targetUpperLegLengthFraction = 0.5f;
-                        }
-                    }
-
-                    // Knees cannot bend backwards!
-                    if ((humanNpcState.CurrentFaceDirectionX > 0.0f && isOnLeftSide)
-                        || (humanNpcState.CurrentFaceDirectionX < 0.0f && !isOnLeftSide))
-                    {
-                        targetLeg *= -1.0f;
-                    }
-
-                    if (isOnLeftSide)
-                    {
-                        targetAngles.LeftArm = -targetArm;
-                        targetAngles.RightArm = targetAngles.LeftArm + OtherArmDeltaAngle;
-
-                        targetAngles.LeftLeg = -targetLeg;
-                        targetAngles.RightLeg = targetAngles.LeftLeg * OtherLegAlphaAngle;
-                    }
-                    else
-                    {
-                        targetAngles.RightArm = targetArm;
-                        targetAngles.LeftArm = targetAngles.RightArm - OtherArmDeltaAngle;
-
-                        targetAngles.RightLeg = targetLeg;
-                        targetAngles.LeftLeg = targetAngles.RightLeg * OtherLegAlphaAngle;
-                    }
-                }
-                else
-                {
-                    // Let's survive small bursts and keep current angles; after all we'll lose
-                    // this state very quickly if the burst is too long
-
-                    targetUpperLegLengthFraction = animationState.UpperLegLengthFraction;
-                }
-
-                convergenceRate = 0.45f;
-
-                break;
-            }
-
-            case HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
-            {
-                // Just small arms angle
-
-                float constexpr ArmsAngle = HumanNpcStateType::AnimationStateType::InitialArmAngle;
-
-                targetAngles.RightArm = ArmsAngle;
-                targetAngles.LeftArm = -ArmsAngle;
-
-                targetAngles.RightLeg = 0.0f;
-                targetAngles.LeftLeg = 0.0f;
-
-                convergenceRate = 0.1f;
-
-                break;
-            }
-
-            case HumanNpcStateType::BehaviorType::Constrained_Walking:
-            {
-                //
-                // Calculate leg angle based on distance traveled
-                //
-
-                // Add some dependency on walking speed
-                float const actualWalkingSpeed = CalculateActualHumanWalkingAbsoluteSpeed(humanNpcState);
-                float const MaxLegAngle =
-                    0.41f // std::atan((GameParameters::HumanNpcGeometry::StepLengthFraction / 2.0f) / GameParameters::HumanNpcGeometry::LegLengthFraction)
-                    * std::sqrt(actualWalkingSpeed * 0.9f);
-
-                adjustedStandardHumanHeight = npc.ParticleMesh.Springs[0].RestLength;
-                float const stepLength = GameParameters::HumanNpcGeometry::StepLengthFraction * adjustedStandardHumanHeight;
-                float const distance =
-                    humanNpcState.TotalDistanceTraveledOnEdgeSinceStateTransition
-                    + 0.3f * humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition;
-                float const distanceInTwoSteps = FastMod(distance + 3.0f * stepLength / 2.0f, stepLength * 2.0f);
-
-                float const legAngle = std::abs(stepLength - distanceInTwoSteps) / stepLength * 2.0f * MaxLegAngle - MaxLegAngle;
-
-                targetAngles.RightLeg = legAngle;
-                targetAngles.LeftLeg = -legAngle;
-
-                // Arms depend on panic
-                if (humanNpcState.ResultantPanicLevel < 0.0001f)
-                {
-                    // Arms aperture depends on speed
-
-                    // At base speed (1m/s): 1.4
-                    // Swing more
-                    float const apertureMultiplier = 1.4f + (actualWalkingSpeed - 1.0f) * 0.4f;
-                    targetAngles.RightArm = targetAngles.LeftLeg * apertureMultiplier;
-                }
-                else
-                {
-                    // Arms raised up
-
-                    float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
-                    float const halfPeriod = 1.0f - 0.6f * std::min(humanNpcState.ResultantPanicLevel, 4.0f) / 4.0f;
-                    float const inPeriod = FastMod(elapsed, halfPeriod * 2.0f);
-
-                    float constexpr MaxAngle = Pi<float> / 2.0f;
-                    float const angle = std::abs(halfPeriod - inPeriod) / halfPeriod * 2.0f * MaxAngle - MaxAngle;
-
-                    // PanicMultiplier: p=0.0 => 1.0 p=2.0 => 0.4
-                    float const panicMultiplier = 0.4f + 0.6f * (1.0f - std::min(humanNpcState.ResultantPanicLevel, 2.0f) / 2.0f);
-                    targetAngles.RightArm = Pi<float> -angle * panicMultiplier;
-                }
-                targetAngles.LeftArm = -targetAngles.RightArm;
-
-                convergenceRate = 0.25f;
-
-                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualFloor.has_value())
-                {
-                    //
-                    // We are walking on an edge - make sure feet don't look weird on sloped edges
-                    //
-
-                    ElementIndex const edgeElementIndex =
-                        homeShip.GetTriangles().GetSubSprings(primaryContrainedState->CurrentVirtualFloor->TriangleElementIndex)
-                        .SpringIndices[primaryContrainedState->CurrentVirtualFloor->EdgeOrdinal];
-                    // Note: we do not care if not in CW order
-                    edg1 = homeShip.GetSprings().GetEndpointAPosition(edgeElementIndex, homeShip.GetPoints());
-                    edg2 = homeShip.GetSprings().GetEndpointBPosition(edgeElementIndex, homeShip.GetPoints());
-                    edgVector = edg2 - edg1;
-                    edgDir = edgVector.normalise_approx();
-
-                    //
-                    // 1. Limit leg angles if on slope
-                    //
-
-                    vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
-                    feetPosition = mParticles.GetPosition(primaryParticleIndex);
-                    actualBodyVector = feetPosition - headPosition; // From head to feet
-                    actualBodyDir = actualBodyVector.normalise_approx();
-
-                    float const bodyToVirtualEdgeAlignment = std::abs(edgDir.dot(actualBodyDir.to_perpendicular()));
-                    float const angleLimitFactor = bodyToVirtualEdgeAlignment * bodyToVirtualEdgeAlignment * bodyToVirtualEdgeAlignment;
-                    targetAngles.RightLeg *= angleLimitFactor;
-                    targetAngles.LeftLeg *= angleLimitFactor;
-                }
-
-                break;
-            }
-
-            case HumanNpcStateType::BehaviorType::Constrained_Falling:
-            {
-                // Both arms in direction of face, depending on head velocity in that direction
-
-                vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
-                feetPosition = mParticles.GetPosition(primaryParticleIndex);
-                actualBodyVector = feetPosition - headPosition; // From head to feet
-                actualBodyDir = actualBodyVector.normalise_approx();
-
-                // The extent to which we move arms depends on the avg velocity or head+feet
-
-                vec2f const & headVelocity = npc.ParticleMesh.Particles[1].GetApplicableVelocity(mParticles);
-                vec2f const & feetVelocity = npc.ParticleMesh.Particles[0].GetApplicableVelocity(mParticles);
-
-                float const avgVelocityAlongBodyPerp = ((headVelocity + feetVelocity) / 2.0f).dot(actualBodyDir.to_perpendicular()); // When positive points to the right of the human vector
-                float const targetDepth = LinearStep(0.0f, 0.8f, std::abs(avgVelocityAlongBodyPerp));
-
-                if (humanNpcState.CurrentFaceDirectionX >= 0.0f)
-                {
-                    targetAngles.RightArm = Pi<float> / 2.0f * targetDepth + 0.04f;
-                    targetAngles.LeftArm = targetAngles.RightArm - 0.08f;
-                }
-                else
-                {
-                    targetAngles.LeftArm = -Pi<float> / 2.0f * targetDepth - 0.04f;
-                    targetAngles.RightArm = targetAngles.LeftArm + 0.08f;
-                }
-
-                // ~Close legs
-                targetAngles.RightLeg = 0.05f;
-                targetAngles.LeftLeg = -0.05f;
-
-                convergenceRate = 0.1f;
-
-                break;
-            }
-
-            case HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
-            {
-                // Arms: +/- PI or 0, depending on where they are now
-
-                if (animationState.LimbAngles.RightArm >= -Pi<float> / 2.0f
-                    && animationState.LimbAngles.RightArm <= Pi<float> / 2.0f)
-                {
-                    targetAngles.RightArm = 0.0f;
-                }
-                else
-                {
-                    targetAngles.RightArm = Pi<float>;
-                }
-
-                if (animationState.LimbAngles.LeftArm >= -Pi<float> / 2.0f
-                    && animationState.LimbAngles.LeftArm <= Pi<float> / 2.0f)
-                {
-                    targetAngles.LeftArm = 0.0f;
-                }
-                else
-                {
-                    targetAngles.LeftArm = Pi<float>;
-                }
-
-                // Legs: 0
-
-                targetAngles.RightLeg = 0.0f;
-                targetAngles.LeftLeg = 0.0f;
-
-                convergenceRate = 0.2f;
-
-                // Upper length fraction: when we transition from Rising (which has UpperLengthFraction < 1.0) to KnockedOut,
-                // changing UpperLengthFraction immediately to 0.0 causes a "kick" (because leg angles are 90 degrees at that moment);
-                // smooth that kick here
-                targetUpperLegLengthFraction = animationState.UpperLegLengthFraction + (1.0f - animationState.UpperLegLengthFraction) * 0.3f;
-
-                // But converge to one definitely
-                if (targetUpperLegLengthFraction >= 0.98f)
-                {
-                    targetUpperLegLengthFraction = 1.0f;
-                }
-
-                break;
-            }
-
-            case HumanNpcStateType::BehaviorType::Constrained_Aerial:
-            case HumanNpcStateType::BehaviorType::Free_Aerial:
-            case HumanNpcStateType::BehaviorType::Free_InWater:
-            {
-                //
-                // Rag doll
-                //
-
-                vec2f const headPosition = mParticles.GetPosition(secondaryParticleIndex);
-                feetPosition = mParticles.GetPosition(primaryParticleIndex);
-                actualBodyVector = feetPosition - headPosition;
-                actualBodyDir = actualBodyVector.normalise_approx();
-
-                // Arms: always up, unless horizontal or foot on the floor, in which case PI/2
-
-                float const horizontality = std::abs(actualBodyDir.dot(GameParameters::GravityDir));
-
-                float constexpr exceptionAngle = Pi<float> / 1.5f;
-                float const armAngle = (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualFloor.has_value())
-                    ? exceptionAngle
-                    : Pi<float> - (Pi<float> - exceptionAngle) / std::exp(horizontality * 2.2f);
-                targetAngles.RightArm = armAngle;
-                targetAngles.LeftArm = -targetAngles.RightArm;
-
-                // Legs: inclined in direction opposite of resvel, by an amount proportional to resvel itself
-
-                vec2f const resultantVelocity = (mParticles.GetVelocity(primaryParticleIndex) + mParticles.GetVelocity(secondaryParticleIndex)) / 2.0f;
-                float const resVelPerpToBody = resultantVelocity.dot(actualBodyDir.to_perpendicular()); // Positive when pointing towards right
-                float const legAngle = SmoothStep(0.0f, 4.0f, std::abs(resVelPerpToBody)) * 0.5f;
-                if (resVelPerpToBody >= 0.0f)
-                {
-                    // Res vel to the right - legs to the left
-                    targetAngles.RightLeg = -legAngle;
-                    targetAngles.LeftLeg = targetAngles.RightLeg - 0.6f;
-                }
-                else
-                {
-                    // Res vel to the left - legs to the right
-                    targetAngles.LeftLeg = legAngle;
-                    targetAngles.RightLeg = targetAngles.LeftLeg + 0.6f;
-                }
-
-                convergenceRate = 0.1f;
-
-                break;
-            }
-
-            case HumanNpcStateType::BehaviorType::Free_Swimming_Style1:
-            {
-                //
-                // Arms and legs up<->down
-                //
-
-                //
-                // 1 period:
-                //
-                //  _----|         1.0
-                // /     \
-                // |      \_____|  0.0
-                //              |
-                //
-
-                float constexpr Period1 = 3.00f;
-                float constexpr Period2 = 1.00f;
-
-                float elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
-                // Prolong first period
-                float constexpr ActualLeadInTime = 6.0f;
-                if (elapsed < ActualLeadInTime)
-                {
-                    elapsed = elapsed / ActualLeadInTime * Period1;
-                }
-                else
-                {
-                    elapsed = elapsed - Period1;
-                }
-
-                float const panicAccelerator = 1.0f + std::min(humanNpcState.ResultantPanicLevel, 2.0f) / 2.0f * 4.0f;
-
-                float const arg =
-                    Period1 / 2.0f // Start some-halfway-through to avoid sudden extreme angles
-                    + elapsed * 2.6f * panicAccelerator
-                    + humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition * 0.7f;
-
-                float const inPeriod = FastMod(arg, (Period1 + Period2));
-                // y: [0.0 ... 1.0]
-                float const y = (inPeriod < Period1)
-                    ? std::sqrt(inPeriod / Period1)
-                    : ((inPeriod - Period1) - Period2) * ((inPeriod - Period1) - Period2) / std::sqrt(Period2);
-
-                // 0: 0, 2: 1, >+ INF: 1
-                float const depthDamper = Clamp(mParentWorld.GetOceanSurface().GetDepth(mParticles.GetPosition(secondaryParticleIndex)) / 1.5f, 0.0f, 1.0f);
-
-                // Arms: flapping around PI/2, with amplitude depending on depth
-                float constexpr ArmAngleAmplitude = 2.9f; // Half of this on each side of center angle
-                float const armCenterAngle = Pi<float> / 2.0f;
-                float const armAngle =
-                    armCenterAngle
-                    + (y * 2.0f - 1.0f) * ArmAngleAmplitude / 2.0f * (depthDamper * 0.75f + 0.25f);
-                targetAngles.RightArm = armAngle;
-                targetAngles.LeftArm = -targetAngles.RightArm;
-
-                // Legs:flapping around a (small) angle, which becomes even smaller
-                // width depth amplitude depending on depth
-                float constexpr LegAngleAmplitude = 0.25f * 2.0f; // Half of this on each side of center angle
-                float const legCenterAngle = 0.25f * (depthDamper * 0.5f + 0.5f);
-                float const legAngle =
-                    legCenterAngle
-                    + (y * 2.0f - 1.0f) * LegAngleAmplitude / 2.0f * (depthDamper * 0.35f + 0.65f);
-                targetAngles.RightLeg = legAngle;
-                targetAngles.LeftLeg = -targetAngles.RightLeg;
-
-                // Convergence rate depends on how long we've been in this state
-                float const MaxConvergenceWait = 3.5f;
-                convergenceRate = 0.01f + Clamp(elapsed, 0.0f, MaxConvergenceWait) / MaxConvergenceWait * (0.25f - 0.01f);
-
-                break;
-            }
-
-            case HumanNpcStateType::BehaviorType::Free_Swimming_Style2:
-            {
-                //
-                // Trappelen
-                //
-
-                float constexpr Period = 2.00f;
-
-                float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
-                float const panicAccelerator = 1.0f + std::min(humanNpcState.ResultantPanicLevel, 2.0f) / 2.0f * 1.0f;
-
-                float const arg =
-                    elapsed * 2.6f * panicAccelerator
-                    + humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition * 0.7f;
-
-                float const inPeriod = FastMod(arg, Period);
-                // periodicValue: [0.0 ... 1.0]
-                periodicValue = (inPeriod < Period / 2.0f)
-                    ? inPeriod / (Period / 2.0f)
-                    : 1.0f - (inPeriod - (Period / 2.0f)) / (Period / 2.0f);
-
-                // Arms: around a small angle
-                targetAngles.RightArm = StateType::KindSpecificStateType::HumanNpcStateType::AnimationStateType::InitialArmAngle + (periodicValue - 0.5f) * Pi<float>/8.0f;
-                targetAngles.LeftArm = -targetAngles.RightArm;
-
-                // Legs: perfectly vertical
-                targetAngles.RightLeg = 0.0f;
-                targetAngles.LeftLeg = 0.0f;
-
-                // Convergence rate depends on how long we've been in this state
-                float const MaxConvergenceWait = 3.5f;
-                convergenceRate = 0.01f + Clamp(elapsed, 0.0f, MaxConvergenceWait) / MaxConvergenceWait * (0.25f - 0.01f);
-
-                break;
-            }
-
-            case HumanNpcStateType::BehaviorType::Free_Swimming_Style3:
-            {
-                //
-                // Trappelen
-                //
-
-                float constexpr Period = 2.00f;
-
-                float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
-                float const panicAccelerator = 1.0f + std::min(humanNpcState.ResultantPanicLevel, 2.0f) / 2.0f * 2.0f;
-
-                float const arg =
-                    elapsed * 2.6f * panicAccelerator
-                    + humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition * 0.7f;
-
-                float const inPeriod = FastMod(arg, Period);
-                // periodicValue: [0.0 ... 1.0]
-                periodicValue = (inPeriod < Period / 2.0f)
-                    ? inPeriod / (Period / 2.0f)
-                    : 1.0f - (inPeriod - (Period / 2.0f)) / (Period / 2.0f);
-
-                // Arms: one arm around around a large angle; the other fixed around a small angle
-                float const angle1 = (Pi<float> -StateType::KindSpecificStateType::HumanNpcStateType::AnimationStateType::InitialArmAngle) + (periodicValue - 0.5f) * Pi<float> / 8.0f;
-                float const angle2 = -StateType::KindSpecificStateType::HumanNpcStateType::AnimationStateType::InitialArmAngle;
-                if (npc.RandomNormalizedUniformSeed >= 0.0f)
-                {
-                    targetAngles.RightArm = angle1;
-                    targetAngles.LeftArm = angle2;
-                }
-                else
-                {
-                    targetAngles.RightArm = -angle2;
-                    targetAngles.LeftArm = -angle1;
-                }
-
-                // Legs: perfectly vertical
-                targetAngles.RightLeg = 0.0f;
-                targetAngles.LeftLeg = 0.0f;
-
-                // Convergence rate depends on how long we've been in this state
-                float const MaxConvergenceWait = 3.5f;
-                convergenceRate = 0.01f + Clamp(elapsed, 0.0f, MaxConvergenceWait) / MaxConvergenceWait * (0.25f - 0.01f);
-
-                break;
-            }
+            // Decompose particle velocity into normal and tangential
+            vec2f const normalVelocity = seaFloorAntiNormal * particleVelocityAlongAntiNormal;
+            vec2f const tangentialVelocity = particleVelocity - normalVelocity;
+
+            // Calculate normal reponse: Vn' = -e*Vn (e = elasticity, [0.0 - 1.0])
+            float const elasticityFactor = Clamp(
+                (mParticles.GetMaterial(p).ElasticityCoefficient + gameParameters.OceanFloorElasticityCoefficient) / 2.0f * gameParameters.ElasticityAdjustment,
+                0.0f, 1.0f);
+            vec2f const normalResponse =
+                normalVelocity
+                * -elasticityFactor;
+
+            // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
+            vec2f const tangentialResponse =
+                tangentialVelocity
+                * std::max(0.0f, 1.0f - mParticles.GetMaterial(p).KineticFrictionCoefficient * gameParameters.KineticFrictionAdjustment); // For lazyness
+
+            //
+            // Impart final position and velocity
+            //
+
+            // Move point back along its velocity direction (i.e. towards where it was in the previous step,
+            // which is guaranteed to be more towards the outside)
+            vec2f deltaPos = particleVelocity * gameParameters.SimulationStepTimeDuration<float>;
+            mParticles.SetPosition(
+                p,
+                pos - deltaPos);
+
+            // Set velocity to resultant collision velocity
+            mParticles.SetVelocity(
+                p,
+                (normalResponse + tangentialResponse));
         }
 
-        // Converge
-        animationState.LimbAngles.ConvergeTo(targetAngles, convergenceRate);
-        animationState.UpperLegLengthFraction = targetUpperLegLengthFraction;
-
-        // Calculate sins and coss
-        SinCos4(animationState.LimbAngles.fptr(), animationState.LimbAnglesSin.fptr(), animationState.LimbAnglesCos.fptr());
-
-        //
-        // Length Multipliers
-        //
-
-        FS_ALIGN16_BEG LimbVector targetLengthMultipliers({ 1.0f, 1.0f, 1.0f, 1.0f }) FS_ALIGN16_END;
-        float limbLengthConvergenceRate = convergenceRate;
-
-        float targetLowerExtremityLengthMultiplier = 1.0f;
-
-        float constexpr MinPrerisingArmLengthMultiplier = 0.35f;
-
-        switch (humanNpcState.CurrentBehavior)
-        {
-            case HumanNpcStateType::BehaviorType::Constrained_PreRising:
-            {
-                // Retract arms
-                targetLengthMultipliers.RightArm = MinPrerisingArmLengthMultiplier;
-                targetLengthMultipliers.LeftArm = MinPrerisingArmLengthMultiplier;
-
-                break;
-            }
-
-            case HumanNpcStateType::BehaviorType::Constrained_Rising:
-            {
-                if (humanNpcState.CurrentBehaviorState.Constrained_Rising.VirtualEdgeRisingAgainst.TriangleElementIndex != NoneElementIndex) // Locals guaranteed to be calc'd
-                {
-                    // Recoil arms
-
-                    // For such a small angle, tan(x) ~= x
-                    float const targetArmLengthMultiplier =
-                        MinPrerisingArmLengthMultiplier
-                        + Clamp(humanEdgeAngle / MaxHumanEdgeAngleForArms, 0.0f, 1.0f) * (1.0f - MinPrerisingArmLengthMultiplier);
-
-                    targetLengthMultipliers.RightArm = targetArmLengthMultiplier;
-                    targetLengthMultipliers.LeftArm = targetArmLengthMultiplier;
-                }
-                else
-                {
-                    // Survive small bursts of losing the edge
-                    targetLengthMultipliers.RightArm = animationState.LimbLengthMultipliers.RightArm;
-                    targetLengthMultipliers.LeftArm = animationState.LimbLengthMultipliers.LeftArm;
-                }
-
-                break;
-            }
-
-            case HumanNpcStateType::BehaviorType::Constrained_Walking:
-            {
-                // Take into account that crotch is lower
-                targetLowerExtremityLengthMultiplier = animationState.LimbAnglesCos.RightLeg;
-
-                if (primaryContrainedState.has_value() && primaryContrainedState->CurrentVirtualFloor.has_value())
-                {
-                    //
-                    // We are walking on an edge - make sure feet don't look weird on sloped edges
-                    //
-
-                    //
-                    // 2. Constrain feet onto edge - i.e. adjust leg lengths
-                    //
-
-                    //
-                    // Using parametric eq's (tl=scalar from leg1 to leg2, te=scalar from edg1 to edg2):
-                    //
-                    // leg1 + tl * (leg2 - leg1) = edg1 + te * (edg2 - edg1)
-                    // =>
-                    // tl = (edg1.y - leg1.y) * (edg2.x - edg1.x) + (leg1.x - edg1.x) * (edg2.y - edg1.y)
-                    //      -----------------------------------------------------------------------------
-                    //                                  edg X leg
-                    //
-
-                    float constexpr MaxLengthMultiplier = 1.4f;
-
-                    float const adjustedStandardLegLength = GameParameters::HumanNpcGeometry::LegLengthFraction * adjustedStandardHumanHeight;
-                    vec2f const crotchPosition = feetPosition - actualBodyVector * (GameParameters::HumanNpcGeometry::LegLengthFraction * targetLowerExtremityLengthMultiplier);
-
-                    // leg*1 is crotchPosition
-                    float const numerator = (edg1.y - crotchPosition.y) * (edg2.x - edg1.x) + (crotchPosition.x - edg1.x) * (edg2.y - edg1.y);
-
-                    {
-                        vec2f const legrVector = actualBodyDir.rotate(animationState.LimbAnglesCos.RightLeg, animationState.LimbAnglesSin.RightLeg) * adjustedStandardLegLength;
-                        float const edgCrossRightLeg = edgVector.cross(legrVector);
-                        if (std::abs(edgCrossRightLeg) > 0.0000001f)
-                        {
-                            //targetRightLegLengthMultiplier = numerator / edgCrossRightLeg;
-                            float const candidate = numerator / edgCrossRightLeg;
-                            if (candidate > 0.01f)
-                            {
-                                targetLengthMultipliers.RightLeg = std::min(candidate, MaxLengthMultiplier);
-                            }
-                        }
-                    }
-
-                    {
-                        vec2f const leglVector = actualBodyDir.rotate(animationState.LimbAnglesCos.LeftLeg, animationState.LimbAnglesSin.LeftLeg) * adjustedStandardLegLength;
-                        float const edgCrossLeftLeg = edgVector.cross(leglVector);
-                        if (std::abs(edgCrossLeftLeg) > 0.0000001f)
-                        {
-                            //targetLeftLegLengthMultiplier = numerator / edgCrossLeftLeg;
-                            float const candidate = numerator / edgCrossLeftLeg;
-                            if (candidate > 0.01f)
-                            {
-                                targetLengthMultipliers.LeftLeg = std::min(candidate, MaxLengthMultiplier);
-                            }
-                        }
-                    }
-
-                    limbLengthConvergenceRate = 0.09f;
-                }
-
-                break;
-            }
-
-            case HumanNpcStateType::BehaviorType::Free_Swimming_Style2:
-            {
-                //
-                // Trappelen lengths
-                //
-
-                float constexpr TrappelenExtent = 0.3f;
-                targetLengthMultipliers.RightLeg = 1.0f - (1.0f - periodicValue) * TrappelenExtent;
-                targetLengthMultipliers.LeftLeg = 1.0f - periodicValue * TrappelenExtent;
-
-                break;
-            }
-
-            case HumanNpcStateType::BehaviorType::Free_Swimming_Style3:
-            {
-                //
-                // Trappelen lengths
-                //
-
-                float constexpr TrappelenExtent = 0.3f;
-                targetLengthMultipliers.RightLeg = 1.0f - (1.0f - periodicValue) * TrappelenExtent;
-                targetLengthMultipliers.LeftLeg = 1.0f - periodicValue * TrappelenExtent;
-
-                break;
-            }
-
-            case HumanNpcStateType::BehaviorType::BeingPlaced:
-            case HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
-            case HumanNpcStateType::BehaviorType::Constrained_Falling:
-            case HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
-            case HumanNpcStateType::BehaviorType::Constrained_Aerial:
-            case HumanNpcStateType::BehaviorType::Free_Aerial:
-            case HumanNpcStateType::BehaviorType::Free_InWater:
-            case HumanNpcStateType::BehaviorType::Free_Swimming_Style1:
-            {
-                // Nop
-                break;
-            }
-        }
-
-        // Converge
-        animationState.LimbLengthMultipliers.ConvergeTo(targetLengthMultipliers, limbLengthConvergenceRate);
-        animationState.LowerExtremityLengthMultiplier += (targetLowerExtremityLengthMultiplier - animationState.LowerExtremityLengthMultiplier) * convergenceRate;
+        // Become free - so to avoid bouncing back and forth
+        TransitionParticleToFreeState(npc, npcParticleOrdinal, homeShip);
     }
 }
 

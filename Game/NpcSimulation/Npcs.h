@@ -18,6 +18,7 @@
 #include <GameCore/GameGeometry.h>
 #include <GameCore/GameRandomEngine.h>
 #include <GameCore/GameTypes.h>
+#include <GameCore/GameWallClock.h>
 #include <GameCore/Log.h>
 #include <GameCore/StrongTypeDef.h>
 #include <GameCore/SysSpecifics.h>
@@ -43,10 +44,6 @@
 #else
 #define LogNpcDebug(...)
 #endif
-
-// TEST
-////#undef LogNpcDebug
-////#define LogNpcDebug(...) LogMessage(__VA_ARGS__);
 
 namespace Physics {
 
@@ -248,11 +245,21 @@ private:
 					Constrained_Equilibrium, // Stands up; continues to adjust alignment with torque
 					Constrained_Walking, // Walks; continues to adjust alignment with torque
 
-					Free_Aerial, // Does nothing
+					Constrained_InWater, // Does nothing (like Constrained_Aerial), but waits to swim
+					Constrained_Swimming_Style1, // Swims
+					Constrained_Swimming_Style2, // Swims
+
+					Constrained_Electrified, // Doing electrification dance, assuming being vertical
+
+					Free_Aerial, // Does nothing, stays here as long as it's moving
+					Free_KnockedOut, // Does nothing, stays here as long as it's still
+
 					Free_InWater, // Does nothing, but waits to swim
 					Free_Swimming_Style1, // Swims
 					Free_Swimming_Style2, // Swims
-					Free_Swimming_Style3  // Swims
+					Free_Swimming_Style3, // Swims
+
+					ConstrainedOrFree_Smashed // Plat
 				};
 
 				BehaviorType CurrentBehavior;
@@ -354,14 +361,7 @@ private:
 						}
 					} Constrained_Walking;
 
-					struct Free_AerialStateType
-					{
-						void Reset()
-						{
-						}
-					} Free_Aerial;
-
-					struct Free_InWaterType
+					struct Constrained_InWaterType
 					{
 						float ProgressToSwimming;
 
@@ -369,14 +369,80 @@ private:
 						{
 							ProgressToSwimming = 0.0f;
 						}
-					} Free_InWater;
+					} Constrained_InWater;
 
-					struct Free_SwimmingType
+					struct Constrained_SwimmingType
 					{
 						void Reset()
 						{
 						}
+					} Constrained_Swimming;
+
+					struct Constrained_ElectrifiedStateType
+					{
+						float ProgressToLeaving;
+
+						void Reset()
+						{
+							ProgressToLeaving = 0.0f;
+						}
+					} Constrained_Electrified;
+
+					struct Free_AerialStateType
+					{
+						float ProgressToKnockedOut;
+
+						void Reset()
+						{
+							ProgressToKnockedOut = 0.0f;
+						}
+					} Free_Aerial;
+
+					struct Free_KnockedOutStateType
+					{
+						float ProgressToAerial;
+						float ProgressToInWater;
+
+						void Reset()
+						{
+							ProgressToAerial = 0.0f;
+							ProgressToInWater = 0.0f;
+						}
+					} Free_KnockedOut;
+
+					struct Free_InWaterType
+					{
+						float NextBubbleEmissionSimulationTimestamp;
+						float ProgressToSwimming;
+
+						void Reset()
+						{
+							NextBubbleEmissionSimulationTimestamp = 0.0f;
+							ProgressToSwimming = 0.0f;
+						}
+					} Free_InWater;
+
+					struct Free_SwimmingType
+					{
+						float NextBubbleEmissionSimulationTimestamp;
+						float ProgressToLeavingSwimming;
+
+						void Reset()
+						{
+							NextBubbleEmissionSimulationTimestamp = 0.0f;
+							ProgressToLeavingSwimming = 0.0f;
+						}
 					} Free_Swimming;
+
+					struct ConstrainedOrFree_SmashedStateType
+					{
+						float ProgressToLeaving;
+
+						void Reset()
+						{
+							ProgressToLeaving = 0.0f;
+						}
+					} ConstrainedOrFree_Smashed;
 
 				} CurrentBehaviorState;
 
@@ -392,7 +458,8 @@ private:
 				float CurrentFaceDirectionX; // [-1.0f, 0.0f, 1.0f]
 
 				// Panic levels
-				float ShipOnFirePanicLevel; // [0.0f ... +1.0f]
+				float OnFirePanicLevel; // [0.0f ... +1.0f]
+				float BombProximityPanicLevel; // [0.0f ... +1.0f]
 				float GeneralizedPanicLevel; // [0.0f ... +1.0f]
 				float ResultantPanicLevel; // [0.0f ... +INF)
 
@@ -446,7 +513,8 @@ private:
 					, CurrentEquilibriumSoftTerminationDecision(0.0f)
 					, CurrentFaceOrientation(1.0f)
 					, CurrentFaceDirectionX(0.0f)
-					, ShipOnFirePanicLevel(0.0f)
+					, OnFirePanicLevel(0.0f)
+					, BombProximityPanicLevel(0.0f)
 					, GeneralizedPanicLevel(0.0f)
 					, ResultantPanicLevel(0.0f)
 					// Animation
@@ -477,6 +545,12 @@ private:
 							break;
 						}
 
+						case BehaviorType::Constrained_Electrified:
+						{
+							CurrentBehaviorState.Constrained_Electrified.Reset();
+							break;
+						}
+
 						case BehaviorType::Constrained_Equilibrium:
 						{
 							CurrentBehaviorState.Constrained_Equilibrium.Reset();
@@ -486,6 +560,12 @@ private:
 						case BehaviorType::Constrained_Falling:
 						{
 							CurrentBehaviorState.Constrained_Falling.Reset();
+							break;
+						}
+
+						case BehaviorType::Constrained_InWater:
+						{
+							CurrentBehaviorState.Constrained_InWater.Reset();
 							break;
 						}
 
@@ -508,6 +588,13 @@ private:
 							break;
 						}
 
+						case BehaviorType::Constrained_Swimming_Style1:
+						case BehaviorType::Constrained_Swimming_Style2:
+						{
+							CurrentBehaviorState.Constrained_Swimming.Reset();
+							break;
+						}
+
 						case BehaviorType::Constrained_Walking:
 						{
 							CurrentBehaviorState.Constrained_Walking.Reset();
@@ -526,11 +613,23 @@ private:
 							break;
 						}
 
+						case BehaviorType::Free_KnockedOut:
+						{
+							CurrentBehaviorState.Free_KnockedOut.Reset();
+							break;
+						}
+
 						case BehaviorType::Free_Swimming_Style1:
 						case BehaviorType::Free_Swimming_Style2:
 						case BehaviorType::Free_Swimming_Style3:
 						{
 							CurrentBehaviorState.Free_Swimming.Reset();
+							break;
+						}
+
+						case BehaviorType::ConstrainedOrFree_Smashed:
+						{
+							CurrentBehaviorState.ConstrainedOrFree_Smashed.Reset();
 							break;
 						}
 					}
@@ -547,6 +646,19 @@ private:
 
 			explicit KindSpecificStateType(HumanNpcStateType && humanState)
 				: HumanNpcState(std::move(humanState))
+			{}
+		};
+
+		struct CombustionStateType
+		{
+			vec2f FlameVector;
+			float FlameWindRotationAngle;
+
+			CombustionStateType(
+				vec2f const & flameVector,
+				float flameWindRotationAngle)
+				: FlameVector(flameVector)
+				, FlameWindRotationAngle(flameWindRotationAngle)
 			{}
 		};
 
@@ -589,8 +701,11 @@ private:
 		// The additional state specific to the type of this NPC.
 		KindSpecificStateType KindSpecificState;
 
-		// The current highlight state of this NPC.
-		NpcHighlightType Highlight;
+		// How much this NPC is on fire
+		float CombustionProgress; // [-1.0f, 1.0f], "on fire" if > 0.0f
+
+		// The state of combustion, if this NPC is "on fire"
+		std::optional<CombustionStateType> CombustionState;
 
 		// Randomness specific to this NPC.
 		float RandomNormalizedUniformSeed; // [-1.0f ... +1.0f]
@@ -616,7 +731,8 @@ private:
 			, CurrentRegime(initialRegime)
 			, ParticleMesh(std::move(particleMesh))
 			, KindSpecificState(std::move(kindSpecificState))
-			, Highlight(NpcHighlightType::None)
+			, CombustionProgress(-1.0f)
+			, CombustionState()
 			, RandomNormalizedUniformSeed(GameRandomEngine::GetInstance().GenerateUniformReal(-1.0f, 1.0f))
 			, BeingPlacedState(beingPlacedState)
 		{}
@@ -634,11 +750,14 @@ private:
 		size_t FurnitureNpcCount;
 		size_t HumanNpcCount;
 
+		std::vector<NpcId> BurningNpcs; // Maintained as a set
+
 		ShipNpcsType(Ship & homeShip)
 			: HomeShip(homeShip)
 			, Npcs()
 			, FurnitureNpcCount(0)
 			, HumanNpcCount(0)
+			, BurningNpcs()
 		{}
 	};
 
@@ -655,6 +774,11 @@ public:
 		, mStateBuffer()
 		, mShips()
 		, mParticles(GameParameters::MaxNpcs * GameParameters::MaxParticlesPerNpc)
+		// State
+		, mCurrentSimulationSequenceNumber()
+		, mCurrentlySelectedNpc()
+		, mCurrentlySelectedNpcWallClockTimestamp()
+		, mCurrentlyHighlightedNpc()
 		// Stats
 		, mFreeRegimeHumanNpcCount(0)
 		, mConstrainedRegimeHumanNpcCount(0)
@@ -671,19 +795,39 @@ public:
 
 	void Update(
 		float currentSimulationTime,
+		Storm::Parameters const & stormParameters,
 		GameParameters const & gameParameters);
 
-	void Upload(Render::RenderContext & renderContext);
+	void UpdateEnd();
+
+	void Upload(Render::RenderContext & renderContext) const;
+
+	void UploadFlames(
+		ShipId shipId,
+		Render::ShipRenderContext & shipRenderContext) const;
 
 	///////////////////////////////
 
-	Geometry::AABB GetAABB(NpcId npcId) const;
+	bool HasNpcs() const;
+
+	bool HasNpc(NpcId npcId) const;
+
+	Geometry::AABB GetNpcAABB(NpcId npcId) const;
+
+	size_t GetFlameCount(ShipId shipId) const
+	{
+		assert(shipId < mShips.size());
+		assert(mShips[shipId].has_value());
+		return mShips[shipId]->BurningNpcs.size();
+	}
 
 	///////////////////////////////
 
 	void OnShipAdded(Ship & ship);
 
 	void OnShipRemoved(ShipId shipId);
+
+	void OnShipConnectivityChanged(ShipId shipId);
 
 	std::optional<PickedObjectId<NpcId>> BeginPlaceNewFurnitureNpc(
 		NpcSubKindIdType subKind,
@@ -725,9 +869,21 @@ public:
 
 	void AbortNewNpc(NpcId id);
 
-	void HighlightNpc(
-		NpcId id,
-		NpcHighlightType highlight);
+	std::optional<NpcId> GetCurrentlySelectedNpc() const;
+
+	void SelectFirstNpc();
+
+	void SelectNextNpc();
+
+	void SelectNpc(std::optional<NpcId> id);
+
+	void HighlightNpc(std::optional<NpcId> id);
+
+public:
+
+	//
+	// Interactions
+	//
 
 	void MoveBy(
 		ShipId shipId,
@@ -742,6 +898,44 @@ public:
 		float angle,
 		vec2f const & center,
 		float inertialAngle,
+		GameParameters const & gameParameters);
+
+	void SmashAt(
+		vec2f const & targetPos,
+		float radius,
+		float currentSimulationTime);
+
+	void DrawTo(
+		vec2f const & targetPos,
+		float strength);
+
+	void SwirlAt(
+		vec2f const & targetPos,
+		float strength);
+
+	void ApplyBlast(
+		ShipId shipId,
+		vec2f const & centerPosition,
+		float blastRadius,
+		float blastForce, // N
+		GameParameters const & gameParameters);
+
+	void ApplyAntiMatterBombPreimplosion(
+		ShipId shipId,
+		vec2f const & centerPosition,
+		float radius,
+		float radiusThickness,
+		GameParameters const & gameParameters);
+
+	void ApplyAntiMatterBombImplosion(
+		ShipId shipId,
+		vec2f const & centerPosition,
+		float sequenceProgress,
+		GameParameters const & gameParameters);
+
+	void ApplyAntiMatterBombExplosion(
+		ShipId shipId,
+		vec2f const & centerPosition,
 		GameParameters const & gameParameters);
 
 	void SetGeneralizedPanicLevelForAllHumans(float panicLevel);
@@ -790,23 +984,6 @@ public:
 	//
 	// Probing
 	//
-
-	void SelectNpc(NpcId npcId)
-	{
-		mCurrentlySelectedNpc = npcId;
-		Publish();
-	}
-
-	std::optional<NpcId> GetCurrentlySelectedNpc() const
-	{
-		return mCurrentlySelectedNpc;
-	}
-
-	void DeselectNpc()
-	{
-		mCurrentlySelectedNpc.reset();
-		Publish();
-	}
 
 	void SelectParticle(ElementIndex particleIndex)
 	{
@@ -863,6 +1040,8 @@ private:
 
 	NpcId GetNewNpcId();
 
+	bool CommonNpcRemoval(NpcId npcId);
+
 	size_t CalculateTotalNpcCount() const;
 
 	ShipId GetTopmostShipId() const;
@@ -878,16 +1057,39 @@ private:
 		StateType & npc,
 		ShipId newShip);
 
-	void RenderNpc(
-		StateType const & npc,
-		Render::ShipRenderContext & shipRenderContext);
+	static inline int GetSpringAmongEndpoints(
+		int particleEndpoint1,
+		int particleEndpoint2,
+		StateType::ParticleMeshType const & particleMesh)
+	{
+		assert(particleMesh.Particles.size() >= 2);
+		ElementIndex p1 = particleMesh.Particles[particleEndpoint1].ParticleIndex;
+		ElementIndex p2 = particleMesh.Particles[particleEndpoint2].ParticleIndex;
+		for (int s = 0; s < particleMesh.Springs.size(); ++s)
+		{
+			auto const & spring = particleMesh.Springs[s];
+			if ((spring.EndpointAIndex == p1 && spring.EndpointBIndex == p2)
+				|| (spring.EndpointBIndex == p1 && spring.EndpointAIndex == p2))
+			{
+				return s;
+			}
+		}
+
+		assert(false);
+		return -1;
+	}
 
 	void PublishHumanNpcStats();
 
-	static int GetSpringAmongEndpoints(
-		int particleEndpoint1,
-		int particleEndpoint2,
-		StateType::ParticleMeshType const & particleMesh);
+	void RenderNpc(
+		StateType const & npc,
+		Render::RenderContext & renderContext,
+		Render::ShipRenderContext & shipRenderContext) const;
+
+	void UpdateNpcAnimation(
+		StateType & npc,
+		float currentSimulationTime,
+		Ship const & homeShip);
 
 private:
 
@@ -903,7 +1105,7 @@ private:
 		StateType & npc,
 		float currentSimulationTime,
 		Ship const & homeShip,
-		std::optional<ElementIndex> primaryParticleTriangleIndex) const;
+		std::optional<ElementIndex> primaryParticleTriangleIndex);
 
 	void TransitionParticleToConstrainedState(
 		StateType & npc,
@@ -912,7 +1114,8 @@ private:
 
 	void TransitionParticleToFreeState(
 		StateType & npc,
-		int npcParticleOrdinal);
+		int npcParticleOrdinal,
+		Ship const & homeShip);
 
 	static std::optional<StateType::NpcParticleStateType::ConstrainedStateType> CalculateParticleConstrainedState(
 		vec2f const & position,
@@ -928,7 +1131,10 @@ private:
 
 	void UpdateNpcs(
 		float currentSimulationTime,
+		Storm::Parameters const & stormParameters,
 		GameParameters const & gameParameters);
+
+	void UpdateNpcsEnd();
 
 	void UpdateNpcParticlePhysics(
 		StateType & npc,
@@ -937,9 +1143,10 @@ private:
 		float currentSimulationTime,
 		GameParameters const & gameParameters);
 
-	void CalculateNpcParticlePreliminaryForces(
+	inline void CalculateNpcParticlePreliminaryForces(
 		StateType const & npc,
 		int npcParticleOrdinal,
+		vec2f const & globalWindForce,
 		GameParameters const & gameParameters);
 
 	void CalculateNpcParticleSpringForces(StateType const & npc);
@@ -1150,14 +1357,10 @@ private:
 		vec2f const & bounceEdgeNormal,
 		float currentSimulationTime) const;
 
-	void UpdateNpcAnimation(
-		StateType & npc,
-		float currentSimulationTime,
-		Ship const & homeShip);
-
 	inline void MaintainInWorldBounds(
 		StateType & npc,
 		int npcParticleOrdinal,
+		Ship const & homeShip,
 		GameParameters const & gameParameters)
 	{
 		float constexpr MaxWorldLeft = -GameParameters::HalfMaxWorldWidth;
@@ -1226,9 +1429,15 @@ private:
 		if (hasHit)
 		{
 			// Avoid bouncing back and forth
-			TransitionParticleToFreeState(npc, npcParticleOrdinal);
+			TransitionParticleToFreeState(npc, npcParticleOrdinal, homeShip);
 		}
 	}
+
+	inline void MaintainOverLand(
+		StateType & npc,
+		int npcParticleOrdinal,
+		Ship const & homeShip,
+		GameParameters const & gameParameters);
 
 	static bool IsEdgeFloorToParticle(
 		ElementIndex triangleElementIndex,
@@ -1370,6 +1579,50 @@ private:
 		return !homeShip.GetTriangles().AreVerticesInCwOrder(triangleElementIndex, homeShip.GetPoints());
 	}
 
+	static bool HasBomb(
+		StateType const & npc,
+		Ship const & homeShip)
+	{
+		for (auto p = 0; p < npc.ParticleMesh.Particles.size(); ++p)
+		{
+			auto const & particle = npc.ParticleMesh.Particles[p];
+			if (particle.ConstrainedState.has_value())
+			{
+				for (auto pointElementIndex : homeShip.GetTriangles().GetPointIndices(particle.ConstrainedState->CurrentBCoords.TriangleElementIndex))
+				{
+					if (homeShip.AreBombsInProximity(pointElementIndex))
+					{
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
+	static bool IsElectrified(
+		StateType const & npc,
+		Ship const & homeShip)
+	{
+		for (auto p = 0; p < npc.ParticleMesh.Particles.size(); ++p)
+		{
+			auto const & particle = npc.ParticleMesh.Particles[p];
+			if (particle.ConstrainedState.has_value())
+			{
+				for (auto pointElementIndex : homeShip.GetTriangles().GetPointIndices(particle.ConstrainedState->CurrentBCoords.TriangleElementIndex))
+				{
+					if (homeShip.GetPoints().GetIsElectrified(pointElementIndex))
+					{
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
 	static vec2f CalculateSpringVector(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)
 	{
 		return particles.GetPosition(primaryParticleIndex) - particles.GetPosition(secondaryParticleIndex);
@@ -1394,7 +1647,7 @@ private:
 	void UpdateHuman(
 		StateType & npc,
 		float currentSimulationTime,
-		Ship const & homeShip,
+		Ship & homeShip,
 		GameParameters const & gameParameters);
 
 	inline bool CheckAndMaintainHumanEquilibrium(
@@ -1442,7 +1695,7 @@ private:
 		return std::min(
 			humanState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude // Note that this is the only one that might be zero
 			* mCurrentHumanNpcWalkingSpeedAdjustment
-			* (1.0f + humanState.ResultantPanicLevel * 3.0f),
+			* (1.0f + SmoothStep(0.0f, 1.0f, humanState.ResultantPanicLevel) * 3.0f),
 			GameParameters::MaxHumanNpcTotalWalkingSpeedAdjustment); // Absolute cap
 	}
 
@@ -1474,6 +1727,16 @@ private:
 
 	// All of the NPC particles.
 	NpcParticles mParticles;
+
+	//
+	// State
+	//
+
+	SequenceNumber mCurrentSimulationSequenceNumber;
+
+	std::optional<NpcId> mCurrentlySelectedNpc;
+	GameWallClock::time_point mCurrentlySelectedNpcWallClockTimestamp;
+	std::optional<NpcId> mCurrentlyHighlightedNpc;
 
 	//
 	// Stats
@@ -1510,7 +1773,6 @@ private:
 	// Probing
 	//
 
-	std::optional<NpcId> mCurrentlySelectedNpc;
 	std::optional<ElementIndex> mCurrentlySelectedParticle;
 	std::optional<ElementIndex> mCurrentOriginTriangle;
 

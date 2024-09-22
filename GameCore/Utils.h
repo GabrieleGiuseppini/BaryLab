@@ -167,6 +167,24 @@ namespace Utils
         return memberIt->second.get<picojson::object>();
     }
 
+    inline std::optional<picojson::array> GetOptionalJsonArray(
+        picojson::object const & obj,
+        std::string const & memberName)
+    {
+        auto const & memberIt = obj.find(memberName);
+        if (obj.end() == memberIt)
+        {
+            return std::nullopt;
+        }
+
+        if (!memberIt->second.is<picojson::array>())
+        {
+            throw GameException("Error parsing JSON: member \"" + memberName + "\" is not of type 'array'");
+        }
+
+        return memberIt->second.get<picojson::array>();
+    }
+
     template<typename T>
     inline T GetMandatoryJsonMember(
         picojson::object const & obj,

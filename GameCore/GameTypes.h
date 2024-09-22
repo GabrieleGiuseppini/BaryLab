@@ -146,6 +146,73 @@ struct PickedObjectId
     {}
 };
 
+/*
+ * A sequence number which is never zero.
+ *
+ * Assuming an increment at each frame, this sequence will wrap
+ * every ~700 days.
+ */
+struct SequenceNumber
+{
+public:
+
+    static constexpr SequenceNumber None()
+    {
+        return SequenceNumber();
+    }
+
+    inline constexpr SequenceNumber()
+        : mValue(0)
+    {}
+
+    inline SequenceNumber & operator=(SequenceNumber const & other) = default;
+
+    SequenceNumber & operator++()
+    {
+        ++mValue;
+        if (0 == mValue)
+            mValue = 1;
+
+        return *this;
+    }
+
+    SequenceNumber Previous() const
+    {
+        SequenceNumber res = *this;
+        --res.mValue;
+        if (res.mValue == 0)
+            res.mValue = std::numeric_limits<std::uint32_t>::max();
+
+        return res;
+    }
+
+    inline bool operator==(SequenceNumber const & other) const
+    {
+        return mValue == other.mValue;
+    }
+
+    inline bool operator!=(SequenceNumber const & other) const
+    {
+        return !(*this == other);
+    }
+
+    inline explicit operator bool() const
+    {
+        return (*this) != None();
+    }
+
+    inline bool IsStepOf(std::uint32_t step, std::uint32_t period)
+    {
+        return step == (mValue % period);
+    }
+
+private:
+
+    friend std::basic_ostream<char> & operator<<(std::basic_ostream<char> & os, SequenceNumber const & s);
+
+    std::uint32_t mValue;
+};
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Geometry
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -793,6 +860,8 @@ using NpcSubKindIdType = std::uint32_t;
  */
 enum class NpcHumanRoleType
 {
+    Crew,
+    Other,
     Passenger
 };
 
@@ -851,12 +920,6 @@ inline NpcFloorGeometryDepthType NpcFloorGeometryDepth(NpcFloorGeometryType geom
 /*
  * Types of hightlight for NPCs.
  */
-
-enum class NpcHighlightType
-{
-    None,
-    Candidate
-};
 
 enum class NpcRenderModeType
 {

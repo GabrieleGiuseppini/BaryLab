@@ -23,6 +23,16 @@ struct GameParameters
     static float constexpr GravityMagnitude = 9.80f; // m/s
     static constexpr vec2f Gravity = GravityDir * GravityMagnitude;
 
+    // Air
+    static float constexpr AirMass = 1.2754f; // Kg
+    static float constexpr AirPressureAtSeaLevel = 101325.0f; // No immediate relation to mass of air, due to compressibility of air; Pa == 1atm
+
+    // Water
+    static float constexpr WaterMass = 1000.0f; // Kg
+
+    // Temperature at which all the constants are taken at
+    static float constexpr Temperature0 = 298.15f; // 25C
+
     //
     // Structural constants
     //
@@ -59,6 +69,14 @@ struct GameParameters
     static float constexpr MinGlobalDampingAdjustment = 0.0f;
     static float constexpr MaxGlobalDampingAdjustment = 10.0f;
 
+    float AirDensityAdjustment;
+    static float constexpr MinAirDensityAdjustment = 0.001f;
+    static float constexpr MaxAirDensityAdjustment = 1000.0f;
+
+    float WaterDensityAdjustment;
+    static float constexpr MinWaterDensityAdjustment = 0.001f;
+    static float constexpr MaxWaterDensityAdjustment = 100.0f;
+
     float ElasticityAdjustment;
     static float constexpr MinElasticityAdjustment = 0.0f;
     static float constexpr MaxElasticityAdjustment = 10.0f;
@@ -83,7 +101,21 @@ struct GameParameters
 
     float OceanFloorElasticityCoefficient;
 
+    // Heat and combustion
+
+    float AirTemperature = 298.15f; // 25C, Kelvin
+
+    static float constexpr AirThermalExpansionCoefficient = 0.0034f; // 1/K
+
+    float WaterTemperature = 288.15f; // 15C, Kelvin
+
+    static float constexpr WaterThermalExpansionCoefficient = 0.000207f; // 1/K
+
+    float IgnitionTemperatureAdjustment = 1.0f;
+
     // Misc
+
+    static float constexpr NpcAirBubbleFinalScale = 0.05f;
 
     static float constexpr VertexRadius = 0.05f;
     static float constexpr EdgeThickness = 0.03f;
@@ -93,6 +125,10 @@ struct GameParameters
 
     float MoveToolInertia;
     bool IsUltraViolentMode;
+
+    // Placeholders
+
+    float AntiMatterBombImplosionStrength = 3.0f;
 
     //
     // NPCs
@@ -108,9 +144,13 @@ struct GameParameters
     static float constexpr MinNpcSpringDampingCoefficientAdjustment = 0.0f;
     static float constexpr MaxNpcSpringDampingCoefficientAdjustment = 2.0f;
 
+    float NpcWindReceptivityAdjustment = 1.0f;
+
     float NpcSizeMultiplier;
     static float constexpr MinNpcSizeMultiplier = 0.2f;
     static float constexpr MaxNpcSizeMultiplier = 10.0f;
+
+    static float constexpr HumanNpcTemperature = 310.15f; // 37 Celsius
 
     float HumanNpcEquilibriumTorqueStiffnessCoefficient;
     static float constexpr MinHumanNpcEquilibriumTorqueStiffnessCoefficient = 0.0f;
