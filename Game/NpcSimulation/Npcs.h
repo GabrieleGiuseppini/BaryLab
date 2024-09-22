@@ -1149,9 +1149,9 @@ private:
 		vec2f const & globalWindForce,
 		GameParameters const & gameParameters);
 
-	void CalculateNpcParticleSpringForces(StateType const & npc);
+	inline void CalculateNpcParticleSpringForces(StateType const & npc);
 
-	vec2f CalculateNpcParticleDefinitiveForces(
+	inline vec2f CalculateNpcParticleDefinitiveForces(
 		StateType const & npc,
 		int npcParticleOrdinal,
 		GameParameters const & gameParameters) const;
