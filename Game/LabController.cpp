@@ -1001,6 +1001,8 @@ void LabController::Reset(
     // Add initial NPCs
     //
 
+    auto const startTime = GameChronometer::now();
+
     for (size_t i = 0; i < GameParameters::MaxNpcs; ++i)
     {
         float const posX = GameRandomEngine::GetInstance().GenerateUniformReal(shipAABB.BottomLeft.x, shipAABB.TopRight.x);
@@ -1016,6 +1018,8 @@ void LabController::Reset(
             throw GameException("Cannot add NPC!");
         }
     }
+
+    LogMessage("Total time for creating NPCs: ", std::chrono::duration_cast<std::chrono::microseconds>(GameChronometer::now() - startTime).count(), "us");
 
 #endif
 
