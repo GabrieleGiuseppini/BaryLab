@@ -1695,7 +1695,7 @@ private:
 		return std::min(
 			humanState.CurrentBehaviorState.Constrained_Walking.CurrentWalkMagnitude // Note that this is the only one that might be zero
 			* mCurrentHumanNpcWalkingSpeedAdjustment
-			* (1.0f + SmoothStep(0.0f, 1.0f, humanState.ResultantPanicLevel) * 3.0f),
+			* (1.0f + std::min(humanState.ResultantPanicLevel, 1.0f) * 3.0f),
 			GameParameters::MaxHumanNpcTotalWalkingSpeedAdjustment); // Absolute cap
 	}
 
