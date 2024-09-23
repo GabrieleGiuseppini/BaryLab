@@ -3051,7 +3051,7 @@ void Npcs::UpdateNpcAnimation(
         // Stuff we calc in some cases and which we need again later for lengths
         float humanEdgeAngle = 0.0f;
         float adjustedStandardHumanHeight = 0.0f;
-        vec2f edg1, edg2, edgVector, edgDir;
+        vec2f edgp1, edgp2, edgVector, edgDir;
         vec2f feetPosition, actualBodyVector, actualBodyDir;
         float periodicValue = 0.0f;
 
@@ -3357,13 +3357,15 @@ void Npcs::UpdateNpcAnimation(
                     // We are walking on an edge - make sure feet don't look weird on sloped edges
                     //
 
-                    ElementIndex const edgeElementIndex =
-                        homeShip.GetTriangles().GetSubSprings(primaryContrainedState->CurrentVirtualFloor->TriangleElementIndex)
-                        .SpringIndices[primaryContrainedState->CurrentVirtualFloor->EdgeOrdinal];
+                    // Calculate edge vector
                     // Note: we do not care if not in CW order
-                    edg1 = homeShip.GetSprings().GetEndpointAPosition(edgeElementIndex, homeShip.GetPoints());
-                    edg2 = homeShip.GetSprings().GetEndpointBPosition(edgeElementIndex, homeShip.GetPoints());
-                    edgVector = edg2 - edg1;
+                    auto const t = primaryContrainedState->CurrentVirtualFloor->TriangleElementIndex;
+                    auto const e = primaryContrainedState->CurrentVirtualFloor->EdgeOrdinal;
+                    auto const p1 = homeShip.GetTriangles().GetPointIndices(t)[e];
+                    auto const p2 = homeShip.GetTriangles().GetPointIndices(t)[(e + 1) % 3];
+                    edgp1 = homeShip.GetPoints().GetPosition(p1);
+                    edgp2 = homeShip.GetPoints().GetPosition(p2);
+                    edgVector = edgp2 - edgp1;
                     edgDir = edgVector.normalise_approx();
 
                     //
@@ -3856,7 +3858,7 @@ void Npcs::UpdateNpcAnimation(
                     vec2f const crotchPosition = feetPosition - actualBodyVector * (GameParameters::HumanNpcGeometry::LegLengthFraction * targetLowerExtremityLengthMultiplier);
 
                     // leg*1 is crotchPosition
-                    float const numerator = (edg1.y - crotchPosition.y) * (edg2.x - edg1.x) + (crotchPosition.x - edg1.x) * (edg2.y - edg1.y);
+                    float const numerator = (edgp1.y - crotchPosition.y) * (edgp2.x - edgp1.x) + (crotchPosition.x - edgp1.x) * (edgp2.y - edgp1.y);
 
                     {
                         vec2f const legrVector = actualBodyDir.rotate(animationState.LimbAnglesCos.RightLeg, animationState.LimbAnglesSin.RightLeg) * adjustedStandardLegLength;
