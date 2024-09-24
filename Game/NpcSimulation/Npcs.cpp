@@ -2623,22 +2623,7 @@ void Npcs::RenderNpc(
                 // Note: angles are with body vertical, regardless of L/R
 
                 vec2f const leftArmDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftArm, animationState.LimbAnglesSin.LeftArm);
-                TextureQuad leftArmQuad{
-                    Geometry::MakeQuad(
-                        armTop,
-                        armTop + leftArmDir * leftArmLength,
-                        leftArmDir.to_perpendicular(),
-                        halfArmW),
-                    humanNpcState.CurrentFaceDirectionX > 0.0f ? humanNpcState.TextureFrames.ArmSide : humanNpcState.TextureFrames.ArmSide.FlipH() };
-
                 vec2f const rightArmDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.RightArm, animationState.LimbAnglesSin.RightArm);
-                TextureQuad rightArmQuad{
-                    Geometry::MakeQuad(
-                        armTop,
-                        armTop + rightArmDir * rightArmLength,
-                        rightArmDir.to_perpendicular(),
-                        halfArmW),
-                    humanNpcState.CurrentFaceDirectionX > 0.0f ? humanNpcState.TextureFrames.ArmSide : humanNpcState.TextureFrames.ArmSide.FlipH() };
 
                 vec2f const leftUpperLegDir = actualBodyVDir.rotate(animationState.LimbAnglesCos.LeftLeg, animationState.LimbAnglesSin.LeftLeg);
                 vec2f const leftUpperLegVector = leftUpperLegDir * leftLegLength * animationState.UpperLegLengthFraction;
@@ -2780,8 +2765,12 @@ void Npcs::RenderNpc(
                     // Left arm
                     shipRenderContext.UploadNpcTextureQuad(
                         planeId,
-                        leftArmQuad.Position,
-                        leftArmQuad.TextureCoords,
+                        Geometry::MakeQuad(
+                            armTop,
+                            armTop + leftArmDir * leftArmLength,
+                            leftArmDir.to_perpendicular(),
+                            halfArmW),
+                        humanNpcState.CurrentFaceDirectionX > 0.0f ? humanNpcState.TextureFrames.ArmSide : humanNpcState.TextureFrames.ArmSide.FlipH(),
                         overlayColor);
                 }
                 else
@@ -2804,8 +2793,12 @@ void Npcs::RenderNpc(
                     // Right arm
                     shipRenderContext.UploadNpcTextureQuad(
                         planeId,
-                        rightArmQuad.Position,
-                        rightArmQuad.TextureCoords,
+                        Geometry::MakeQuad(
+                            armTop,
+                            armTop + rightArmDir * rightArmLength,
+                            rightArmDir.to_perpendicular(),
+                            halfArmW),
+                        humanNpcState.CurrentFaceDirectionX > 0.0f ? humanNpcState.TextureFrames.ArmSide : humanNpcState.TextureFrames.ArmSide.FlipH(),
                         overlayColor);
                 }
 
@@ -2855,10 +2848,13 @@ void Npcs::RenderNpc(
                     // Right arm
                     shipRenderContext.UploadNpcTextureQuad(
                         planeId,
-                        rightArmQuad.Position,
-                        rightArmQuad.TextureCoords,
+                        Geometry::MakeQuad(
+                            armTop,
+                            armTop + rightArmDir * rightArmLength,
+                            rightArmDir.to_perpendicular(),
+                            halfArmW),
+                        humanNpcState.CurrentFaceDirectionX > 0.0f ? humanNpcState.TextureFrames.ArmSide : humanNpcState.TextureFrames.ArmSide.FlipH(),
                         overlayColor);
-
                 }
                 else
                 {
@@ -2880,8 +2876,12 @@ void Npcs::RenderNpc(
                     // Left arm
                     shipRenderContext.UploadNpcTextureQuad(
                         planeId,
-                        leftArmQuad.Position,
-                        leftArmQuad.TextureCoords,
+                        Geometry::MakeQuad(
+                            armTop,
+                            armTop + leftArmDir * leftArmLength,
+                            leftArmDir.to_perpendicular(),
+                            halfArmW),
+                        humanNpcState.CurrentFaceDirectionX > 0.0f ? humanNpcState.TextureFrames.ArmSide : humanNpcState.TextureFrames.ArmSide.FlipH(),
                         overlayColor);
                 }
             }
