@@ -849,6 +849,13 @@ void MainFrame::OnSimulationTimer(wxTimerEvent & /*event*/)
 
 
     //
+    // Publish perf
+    //
+
+    mLabController->PublishPerf();
+
+
+    //
     // Update probe toolbar
     //
 
@@ -857,14 +864,14 @@ void MainFrame::OnSimulationTimer(wxTimerEvent & /*event*/)
     mProbeToolbar->Update();
 
     // TODOTEST
-#ifndef _DEBUG
-    static int TODO = 0;
-    ++TODO;
-    if (TODO > 10 * 64)
-    {
-        Close();
-    }
-#endif
+////#ifndef _DEBUG
+////    static int TODO = 0;
+////    ++TODO;
+////    if (TODO > 10 * 64)
+////    {
+////        Close();
+////    }
+////#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

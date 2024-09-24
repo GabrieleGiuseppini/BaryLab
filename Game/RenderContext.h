@@ -236,6 +236,52 @@ public:
             overlayColorf);
     }
 
+    inline void UploadNpcTextureQuad(
+        PlaneId /*planeId*/,
+        Quad const & quad,
+        TextureCoordinatesQuad const & textureCoords,
+        rgbaColor const & overlayColor)
+    {
+        //float const backDepth = std::max(-faceOrientation, 0.0f);
+        float const backDepth = 0.0f;
+        //float const orientationDepth = 1.0f - std::abs(faceOrientation);
+        float const orientationDepth = 0.0f;
+
+        vec4f const overlayColorf = overlayColor.toVec4f();
+
+        // TopLeft
+        mNpcQuadVertexBuffer.emplace_back(
+            quad.V.TopLeft,
+            vec2f(textureCoords.LeftX, textureCoords.TopY),
+            backDepth,
+            orientationDepth,
+            overlayColorf);
+
+        // BottomLeft
+        mNpcQuadVertexBuffer.emplace_back(
+            quad.V.BottomLeft,
+            vec2f(textureCoords.LeftX, textureCoords.BottomY),
+            backDepth,
+            orientationDepth,
+            overlayColorf);
+
+        // TopRight
+        mNpcQuadVertexBuffer.emplace_back(
+            quad.V.TopRight,
+            vec2f(textureCoords.RightX, textureCoords.TopY),
+            backDepth,
+            orientationDepth,
+            overlayColorf);
+
+        // BottomRight
+        mNpcQuadVertexBuffer.emplace_back(
+            quad.V.BottomRight,
+            vec2f(textureCoords.RightX, textureCoords.BottomY),
+            backDepth,
+            orientationDepth,
+            overlayColorf);
+    }
+
     void UploadNpcTextureQuadsEnd();
 
     void UploadNpcParticlesStart();

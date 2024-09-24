@@ -134,20 +134,8 @@ void LabController::Update()
         // Update rendering
         mCurrentShipTranslationAccelerationIndicator *= 0.98f;
 
+        // Update simulation time for next cycle
         mCurrentSimulationTime += GameParameters::SimulationStepTimeDuration<float>;
-
-        auto const now = GameChronometer::now();
-        if (now > mLastPerfPublishTimestamp + std::chrono::milliseconds(500))
-        {
-            // Publish perf stats
-            auto const deltaStats = mPerfStats - mLastPublishedPerfStats;
-            mGameEventHandler->OnUpdateTimeMeasured(
-                deltaStats.TotalNpcUpdateDuration.ToRatio<std::chrono::milliseconds>(),
-                deltaStats.TotalNpcRenderUploadDuration.ToRatio<std::chrono::milliseconds>());
-
-            mLastPublishedPerfStats = mPerfStats;
-            mLastPerfPublishTimestamp = now;
-        }
     }
 }
 
@@ -304,7 +292,11 @@ void LabController::Render()
         // Npcs
         //
 
+        auto const startTime = GameChronometer::now();
+
         mWorld->GetNpcs().Upload(*mRenderContext);
+
+        mPerfStats.TotalNpcRenderUploadDuration.Update(GameChronometer::now() - startTime);
 
         //
         // Ship velocity
@@ -316,6 +308,22 @@ void LabController::Render()
     }
 
     mRenderContext->RenderEnd();
+}
+
+void LabController::PublishPerf()
+{
+    auto const now = GameChronometer::now();
+    if (now > mLastPerfPublishTimestamp + std::chrono::milliseconds(500))
+    {
+        // Publish perf stats
+        auto const deltaStats = mPerfStats - mLastPublishedPerfStats;
+        mGameEventHandler->OnUpdateTimeMeasured(
+            deltaStats.TotalNpcUpdateDuration.ToRatio<std::chrono::milliseconds>(),
+            deltaStats.TotalNpcRenderUploadDuration.ToRatio<std::chrono::milliseconds>());
+
+        mLastPublishedPerfStats = mPerfStats;
+        mLastPerfPublishTimestamp = now;
+    }
 }
 
 void LabController::Reset()

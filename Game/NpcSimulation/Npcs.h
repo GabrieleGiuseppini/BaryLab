@@ -53,7 +53,7 @@ private:
 
 #pragma pack(push)
 
-	struct LimbVector
+	struct LimbVector final
 	{
 		float RightLeg;
 		float LeftLeg;

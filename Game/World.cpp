@@ -7,6 +7,8 @@
 
 namespace Physics {
 
+// Hiding these from compiler
+
 vec2f World::GetCurrentWindSpeed() const
 {
 	return vec2f::zero();

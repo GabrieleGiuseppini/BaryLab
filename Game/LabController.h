@@ -63,7 +63,10 @@ public:
 
     void Render();
 
+    void PublishPerf();
+
     void Reset();
+    
 
     //
     // Interactions

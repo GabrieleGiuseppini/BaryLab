@@ -790,6 +790,25 @@ inline std::basic_ostream<char> & operator<<(std::basic_ostream<char> & os, Abso
     return os;
 }
 
+// Generic quad, intrinsics-friendly
+
+#pragma pack(push, 1)
+
+union Quad final
+{
+    struct
+    {
+        vec2f TopLeft;
+        vec2f BottomLeft;
+        vec2f TopRight;
+        vec2f BottomRight;
+    } V;
+
+    float fptr[8];
+};
+
+#pragma pack(pop)
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Rendering
 ////////////////////////////////////////////////////////////////////////////////////////////////
