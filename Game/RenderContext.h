@@ -185,100 +185,43 @@ public:
 
     void UploadEdgesEnd();
 
-    void UploadNpcTextureQuadsStart(size_t quadCount);
+    void UploadNpcTextureQuadsStart(size_t maxQuadCount);
 
-    inline void UploadNpcTextureQuad(
-        PlaneId /*planeId*/,
-        vec2f topLeftPosition,
-        vec2f topRightPosition,
-        vec2f bottomLeftPosition,
-        vec2f bottomRightPosition,
-        TextureCoordinatesQuad const & textureCoords,
-        rgbaColor const & overlayColor)
+    Quad [[nodiscard]] & UploadNpcTextureQuadPosition()
     {
-        //float const backDepth = std::max(-faceOrientation, 0.0f);
-        float const backDepth = 0.0f;
-        //float const orientationDepth = 1.0f - std::abs(faceOrientation);
-        float const orientationDepth = 0.0f;
-
-        vec4f const overlayColorf = overlayColor.toVec4f();
-
-        // TopLeft
-        mNpcQuadVertexBuffer.emplace_back(
-            topLeftPosition,
-            vec2f(textureCoords.LeftX, textureCoords.TopY),
-            backDepth,
-            orientationDepth,
-            overlayColorf);
-
-        // BottomLeft
-        mNpcQuadVertexBuffer.emplace_back(
-            bottomLeftPosition,
-            vec2f(textureCoords.LeftX, textureCoords.BottomY),
-            backDepth,
-            orientationDepth,
-            overlayColorf);
-
-        // TopRight
-        mNpcQuadVertexBuffer.emplace_back(
-            topRightPosition,
-            vec2f(textureCoords.RightX, textureCoords.TopY),
-            backDepth,
-            orientationDepth,
-            overlayColorf);
-
-        // BottomRight
-        mNpcQuadVertexBuffer.emplace_back(
-            bottomRightPosition,
-            vec2f(textureCoords.RightX, textureCoords.BottomY),
-            backDepth,
-            orientationDepth,
-            overlayColorf);
+        return mNpcTextureQuadQuadBuffer.emplace_back_ghost();
     }
 
-    inline void UploadNpcTextureQuad(
-        PlaneId /*planeId*/,
-        Quad const & quad,
+    void UploadNpcTextureQuadAttributes(
+        PlaneId planeId,
         TextureCoordinatesQuad const & textureCoords,
         rgbaColor const & overlayColor)
     {
-        //float const backDepth = std::max(-faceOrientation, 0.0f);
-        float const backDepth = 0.0f;
-        //float const orientationDepth = 1.0f - std::abs(faceOrientation);
-        float const orientationDepth = 0.0f;
-
+        float const planeIdf = static_cast<float>(planeId);
         vec4f const overlayColorf = overlayColor.toVec4f();
 
         // TopLeft
-        mNpcQuadVertexBuffer.emplace_back(
-            quad.V.TopLeft,
+        mNpcTextureQuadAttributesVertexBuffer.emplace_back(
+            planeIdf,
             vec2f(textureCoords.LeftX, textureCoords.TopY),
-            backDepth,
-            orientationDepth,
             overlayColorf);
 
         // BottomLeft
-        mNpcQuadVertexBuffer.emplace_back(
-            quad.V.BottomLeft,
-            vec2f(textureCoords.LeftX, textureCoords.BottomY),
-            backDepth,
-            orientationDepth,
+        mNpcTextureQuadAttributesVertexBuffer.emplace_back(
+            planeIdf,
+            vec2f(textureCoords.LeftX, textureCoords.BottomY),            
             overlayColorf);
 
         // TopRight
-        mNpcQuadVertexBuffer.emplace_back(
-            quad.V.TopRight,
+        mNpcTextureQuadAttributesVertexBuffer.emplace_back(
+            planeIdf,
             vec2f(textureCoords.RightX, textureCoords.TopY),
-            backDepth,
-            orientationDepth,
             overlayColorf);
 
         // BottomRight
-        mNpcQuadVertexBuffer.emplace_back(
-            quad.V.BottomRight,
+        mNpcTextureQuadAttributesVertexBuffer.emplace_back(
+            planeIdf,
             vec2f(textureCoords.RightX, textureCoords.BottomY),
-            backDepth,
-            orientationDepth,
             overlayColorf);
     }
 
@@ -461,36 +404,29 @@ private:
     // NPC Quads
     ////////////////////////////////////////////////////////////////
 
-#pragma pack(push)
-
-    struct NpcQuadVertex
+    struct NpcTextureQuadAttributesVertex
     {
-        vec2f Position;
-        vec2f VertexSpacePosition;
-        float BackDepth;
-        float OrientationDepth;
+        float PlaneId;
+        vec2f TextureCoords;
         vec4f OverlayColor;
 
-        NpcQuadVertex(
-            vec2f const & position,
-            vec2f vertexSpacePosition,
-            float backDepth,
-            float orientationDepth,
+        NpcTextureQuadAttributesVertex(
+            float planeId,
+            vec2f textureCoords,
             vec4f overlayColor)
-            : Position(position)
-            , VertexSpacePosition(vertexSpacePosition)
-            , BackDepth(backDepth)
-            , OrientationDepth(orientationDepth)
+            : PlaneId(planeId)
+            , TextureCoords(textureCoords)
             , OverlayColor(overlayColor)
         {}
     };
 
-#pragma pack(pop)
-
     GameOpenGLVAO mNpcQuadVAO;
 
-    BoundedVector<NpcQuadVertex> mNpcQuadVertexBuffer;
-    GameOpenGLVBO mNpcQuadVertexVBO;
+    BoundedVector<Quad> mNpcTextureQuadQuadBuffer; // 4 vertices
+    GameOpenGLVBO mNpcTextureQuadQuadVBO;
+
+    BoundedVector<NpcTextureQuadAttributesVertex> mNpcTextureQuadAttributesVertexBuffer;
+    GameOpenGLVBO mNpcTextureQuadAttributesVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // NPC Particles

@@ -805,6 +805,8 @@ union Quad final
     } V;
 
     float fptr[8];
+
+    Quad & operator=(Quad const & other) = default;
 };
 
 #pragma pack(pop)

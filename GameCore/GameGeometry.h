@@ -270,15 +270,14 @@ inline void GenerateIntegralLinePath(
     }
 }
 
-inline Quad MakeQuad(
+inline void MakeQuadInto(
     vec2f const & centerTop,
     vec2f const & centerBottom,
     vec2f const & hDir,
-    float halfWidth)
+    float halfWidth,
+    Quad & quad)
 {
 #if FS_IS_ARCHITECTURE_X86_32() || FS_IS_ARCHITECTURE_X86_64()
-
-    Quad quad;
 
     __m128d vd = _mm_shuffle_pd(
         _mm_load_pd(reinterpret_cast<double const *>(&centerTop)),
@@ -294,18 +293,31 @@ inline Quad MakeQuad(
     __m128 right = _mm_add_ps(_mm_castpd_ps(vd), h);
     _mm_store_ps(&(quad.fptr[0]), left);
     _mm_store_ps(&(quad.fptr[4]), right);
-
-    return quad;
 #else
 
-    Quad quad;
     quad.V.TopLeft = vec2f(centerTop - hDir * halfWidth);
     quad.V.BottomLeft = vec2f(centerBottom - hDir * halfWidth);
     quad.V.TopRight = vec2f(centerTop + hDir * halfWidth);
     quad.V.BottomRight = vec2f(centerBottom + hDir * halfWidth);
-    return quad;
 
 #endif
+}
+
+inline Quad MakeQuad(
+    vec2f const & centerTop,
+    vec2f const & centerBottom,
+    vec2f const & hDir,
+    float halfWidth)
+{
+    Quad quad;
+    MakeQuadInto(
+        centerTop,
+        centerBottom,
+        hDir,
+        halfWidth,
+        quad);
+
+    return quad;
 }
 
 }
