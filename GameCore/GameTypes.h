@@ -790,7 +790,7 @@ inline std::basic_ostream<char> & operator<<(std::basic_ostream<char> & os, Abso
     return os;
 }
 
-// Generic quad, intrinsics-friendly
+// Generic quad (not necessarily square), intrinsics-friendly
 
 #pragma pack(push, 1)
 
