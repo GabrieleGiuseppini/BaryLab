@@ -6,7 +6,7 @@
 #define out varying
 
 // Inputs
-in vec4 inNpcQuadAttributeGroup1; // Position
+in vec2 inNpcQuadAttributeGroup1; // Position
 in vec3 inNpcQuadAttributeGroup2; // PlaneId, VertexSpacePosition
 in vec4 inNpcQuadAttributeGroup3; // OverlayColor
 
