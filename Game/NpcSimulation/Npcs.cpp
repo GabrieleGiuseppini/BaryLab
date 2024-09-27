@@ -2389,13 +2389,14 @@ void Npcs::RenderNpc(
 {
     assert(mShips[npc.CurrentShipId].has_value());
 
-    auto const planeId = (npc.CurrentRegime == StateType::RegimeType::BeingPlaced)
-        ? mShips[npc.CurrentShipId]->HomeShip.GetMaxPlaneId()
-        : npc.CurrentPlaneId;
+    float const planeId = (npc.CurrentRegime == StateType::RegimeType::BeingPlaced)
+        ? static_cast<float>(mShips[npc.CurrentShipId]->HomeShip.GetMaxPlaneId())
+        : static_cast<float>(npc.CurrentPlaneId);
 
-    rgbaColor const overlayColor = (mCurrentlyHighlightedNpc == npc.Id)
-        ? rgbaColor(255, 53, 20, 255)
-        : rgbaColor(0, 0, 0, 0);
+    vec4f const overlayColor = (mCurrentlyHighlightedNpc == npc.Id)
+        ? vec4f(1.0f, 0.21f, 0.08f, 1.0f)
+        : vec4f(0.0f, 0.0f, 0.0f, 0.0f);
+
 
     switch (npc.Kind)
     {

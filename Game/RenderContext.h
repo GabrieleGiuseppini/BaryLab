@@ -193,36 +193,33 @@ public:
     }
 
     void UploadNpcTextureQuadAttributes(
-        PlaneId planeId,
+        float planeId,
         TextureCoordinatesQuad const & textureCoords,
-        rgbaColor const & overlayColor)
+        vec4f const & overlayColor)
     {
-        float const planeIdf = static_cast<float>(planeId);
-        vec4f const overlayColorf = overlayColor.toVec4f();
-
         // TopLeft
         mNpcTextureQuadAttributesVertexBuffer.emplace_back(
-            planeIdf,
+            planeId,
             vec2f(textureCoords.LeftX, textureCoords.TopY),
-            overlayColorf);
+            overlayColor);
 
         // BottomLeft
         mNpcTextureQuadAttributesVertexBuffer.emplace_back(
-            planeIdf,
+            planeId,
             vec2f(textureCoords.LeftX, textureCoords.BottomY),            
-            overlayColorf);
+            overlayColor);
 
         // TopRight
         mNpcTextureQuadAttributesVertexBuffer.emplace_back(
-            planeIdf,
+            planeId,
             vec2f(textureCoords.RightX, textureCoords.TopY),
-            overlayColorf);
+            overlayColor);
 
         // BottomRight
         mNpcTextureQuadAttributesVertexBuffer.emplace_back(
-            planeIdf,
+            planeId,
             vec2f(textureCoords.RightX, textureCoords.BottomY),
-            overlayColorf);
+            overlayColor);
     }
 
     void UploadNpcTextureQuadsEnd();
