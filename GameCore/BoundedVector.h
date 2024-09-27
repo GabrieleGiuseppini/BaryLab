@@ -129,14 +129,14 @@ public:
 
     inline TElement [[nodiscard]] & emplace_back_ghost()
     {
-        assert(mSize < mAllocatedSize);
+        assert(mSize + 1 < mAllocatedSize);
         return mBuffer[mSize++];
     }
 
     template<typename... TArgs>
     inline TElement & emplace_back(TArgs &&... args)
     {
-        assert(mSize < mAllocatedSize);
+        assert(mSize + 1 < mAllocatedSize);
         return *new(&(mBuffer[mSize++])) TElement(std::forward<TArgs>(args)...);
     }
 
