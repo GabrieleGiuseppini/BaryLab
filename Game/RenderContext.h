@@ -202,7 +202,7 @@ public:
             overlayColor
         };
 
-        auto * buf = &(mNpcTextureQuadAttributesVertexBuffer.emplace_back_ghost(4));        
+        auto * buf = &(mNpcTextureQuadAttributesVertexBuffer.emplace_back_ghost(4));
         buf[0] = { as, vec2f(textureCoords.LeftX, textureCoords.TopY) };
         buf[1] = { as, vec2f(textureCoords.LeftX, textureCoords.BottomY) };
         buf[2] = { as, vec2f(textureCoords.RightX, textureCoords.TopY) };
