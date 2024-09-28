@@ -7,20 +7,20 @@
 
 // Inputs
 in vec2 inNpcQuadAttributeGroup1; // Position
-in vec3 inNpcQuadAttributeGroup2; // PlaneId, VertexSpacePosition
-in vec4 inNpcQuadAttributeGroup3; // OverlayColor
+in vec2 inNpcQuadAttributeGroup2; // VertexSpacePosition
+in vec4 inNpcQuadAttributeGroup3; // PlaneId, OverlayColor
 
 // Outputs        
 out vec2 vertexSpacePosition;
-out vec4 vertexOverlayColor;
+out vec3 vertexOverlayColor;
 
 // Params
 uniform mat4 paramOrthoMatrix;
 
 void main()
 {
-    vertexSpacePosition = inNpcQuadAttributeGroup2.yz;
-    vertexOverlayColor = inNpcQuadAttributeGroup3;
+    vertexSpacePosition = inNpcQuadAttributeGroup2;
+    vertexOverlayColor = inNpcQuadAttributeGroup3.yzw;
 
     gl_Position = paramOrthoMatrix * vec4(inNpcQuadAttributeGroup1.xy, -1.0, 1.0);
 }
@@ -33,7 +33,7 @@ void main()
 
 // Inputs from previous shader        
 in vec2 vertexSpacePosition; // [(-1.0, -1.0), (1.0, 1.0)]
-in vec4 vertexOverlayColor;
+in vec3 vertexOverlayColor;
 
 void main()
 {
@@ -58,8 +58,8 @@ void main()
     c = vec4(
         mix(
             c.rgb,
-            l * vertexOverlayColor.rgb,
-            vertexOverlayColor.a),
+            l * vertexOverlayColor,
+            step(0.0001, vertexOverlayColor.r + vertexOverlayColor.g + vertexOverlayColor.b)),
         c.a);
 
     gl_FragColor = c;

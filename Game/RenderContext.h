@@ -195,31 +195,26 @@ public:
     void UploadNpcTextureQuadAttributes(
         float planeId,
         TextureCoordinatesQuad const & textureCoords,
-        vec4f const & overlayColor)
+        vec3f const & overlayColor)
     {
-        // TopLeft
-        mNpcTextureQuadAttributesVertexBuffer.emplace_back(
-            planeId,
-            vec2f(textureCoords.LeftX, textureCoords.TopY),
-            overlayColor);
+        mNpcTextureQuadTextureCoordsBuffer.emplace_back(
+            Quad{
+                vec2f(textureCoords.LeftX, textureCoords.TopY),
+                vec2f(textureCoords.LeftX, textureCoords.BottomY),
+                vec2f(textureCoords.RightX, textureCoords.TopY),
+                vec2f(textureCoords.RightX, textureCoords.BottomY)
+            });
 
-        // BottomLeft
-        mNpcTextureQuadAttributesVertexBuffer.emplace_back(
+        NpcTextureQuadAttributesVertex const a{
             planeId,
-            vec2f(textureCoords.LeftX, textureCoords.BottomY),            
-            overlayColor);
+            overlayColor
+        };
 
-        // TopRight
-        mNpcTextureQuadAttributesVertexBuffer.emplace_back(
-            planeId,
-            vec2f(textureCoords.RightX, textureCoords.TopY),
-            overlayColor);
-
-        // BottomRight
-        mNpcTextureQuadAttributesVertexBuffer.emplace_back(
-            planeId,
-            vec2f(textureCoords.RightX, textureCoords.BottomY),
-            overlayColor);
+        auto * buf = &(mNpcTextureQuadAttributesVertexBuffer.emplace_back_ghost(4));        
+        buf[0] = a;
+        buf[1] = a;
+        buf[2] = a;
+        buf[3] = a;
     }
 
     void UploadNpcTextureQuadsEnd();
@@ -404,15 +399,12 @@ private:
     struct NpcTextureQuadAttributesVertex
     {
         float PlaneId;
-        vec2f TextureCoords;
-        vec4f OverlayColor;
+        vec3f OverlayColor;
 
         NpcTextureQuadAttributesVertex(
             float planeId,
-            vec2f textureCoords,
-            vec4f overlayColor)
+            vec3f overlayColor)
             : PlaneId(planeId)
-            , TextureCoords(textureCoords)
             , OverlayColor(overlayColor)
         {}
     };
@@ -421,6 +413,9 @@ private:
 
     BoundedVector<Quad> mNpcTextureQuadQuadBuffer; // 4 vertices
     GameOpenGLVBO mNpcTextureQuadQuadVBO;
+
+    BoundedVector<Quad> mNpcTextureQuadTextureCoordsBuffer; // 4 vertices
+    GameOpenGLVBO mNpcTextureQuadTextureCoordsVBO;
 
     BoundedVector<NpcTextureQuadAttributesVertex> mNpcTextureQuadAttributesVertexBuffer;
     GameOpenGLVBO mNpcTextureQuadAttributesVertexVBO;

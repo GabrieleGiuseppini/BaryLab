@@ -2393,9 +2393,9 @@ void Npcs::RenderNpc(
         ? static_cast<float>(mShips[npc.CurrentShipId]->HomeShip.GetMaxPlaneId())
         : static_cast<float>(npc.CurrentPlaneId);
 
-    vec4f const overlayColor = (mCurrentlyHighlightedNpc == npc.Id)
-        ? vec4f(1.0f, 0.21f, 0.08f, 1.0f)
-        : vec4f(0.0f, 0.0f, 0.0f, 0.0f);
+    vec3f const overlayColor = (mCurrentlyHighlightedNpc == npc.Id)
+        ? vec3f(1.0f, 0.21f, 0.08f)
+        : vec3f(0.0f, 0.0f, 0.0f);
 
 
     switch (npc.Kind)
