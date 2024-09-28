@@ -2389,14 +2389,14 @@ void Npcs::RenderNpc(
 {
     assert(mShips[npc.CurrentShipId].has_value());
 
-    float const planeId = (npc.CurrentRegime == StateType::RegimeType::BeingPlaced)
-        ? static_cast<float>(mShips[npc.CurrentShipId]->HomeShip.GetMaxPlaneId())
-        : static_cast<float>(npc.CurrentPlaneId);
-
-    vec3f const overlayColor = (mCurrentlyHighlightedNpc == npc.Id)
-        ? vec3f(1.0f, 0.21f, 0.08f)
-        : vec3f(0.0f, 0.0f, 0.0f);
-
+    Render::RenderContext::NpcTextureQuadStaticAttribs staticAttribs{
+        (npc.CurrentRegime == StateType::RegimeType::BeingPlaced)
+            ? static_cast<float>(mShips[npc.CurrentShipId]->HomeShip.GetMaxPlaneId())
+            : static_cast<float>(npc.CurrentPlaneId),
+        (mCurrentlyHighlightedNpc == npc.Id)
+            ? vec3f(1.0f, 0.21f, 0.08f)
+            : vec3f(0.0f, 0.0f, 0.0f)
+    };
 
     switch (npc.Kind)
     {
@@ -2481,9 +2481,8 @@ void Npcs::RenderNpc(
                         halfHeadW,
                         quad);
                     shipRenderContext.UploadNpcTextureQuadAttributes(
-                        planeId,
                         humanNpcState.CurrentFaceOrientation > 0.0f ? humanNpcState.TextureFrames.HeadFront : humanNpcState.TextureFrames.HeadBack,
-                        overlayColor);
+                        staticAttribs);
                 }
 
                 // Arms and legs
@@ -2508,9 +2507,8 @@ void Npcs::RenderNpc(
                             halfArmW,
                             quad);
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             humanNpcState.TextureFrames.ArmFront,
-                            overlayColor);
+                            staticAttribs);
                     }
 
                     // Right arm (on right side of the screen)
@@ -2524,9 +2522,8 @@ void Npcs::RenderNpc(
                             halfArmW,
                             quad);
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             humanNpcState.TextureFrames.ArmFront.FlipH(),
-                            overlayColor);
+                            staticAttribs);
                     }
 
                     // Left leg (on left side of the screen)
@@ -2540,9 +2537,8 @@ void Npcs::RenderNpc(
                             halfLegW,
                             quad);
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             humanNpcState.TextureFrames.LegFront,
-                            overlayColor);
+                            staticAttribs);
                     }
 
                     // Right leg (on right side of the screen)
@@ -2556,9 +2552,8 @@ void Npcs::RenderNpc(
                             halfLegW,
                             quad);
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             humanNpcState.TextureFrames.LegFront.FlipH(),
-                            overlayColor);
+                            staticAttribs);
                     }
                 }
                 else
@@ -2576,9 +2571,8 @@ void Npcs::RenderNpc(
                             halfArmW,
                             quad);
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             humanNpcState.TextureFrames.ArmBack,
-                            overlayColor);
+                            staticAttribs);
                     }
 
                     // Right arm (on left side of the screen)
@@ -2592,9 +2586,8 @@ void Npcs::RenderNpc(
                             halfArmW,
                             quad);
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             humanNpcState.TextureFrames.ArmBack.FlipH(),
-                            overlayColor);
+                            staticAttribs);
                     }
 
                     // Left leg (on right side of the screen)
@@ -2608,9 +2601,8 @@ void Npcs::RenderNpc(
                             halfLegW,
                             quad);
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             humanNpcState.TextureFrames.LegBack,
-                            overlayColor);
+                            staticAttribs);
                     }
 
                     // Right leg (on left side of the screen)
@@ -2624,9 +2616,8 @@ void Npcs::RenderNpc(
                             halfLegW,
                             quad);
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             humanNpcState.TextureFrames.LegBack.FlipH(),
-                            overlayColor);
+                            staticAttribs);
                     }
                 }
 
@@ -2640,9 +2631,8 @@ void Npcs::RenderNpc(
                         halfTorsoW,
                         quad);
                     shipRenderContext.UploadNpcTextureQuadAttributes(
-                        planeId,
                         humanNpcState.CurrentFaceOrientation > 0.0f ? humanNpcState.TextureFrames.TorsoFront : humanNpcState.TextureFrames.TorsoBack,
-                        overlayColor);
+                        staticAttribs);
                 }
             }
             else
@@ -2791,18 +2781,16 @@ void Npcs::RenderNpc(
                         auto & quad = shipRenderContext.UploadNpcTextureQuadPosition();
                         quad = leftUpperLegQuad.Position;
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             leftUpperLegQuad.TextureCoords,
-                            overlayColor);
+                            staticAttribs);
                     }
                     if (leftLowerLegQuad.has_value())
                     {
                         auto & quad = shipRenderContext.UploadNpcTextureQuadPosition();
                         quad = leftLowerLegQuad->Position;
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             leftLowerLegQuad->TextureCoords,
-                            overlayColor);
+                            staticAttribs);
                     }
 
                     // Left arm
@@ -2815,9 +2803,8 @@ void Npcs::RenderNpc(
                             halfArmW,
                             quad);
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             humanNpcState.CurrentFaceDirectionX > 0.0f ? humanNpcState.TextureFrames.ArmSide : humanNpcState.TextureFrames.ArmSide.FlipH(),
-                            overlayColor);
+                            staticAttribs);
                     }
                 }
                 else
@@ -2827,18 +2814,16 @@ void Npcs::RenderNpc(
                         auto & quad = shipRenderContext.UploadNpcTextureQuadPosition();
                         quad = rightUpperLegQuad.Position;
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             rightUpperLegQuad.TextureCoords,
-                            overlayColor);
+                            staticAttribs);
                     }
                     if (rightLowerLegQuad.has_value())
                     {
                         auto & quad = shipRenderContext.UploadNpcTextureQuadPosition();
                         quad = rightLowerLegQuad->Position;
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             rightLowerLegQuad->TextureCoords,
-                            overlayColor);
+                            staticAttribs);
                     }
 
                     // Right arm
@@ -2851,9 +2836,8 @@ void Npcs::RenderNpc(
                             halfArmW,
                             quad);
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             humanNpcState.CurrentFaceDirectionX > 0.0f ? humanNpcState.TextureFrames.ArmSide : humanNpcState.TextureFrames.ArmSide.FlipH(),
-                            overlayColor);
+                            staticAttribs);
                     }
                 }
 
@@ -2867,9 +2851,8 @@ void Npcs::RenderNpc(
                         halfHeadW,
                         quad);
                     shipRenderContext.UploadNpcTextureQuadAttributes(
-                        planeId,
                         humanNpcState.CurrentFaceDirectionX > 0.0f ? humanNpcState.TextureFrames.HeadSide : humanNpcState.TextureFrames.HeadSide.FlipH(),
-                        overlayColor);
+                        staticAttribs);
                 }
 
                 // Torso
@@ -2882,9 +2865,8 @@ void Npcs::RenderNpc(
                         halfTorsoW,
                         quad);
                     shipRenderContext.UploadNpcTextureQuadAttributes(
-                        planeId,
                         humanNpcState.CurrentFaceDirectionX > 0.0f ? humanNpcState.TextureFrames.TorsoSide : humanNpcState.TextureFrames.TorsoSide.FlipH(),
-                        overlayColor);
+                        staticAttribs);
                 }
 
                 // Arm and leg near
@@ -2896,18 +2878,16 @@ void Npcs::RenderNpc(
                         auto & quad = shipRenderContext.UploadNpcTextureQuadPosition();
                         quad = rightUpperLegQuad.Position;
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             rightUpperLegQuad.TextureCoords,
-                            overlayColor);
+                            staticAttribs);
                     }
                     if (rightLowerLegQuad.has_value())
                     {
                         auto & quad = shipRenderContext.UploadNpcTextureQuadPosition();
                         quad = rightLowerLegQuad->Position;
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             rightLowerLegQuad->TextureCoords,
-                            overlayColor);
+                            staticAttribs);
                     }
 
                     // Right arm
@@ -2920,9 +2900,8 @@ void Npcs::RenderNpc(
                             halfArmW,
                             quad);
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             humanNpcState.CurrentFaceDirectionX > 0.0f ? humanNpcState.TextureFrames.ArmSide : humanNpcState.TextureFrames.ArmSide.FlipH(),
-                            overlayColor);
+                            staticAttribs);
                     }
                 }
                 else
@@ -2932,18 +2911,16 @@ void Npcs::RenderNpc(
                         auto & quad = shipRenderContext.UploadNpcTextureQuadPosition();
                         quad = leftUpperLegQuad.Position;
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             leftUpperLegQuad.TextureCoords,
-                            overlayColor);
+                            staticAttribs);
                     }
                     if (leftLowerLegQuad.has_value())
                     {
                         auto & quad = shipRenderContext.UploadNpcTextureQuadPosition();
                         quad = leftLowerLegQuad->Position;
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             leftLowerLegQuad->TextureCoords,
-                            overlayColor);
+                            staticAttribs);
                     }
 
                     // Left arm
@@ -2956,9 +2933,8 @@ void Npcs::RenderNpc(
                             halfArmW,
                             quad);
                         shipRenderContext.UploadNpcTextureQuadAttributes(
-                            planeId,
                             humanNpcState.CurrentFaceDirectionX > 0.0f ? humanNpcState.TextureFrames.ArmSide : humanNpcState.TextureFrames.ArmSide.FlipH(),
-                            overlayColor);
+                            staticAttribs);
                     }
                 }
             }
@@ -2990,9 +2966,8 @@ void Npcs::RenderNpc(
                 quad.V.BottomRight = mParticles.GetPosition(npc.ParticleMesh.Particles[2].ParticleIndex),
                 quad.V.BottomLeft = mParticles.GetPosition(npc.ParticleMesh.Particles[3].ParticleIndex);                
                 shipRenderContext.UploadNpcTextureQuadAttributes(
-                    planeId,
                     npc.KindSpecificState.FurnitureNpcState.TextureCoordinatesQuad,
-                    overlayColor);
+                    staticAttribs);
             }
             else
             {
@@ -3009,9 +2984,8 @@ void Npcs::RenderNpc(
                     quad.V.BottomLeft = vec2f(position.x - ParticleHalfWidth, position.y - ParticleHalfWidth);
                     quad.V.BottomRight = vec2f(position.x - ParticleHalfWidth, position.y - ParticleHalfWidth);
                     shipRenderContext.UploadNpcTextureQuadAttributes(
-                        planeId,
                         npc.KindSpecificState.FurnitureNpcState.TextureCoordinatesQuad,
-                        overlayColor);
+                        staticAttribs);
                 }
             }
 

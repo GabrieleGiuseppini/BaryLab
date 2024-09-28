@@ -192,21 +192,25 @@ public:
         return mNpcTextureQuadQuadBuffer.emplace_back_ghost();
     }
 
-    void UploadNpcTextureQuadAttributes(
-        float planeId,
-        TextureCoordinatesQuad const & textureCoords,
-        vec3f const & overlayColor)
-    {
-        NpcTextureQuadAttributesVertex::StaticAttribsType const as{
-            planeId,
-            overlayColor
-        };
+    #pragma pack(push)
 
+    struct NpcTextureQuadStaticAttribs
+    {
+        float PlaneId;
+        vec3f OverlayColor;
+    };
+
+    #pragma pack(pop)
+
+    void UploadNpcTextureQuadAttributes(
+        TextureCoordinatesQuad const & textureCoords,
+        NpcTextureQuadStaticAttribs const & staticAttributes)
+    {
         auto * buf = &(mNpcTextureQuadAttributesVertexBuffer.emplace_back_ghost(4));
-        buf[0] = { as, vec2f(textureCoords.LeftX, textureCoords.TopY) };
-        buf[1] = { as, vec2f(textureCoords.LeftX, textureCoords.BottomY) };
-        buf[2] = { as, vec2f(textureCoords.RightX, textureCoords.TopY) };
-        buf[3] = { as, vec2f(textureCoords.RightX, textureCoords.BottomY) };
+        buf[0] = { staticAttributes, vec2f(textureCoords.LeftX, textureCoords.TopY) };
+        buf[1] = { staticAttributes, vec2f(textureCoords.LeftX, textureCoords.BottomY) };
+        buf[2] = { staticAttributes, vec2f(textureCoords.RightX, textureCoords.TopY) };
+        buf[3] = { staticAttributes, vec2f(textureCoords.RightX, textureCoords.BottomY) };
     }
 
     void UploadNpcTextureQuadsEnd();
@@ -392,16 +396,11 @@ private:
 
     struct NpcTextureQuadAttributesVertex
     {
-        struct StaticAttribsType
-        {
-            float PlaneId;
-            vec3f OverlayColor;
-        } StaticAttribs;
-
+        NpcTextureQuadStaticAttribs StaticAttribs;
         vec2f TextureCoordinates;
 
         NpcTextureQuadAttributesVertex(
-            StaticAttribsType const & staticAttribs,
+            NpcTextureQuadStaticAttribs const & staticAttribs,
             vec2f const & textureCoordinates)
             : StaticAttribs(staticAttribs)
             , TextureCoordinates(textureCoordinates)
