@@ -2389,7 +2389,7 @@ void Npcs::RenderNpc(
 {
     assert(mShips[npc.CurrentShipId].has_value());
 
-    Render::RenderContext::NpcTextureQuadStaticAttribs staticAttribs{
+    Render::ShipRenderContext::NpcTextureQuadStaticAttribs staticAttribs{
         (npc.CurrentRegime == StateType::RegimeType::BeingPlaced)
             ? static_cast<float>(mShips[npc.CurrentShipId]->HomeShip.GetMaxPlaneId())
             : static_cast<float>(npc.CurrentPlaneId),
@@ -2982,7 +2982,7 @@ void Npcs::RenderNpc(
                     quad.V.TopLeft = vec2f(position.x - ParticleHalfWidth, position.y + ParticleHalfWidth);
                     quad.V.TopRight = vec2f(position.x + ParticleHalfWidth, position.y + ParticleHalfWidth);
                     quad.V.BottomLeft = vec2f(position.x - ParticleHalfWidth, position.y - ParticleHalfWidth);
-                    quad.V.BottomRight = vec2f(position.x - ParticleHalfWidth, position.y - ParticleHalfWidth);
+                    quad.V.BottomRight = vec2f(position.x + ParticleHalfWidth, position.y - ParticleHalfWidth);
                     shipRenderContext.UploadNpcTextureQuadAttributes(
                         npc.KindSpecificState.FurnitureNpcState.TextureCoordinatesQuad,
                         staticAttribs);

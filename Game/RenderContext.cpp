@@ -478,7 +478,6 @@ void RenderContext::UploadNpcTextureQuadsEnd()
     //
 
     assert(mNpcTextureQuadQuadBuffer.size() * 4 == mNpcTextureQuadAttributesVertexBuffer.size());
-    assert(mNpcTextureQuadTextureCoordsBuffer.size() * 4 == mNpcTextureQuadAttributesVertexBuffer.size());
 
     if (!mNpcTextureQuadQuadBuffer.empty())
     {

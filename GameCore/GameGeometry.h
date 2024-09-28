@@ -293,6 +293,7 @@ inline void MakeQuadInto(
     __m128 right = _mm_add_ps(_mm_castpd_ps(vd), h);
     _mm_store_ps(&(quad.fptr[0]), left);
     _mm_store_ps(&(quad.fptr[4]), right);
+
 #else
 
     quad.V.TopLeft = vec2f(centerTop - hDir * halfWidth);
