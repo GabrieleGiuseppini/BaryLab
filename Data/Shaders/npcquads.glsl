@@ -7,8 +7,8 @@
 
 // Inputs
 in vec2 inNpcQuadAttributeGroup1; // Position
-in vec2 inNpcQuadAttributeGroup2; // VertexSpacePosition
-in vec4 inNpcQuadAttributeGroup3; // PlaneId, OverlayColor
+in vec4 inNpcQuadAttributeGroup2; // PlaneId, OverlayColor
+in vec2 inNpcQuadAttributeGroup3; // VertexSpacePosition
 
 // Outputs        
 out vec2 vertexSpacePosition;
@@ -19,8 +19,8 @@ uniform mat4 paramOrthoMatrix;
 
 void main()
 {
-    vertexSpacePosition = inNpcQuadAttributeGroup2;
-    vertexOverlayColor = inNpcQuadAttributeGroup3.yzw;
+    vertexSpacePosition = inNpcQuadAttributeGroup3;
+    vertexOverlayColor = inNpcQuadAttributeGroup2.yzw;
 
     gl_Position = paramOrthoMatrix * vec4(inNpcQuadAttributeGroup1.xy, -1.0, 1.0);
 }

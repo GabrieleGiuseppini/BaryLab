@@ -197,24 +197,16 @@ public:
         TextureCoordinatesQuad const & textureCoords,
         vec3f const & overlayColor)
     {
-        mNpcTextureQuadTextureCoordsBuffer.emplace_back(
-            Quad{
-                vec2f(textureCoords.LeftX, textureCoords.TopY),
-                vec2f(textureCoords.LeftX, textureCoords.BottomY),
-                vec2f(textureCoords.RightX, textureCoords.TopY),
-                vec2f(textureCoords.RightX, textureCoords.BottomY)
-            });
-
-        NpcTextureQuadAttributesVertex const a{
+        NpcTextureQuadAttributesVertex::StaticAttribsType const as{
             planeId,
             overlayColor
         };
 
         auto * buf = &(mNpcTextureQuadAttributesVertexBuffer.emplace_back_ghost(4));        
-        buf[0] = a;
-        buf[1] = a;
-        buf[2] = a;
-        buf[3] = a;
+        buf[0] = { as, vec2f(textureCoords.LeftX, textureCoords.TopY) };
+        buf[1] = { as, vec2f(textureCoords.LeftX, textureCoords.BottomY) };
+        buf[2] = { as, vec2f(textureCoords.RightX, textureCoords.TopY) };
+        buf[3] = { as, vec2f(textureCoords.RightX, textureCoords.BottomY) };
     }
 
     void UploadNpcTextureQuadsEnd();
@@ -396,26 +388,32 @@ private:
     // NPC Quads
     ////////////////////////////////////////////////////////////////
 
+#pragma pack(push)
+
     struct NpcTextureQuadAttributesVertex
     {
-        float PlaneId;
-        vec3f OverlayColor;
+        struct StaticAttribsType
+        {
+            float PlaneId;
+            vec3f OverlayColor;
+        } StaticAttribs;
+
+        vec2f TextureCoordinates;
 
         NpcTextureQuadAttributesVertex(
-            float planeId,
-            vec3f overlayColor)
-            : PlaneId(planeId)
-            , OverlayColor(overlayColor)
+            StaticAttribsType const & staticAttribs,
+            vec2f const & textureCoordinates)
+            : StaticAttribs(staticAttribs)
+            , TextureCoordinates(textureCoordinates)
         {}
     };
+
+#pragma pack(pop)
 
     GameOpenGLVAO mNpcQuadVAO;
 
     BoundedVector<Quad> mNpcTextureQuadQuadBuffer; // 4 vertices
     GameOpenGLVBO mNpcTextureQuadQuadVBO;
-
-    BoundedVector<Quad> mNpcTextureQuadTextureCoordsBuffer; // 4 vertices
-    GameOpenGLVBO mNpcTextureQuadTextureCoordsVBO;
 
     BoundedVector<NpcTextureQuadAttributesVertex> mNpcTextureQuadAttributesVertexBuffer;
     GameOpenGLVBO mNpcTextureQuadAttributesVertexVBO;

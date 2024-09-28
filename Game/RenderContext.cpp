@@ -143,17 +143,13 @@ RenderContext::RenderContext(
     static_assert(sizeof(Quad::V.TopLeft) == (2) * sizeof(float));
 
     glGenBuffers(1, &tmpGLuint);
-    mNpcTextureQuadTextureCoordsVBO = tmpGLuint;
-    glBindBuffer(GL_ARRAY_BUFFER, *mNpcTextureQuadTextureCoordsVBO);
-    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup2));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup2), 2, GL_FLOAT, GL_FALSE, sizeof(Quad::V.TopLeft), (void *)(0));
-
-    glGenBuffers(1, &tmpGLuint);
     mNpcTextureQuadAttributesVertexVBO = tmpGLuint;
     glBindBuffer(GL_ARRAY_BUFFER, *mNpcTextureQuadAttributesVertexVBO);
+    glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup2));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup2), 4, GL_FLOAT, GL_FALSE, sizeof(NpcTextureQuadAttributesVertex), (void *)(0));
     glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup3));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup3), 4, GL_FLOAT, GL_FALSE, sizeof(NpcTextureQuadAttributesVertex), (void *)(0));
-    static_assert(sizeof(NpcTextureQuadAttributesVertex) == (4) * sizeof(float));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup3), 2, GL_FLOAT, GL_FALSE, sizeof(NpcTextureQuadAttributesVertex), (void *)(4 * sizeof(float)));
+    static_assert(sizeof(NpcTextureQuadAttributesVertex) == (4 + 2) * sizeof(float));
 
     glBindVertexArray(0);
 
@@ -470,7 +466,6 @@ void RenderContext::UploadNpcTextureQuadsStart(size_t maxQuadCount)
     //
 
     mNpcTextureQuadQuadBuffer.reset(maxQuadCount);
-    mNpcTextureQuadTextureCoordsBuffer.reset(maxQuadCount);
     mNpcTextureQuadAttributesVertexBuffer.reset(maxQuadCount * 4);
 
     mElementIndices->EnsureSize(maxQuadCount);
@@ -490,9 +485,6 @@ void RenderContext::UploadNpcTextureQuadsEnd()
         glBindBuffer(GL_ARRAY_BUFFER, *mNpcTextureQuadQuadVBO);
         glBufferData(GL_ARRAY_BUFFER, sizeof(Quad) * mNpcTextureQuadQuadBuffer.size(), mNpcTextureQuadQuadBuffer.data(), GL_STREAM_DRAW);
         
-        glBindBuffer(GL_ARRAY_BUFFER, *mNpcTextureQuadTextureCoordsVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(Quad) * mNpcTextureQuadTextureCoordsBuffer.size(), mNpcTextureQuadTextureCoordsBuffer.data(), GL_STREAM_DRAW);
-
         glBindBuffer(GL_ARRAY_BUFFER, *mNpcTextureQuadAttributesVertexVBO);
         glBufferData(GL_ARRAY_BUFFER, sizeof(NpcTextureQuadAttributesVertex) * mNpcTextureQuadAttributesVertexBuffer.size(), mNpcTextureQuadAttributesVertexBuffer.data(), GL_STREAM_DRAW);
         
