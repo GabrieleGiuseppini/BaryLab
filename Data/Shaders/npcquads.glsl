@@ -40,7 +40,7 @@ void main()
     vec2 uv = vec2(pow(vertexSpacePosition.x, 3.0), vertexSpacePosition.y);
     
     float d = distance(uv, vec2(.0, .0));    
-    float alpha = 1.0 - smoothstep(0.9, 1.1, d);
+    float alpha = 1.0 - smoothstep(0.87, 1.0, d);
     float borderAlpha = alpha - (1.0 - smoothstep(0.55, 0.8, d));
 
     // Darken when close to -1
@@ -53,14 +53,28 @@ void main()
         mix(cInner, cBorder, borderAlpha) * darkeningScalar,
         alpha);
 
-    // Luminosity blend
-    float l = (c.r + c.g + c.b) / 3.0;
-    c = vec4(
-        mix(
-            c.rgb,
-            l * vertexOverlayColor,
-            step(0.0001, vertexOverlayColor.r + vertexOverlayColor.g + vertexOverlayColor.b)),
-        c.a);
+    // Fragments with alpha lower than this are discarded
+    #define MinAlpha 0.2
+    if (c.a < MinAlpha) // We don't Z-sort NPCs
+        discard;
+
+    // Apply highlight (overlay blending mode)
+    //
+    // (Target > 0.5) * (1 – (1-2*(Target-0.5)) * (1-Blend)) +
+    // (Target <= 0.5) * lerp(Target, Blend, alphaMagic)
+
+    vec3 IsTargetLarge = step(vec3(0.5), c.rgb);
+    vec3 TargetHigh = 1. - (1. - (c.rgb - .5) * 2.) * (1. - vertexOverlayColor.rgb);
+    vec3 TargetLow = mix(c.rgb, vertexOverlayColor.rgb, 0.6);
+
+    vec3 ovCol =
+        IsTargetLarge * TargetHigh
+        + (1. - IsTargetLarge) * TargetLow;
+
+    c.rgb = mix(
+        c.rgb,
+        ovCol,
+        step(0.0001, vertexOverlayColor.r + vertexOverlayColor.g + vertexOverlayColor.b) * c.a);
 
     gl_FragColor = c;
 } 
