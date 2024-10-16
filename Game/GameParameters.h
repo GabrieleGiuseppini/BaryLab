@@ -177,13 +177,21 @@ struct GameParameters
         static float constexpr BodyWidthWideMultiplierStdDev = 0.15f;
 
         // All fractions below are relative to BodyLength
-        static float constexpr HeadWidthFraction = 1.0f / 8.0f; // Our DB has head as a square
-        static float constexpr TorsoLengthFraction = 2.0f / 5.0f; // Width then depends on texture frame
-        static float constexpr ArmLengthFraction = 2.0f / 5.0f; // Width then depends on texture frame
-        static float constexpr LegLengthFraction = 19.0f / 40.0f; // Width then depends on texture frame
+        //
+        // Lengths are from Leonardo's Vitruvian man; subkinds may override
+        static float constexpr HeadLengthFraction = 1.0f / 7.0f;
+        static float constexpr QuadModeHeadWidthFraction = 1.0f / 8.0f;
+        static float constexpr TorsoLengthFraction = 1.0f / 2.0f - HeadLengthFraction;
+        static float constexpr QuadModeTorsoWidthFraction = 1.0f / 7.0f;
+        static float constexpr ArmLengthFraction = 3.0f / 8.0f;
+        static float constexpr QuadModeArmWidthFraction = 1.0f / 10.0f;
+        static float constexpr LegLengthFraction = 1.0f / 2.0f;
+        static float constexpr QuadModeLegWidthFraction = 1.0f / 10.0f;
 
-        static_assert(LegLengthFraction + TorsoLengthFraction + HeadWidthFraction  == 1.0f);
+        static_assert(LegLengthFraction + TorsoLengthFraction + HeadLengthFraction == 1.0f);
 
         static float constexpr StepLengthFraction = 0.43f; // From foot to foot at longest separation
     };
+
+    static size_t constexpr NpcsPerGroup = 32; // The number of NPCs we add when we "add NPC group"
 };

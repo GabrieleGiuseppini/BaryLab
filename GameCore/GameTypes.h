@@ -881,12 +881,38 @@ using NpcSubKindIdType = std::uint32_t;
  */
 enum class NpcHumanRoleType
 {
-    Crew,
-    Other,
-    Passenger
+    Captain = 0,
+    Crew = 1,
+    Passenger = 2,
+    Other = 3,
+
+    _Last = Other
 };
 
 NpcHumanRoleType StrToNpcHumanRoleType(std::string const & str);
+
+/*
+ * Roles for furniture.
+ */
+enum class NpcFurnitureRoleType : std::uint32_t
+{
+    Furniture = 0,
+    Other = 1,
+
+    _Last = Other
+};
+
+NpcFurnitureRoleType StrToNpcFurnitureRoleType(std::string const & str);
+
+/*
+ * Reasons for NPC placement failure.
+ */
+enum class NpcCreationFailureReasonType
+{
+    Success,
+    TooManyNpcs,
+    TooManyCaptains
+};
 
 enum class NpcFloorKindType
 {
@@ -939,12 +965,12 @@ inline NpcFloorGeometryDepthType NpcFloorGeometryDepth(NpcFloorGeometryType geom
 }
 
 /*
- * Types of hightlight for NPCs.
+ * The different types in which NPCs (humans and furniture) may be rendered.
  */
-
 enum class NpcRenderModeType
 {
-    Physical, // Only in Barylab
-    Limbs
+    Physical,
+    Texture,
+    QuadWithRoles,
+    QuadFlat
 };
-

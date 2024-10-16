@@ -185,16 +185,16 @@ public:
 
     void UploadEdgesEnd();
 
-    void UploadNpcTextureQuadsStart(size_t maxQuadCount);
+    void UploadNpcsStart(size_t maxQuadCount);
 
-    Quad [[nodiscard]] & UploadNpcTextureQuadPosition()
+    Quad [[nodiscard]] & UploadNpcPosition()
     {
-        return mNpcTextureQuadQuadBuffer.emplace_back_ghost();
+        return mNpcPositionBuffer.emplace_back_ghost();
     }
 
     #pragma pack(push)
 
-    struct NpcTextureQuadStaticAttribs
+    struct NpcStaticAttributes
     {
         float PlaneId;
         vec3f OverlayColor;
@@ -202,18 +202,33 @@ public:
 
     #pragma pack(pop)
 
-    void UploadNpcTextureQuadAttributes(
+    void UploadNpcTextureAttributes(
         TextureCoordinatesQuad const & textureCoords,
-        NpcTextureQuadStaticAttribs const & staticAttributes)
+        NpcStaticAttributes const & staticAttributes)
     {
-        auto * buf = &(mNpcTextureQuadAttributesVertexBuffer.emplace_back_ghost(4));
+        auto * buf = &(mNpcAttributesVertexBuffer.emplace_back_ghost(4));
         buf[0] = { staticAttributes, vec2f(textureCoords.LeftX, textureCoords.TopY) };
         buf[1] = { staticAttributes, vec2f(textureCoords.LeftX, textureCoords.BottomY) };
         buf[2] = { staticAttributes, vec2f(textureCoords.RightX, textureCoords.TopY) };
         buf[3] = { staticAttributes, vec2f(textureCoords.RightX, textureCoords.BottomY) };
     }
 
-    void UploadNpcTextureQuadsEnd();
+    template<NpcRenderModeType RenderMode>
+    void UploadNpcQuadAttributes(
+        TextureCoordinatesQuad const & textureCoords,
+        NpcStaticAttributes const & staticAttributes,
+        vec3f renderColor)
+    {
+        auto * buf = &(mNpcAttributesVertexBuffer.emplace_back_ghost(4));
+        buf[0] = { staticAttributes, vec2f(textureCoords.LeftX, textureCoords.TopY) };
+        buf[1] = { staticAttributes, vec2f(textureCoords.LeftX, textureCoords.BottomY) };
+        buf[2] = { staticAttributes, vec2f(textureCoords.RightX, textureCoords.TopY) };
+        buf[3] = { staticAttributes, vec2f(textureCoords.RightX, textureCoords.BottomY) };
+
+        (void)renderColor;
+    }
+
+    void UploadNpcsEnd();
 
     void UploadNpcParticlesStart();
 
@@ -394,13 +409,13 @@ private:
 
 #pragma pack(push)
 
-    struct NpcTextureQuadAttributesVertex
+    struct NpcAttributesVertex
     {
-        NpcTextureQuadStaticAttribs StaticAttribs;
+        NpcStaticAttributes StaticAttribs;
         vec2f TextureCoordinates;
 
-        NpcTextureQuadAttributesVertex(
-            NpcTextureQuadStaticAttribs const & staticAttribs,
+        NpcAttributesVertex(
+            NpcStaticAttributes const & staticAttribs,
             vec2f const & textureCoordinates)
             : StaticAttribs(staticAttribs)
             , TextureCoordinates(textureCoordinates)
@@ -411,11 +426,11 @@ private:
 
     GameOpenGLVAO mNpcQuadVAO;
 
-    BoundedVector<Quad> mNpcTextureQuadQuadBuffer; // 4 vertices
-    GameOpenGLVBO mNpcTextureQuadQuadVBO;
+    BoundedVector<Quad> mNpcPositionBuffer; // 4 vertices
+    GameOpenGLVBO mNpcPositionVBO;
 
-    BoundedVector<NpcTextureQuadAttributesVertex> mNpcTextureQuadAttributesVertexBuffer;
-    GameOpenGLVBO mNpcTextureQuadAttributesVertexVBO;
+    BoundedVector<NpcAttributesVertex> mNpcAttributesVertexBuffer;
+    GameOpenGLVBO mNpcAttributesVertexVBO;
 
     ////////////////////////////////////////////////////////////////
     // NPC Particles

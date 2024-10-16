@@ -14,6 +14,7 @@
 
 #include <GameCore/BarycentricCoords.h>
 #include <GameCore/ElementIndexRangeIterator.h>
+#include <GameCore/EnumFlags.h>
 #include <GameCore/FixedSizeVector.h>
 #include <GameCore/GameGeometry.h>
 #include <GameCore/GameRandomEngine.h>
@@ -211,14 +212,19 @@ private:
 			struct FurnitureNpcStateType final
 			{
 				NpcSubKindIdType const SubKindId;
+				NpcFurnitureRoleType const Role;
 
 				Render::TextureCoordinatesQuad const TextureCoordinatesQuad;
+				float CurrentFaceDirectionX; // [-1.0f, 0.0f, 1.0f]
 
 				FurnitureNpcStateType(
 					NpcSubKindIdType subKindId,
+					NpcFurnitureRoleType role,
 					Render::TextureCoordinatesQuad const & textureCoordinatesQuad)
 					: SubKindId(subKindId)
+					, Role(role)
 					, TextureCoordinatesQuad(textureCoordinatesQuad)
+					, CurrentFaceDirectionX(1.0f)
 				{}
 			} FurnitureNpcState;
 
@@ -229,8 +235,8 @@ private:
 				float const WidthMultipier; // Randomization
 				float const WalkingSpeedBase;
 
-				NpcDatabase::HumanDimensionsType const & Dimensions;
 				NpcDatabase::HumanTextureFramesType const & TextureFrames;
+				NpcDatabase::HumanTextureGeometryType const & TextureGeometry;
 
 				enum class BehaviorType
 				{
@@ -482,7 +488,7 @@ private:
 
 					FS_ALIGN16_BEG LimbVector LimbLengthMultipliers FS_ALIGN16_END;
 					float UpperLegLengthFraction; // When less than 1.0, we have a knee
-					float LowerExtremityLengthMultiplier; // Multiplier for the part of the body from the crotch down to the feet
+					float CrotchHeightMultiplier; // Multiplier for the part of the body from the crotch down to the feet
 
 					AnimationStateType()
 						: LimbAngles({ InitialLegAngle, -InitialLegAngle, InitialArmAngle, -InitialArmAngle })
@@ -490,7 +496,7 @@ private:
 						, LimbAnglesSin({ std::sinf(LimbAngles.RightLeg), std::sinf(LimbAngles.LeftLeg), std::sinf(LimbAngles.RightArm), std::sinf(LimbAngles.LeftArm) })
 						, LimbLengthMultipliers({1.0f, 1.0f, 1.0f, 1.0f})
 						, UpperLegLengthFraction(1.0f)
-						, LowerExtremityLengthMultiplier(1.0f)
+						, CrotchHeightMultiplier(1.0f)
 					{}
 				} AnimationState;
 
@@ -499,16 +505,16 @@ private:
 					NpcHumanRoleType role,
 					float widthMultipier,
 					float walkingSpeedBase,
-					NpcDatabase::HumanDimensionsType const & dimensions,
 					NpcDatabase::HumanTextureFramesType const & textureFrames,
+					NpcDatabase::HumanTextureGeometryType const & textureGeometry,
 					BehaviorType initialBehavior,
 					float currentSimulationTime)
 					: SubKindId(subKindId)
 					, Role(role)
 					, WidthMultipier(widthMultipier)
 					, WalkingSpeedBase(walkingSpeedBase)
-					, Dimensions(dimensions)
 					, TextureFrames(textureFrames)
+					, TextureGeometry(textureGeometry)
 					, EquilibriumTorque(0.0f)
 					, CurrentEquilibriumSoftTerminationDecision(0.0f)
 					, CurrentFaceOrientation(1.0f)
@@ -678,6 +684,9 @@ private:
 		// The type of this NPC.
 		NpcKindType const Kind;
 
+		// The render color for this NPC.
+		vec3f const RenderColor;
+
 		// The current ship that this NPC belongs to.
 		// NPCs always belong to a ship, and can change ships during the
 		// course of their lives.
@@ -716,6 +725,7 @@ private:
 		StateType(
 			NpcId id,
 			NpcKindType kind,
+			vec3f const & renderColor,
 			ShipId initialShipId,
 			PlaneId initialPlaneId,
 			std::optional<ConnectedComponentId> currentConnectedComponentId,
@@ -725,6 +735,7 @@ private:
 			BeingPlacedStateType beingPlacedState)
 			: Id(id)
 			, Kind(kind)
+			, RenderColor(renderColor)
 			, CurrentShipId(initialShipId)
 			, CurrentPlaneId(initialPlaneId)
 			, CurrentConnectedComponentId(currentConnectedComponentId)
@@ -747,17 +758,21 @@ private:
 		Ship & HomeShip; // Non-const as we forward interactions to ships
 		std::vector<NpcId> Npcs;
 
+		std::vector<NpcId> BurningNpcs; // Maintained as a set
+
+		// Stats
 		size_t FurnitureNpcCount;
 		size_t HumanNpcCount;
-
-		std::vector<NpcId> BurningNpcs; // Maintained as a set
+		size_t HumanNpcCaptainCount;
 
 		ShipNpcsType(Ship & homeShip)
 			: HomeShip(homeShip)
 			, Npcs()
+			, BurningNpcs()
+			//
 			, FurnitureNpcCount(0)
 			, HumanNpcCount(0)
-			, BurningNpcs()
+			, HumanNpcCaptainCount(0)
 		{}
 	};
 
@@ -829,13 +844,15 @@ public:
 
 	void OnShipConnectivityChanged(ShipId shipId);
 
-	std::optional<PickedObjectId<NpcId>> BeginPlaceNewFurnitureNpc(
+	NpcKindType GetNpcKind(NpcId id);
+
+	std::tuple<std::optional<PickedObjectId<NpcId>>, NpcCreationFailureReasonType> BeginPlaceNewFurnitureNpc(
 		NpcSubKindIdType subKind,
 		vec2f const & worldCoordinates,
 		float currentSimulationTime,
 		bool doMoveWholeMesh);
 
-	std::optional<PickedObjectId<NpcId>> BeginPlaceNewHumanNpc(
+	std::tuple<std::optional<PickedObjectId<NpcId>>, NpcCreationFailureReasonType> BeginPlaceNewHumanNpc(
 		NpcSubKindIdType subKind,
 		vec2f const & worldCoordinates,
 		float currentSimulationTime,
@@ -869,6 +886,12 @@ public:
 
 	void AbortNewNpc(NpcId id);
 
+	std::tuple<std::optional<NpcId>, NpcCreationFailureReasonType> AddNpcGroup(
+		NpcKindType kind,
+		float currentSimulationTime);
+
+	void TurnaroundNpc(NpcId id);
+
 	std::optional<NpcId> GetCurrentlySelectedNpc() const;
 
 	void SelectFirstNpc();
@@ -878,6 +901,8 @@ public:
 	void SelectNpc(std::optional<NpcId> id);
 
 	void HighlightNpc(std::optional<NpcId> id);
+
+	void PublishCount();
 
 public:
 
@@ -1086,6 +1111,12 @@ private:
 		Render::RenderContext & renderContext,
 		Render::ShipRenderContext & shipRenderContext) const;
 
+	template<NpcRenderModeType RenderMode>
+	void RenderNpc(
+		StateType const & npc,
+		Render::RenderContext & renderContext,
+		Render::ShipRenderContext & shipRenderContext) const;
+
 	void UpdateNpcAnimation(
 		StateType & npc,
 		float currentSimulationTime,
@@ -1097,15 +1128,33 @@ private:
 	// Simulation
 	//
 
+	enum class NpcInitializationOptions
+	{
+		None = 0,
+		GainMeshVelocity = 1
+	};
+
+	void InternalEndMoveNpc(
+		NpcId id,
+		float currentSimulationTime,
+		NpcInitializationOptions options);
+
+	void InternalCompleteNewNpc(
+		NpcId id,
+		float currentSimulationTime,
+		NpcInitializationOptions options);
+
 	void ResetNpcStateToWorld(
 		StateType & npc,
-		float currentSimulationTime);
+		float currentSimulationTime,
+		NpcInitializationOptions options);
 
 	void ResetNpcStateToWorld(
 		StateType & npc,
 		float currentSimulationTime,
 		Ship const & homeShip,
-		std::optional<ElementIndex> primaryParticleTriangleIndex);
+		std::optional<ElementIndex> primaryParticleTriangleIndex,
+		NpcInitializationOptions options);
 
 	void TransitionParticleToConstrainedState(
 		StateType & npc,
@@ -1125,7 +1174,7 @@ private:
 
 	void OnMayBeNpcRegimeChanged(
 		StateType::RegimeType oldRegime,
-		StateType & npc);
+		StateType const & npc);
 
 	static StateType::RegimeType CalculateRegime(StateType const & npc);
 
@@ -1576,7 +1625,18 @@ private:
 		ElementIndex triangleElementIndex,
 		Ship const & homeShip)
 	{
-		return !homeShip.GetTriangles().AreVerticesInCwOrder(triangleElementIndex, homeShip.GetPoints());
+		return IsTriangleFolded(
+			homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointAIndex(triangleElementIndex)),
+			homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointBIndex(triangleElementIndex)),
+			homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointCIndex(triangleElementIndex)));
+	}
+
+	static bool IsTriangleFolded(
+		vec2f const & aPosition,
+		vec2f const & bPosition,
+		vec2f const & cPosition)
+	{
+		return !Geometry::AreVerticesInCwOrder(aPosition, bPosition, cPosition);
 	}
 
 	static bool HasBomb(
@@ -1781,5 +1841,7 @@ private:
 
 #endif
 };
+
+template <> struct is_flag<Npcs::NpcInitializationOptions> : std::true_type {};
 
 }

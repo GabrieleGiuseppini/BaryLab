@@ -21,7 +21,9 @@ int const TessellationCircularOrderDirections[8][2] = {
 
 NpcHumanRoleType StrToNpcHumanRoleType(std::string const & str)
 {
-    if (Utils::CaseInsensitiveEquals(str, "Crew"))
+    if (Utils::CaseInsensitiveEquals(str, "Captain"))
+        return NpcHumanRoleType::Captain;
+    else if (Utils::CaseInsensitiveEquals(str, "Crew"))
         return NpcHumanRoleType::Crew;
     else if (Utils::CaseInsensitiveEquals(str, "Other"))
         return NpcHumanRoleType::Other;
@@ -30,3 +32,14 @@ NpcHumanRoleType StrToNpcHumanRoleType(std::string const & str)
     else
         throw GameException("Unrecognized NpcHumanRoleType \"" + str + "\"");
 }
+
+NpcFurnitureRoleType StrToNpcFurnitureRoleType(std::string const & str)
+{
+    if (Utils::CaseInsensitiveEquals(str, "Furniture"))
+        return NpcFurnitureRoleType::Furniture;
+    else if (Utils::CaseInsensitiveEquals(str, "Other"))
+        return NpcFurnitureRoleType::Other;
+    else
+        throw GameException("Unrecognized NpcFurnitureRoleType \"" + str + "\"");
+}
+

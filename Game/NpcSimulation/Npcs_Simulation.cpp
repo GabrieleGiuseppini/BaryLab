@@ -15,9 +15,46 @@
 
 namespace Physics {
 
+void Npcs::InternalEndMoveNpc(
+    NpcId id,
+    float currentSimulationTime,
+    NpcInitializationOptions options)
+{
+    assert(mStateBuffer[id].has_value());
+
+    auto & npc = *mStateBuffer[id];
+
+    assert(npc.CurrentRegime == StateType::RegimeType::BeingPlaced);
+
+    ResetNpcStateToWorld(
+        npc,
+        currentSimulationTime,
+        options);
+
+    OnMayBeNpcRegimeChanged(
+        StateType::RegimeType::BeingPlaced,
+        npc);
+
+    npc.BeingPlacedState.reset();
+
+#ifdef IN_BARYLAB
+    // Select NPC's primary particle
+    SelectParticle(npc.ParticleMesh.Particles[0].ParticleIndex);
+#endif
+}
+
+void Npcs::InternalCompleteNewNpc(
+    NpcId id,
+    float currentSimulationTime,
+    NpcInitializationOptions options)
+{
+    InternalEndMoveNpc(id, currentSimulationTime, options);
+}
+
 void Npcs::ResetNpcStateToWorld(
     StateType & npc,
-    float currentSimulationTime)
+    float currentSimulationTime,
+    NpcInitializationOptions options)
 {
     //
     // Find topmost triangle - among all ships - which contains this NPC
@@ -41,7 +78,8 @@ void Npcs::ResetNpcStateToWorld(
             npc,
             currentSimulationTime,
             mShips[topmostTriangle->GetShipId()]->HomeShip,
-            topmostTriangle->GetLocalObjectId());
+            topmostTriangle->GetLocalObjectId(),
+            options);
     }
     else
     {
@@ -59,7 +97,8 @@ void Npcs::ResetNpcStateToWorld(
             npc,
             currentSimulationTime,
             mShips[GetTopmostShipId()]->HomeShip,
-            std::nullopt);
+            std::nullopt,
+            options);
     }
 }
 
@@ -67,7 +106,8 @@ void Npcs::ResetNpcStateToWorld(
     StateType & npc,
     float currentSimulationTime,
     Ship const & homeShip,
-    std::optional<ElementIndex> primaryParticleTriangleIndex)
+    std::optional<ElementIndex> primaryParticleTriangleIndex,
+    NpcInitializationOptions options)
 {
     // Plane ID, connected component ID
 
@@ -130,6 +170,25 @@ void Npcs::ResetNpcStateToWorld(
         }
     }
 
+    if ((options & NpcInitializationOptions::GainMeshVelocity) != NpcInitializationOptions::None)
+    {
+        // Give all particles the velocity of the primary's mesh
+
+        if (npc.ParticleMesh.Particles[0].ConstrainedState.has_value())
+        {
+            vec2f const primaryMeshVelocity = homeShip.GetPoints().GetVelocity(
+                homeShip.GetTriangles().GetPointAIndex(
+                    npc.ParticleMesh.Particles[0].ConstrainedState->CurrentBCoords.TriangleElementIndex));
+
+            for (size_t p = 1; p < npc.ParticleMesh.Particles.size(); ++p)
+            {
+                mParticles.SetVelocity(
+                    npc.ParticleMesh.Particles[p].ParticleIndex,
+                    primaryMeshVelocity);
+            }
+        }
+    }
+
     // Regime
 
     npc.CurrentRegime = CalculateRegime(npc);
@@ -147,7 +206,7 @@ void Npcs::ResetNpcStateToWorld(
 
         case NpcKindType::Human:
         {
-            // Change behavior
+            // Init behavior
             npc.KindSpecificState.HumanNpcState.TransitionToState(
                 CalculateHumanBehavior(npc),
                 currentSimulationTime);
@@ -244,7 +303,7 @@ std::optional<Npcs::StateType::NpcParticleStateType::ConstrainedStateType> Npcs:
 
 void Npcs::OnMayBeNpcRegimeChanged(
     StateType::RegimeType oldRegime,
-    StateType & npc)
+    StateType const & npc)
 {
     if (oldRegime == npc.CurrentRegime)
     {
@@ -1692,15 +1751,22 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
         {
             // Free - there is waterness if we are underwater
 
-            float constexpr BuoyancyInterfaceWidth = 0.4f; // Nature abhorrs discontinuity
+            float constexpr BuoyancyInterfaceWidth = 0.4f; // Nature abhorrs discontinuities
 
             vec2f testParticlePosition = particlePosition;
             if (npc.Kind == NpcKindType::Human && npcParticleOrdinal == 1)
             {
-                // Head - use an offset
-                testParticlePosition.y += 
-                    (mParticles.GetPosition(npc.ParticleMesh.Particles[0].ParticleIndex).y - testParticlePosition.y) 
-                    * (BuoyancyInterfaceWidth / 2.0f + GameParameters::HumanNpcGeometry::HeadWidthFraction);
+                // Head - a little bit of a hack to make them float with the head above water,
+                // use an empirical offset - a fixed one to account for the equilibrium waterness
+                // (where the head particle is in equilibrium) plus the chin offset
+                //
+                // The actual waterness that sets the system in equilibrium is 0.81,
+                // calculated by means of masses and buoyancy factors. Here we target defaults
+                testParticlePosition.y +=
+                    - BuoyancyInterfaceWidth * 0.81f
+                    +
+                    (mParticles.GetPosition(npc.ParticleMesh.Particles[0].ParticleIndex).y - particlePosition.y)
+                    * GameParameters::HumanNpcGeometry::HeadLengthFraction;
             }
 
             float const waterHeight = mParentWorld.GetOceanSurface().GetHeightAt(testParticlePosition.x);
@@ -1716,7 +1782,7 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
 
             // Generate waves if on the air-water interface, magnitude
             // proportional to (signed) vertical velocity
-            
+
             float const verticalVelocity = mParticles.GetVelocity(npcParticle.ParticleIndex).y;
             float const particleDepthBefore = waterHeight - (particlePosition.y - verticalVelocity * GameParameters::SimulationStepTimeDuration<float>);
             if (particleDepth * particleDepthBefore < 0.0f) // Check if we've just entered/left the air-water interface

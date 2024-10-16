@@ -15,6 +15,7 @@ set  (SOURCES
 	Conversions.h
 	ElementContainer.h
 	ElementIndexRangeIterator.h
+	EnumFlags.h
 	FileSystem.h
 	FixedSizeVector.h
 	FloatingPoint.h

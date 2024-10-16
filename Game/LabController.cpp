@@ -827,12 +827,13 @@ std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewFurnitureNpc(
 
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
-    auto const pickedObjectId = mWorld->GetNpcs().BeginPlaceNewFurnitureNpc(
+    auto const result = mWorld->GetNpcs().BeginPlaceNewFurnitureNpc(
         subKind,
         worldCoordinates,
         mCurrentSimulationTime,
         false);
 
+    auto const & pickedObjectId = std::get<0>(result);
     if (pickedObjectId.has_value())
     {
         mWorld->GetNpcs().SelectNpc(pickedObjectId->ObjectId);
@@ -849,12 +850,13 @@ std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewHumanNpc(
 
     vec2f const worldCoordinates = ScreenToWorld(screenCoordinates);
 
-    auto const pickedObjectId = mWorld->GetNpcs().BeginPlaceNewHumanNpc(
+    auto const result = mWorld->GetNpcs().BeginPlaceNewHumanNpc(
         subKind,
         worldCoordinates,
         mCurrentSimulationTime,
         false);
 
+    auto const & pickedObjectId = std::get<0>(result);
     if (pickedObjectId.has_value())
     {
         mWorld->GetNpcs().SelectNpc(pickedObjectId->ObjectId);

@@ -161,6 +161,12 @@ public:
         mPositionBuffer[pointElementIndex] = value;
     }
 
+    vec2f GetVelocity(ElementIndex pointElementIndex) const noexcept
+    {
+        (void)pointElementIndex;
+        return vec2f::zero();
+    }
+
     void AddStaticForce(
         ElementIndex /*pointElementIndex*/,
         vec2f const & force) noexcept

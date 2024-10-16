@@ -33,16 +33,19 @@ public:
         float SpringDampingCoefficient;
     };
 
-    struct HumanDimensionsType
+    struct HumanTextureGeometryType
     {
-        float HeadWFactor; // Multiplier of "standard" head width
-        float HeadWidthToHeightFactor; // To recover head texture quad height from its physical width
-        float TorsoHeightToWidthFactor; // To recover torso texture quad width from its physical height
-        float ArmHeightToWidthFactor; // To recover arm texture quad width from its physical height
-        float LegHeightToWidthFactor; // To recover leg texture quad width from its physical height
+        float HeadLengthFraction; // Fraction of dipole length; can overshoot 1.0 - leg+torso for e.g. hats
+        float HeadWHRatio; // To recover head quad width from height
+        float TorsoLengthFraction; // Fraction of dipole length
+        float TorsoWHRatio; // To recover torso quad width from height
+        float ArmLengthFraction; // Fraction of dipole length
+        float ArmWHRatio; // To recover arm quad width from height
+        float LegLengthFraction; // Fraction of dipole length
+        float LegWHRatio; // To recover leg quad width from height
     };
 
-    struct FurnitureDimensionsType
+    struct FurnitureGeometryType
     {
         float Width;
         float Height;
@@ -77,108 +80,115 @@ public:
 
     static NpcDatabase Load(MaterialDatabase const & materialDatabase);
 
-    std::vector<std::tuple<NpcSubKindIdType, std::string>> GetHumanSubKinds(std::string const & language) const;
-    std::vector<std::tuple<NpcSubKindIdType, std::string>> GetFurnitureSubKinds(std::string const & language) const;
+    // Humans
+
+    std::vector<std::vector<NpcSubKindIdType>> const & GetHumanSubKindIdsByRole() const
+    {
+        return mHumanSubKindIdsByRole;
+    }
 
     NpcHumanRoleType GetHumanRole(NpcSubKindIdType subKindId) const
     {
-        return mHumanKinds.at(subKindId).Role;
+        return mHumanSubKinds.at(subKindId).Role;
+    }
+
+    rgbColor GetHumanRenderColor(NpcSubKindIdType subKindId) const
+    {
+        return mHumanSubKinds.at(subKindId).RenderColor;
     }
 
     StructuralMaterial const & GetHumanHeadMaterial(NpcSubKindIdType subKindId) const
     {
-        return mHumanKinds.at(subKindId).HeadMaterial;
+        return mHumanSubKinds.at(subKindId).HeadMaterial;
     }
 
     StructuralMaterial const & GetHumanFeetMaterial(NpcSubKindIdType subKindId) const
     {
-        return mHumanKinds.at(subKindId).FeetMaterial;
+        return mHumanSubKinds.at(subKindId).FeetMaterial;
     }
 
     ParticleAttributesType const & GetHumanHeadParticleAttributes(NpcSubKindIdType subKindId) const
     {
-        assert(mHumanKinds.at(subKindId).ParticleAttributes.size() == 2);
-        return mHumanKinds.at(subKindId).ParticleAttributes[1];
+        assert(mHumanSubKinds.at(subKindId).ParticleAttributes.size() == 2);
+        return mHumanSubKinds.at(subKindId).ParticleAttributes[1];
     }
 
     ParticleAttributesType const & GetHumanFeetParticleAttributes(NpcSubKindIdType subKindId) const
     {
-        assert(mHumanKinds.at(subKindId).ParticleAttributes.size() == 2);
-        return mHumanKinds.at(subKindId).ParticleAttributes[0];
+        assert(mHumanSubKinds.at(subKindId).ParticleAttributes.size() == 2);
+        return mHumanSubKinds.at(subKindId).ParticleAttributes[0];
     }
 
     float GetHumanSizeMultiplier(NpcSubKindIdType subKindId) const
     {
-        return mHumanKinds.at(subKindId).SizeMultiplier;
+        return mHumanSubKinds.at(subKindId).SizeMultiplier;
     }
 
-    HumanDimensionsType const & GetHumanDimensions(NpcSubKindIdType subKindId) const
+    HumanTextureGeometryType const & GetHumanTextureGeometry(NpcSubKindIdType subKindId) const
     {
-        return mHumanKinds.at(subKindId).Dimensions;
+        return mHumanSubKinds.at(subKindId).TextureGeometry;
     }
 
     float GetHumanBodyWidthRandomizationSensitivity(NpcSubKindIdType subKindId) const
     {
-        return mHumanKinds.at(subKindId).BodyWidthRandomizationSensitivity;
+        return mHumanSubKinds.at(subKindId).BodyWidthRandomizationSensitivity;
     }
 
     HumanTextureFramesType const & GetHumanTextureCoordinatesQuads(NpcSubKindIdType subKindId) const
     {
-        return mHumanKinds.at(subKindId).TextureCoordinatesQuads;
+        return mHumanSubKinds.at(subKindId).TextureCoordinatesQuads;
+    }
+
+    // Furniture
+
+    std::vector<std::vector<NpcSubKindIdType>> const & GetFurnitureSubKindIdsByRole() const
+    {
+        return mFurnitureSubKindIdsByRole;
+    }
+
+    NpcFurnitureRoleType GetFurnitureRole(NpcSubKindIdType subKindId) const
+    {
+        return mFurnitureSubKinds.at(subKindId).Role;
+    }
+
+    rgbColor GetFurnitureRenderColor(NpcSubKindIdType subKindId) const
+    {
+        return mFurnitureSubKinds.at(subKindId).RenderColor;
     }
 
     StructuralMaterial const & GetFurnitureMaterial(NpcSubKindIdType subKindId) const
     {
-        return mFurnitureKinds.at(subKindId).Material;
+        return mFurnitureSubKinds.at(subKindId).Material;
     }
 
     ParticleAttributesType const & GetFurnitureParticleAttributes(NpcSubKindIdType subKindId, int particleOrdinal) const
     {
-        assert(particleOrdinal < mFurnitureKinds.at(subKindId).ParticleAttributes.size());
-        return mFurnitureKinds.at(subKindId).ParticleAttributes[particleOrdinal];
+        assert(particleOrdinal < mFurnitureSubKinds.at(subKindId).ParticleAttributes.size());
+        return mFurnitureSubKinds.at(subKindId).ParticleAttributes[particleOrdinal];
     }
 
     ParticleMeshKindType const & GetFurnitureParticleMeshKindType(NpcSubKindIdType subKindId) const
     {
-        return mFurnitureKinds.at(subKindId).ParticleMeshKind;
+        return mFurnitureSubKinds.at(subKindId).ParticleMeshKind;
     }
 
-    FurnitureDimensionsType const & GetFurnitureDimensions(NpcSubKindIdType subKindId) const
+    FurnitureGeometryType const & GetFurnitureGeometry(NpcSubKindIdType subKindId) const
     {
-        return mFurnitureKinds.at(subKindId).Dimensions;
+        return mFurnitureSubKinds.at(subKindId).Geometry;
     }
 
     Render::TextureCoordinatesQuad const & GetFurnitureTextureCoordinatesQuad(NpcSubKindIdType subKindId) const
     {
-        return mFurnitureKinds.at(subKindId).TextureCoordinatesQuad;
+        return mFurnitureSubKinds.at(subKindId).TextureCoordinatesQuad;
     }
 
 private:
 
-    struct MultiLingualText
+    struct HumanSubKind
     {
-        std::map<std::string, std::string> ValuesByLanguage;
-
-        explicit MultiLingualText(std::map<std::string, std::string> && valuesByLanguage)
-            : ValuesByLanguage(std::move(valuesByLanguage))
-        {}
-
-        std::string Get(std::string const & language) const
-        {
-            auto searchIt = ValuesByLanguage.find(language);
-            if (searchIt != ValuesByLanguage.end())
-                return searchIt->second;
-
-            searchIt = ValuesByLanguage.find("");
-            assert(searchIt != ValuesByLanguage.end());
-            return searchIt->second;
-        }
-    };
-
-    struct HumanKind
-    {
-        MultiLingualText Name;
+        std::string Name;
         NpcHumanRoleType Role;
+        rgbColor RenderColor;
 
         StructuralMaterial const & HeadMaterial;
         StructuralMaterial const & FeetMaterial;
@@ -186,15 +196,17 @@ private:
         std::array<ParticleAttributesType, 2> ParticleAttributes;
 
         float SizeMultiplier;
-
-        HumanDimensionsType Dimensions;
         float BodyWidthRandomizationSensitivity;
+
         HumanTextureFramesType const TextureCoordinatesQuads;
+        HumanTextureGeometryType TextureGeometry;
     };
 
-    struct FurnitureKind
+    struct FurnitureSubKind
     {
-        MultiLingualText Name;
+        std::string Name;
+        NpcFurnitureRoleType Role;
+        rgbColor RenderColor;
 
         StructuralMaterial const & Material;
 
@@ -202,7 +214,7 @@ private:
 
         ParticleMeshKindType ParticleMeshKind;
 
-        FurnitureDimensionsType Dimensions;
+        FurnitureGeometryType Geometry;
 
         Render::TextureCoordinatesQuad TextureCoordinatesQuad;
     };
@@ -210,21 +222,18 @@ private:
 private:
 
     NpcDatabase(
-        std::map<NpcSubKindIdType, HumanKind> && humanKinds,
-        std::map<NpcSubKindIdType, FurnitureKind> && furnitureKinds)
-        : mHumanKinds(std::move(humanKinds))
-        , mFurnitureKinds(std::move(furnitureKinds))
-    {}
+        std::map<NpcSubKindIdType, HumanSubKind> && humanSubKinds,
+        std::map<NpcSubKindIdType, FurnitureSubKind> && furnitureSubKinds);
 
-    static HumanKind ParseHumanKind(
-        picojson::object const & kindObject,
+    static HumanSubKind ParseHumanSubKind(
+        picojson::object const & subKindObject,
         StructuralMaterial const & headMaterial,
         StructuralMaterial const & feetMaterial,
         ParticleAttributesType const & globalHeadParticleAttributes,
         ParticleAttributesType const & globalFeetParticleAttributes);
 
-    static FurnitureKind ParseFurnitureKind(
-        picojson::object const & kindObject,
+    static FurnitureSubKind ParseFurnitureSubKind(
+        picojson::object const & subKindObject,
         MaterialDatabase const & materialDatabase);
 
     static ParticleAttributesType MakeParticleAttributes(
@@ -238,10 +247,6 @@ private:
 
     static ParticleAttributesType MakeDefaultParticleAttributes(StructuralMaterial const & baseMaterial);
 
-    static MultiLingualText ParseMultilingualText(
-        picojson::object const & containerObject,
-        std::string const & textName);
-
     template<typename TNpcSubKindContainer>
     static std::vector<std::tuple<NpcSubKindIdType, std::string>> GetSubKinds(
         TNpcSubKindContainer const & container,
@@ -251,6 +256,9 @@ private:
 
 private:
 
-    std::map<NpcSubKindIdType, HumanKind> mHumanKinds;
-    std::map<NpcSubKindIdType, FurnitureKind> mFurnitureKinds;
+    std::map<NpcSubKindIdType, HumanSubKind> mHumanSubKinds;
+    std::map<NpcSubKindIdType, FurnitureSubKind> mFurnitureSubKinds;
+
+    std::vector<std::vector<NpcSubKindIdType>> mHumanSubKindIdsByRole;
+    std::vector<std::vector<NpcSubKindIdType>> mFurnitureSubKindIdsByRole;
 };
