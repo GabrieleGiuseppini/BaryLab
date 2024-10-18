@@ -3930,8 +3930,8 @@ void Npcs::UpdateNpcAnimation(
                     {
                         float constexpr angle1 = MaxHumanEdgeAngleForArms * 0.9f; // Leg towards LegAngle0 until here
                         float constexpr LegAngle0 = Pi<float> * 0.37f;
-                        float constexpr angle2 = MaxHumanEdgeAngleForArms; // Rest until here
-                        float const angle3 = MaxHumanEdgeAngleForArms + (maxHumanEdgeAngle - MaxHumanEdgeAngleForArms) * 5.0f / 6.0f; // Leg shrinking to zero until here; rest afterwards
+                        float constexpr angle2 = MaxHumanEdgeAngleForArms * 1.5f; // Rest until here
+                        float const angle3 = angle2 + (maxHumanEdgeAngle - angle2) * 5.0f / 6.0f; // Leg shrinking to zero until here; rest afterwards
 
                         if (humanEdgeAngle < angle1)
                         {
