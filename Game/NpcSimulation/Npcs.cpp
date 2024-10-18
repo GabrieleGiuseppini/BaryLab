@@ -3262,7 +3262,7 @@ void Npcs::RenderNpc(
                     //  * The magnitude of the extrusion is (W/2) / cos(alpha), where alpha is
                     //    the angle between a normal and the direction of the extrusion
 
-                    float constexpr MinJ = 0.9f;
+                    float constexpr MinJ = 0.8f; // Prevents too pointy angles
 
                     vec2f const leftLowerLegDir = (feetPosition - leftKneeOrFootPosition).normalise_approx();
                     vec2f const leftLowerLegVector = leftLowerLegDir * leftLegLength * lowerLegLengthFraction;
@@ -3814,7 +3814,9 @@ void Npcs::UpdateNpcAnimation(
                     }
                 }
 
-                // Legs stay
+                // Legs at zero
+                targetAngles.LeftLeg = 0.0f;
+                targetAngles.RightLeg = 0.0f;
 
                 convergenceRate = 0.09f;
 
@@ -3890,7 +3892,7 @@ void Npcs::UpdateNpcAnimation(
                     float constexpr OtherArmDeltaAngle = 0.3f;
 
                     // AngleMultiplier of other leg when closing knees
-                    float constexpr OtherLegAlphaAngle = 0.7f;
+                    float constexpr OtherLegAlphaAngle = 0.87f;
 
                     // TODONEW
 
