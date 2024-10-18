@@ -3894,8 +3894,6 @@ void Npcs::UpdateNpcAnimation(
                     // AngleMultiplier of other leg when closing knees
                     float constexpr OtherLegAlphaAngle = 0.87f;
 
-                    // TODONEW
-
                     //  *  0 --> maxHumanEdgeAngle (which is PI/2 when edge is flat)
                     //   \
                     //   |\
@@ -3922,7 +3920,7 @@ void Npcs::UpdateNpcAnimation(
                     }
 
                     //
-                    // Legs: TODOHERE
+                    // Legs: various phases: knee bending, then straightening
                     //
                     // Note: we only do legs if we're facing L/R
                     //
@@ -3930,185 +3928,42 @@ void Npcs::UpdateNpcAnimation(
                     float targetLeg = 0.0f; // Start with legs closed - we'll change (if we're L/R)
                     if (humanNpcState.CurrentFaceOrientation == 0.0f)
                     {
-                        ////// TODOTEST: based on chord
-                        ////float constexpr Alpha0 = 0.50536f; // Angle at which chord of radius=L is L/2, i.e. 2*arcsin(1/4)
-                        ////float constexpr Beta0 = (Pi<float> -Alpha0) / 2.0f; // Leg angle at Alpha0
-
-                        ////// Leg angle (beta) is linear func of humanEdgeAngle (alpha):
-                        //////  alpha=0: beta=0
-                        //////  alpha at alpha0 (if we can): beta=beta0
-                        //////  alpha > alpha0: beta decreasing to zero
-                        //////  alpha = maxHumanEdgeAngle: beta=0
-
-                        ////float constexpr WindDownAngleFraction = 0.3f; // We want at least this final fraction of maxHumanEdgeAngle for winddown
-                        ////float const windDownAngleAmplitude = maxHumanEdgeAngle * WindDownAngleFraction;
-
-                        ////// Alpha at which we have a maximum for beta
-                        ////float const clampedAlpha0 = std::min(Alpha0, maxHumanEdgeAngle - windDownAngleAmplitude);
-
-                        ////if (humanEdgeAngle < clampedAlpha0)
-                        ////{
-                        ////    // Rising
-
-                        ////    // TODOTEST: linear, overshoots early
-                        ////    //targetLeg = Beta0 * humanEdgeAngle / Alpha0;
-                        ////    // TODOTEST: quadratic, undershoots
-                        ////    //targetLeg = Beta0 * (humanEdgeAngle / Alpha0) * (humanEdgeAngle / Alpha0);
-                        ////    targetLeg = std::asin(2.0f * std::sin(humanEdgeAngle)) - humanEdgeAngle;
-
-                        ////    LogMessage("RISING: a=", humanEdgeAngle, " a0=", clampedAlpha0, " targetLeg=", targetLeg);
-
-                        ////    // Set knee in the middle
-                        ////    targetUpperLegLengthFraction = 0.5f;
-                        ////}
-                        ////else if (humanEdgeAngle < clampedAlpha0 + windDownAngleAmplitude)
-                        ////{
-                        ////    // Decreasing
-
-                        ////    targetLeg = Beta0 * clampedAlpha0 / Alpha0 * (1.0f - (humanEdgeAngle - clampedAlpha0) / windDownAngleAmplitude);
-
-                        ////    LogMessage("DECREASING: a=", humanEdgeAngle, " a0=", clampedAlpha0, " targetLeg=", targetLeg);
-                        ////    LogMessage("       windDownAngleAmplitude=", windDownAngleAmplitude, " maxHumanEdgeAngle=", maxHumanEdgeAngle);
-
-                        ////    // Set knee in the middle
-                        ////    targetUpperLegLengthFraction = 0.5f;
-                        ////}
-                        ////else
-                        ////{
-                        ////    // Flat
-
-                        ////    LogMessage("FLAT");
-
-                        ////    targetLeg = 0.0f;
-                        ////    targetUpperLegLengthFraction = 0.0f;
-                        ////}
-
-
-
-
-                        ////// TODOTEST: based on leg perp onto edge (arcsin, geometrically correct)
-
-                        ////float constexpr Alpha0 = 0.523598f; // Angle at which upper leg is perp onto edge, i.e. arcsin(1/2)
-                        ////float constexpr Beta0 = Pi<float> / 2.0f -Alpha0; // Leg angle at Alpha0
-
-                        ////// Leg angle (beta) is linear func of humanEdgeAngle (alpha):
-                        //////  alpha=0: beta=0
-                        //////  alpha at alpha0 (if we can): beta=beta0
-                        //////  alpha > alpha0: beta decreasing to zero
-                        //////  alpha = maxHumanEdgeAngle: beta=0
-
-                        ////float constexpr WindDownAngleFraction = 0.5f; // We want at least this final fraction of maxHumanEdgeAngle for winddown
-                        ////float const windDownAngleAmplitude = maxHumanEdgeAngle * WindDownAngleFraction;
-
-                        ////// Alpha at which we have a maximum for beta
-                        ////float const clampedAlpha0 = std::min(Alpha0, maxHumanEdgeAngle - windDownAngleAmplitude);
-
-                        ////if (humanEdgeAngle < clampedAlpha0)
-                        ////{
-                        ////    // Rising
-
-                        ////    targetLeg = std::asin(2.0f * std::sin(humanEdgeAngle)) - humanEdgeAngle;
-
-                        ////    LogMessage("RISING: a=", humanEdgeAngle, " a0=", clampedAlpha0, " targetLeg=", targetLeg);
-
-                        ////    // Set knee in the middle
-                        ////    targetUpperLegLengthFraction = 0.5f;
-                        ////}
-                        ////else if (humanEdgeAngle < clampedAlpha0 + windDownAngleAmplitude)
-                        ////{
-                        ////    // Decreasing
-
-                        ////    targetLeg = (std::asin(2.0f * std::sin(clampedAlpha0)) - clampedAlpha0) * (1.0f - (humanEdgeAngle - clampedAlpha0) / windDownAngleAmplitude);
-
-                        ////    LogMessage("DECREASING: a=", humanEdgeAngle, " a0=", clampedAlpha0, " targetLeg=", targetLeg);
-
-                        ////    // Set knee in the middle
-                        ////    targetUpperLegLengthFraction = 0.5f;
-                        ////}
-                        ////else
-                        ////{
-                        ////    // Flat
-
-                        ////    LogMessage("FLAT");
-
-                        ////    targetLeg = 0.0f;
-                        ////    targetUpperLegLengthFraction = 0.0f;
-                        ////}
-
-
-
-
-                        // TODOHERE: simple phases
-
-                        ////// Tentative 1: GOOD!
-                        ////float const angle1 = MaxHumanEdgeAngleForArms * 0.0f; // Rest until here
-                        ////float const angle2 = MaxHumanEdgeAngleForArms * 0.8f; // Leg towards LegAngle0 until here
-                        ////float constexpr LegAngle0 = Pi<float> *0.37f;
-                        ////float const angle3 = MaxHumanEdgeAngleForArms + (maxHumanEdgeAngle - MaxHumanEdgeAngleForArms) / 7.0f; // Rest until here
-                        ////float const angle4 = MaxHumanEdgeAngleForArms + (maxHumanEdgeAngle - MaxHumanEdgeAngleForArms) * 2.0f / 3.0f; // Leg shrinking to zero until here
-                        ////float const angle5 = maxHumanEdgeAngle; // Rest until here
-
-                        float const angle1 = MaxHumanEdgeAngleForArms * 0.0f; // Rest until here
-                        float const angle2 = MaxHumanEdgeAngleForArms * 0.8f; // Leg towards LegAngle0 until here
-                        float constexpr LegAngle0 = Pi<float> *0.37f;
-                        float const angle3 = MaxHumanEdgeAngleForArms + (maxHumanEdgeAngle - MaxHumanEdgeAngleForArms) / 7.0f; // Rest until here
-                        float const angle4 = MaxHumanEdgeAngleForArms + (maxHumanEdgeAngle - MaxHumanEdgeAngleForArms) * 2.0f / 3.0f; // Leg shrinking to zero until here
-                        float const angle5 = maxHumanEdgeAngle; // Rest until here
-
-                        LogMessage("humanEdgeAngle=", humanEdgeAngle, " out of: ", angle1, " ", angle2, " ", angle3, " ", angle4, " ", angle5);
+                        float constexpr angle1 = MaxHumanEdgeAngleForArms * 0.9f; // Leg towards LegAngle0 until here
+                        float constexpr LegAngle0 = Pi<float> * 0.37f;
+                        float constexpr angle2 = MaxHumanEdgeAngleForArms; // Rest until here
+                        float const angle3 = MaxHumanEdgeAngleForArms + (maxHumanEdgeAngle - MaxHumanEdgeAngleForArms) * 5.0f / 6.0f; // Leg shrinking to zero until here; rest afterwards
 
                         if (humanEdgeAngle < angle1)
                         {
-                            // Rest
-                            targetLeg = 0.0f;
-                            targetUpperLegLengthFraction = 0.0f;
-
-                            LogMessage("REST0: ", targetLeg, " out of ", LegAngle0);
+                            // Rise
+                            targetLeg = humanEdgeAngle / angle1 * LegAngle0;
+                            targetUpperLegLengthFraction = 0.5f;
                         }
                         else if (humanEdgeAngle < angle2)
-                        {
-                            // Rise
-                            targetLeg = (humanEdgeAngle - angle1) / (angle2 - angle1) * LegAngle0;
-                            targetUpperLegLengthFraction = 0.5f;
-
-                            LogMessage("RISE: ", targetLeg, " out of ", LegAngle0);
-                        }
-                        else if (humanEdgeAngle < angle3)
                         {
                             // Rest
                             targetLeg = LegAngle0;
                             targetUpperLegLengthFraction = 0.5f;
-
-                            LogMessage("REST1: ", targetLeg, " out of ", LegAngle0);
                         }
-                        else if (humanEdgeAngle < angle4)
+                        else if (humanEdgeAngle < angle3)
                         {
                             // Decrease
-                            targetLeg = LegAngle0 - (humanEdgeAngle - angle3) / (angle4 - angle3) * LegAngle0;
+                            targetLeg = LegAngle0 * (1.0f - (humanEdgeAngle - angle2) / (angle3 - angle2));
                             targetUpperLegLengthFraction = 0.5f;
-
-                            LogMessage("DECREASE: ", targetLeg, " out of ", LegAngle0);
                         }
                         else
                         {
-                            // Reset
+                            // Zero
                             targetLeg = 0.0f;
                             targetUpperLegLengthFraction = 0.0f;
-
-                            LogMessage("REST2: ", targetLeg, " out of ", LegAngle0);
                         }
-
-
-
-
-
-
 
                         // Knees cannot bend backwards!
                         if ((humanNpcState.CurrentFaceDirectionX > 0.0f && isOnLeftSide)
                             || (humanNpcState.CurrentFaceDirectionX < 0.0f && !isOnLeftSide))
                         {
-                            targetLeg *= -1.0f;
+                            // Less angle on the opposite side
+                            targetLeg *= -0.8f;
                         }
                     }
 
@@ -4132,84 +3987,6 @@ void Npcs::UpdateNpcAnimation(
                         targetAngles.RightLeg = targetLeg;
                         targetAngles.LeftLeg = targetAngles.RightLeg * OtherLegAlphaAngle;
                     }
-
-
-
-
-                    ////// TODOOLD
-
-                    ////// Shortening of angle path for legs becoming straight when closing knees
-                    ////float const AnglePathShorteningForLegsInLateStage = 0.9f;
-
-                    //////
-
-                    //////  *  0 --> maxHumanEdgeAngle (which is PI/2 when edge is flat)
-                    //////   \
-                    //////   |\
-                    ////// -----
-
-                    ////// Arm: at MaxArmAngle until MaxHumanEdgeAngleForArms, then goes down to rest
-
-                    ////float targetArm;
-                    ////float targetLeg = 0.0f; // Start with legs closed - we'll change if we're in the early stage of rising and we're L/R
-
-                    ////if (humanEdgeAngle <= MaxHumanEdgeAngleForArms)
-                    ////{
-                    ////    // Early stage
-
-                    ////    // Arms: leave them where they are (MaxArmAngle)
-                    ////    targetArm = MaxArmAngle;
-
-                    ////    // Legs: we want a knee (iff we're facing L/R)
-
-                    ////    if (humanNpcState.CurrentFaceOrientation == 0.0f)
-                    ////    {
-                    ////        targetLeg = MaxArmAngle;
-                    ////        targetUpperLegLengthFraction = humanEdgeAngle / MaxHumanEdgeAngleForArms * 0.5f; // 0.0 @ 0.0 -> 0.5 @ MaxHumanEdgeAngleForArms
-                    ////    }
-                    ////}
-                    ////else
-                    ////{
-                    ////    // Late stage: -> towards maxHumanEdgeAngle
-
-                    ////    // Arms: MaxArmAngle -> RestArmAngle
-
-                    ////    targetArm = MaxArmAngle + (MaxHumanEdgeAngleForArms - humanEdgeAngle) / (MaxHumanEdgeAngleForArms - maxHumanEdgeAngle) * (RestArmAngle - MaxArmAngle); // MaxArmAngle @ MaxHumanEdgeAngleForArms -> RestArmAngle @ maxHumanEdgeAngle
-
-                    ////    // Legs: towards zero
-
-                    ////    if (humanNpcState.CurrentFaceOrientation == 0.0f)
-                    ////    {
-                    ////        targetLeg = std::max(
-                    ////            MaxArmAngle - (MaxHumanEdgeAngleForArms - humanEdgeAngle) / (MaxHumanEdgeAngleForArms - maxHumanEdgeAngle * AnglePathShorteningForLegsInLateStage) * MaxArmAngle, // MaxArmAngle @ MaxHumanEdgeAngleForArms -> 0 @ maxHumanEdgeAngle-e
-                    ////            0.0f);
-                    ////        targetUpperLegLengthFraction = 0.5f;
-                    ////    }
-                    ////}
-
-                    ////// Knees cannot bend backwards!
-                    ////if ((humanNpcState.CurrentFaceDirectionX > 0.0f && isOnLeftSide)
-                    ////    || (humanNpcState.CurrentFaceDirectionX < 0.0f && !isOnLeftSide))
-                    ////{
-                    ////    targetLeg *= -1.0f;
-                    ////}
-
-                    ////if (isOnLeftSide)
-                    ////{
-                    ////    targetAngles.LeftArm = -targetArm;
-                    ////    targetAngles.RightArm = targetAngles.LeftArm + OtherArmDeltaAngle;
-
-                    ////    targetAngles.LeftLeg = -targetLeg;
-                    ////    targetAngles.RightLeg = targetAngles.LeftLeg * OtherLegAlphaAngle;
-                    ////}
-                    ////else
-                    ////{
-                    ////    targetAngles.RightArm = targetArm;
-                    ////    targetAngles.LeftArm = targetAngles.RightArm - OtherArmDeltaAngle;
-
-                    ////    targetAngles.RightLeg = targetLeg;
-                    ////    targetAngles.LeftLeg = targetAngles.RightLeg * OtherLegAlphaAngle;
-                    ////}
                 }
                 else
                 {

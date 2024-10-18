@@ -382,6 +382,11 @@ void MainFrame::OnKeyDown(wxKeyEvent & event)
         // Down
         mLabController->Pan(vec2f(0.0f, 20.0f));
     }
+    else if (event.GetKeyCode() == '3')
+    {
+        auto dummy = wxCommandEvent(wxEVT_NULL);
+        OnMoveNpc(dummy);
+    }
     else if (event.GetKeyCode() == '/')
     {
         // Query
