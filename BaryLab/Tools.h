@@ -722,7 +722,7 @@ public:
             && mCurrentEngagementState->Npc.has_value())
         {
             // Abort
-            mLabController->AbortNewNpc(mCurrentEngagementState->Npc->ObjectId);
+            mLabController->AbortNewNpc(mCurrentEngagementState->Npc->Id);
         }
     }
 
@@ -776,7 +776,7 @@ public:
             if (!inputState.IsLeftMouseDown)
             {
                 // Confirm;
-                mLabController->CompleteNewNpc(mCurrentEngagementState->Npc->ObjectId);
+                mLabController->CompleteNewNpc(mCurrentEngagementState->Npc->Id);
 
                 // -> Clean
                 mCurrentEngagementState.reset();
@@ -786,7 +786,7 @@ public:
             {
                 // Move;
                 mLabController->MoveNpcTo(
-                    mCurrentEngagementState->Npc->ObjectId,
+                    mCurrentEngagementState->Npc->Id,
                     inputState.MousePosition,
                     mCurrentEngagementState->Npc->WorldOffset);
             }
@@ -795,7 +795,7 @@ public:
 
 protected:
 
-    virtual std::optional<PickedObjectId<NpcId>> InternalBeginPlaceNewNpc(vec2f const & screenCoordinates) = 0;
+    virtual std::optional<PickedNpc> InternalBeginPlaceNewNpc(vec2f const & screenCoordinates) = 0;
 
 private:
 
@@ -803,9 +803,9 @@ private:
 
     struct EngagementState
     {
-        std::optional<PickedObjectId<NpcId>> Npc; // When not set, we're in error mode
+        std::optional<PickedNpc> Npc; // When not set, we're in error mode
 
-        explicit EngagementState(std::optional<PickedObjectId<NpcId>> npc)
+        explicit EngagementState(std::optional<PickedNpc> npc)
             : Npc(npc)
         {}
     };
@@ -828,7 +828,7 @@ public:
 
 protected:
 
-    std::optional<PickedObjectId<NpcId>> InternalBeginPlaceNewNpc(vec2f const & screenCoordinates) override
+    std::optional<PickedNpc> InternalBeginPlaceNewNpc(vec2f const & screenCoordinates) override
     {
         return mLabController->BeginPlaceNewFurnitureNpc(
             1, // Particle
@@ -846,7 +846,7 @@ public:
 
 protected:
 
-    std::optional<PickedObjectId<NpcId>> InternalBeginPlaceNewNpc(vec2f const & screenCoordinates) override
+    std::optional<PickedNpc> InternalBeginPlaceNewNpc(vec2f const & screenCoordinates) override
     {
         return mLabController->BeginPlaceNewFurnitureNpc(
             0, // Crate
@@ -870,7 +870,7 @@ public:
 
 protected:
 
-    std::optional<PickedObjectId<NpcId>> InternalBeginPlaceNewNpc(vec2f const & screenCoordinates) override
+    std::optional<PickedNpc> InternalBeginPlaceNewNpc(vec2f const & screenCoordinates) override
     {
         return mLabController->BeginPlaceNewHumanNpc(
             mSubKind,
@@ -935,7 +935,7 @@ public:
                 // If we have an NPC, it becomes the one we're moving
                 if (mNpc.has_value())
                 {
-                    mLabController->BeginMoveNpc(mNpc->ObjectId);
+                    mLabController->BeginMoveNpc(mNpc->Id, mNpc->ParticleOrdinal);
                 }
 
                 mIsMouseDown = true;
@@ -948,7 +948,7 @@ public:
                 if (mNpc.has_value())
                 {
                     mLabController->MoveNpcTo(
-                        mNpc->ObjectId,
+                        mNpc->Id,
                         inputState.MousePosition,
                         mNpc->WorldOffset);
                 }
@@ -963,7 +963,7 @@ public:
                 // If we have an NPC, we've stopped moving it
                 if (mNpc.has_value())
                 {
-                    mLabController->EndMoveNpc(mNpc->ObjectId);
+                    mLabController->EndMoveNpc(mNpc->Id);
                     mNpc.reset();
                 }
 
@@ -979,7 +979,7 @@ public:
 private:
 
     // Our state
-    std::optional<PickedObjectId<NpcId>> mNpc;
+    std::optional<PickedNpc> mNpc;
     bool mIsMouseDown;
 
     // The cursors
@@ -1069,9 +1069,9 @@ public:
             auto const probeOutcome = mLabController->ProbeNpcAt(inputState.MousePosition);
             if (probeOutcome)
             {
-                if (!mNpc.has_value() || *mNpc != probeOutcome->ObjectId)
+                if (!mNpc.has_value() || *mNpc != probeOutcome->Id)
                 {
-                    mNpc = probeOutcome->ObjectId;
+                    mNpc = probeOutcome->Id;
                 }
             }
             else

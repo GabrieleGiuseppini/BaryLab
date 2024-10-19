@@ -66,7 +66,7 @@ public:
     void PublishPerf();
 
     void Reset();
-    
+
 
     //
     // Interactions
@@ -112,10 +112,10 @@ public:
     // NPC
     //
 
-    std::optional<PickedObjectId<NpcId>> BeginPlaceNewFurnitureNpc(NpcSubKindIdType subKind, vec2f const & screenCoordinates);
-    std::optional<PickedObjectId<NpcId>> BeginPlaceNewHumanNpc(NpcSubKindIdType subKind, vec2f const & screenCoordinates);
-    std::optional<PickedObjectId<NpcId>> ProbeNpcAt(vec2f const & screenCoordinates) const;
-    void BeginMoveNpc(NpcId id);
+    std::optional<PickedNpc> BeginPlaceNewFurnitureNpc(NpcSubKindIdType subKind, vec2f const & screenCoordinates);
+    std::optional<PickedNpc> BeginPlaceNewHumanNpc(NpcSubKindIdType subKind, vec2f const & screenCoordinates);
+    std::optional<PickedNpc> ProbeNpcAt(vec2f const & screenCoordinates) const;
+    void BeginMoveNpc(NpcId id, int particleOrdinal);
     void MoveNpcTo(NpcId id, vec2f const & screenCoordinates, vec2f const & worldOffset);
     void EndMoveNpc(NpcId id);
     void CompleteNewNpc(NpcId id);

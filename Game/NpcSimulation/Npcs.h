@@ -464,9 +464,9 @@ private:
 				float CurrentFaceDirectionX; // [-1.0f, 0.0f, 1.0f]
 
 				// Panic levels
-				float OnFirePanicLevel; // [0.0f ... +1.0f]
-				float BombProximityPanicLevel; // [0.0f ... +1.0f]
-				float GeneralizedPanicLevel; // [0.0f ... +1.0f]
+				float OnFirePanicLevel; // [0.0f ... +1.0f], auto-decayed
+				float BombProximityPanicLevel; // [0.0f ... +1.0f], auto-decayed
+				float MiscPanicLevel; // [0.0f ... +1.0f], auto-decayed; includes triangle break
 				float ResultantPanicLevel; // [0.0f ... +INF)
 
 				// Animation
@@ -521,7 +521,7 @@ private:
 					, CurrentFaceDirectionX(0.0f)
 					, OnFirePanicLevel(0.0f)
 					, BombProximityPanicLevel(0.0f)
-					, GeneralizedPanicLevel(0.0f)
+					, MiscPanicLevel(0.0f)
 					, ResultantPanicLevel(0.0f)
 					// Animation
 					, AnimationState()
@@ -672,6 +672,7 @@ private:
 		{
 			int AnchorParticleOrdinal; // In NPC's mesh
 			bool DoMoveWholeMesh;
+			std::optional<RegimeType> PreviousRegime; // If any (i.e. if this is not an initial placement)
 		};
 
 		//
@@ -794,6 +795,7 @@ public:
 		, mCurrentlySelectedNpc()
 		, mCurrentlySelectedNpcWallClockTimestamp()
 		, mCurrentlyHighlightedNpc()
+		, mGeneralizedPanicLevel(0.0f)
 		// Stats
 		, mFreeRegimeHumanNpcCount(0)
 		, mConstrainedRegimeHumanNpcCount(0)
@@ -846,25 +848,26 @@ public:
 
 	NpcKindType GetNpcKind(NpcId id);
 
-	std::tuple<std::optional<PickedObjectId<NpcId>>, NpcCreationFailureReasonType> BeginPlaceNewFurnitureNpc(
+	std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> BeginPlaceNewFurnitureNpc(
 		NpcSubKindIdType subKind,
 		vec2f const & worldCoordinates,
 		float currentSimulationTime,
 		bool doMoveWholeMesh);
 
-	std::tuple<std::optional<PickedObjectId<NpcId>>, NpcCreationFailureReasonType> BeginPlaceNewHumanNpc(
+	std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> BeginPlaceNewHumanNpc(
 		NpcSubKindIdType subKind,
 		vec2f const & worldCoordinates,
 		float currentSimulationTime,
 		bool doMoveWholeMesh);
 
-	std::optional<PickedObjectId<NpcId>> ProbeNpcAt(
+	std::optional<PickedNpc> ProbeNpcAt(
 		vec2f const & position,
 		float radius,
 		GameParameters const & gameParameters) const;
 
 	void BeginMoveNpc(
 		NpcId id,
+		int particleOrdinal,
 		float currentSimulationTime,
 		bool doMoveWholeMesh);
 
@@ -963,7 +966,14 @@ public:
 		vec2f const & centerPosition,
 		GameParameters const & gameParameters);
 
-	void SetGeneralizedPanicLevelForAllHumans(float panicLevel);
+	void OnTriangleDestroyed(
+		ShipId shipId,
+		ElementIndex triangleElementIndex);
+
+	void SetGeneralizedPanicLevel(float panicLevel)
+	{
+		mGeneralizedPanicLevel = panicLevel;
+	}
 
 public:
 
@@ -1798,6 +1808,8 @@ private:
 	GameWallClock::time_point mCurrentlySelectedNpcWallClockTimestamp;
 	std::optional<NpcId> mCurrentlyHighlightedNpc;
 
+	float mGeneralizedPanicLevel; // [0.0f ... +1.0f], manually decayed
+
 	//
 	// Stats
 	//
@@ -1809,7 +1821,7 @@ private:
 	// Simulation parameters
 	//
 
-	float mGlobalDampingFactor;
+	float mGlobalDampingFactor; // Calculated
 
 	// Cached from game parameters
 	float mCurrentGlobalDampingAdjustment;

@@ -819,7 +819,7 @@ void LabController::DoStepForVideo()
 
 ////////////////////////////////////////////////
 
-std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewFurnitureNpc(
+std::optional<PickedNpc> LabController::BeginPlaceNewFurnitureNpc(
     NpcSubKindIdType subKind,
     vec2f const & screenCoordinates)
 {
@@ -833,16 +833,16 @@ std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewFurnitureNpc(
         mCurrentSimulationTime,
         false);
 
-    auto const & pickedObjectId = std::get<0>(result);
-    if (pickedObjectId.has_value())
+    auto const & pickedNpc = std::get<0>(result);
+    if (pickedNpc.has_value())
     {
-        mWorld->GetNpcs().SelectNpc(pickedObjectId->ObjectId);
+        mWorld->GetNpcs().SelectNpc(pickedNpc->Id);
     }
 
-    return pickedObjectId;
+    return pickedNpc;
 }
 
-std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewHumanNpc(
+std::optional<PickedNpc> LabController::BeginPlaceNewHumanNpc(
     NpcSubKindIdType subKind,
     vec2f const & screenCoordinates)
 {
@@ -856,16 +856,16 @@ std::optional<PickedObjectId<NpcId>> LabController::BeginPlaceNewHumanNpc(
         mCurrentSimulationTime,
         false);
 
-    auto const & pickedObjectId = std::get<0>(result);
-    if (pickedObjectId.has_value())
+    auto const & pickedNpc = std::get<0>(result);
+    if (pickedNpc.has_value())
     {
-        mWorld->GetNpcs().SelectNpc(pickedObjectId->ObjectId);
+        mWorld->GetNpcs().SelectNpc(pickedNpc->Id);
     }
 
-    return pickedObjectId;
+    return pickedNpc;
 }
 
-std::optional<PickedObjectId<NpcId>> LabController::ProbeNpcAt(vec2f const & screenCoordinates) const
+std::optional<PickedNpc> LabController::ProbeNpcAt(vec2f const & screenCoordinates) const
 {
     assert(!!mWorld);
 
@@ -877,12 +877,15 @@ std::optional<PickedObjectId<NpcId>> LabController::ProbeNpcAt(vec2f const & scr
         mGameParameters);
 }
 
-void LabController::BeginMoveNpc(NpcId id)
+void LabController::BeginMoveNpc(
+    NpcId id,
+    int particleOrdinal)
 {
     assert(!!mWorld);
 
     mWorld->GetNpcs().BeginMoveNpc(
         id,
+        particleOrdinal,
         mCurrentSimulationTime,
         false);
 }
@@ -951,7 +954,7 @@ void LabController::SelectNpc(NpcId id)
 void LabController::SetNpcPanicLevelForAllHumans(float panicLevel)
 {
     assert(!!mWorld);
-    mWorld->GetNpcs().SetGeneralizedPanicLevelForAllHumans(panicLevel);
+    mWorld->GetNpcs().SetGeneralizedPanicLevel(panicLevel);
 }
 
 ////////////////////////////////////////////////
