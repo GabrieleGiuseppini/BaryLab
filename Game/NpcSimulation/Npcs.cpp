@@ -1104,7 +1104,7 @@ void Npcs::MoveNpcTo(
 
     // Calculate absolute velocity for this delta movement
     float constexpr InertialVelocityFactor = 0.4f; // Magic number for how much velocity we impart
-    vec2f const targetAbsoluteVelocity = deltaAnchorPosition / GameParameters::SimulationStepTimeDuration<float> * InertialVelocityFactor;
+    vec2f const targetAbsoluteVelocity = deltaAnchorPosition / GameParameters::SimulationStepTimeDuration<float> *InertialVelocityFactor;
 
     // Move particles
     for (int p = 0; p < npc.ParticleMesh.Particles.size(); ++p)
@@ -2067,11 +2067,10 @@ void Npcs::ApplyAntiMatterBombExplosion(
     }
 }
 
-void Npcs::OnTriangleDestroyed(
+void Npcs::OnShipTriangleDestroyed(
     ShipId shipId,
     ElementIndex triangleElementIndex)
 {
-
     assert(shipId < mShips.size());
     assert(mShips[shipId].has_value());
 
@@ -2945,10 +2944,11 @@ void Npcs::RenderNpc(
 
             float const adjustedIdealHumanHeight = npc.ParticleMesh.Springs[0].RestLength;
 
+            float const headWidthMultiplier = 1.0f + (humanNpcState.WidthMultipier - 1.0f) * 0.5f; // Head doesn'w widen/narrow like body does
             float const headWidthFraction = IsTextureMode
                 ? humanNpcState.TextureGeometry.HeadLengthFraction * humanNpcState.TextureGeometry.HeadWHRatio
                 : GameParameters::HumanNpcGeometry::QuadModeHeadWidthFraction;
-            float const halfHeadW = (adjustedIdealHumanHeight * headWidthFraction * humanNpcState.WidthMultipier) / 2.0f;
+            float const halfHeadW = (adjustedIdealHumanHeight * headWidthFraction * headWidthMultiplier) / 2.0f;
 
             float const torsoWidthFraction = IsTextureMode
                 ? humanNpcState.TextureGeometry.TorsoLengthFraction * humanNpcState.TextureGeometry.TorsoWHRatio
