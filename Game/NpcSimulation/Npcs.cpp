@@ -1096,8 +1096,10 @@ void Npcs::MoveNpcTo(
     assert(mStateBuffer[id]->CurrentRegime == StateType::RegimeType::BeingPlaced);
     assert(mStateBuffer[id]->BeingPlacedState.has_value());
 
+    auto & npc = *mStateBuffer[id];
+
     // Calculate delta movement for anchor particle
-    ElementIndex anchorParticleIndex = mStateBuffer[id]->ParticleMesh.Particles[mStateBuffer[id]->BeingPlacedState->AnchorParticleOrdinal].ParticleIndex;
+    ElementIndex anchorParticleIndex = npc.ParticleMesh.Particles[npc.BeingPlacedState->AnchorParticleOrdinal].ParticleIndex;
     vec2f const deltaAnchorPosition = (position - offset) - mParticles.GetPosition(anchorParticleIndex);
 
     // Calculate absolute velocity for this delta movement
@@ -1105,25 +1107,31 @@ void Npcs::MoveNpcTo(
     vec2f const targetAbsoluteVelocity = deltaAnchorPosition / GameParameters::SimulationStepTimeDuration<float> * InertialVelocityFactor;
 
     // Move particles
-    for (int p = 0; p < mStateBuffer[id]->ParticleMesh.Particles.size(); ++p)
+    for (int p = 0; p < npc.ParticleMesh.Particles.size(); ++p)
     {
-        if (doMoveWholeMesh || p == mStateBuffer[id]->BeingPlacedState->AnchorParticleOrdinal)
+        auto const particleIndex = npc.ParticleMesh.Particles[p].ParticleIndex;
+
+        if (doMoveWholeMesh || p == npc.BeingPlacedState->AnchorParticleOrdinal)
         {
-            auto const particleIndex = mStateBuffer[id]->ParticleMesh.Particles[p].ParticleIndex;
             mParticles.SetPosition(particleIndex, mParticles.GetPosition(particleIndex) + deltaAnchorPosition);
             mParticles.SetVelocity(particleIndex, targetAbsoluteVelocity);
 
-            if (mStateBuffer[id]->ParticleMesh.Particles[p].ConstrainedState.has_value())
+            if (npc.ParticleMesh.Particles[p].ConstrainedState.has_value())
             {
                 // We can only assume here, and we assume the ship is still and since the user doesn't move with the ship,
                 // all this velocity is also relative to mesh
-                mStateBuffer[id]->ParticleMesh.Particles[p].ConstrainedState->MeshRelativeVelocity = targetAbsoluteVelocity;
+                npc.ParticleMesh.Particles[p].ConstrainedState->MeshRelativeVelocity = targetAbsoluteVelocity;
             }
+        }
+        else if (npc.ParticleMesh.Particles.size() > 2)
+        {
+            // Brake down particle, or else it spins
+            mParticles.SetVelocity(particleIndex, mParticles.GetVelocity(particleIndex) * 0.75f);
         }
     }
 
     // Update state
-    mStateBuffer[id]->BeingPlacedState->DoMoveWholeMesh = doMoveWholeMesh;
+    npc.BeingPlacedState->DoMoveWholeMesh = doMoveWholeMesh;
 }
 
 void Npcs::EndMoveNpc(
