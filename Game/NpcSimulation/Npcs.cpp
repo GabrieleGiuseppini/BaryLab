@@ -62,6 +62,17 @@ void Npcs::Update(
         RecalculateSizeAndMassParameters();
     }
 
+    if (gameParameters.StaticFrictionAdjustment != mCurrentStaticFrictionAdjustment
+        || gameParameters.KineticFrictionAdjustment != mCurrentKineticFrictionAdjustment
+        || gameParameters.NpcFrictionAdjustment != mCurrentNpcFrictionAdjustment)
+    {
+        mCurrentStaticFrictionAdjustment = gameParameters.StaticFrictionAdjustment;
+        mCurrentKineticFrictionAdjustment = gameParameters.KineticFrictionAdjustment;
+        mCurrentNpcFrictionAdjustment = gameParameters.NpcFrictionAdjustment;
+
+        RecalculateFrictionTotalAdjustments();
+    }
+
     if (gameParameters.HumanNpcWalkingSpeedAdjustment != mCurrentHumanNpcWalkingSpeedAdjustment)
     {
         mCurrentHumanNpcWalkingSpeedAdjustment = gameParameters.HumanNpcWalkingSpeedAdjustment;
@@ -399,10 +410,10 @@ NpcKindType Npcs::GetNpcKind(NpcId id)
 }
 
 std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPlaceNewFurnitureNpc(
-    NpcSubKindIdType subKind,
+    std::optional<NpcSubKindIdType> subKind,
     vec2f const & worldCoordinates,
-    float /*currentSimulationTime*/,
-    bool doMoveWholeMesh)
+    bool doMoveWholeMesh,
+    float /*currentSimulationTime*/)
 {
     int constexpr ParticleOrdinal = 0; // We use primary for furniture
 
@@ -419,14 +430,26 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
     // Create NPC
     //
 
-    auto const & furnitureMaterial = mNpcDatabase.GetFurnitureMaterial(subKind);
+    if (!subKind.has_value())
+    {
+        subKind = ChooseSubKind(NpcKindType::Furniture, std::nullopt);
+    }
+
+    auto const & furnitureMaterial = mNpcDatabase.GetFurnitureMaterial(*subKind);
 
     StateType::ParticleMeshType particleMesh;
 
-    switch (mNpcDatabase.GetFurnitureParticleMeshKindType(subKind))
+    switch (mNpcDatabase.GetFurnitureParticleMeshKindType(*subKind))
     {
         case NpcDatabase::ParticleMeshKindType::Dipole:
         {
+            // Check if there are enough particles
+
+            if (mParticles.GetRemainingParticlesCount() < 2)
+            {
+                return { std::nullopt, NpcCreationFailureReasonType::TooManyNpcs };
+            }
+
             // TODO
             throw GameException("Dipoles not yet supported!");
         }
@@ -450,7 +473,7 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
 #endif
             );
 
-            float const buoyancyVolumeFill = mNpcDatabase.GetFurnitureParticleAttributes(subKind, 0).BuoyancyVolumeFill;
+            float const buoyancyVolumeFill = mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 0).BuoyancyVolumeFill;
 
             float const buoyancyFactor = CalculateParticleBuoyancyFactor(
                 buoyancyVolumeFill,
@@ -460,11 +483,23 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
 #endif
             );
 
+            float const staticFrictionTotalAdjustment = CalculateFrictionTotalAdjustment(
+                mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 0).FrictionSurfaceAdjustment,
+                mCurrentNpcFrictionAdjustment,
+                mCurrentStaticFrictionAdjustment);
+
+            float const kineticFrictionTotalAdjustment = CalculateFrictionTotalAdjustment(
+                mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 0).FrictionSurfaceAdjustment,
+                mCurrentNpcFrictionAdjustment,
+                mCurrentKineticFrictionAdjustment);
+
             auto const primaryParticleIndex = mParticles.Add(
                 mass,
                 buoyancyVolumeFill,
                 buoyancyFactor,
                 &furnitureMaterial,
+                staticFrictionTotalAdjustment,
+                kineticFrictionTotalAdjustment,
                 worldCoordinates,
                 furnitureMaterial.RenderColor);
 
@@ -484,8 +519,8 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
 
             // Create Particles
 
-            float const baseWidth = mNpcDatabase.GetFurnitureGeometry(subKind).Width;
-            float const baseHeight = mNpcDatabase.GetFurnitureGeometry(subKind).Height;
+            float const baseWidth = mNpcDatabase.GetFurnitureGeometry(*subKind).Width;
+            float const baseHeight = mNpcDatabase.GetFurnitureGeometry(*subKind).Height;
 
             float const mass = CalculateParticleMass(
                 furnitureMaterial.GetMass(),
@@ -520,7 +555,7 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
                     particlePosition.y -= height;
                 }
 
-                float const buoyancyVolumeFill = mNpcDatabase.GetFurnitureParticleAttributes(subKind, p).BuoyancyVolumeFill;
+                float const buoyancyVolumeFill = mNpcDatabase.GetFurnitureParticleAttributes(*subKind, p).BuoyancyVolumeFill;
 
                 float const buoyancyFactor = CalculateParticleBuoyancyFactor(
                     buoyancyVolumeFill,
@@ -530,11 +565,23 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
 #endif
                 );
 
+                float const staticFrictionTotalAdjustment = CalculateFrictionTotalAdjustment(
+                    mNpcDatabase.GetFurnitureParticleAttributes(*subKind, p).FrictionSurfaceAdjustment,
+                    mCurrentNpcFrictionAdjustment,
+                    mCurrentStaticFrictionAdjustment);
+
+                float const kineticFrictionTotalAdjustment = CalculateFrictionTotalAdjustment(
+                    mNpcDatabase.GetFurnitureParticleAttributes(*subKind, p).FrictionSurfaceAdjustment,
+                    mCurrentNpcFrictionAdjustment,
+                    mCurrentKineticFrictionAdjustment);
+
                 auto const particleIndex = mParticles.Add(
                     mass,
                     buoyancyVolumeFill,
                     buoyancyFactor * GameRandomEngine::GetInstance().GenerateUniformReal(0.99f, 1.01f), // Make sure rotates while floating
                     &furnitureMaterial,
+                    staticFrictionTotalAdjustment,
+                    kineticFrictionTotalAdjustment,
                     particlePosition,
                     furnitureMaterial.RenderColor);
 
@@ -549,8 +596,8 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
                     particleMesh.Particles[0].ParticleIndex,
                     particleMesh.Particles[1].ParticleIndex,
                     baseWidth,
-                    (mNpcDatabase.GetFurnitureParticleAttributes(subKind, 0).SpringReductionFraction + mNpcDatabase.GetFurnitureParticleAttributes(subKind, 1).SpringReductionFraction) / 2.0f,
-                    (mNpcDatabase.GetFurnitureParticleAttributes(subKind, 0).SpringDampingCoefficient + mNpcDatabase.GetFurnitureParticleAttributes(subKind, 1).SpringDampingCoefficient) / 2.0f);
+                    (mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 0).SpringReductionFraction + mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 1).SpringReductionFraction) / 2.0f,
+                    (mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 0).SpringDampingCoefficient + mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 1).SpringDampingCoefficient) / 2.0f);
             }
 
             // 0 | 3
@@ -559,8 +606,8 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
                     particleMesh.Particles[0].ParticleIndex,
                     particleMesh.Particles[3].ParticleIndex,
                     baseHeight,
-                    (mNpcDatabase.GetFurnitureParticleAttributes(subKind, 0).SpringReductionFraction + mNpcDatabase.GetFurnitureParticleAttributes(subKind, 3).SpringReductionFraction) / 2.0f,
-                    (mNpcDatabase.GetFurnitureParticleAttributes(subKind, 0).SpringDampingCoefficient + mNpcDatabase.GetFurnitureParticleAttributes(subKind, 3).SpringDampingCoefficient) / 2.0f);
+                    (mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 0).SpringReductionFraction + mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 3).SpringReductionFraction) / 2.0f,
+                    (mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 0).SpringDampingCoefficient + mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 3).SpringDampingCoefficient) / 2.0f);
             }
 
             // 0 \ 2
@@ -569,8 +616,8 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
                     particleMesh.Particles[0].ParticleIndex,
                     particleMesh.Particles[2].ParticleIndex,
                     baseDiagonal,
-                    (mNpcDatabase.GetFurnitureParticleAttributes(subKind, 0).SpringReductionFraction + mNpcDatabase.GetFurnitureParticleAttributes(subKind, 2).SpringReductionFraction) / 2.0f,
-                    (mNpcDatabase.GetFurnitureParticleAttributes(subKind, 0).SpringDampingCoefficient + mNpcDatabase.GetFurnitureParticleAttributes(subKind, 2).SpringDampingCoefficient) / 2.0f);
+                    (mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 0).SpringReductionFraction + mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 2).SpringReductionFraction) / 2.0f,
+                    (mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 0).SpringDampingCoefficient + mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 2).SpringDampingCoefficient) / 2.0f);
             }
 
             // 1 | 2
@@ -579,8 +626,8 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
                     particleMesh.Particles[1].ParticleIndex,
                     particleMesh.Particles[2].ParticleIndex,
                     baseHeight,
-                    (mNpcDatabase.GetFurnitureParticleAttributes(subKind, 1).SpringReductionFraction + mNpcDatabase.GetFurnitureParticleAttributes(subKind, 2).SpringReductionFraction) / 2.0f,
-                    (mNpcDatabase.GetFurnitureParticleAttributes(subKind, 1).SpringDampingCoefficient + mNpcDatabase.GetFurnitureParticleAttributes(subKind, 2).SpringDampingCoefficient) / 2.0f);
+                    (mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 1).SpringReductionFraction + mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 2).SpringReductionFraction) / 2.0f,
+                    (mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 1).SpringDampingCoefficient + mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 2).SpringDampingCoefficient) / 2.0f);
             }
 
             // 2 - 3
@@ -589,8 +636,8 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
                     particleMesh.Particles[2].ParticleIndex,
                     particleMesh.Particles[3].ParticleIndex,
                     baseWidth,
-                    (mNpcDatabase.GetFurnitureParticleAttributes(subKind, 2).SpringReductionFraction + mNpcDatabase.GetFurnitureParticleAttributes(subKind, 3).SpringReductionFraction) / 2.0f,
-                    (mNpcDatabase.GetFurnitureParticleAttributes(subKind, 2).SpringDampingCoefficient + mNpcDatabase.GetFurnitureParticleAttributes(subKind, 3).SpringDampingCoefficient) / 2.0f);
+                    (mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 2).SpringReductionFraction + mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 3).SpringReductionFraction) / 2.0f,
+                    (mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 2).SpringDampingCoefficient + mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 3).SpringDampingCoefficient) / 2.0f);
             }
 
             // 1 / 3
@@ -599,8 +646,8 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
                     particleMesh.Particles[1].ParticleIndex,
                     particleMesh.Particles[3].ParticleIndex,
                     baseDiagonal,
-                    (mNpcDatabase.GetFurnitureParticleAttributes(subKind, 1).SpringReductionFraction + mNpcDatabase.GetFurnitureParticleAttributes(subKind, 3).SpringReductionFraction) / 2.0f,
-                    (mNpcDatabase.GetFurnitureParticleAttributes(subKind, 1).SpringDampingCoefficient + mNpcDatabase.GetFurnitureParticleAttributes(subKind, 3).SpringDampingCoefficient) / 2.0f);
+                    (mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 1).SpringReductionFraction + mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 3).SpringReductionFraction) / 2.0f,
+                    (mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 1).SpringDampingCoefficient + mNpcDatabase.GetFurnitureParticleAttributes(*subKind, 3).SpringDampingCoefficient) / 2.0f);
             }
 
             CalculateSprings(
@@ -620,9 +667,9 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
     // Furniture
 
     StateType::KindSpecificStateType::FurnitureNpcStateType furnitureState = StateType::KindSpecificStateType::FurnitureNpcStateType(
-        subKind,
-        mNpcDatabase.GetFurnitureRole(subKind),
-        mNpcDatabase.GetFurnitureTextureCoordinatesQuad(subKind));
+        *subKind,
+        mNpcDatabase.GetFurnitureRole(*subKind),
+        mNpcDatabase.GetFurnitureTextureCoordinatesQuad(*subKind));
 
     //
     // Store NPC
@@ -637,7 +684,7 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
     mStateBuffer[npcId].emplace(
         npcId,
         NpcKindType::Furniture,
-        mNpcDatabase.GetFurnitureRenderColor(subKind).toVec3f(),
+        mNpcDatabase.GetFurnitureRenderColor(*subKind).toVec3f(),
         shipId, // Topmost ship ID
         0, // PlaneID: irrelevant as long as BeingPlaced
         std::nullopt, // Connected component: irrelevant as long as BeingPlaced
@@ -660,10 +707,10 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
 }
 
 std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPlaceNewHumanNpc(
-    NpcSubKindIdType subKind,
+    std::optional<NpcSubKindIdType> subKind,
     vec2f const & worldCoordinates,
-    float currentSimulationTime,
-    bool doMoveWholeMesh)
+    bool doMoveWholeMesh,
+    float currentSimulationTime)
 {
     int constexpr ParticleOrdinal = 1; // We use head for humans
 
@@ -680,6 +727,11 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
     // Create NPC
     //
 
+    if (!subKind.has_value())
+    {
+        subKind = ChooseSubKind(NpcKindType::Human, std::nullopt);
+    }
+
     StateType::ParticleMeshType particleMesh;
 
     // Calculate height
@@ -688,14 +740,14 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
         GameRandomEngine::GetInstance().GenerateNormalReal(
             GameParameters::HumanNpcGeometry::BodyLengthMean,
             GameParameters::HumanNpcGeometry::BodyLengthStdDev)
-        * mNpcDatabase.GetHumanSizeMultiplier(subKind);
+        * mNpcDatabase.GetHumanSizeMultiplier(*subKind);
 
     float const height = CalculateSpringLength(baseHeight, mCurrentSizeMultiplier);
 
     // Feet (primary)
 
-    auto const & feetMaterial = mNpcDatabase.GetHumanFeetMaterial(subKind);
-    auto const & feetParticleAttributes = mNpcDatabase.GetHumanFeetParticleAttributes(subKind);
+    auto const & feetMaterial = mNpcDatabase.GetHumanFeetMaterial(*subKind);
+    auto const & feetParticleAttributes = mNpcDatabase.GetHumanFeetParticleAttributes(*subKind);
 
     float const feetMass = CalculateParticleMass(
         feetMaterial.GetMass(),
@@ -713,11 +765,23 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
 #endif
     );
 
+    float const feetStaticFrictionTotalAdjustment = CalculateFrictionTotalAdjustment(
+        mNpcDatabase.GetHumanFeetParticleAttributes(*subKind).FrictionSurfaceAdjustment,
+        mCurrentNpcFrictionAdjustment,
+        mCurrentStaticFrictionAdjustment);
+
+    float const feetKineticFrictionTotalAdjustment = CalculateFrictionTotalAdjustment(
+        mNpcDatabase.GetHumanFeetParticleAttributes(*subKind).FrictionSurfaceAdjustment,
+        mCurrentNpcFrictionAdjustment,
+        mCurrentKineticFrictionAdjustment);
+
     auto const primaryParticleIndex = mParticles.Add(
         feetMass,
         feetParticleAttributes.BuoyancyVolumeFill,
         feetBuoyancyFactor,
         &feetMaterial,
+        feetStaticFrictionTotalAdjustment,
+        feetKineticFrictionTotalAdjustment,
         worldCoordinates - vec2f(0.0f, height),
         feetMaterial.RenderColor);
 
@@ -725,8 +789,8 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
 
     // Head (secondary)
 
-    auto const & headMaterial = mNpcDatabase.GetHumanHeadMaterial(subKind);
-    auto const & headParticleAttributes = mNpcDatabase.GetHumanHeadParticleAttributes(subKind);
+    auto const & headMaterial = mNpcDatabase.GetHumanHeadMaterial(*subKind);
+    auto const & headParticleAttributes = mNpcDatabase.GetHumanHeadParticleAttributes(*subKind);
 
     float const headMass = CalculateParticleMass(
         headMaterial.GetMass(),
@@ -744,11 +808,23 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
 #endif
     );
 
+    float const headStaticFrictionTotalAdjustment = CalculateFrictionTotalAdjustment(
+        mNpcDatabase.GetHumanHeadParticleAttributes(*subKind).FrictionSurfaceAdjustment,
+        mCurrentNpcFrictionAdjustment,
+        mCurrentStaticFrictionAdjustment);
+
+    float const headKineticFrictionTotalAdjustment = CalculateFrictionTotalAdjustment(
+        mNpcDatabase.GetHumanHeadParticleAttributes(*subKind).FrictionSurfaceAdjustment,
+        mCurrentNpcFrictionAdjustment,
+        mCurrentKineticFrictionAdjustment);
+
     auto const secondaryParticleIndex = mParticles.Add(
         headMass,
         headParticleAttributes.BuoyancyVolumeFill,
         headBuoyancyFactor,
         &headMaterial,
+        headStaticFrictionTotalAdjustment,
+        headKineticFrictionTotalAdjustment,
         worldCoordinates,
         headMaterial.RenderColor);
 
@@ -783,7 +859,7 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
             std::min(
                 std::abs(GameRandomEngine::GetInstance().GenerateNormalReal(0.0f, GameParameters::HumanNpcGeometry::BodyWidthNarrowMultiplierStdDev)),
                 1.8f * GameParameters::HumanNpcGeometry::BodyWidthNarrowMultiplierStdDev)
-            * mNpcDatabase.GetHumanBodyWidthRandomizationSensitivity(subKind);
+            * mNpcDatabase.GetHumanBodyWidthRandomizationSensitivity(*subKind);
     }
     else
     {
@@ -792,7 +868,7 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
             std::min(
                 std::abs(GameRandomEngine::GetInstance().GenerateNormalReal(0.0f, GameParameters::HumanNpcGeometry::BodyWidthWideMultiplierStdDev)),
                 2.3f * GameParameters::HumanNpcGeometry::BodyWidthWideMultiplierStdDev)
-            * mNpcDatabase.GetHumanBodyWidthRandomizationSensitivity(subKind);
+            * mNpcDatabase.GetHumanBodyWidthRandomizationSensitivity(*subKind);
     }
 
     float const walkingSpeedBase =
@@ -800,12 +876,12 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
         * baseHeight / 1.65f; // Just comes from 1m/s looking good when human is 1.65
 
     StateType::KindSpecificStateType::HumanNpcStateType humanState = StateType::KindSpecificStateType::HumanNpcStateType(
-        subKind,
-        mNpcDatabase.GetHumanRole(subKind),
+        *subKind,
+        mNpcDatabase.GetHumanRole(*subKind),
         widthMultiplier,
         walkingSpeedBase,
-        mNpcDatabase.GetHumanTextureCoordinatesQuads(subKind),
-        mNpcDatabase.GetHumanTextureGeometry(subKind),
+        mNpcDatabase.GetHumanTextureCoordinatesQuads(*subKind),
+        mNpcDatabase.GetHumanTextureGeometry(*subKind),
         StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::BeingPlaced,
         currentSimulationTime);
 
@@ -826,7 +902,7 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
     mStateBuffer[npcId].emplace(
         npcId,
         NpcKindType::Human,
-        mNpcDatabase.GetHumanRenderColor(subKind).toVec3f(),
+        mNpcDatabase.GetHumanRenderColor(*subKind).toVec3f(),
         shipId, // Topmost ship ID
         0, // PlaneID: irrelevant as long as BeingPlaced
         std::nullopt, // Connected component: irrelevant as long as BeingPlaced
@@ -843,7 +919,7 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
     //
 
     ++(mShips[shipId]->HumanNpcCount);
-    if (mNpcDatabase.GetHumanRole(subKind) == NpcHumanRoleType::Captain)
+    if (mNpcDatabase.GetHumanRole(*subKind) == NpcHumanRoleType::Captain)
     {
         ++(mShips[shipId]->HumanNpcCaptainCount);
     }
@@ -1102,9 +1178,8 @@ void Npcs::MoveNpcTo(
     ElementIndex anchorParticleIndex = npc.ParticleMesh.Particles[npc.BeingPlacedState->AnchorParticleOrdinal].ParticleIndex;
     vec2f const deltaAnchorPosition = (position - offset) - mParticles.GetPosition(anchorParticleIndex);
 
-    // Calculate absolute velocity for this delta movement
-    float constexpr InertialVelocityFactor = 0.4f; // Magic number for how much velocity we impart
-    vec2f const targetAbsoluteVelocity = deltaAnchorPosition / GameParameters::SimulationStepTimeDuration<float> *InertialVelocityFactor;
+    // Calculate absolute velocity for this delta movement - we want it clamped
+    vec2f const targetAbsoluteVelocity = (deltaAnchorPosition / GameParameters::SimulationStepTimeDuration<float> * mGlobalDampingFactor).clamp_length_upper(GameParameters::MaxNpcToolMoveVelocityMagnitude);
 
     // Move particles
     for (int p = 0; p < npc.ParticleMesh.Particles.size(); ++p)
@@ -1115,19 +1190,10 @@ void Npcs::MoveNpcTo(
         {
             mParticles.SetPosition(particleIndex, mParticles.GetPosition(particleIndex) + deltaAnchorPosition);
             mParticles.SetVelocity(particleIndex, targetAbsoluteVelocity);
+        }
 
-            if (npc.ParticleMesh.Particles[p].ConstrainedState.has_value())
-            {
-                // We can only assume here, and we assume the ship is still and since the user doesn't move with the ship,
-                // all this velocity is also relative to mesh
-                npc.ParticleMesh.Particles[p].ConstrainedState->MeshRelativeVelocity = targetAbsoluteVelocity;
-            }
-        }
-        else if (npc.ParticleMesh.Particles.size() > 2)
-        {
-            // Brake down particle, or else it spins
-            mParticles.SetVelocity(particleIndex, mParticles.GetVelocity(particleIndex) * 0.75f);
-        }
+        // No worries about mesh-relative velocity
+        assert(!npc.ParticleMesh.Particles[p].ConstrainedState.has_value());
     }
 
     // Update state
@@ -1244,51 +1310,7 @@ std::tuple<std::optional<NpcId>, NpcCreationFailureReasonType> Npcs::AddNpcGroup
         // Decide sub-kind
         //
 
-        NpcSubKindIdType subKind = 0;
-        switch (kind)
-        {
-            case NpcKindType::Furniture:
-            {
-                // Trivial choice
-                auto const & furnitureRoles = mNpcDatabase.GetFurnitureSubKindIdsByRole()[static_cast<size_t>(NpcFurnitureRoleType::Furniture)];
-                size_t iSubKind = GameRandomEngine::GetInstance().Choose(furnitureRoles.size());
-                subKind = furnitureRoles[iSubKind];
-
-                break;
-            }
-
-            case NpcKindType::Human:
-            {
-                // Check whether ship already has a captain
-                if (mShips[shipId]->HumanNpcCaptainCount == 0)
-                {
-                    // Choose a captain
-                    auto const & captainRoles = mNpcDatabase.GetHumanSubKindIdsByRole()[static_cast<size_t>(NpcHumanRoleType::Captain)];
-                    size_t iSubKind = GameRandomEngine::GetInstance().Choose(captainRoles.size());
-                    subKind = captainRoles[iSubKind];
-                }
-                else
-                {
-                    // Choose a role first
-                    if (GameRandomEngine::GetInstance().GenerateUniformBoolean(0.3f)) // ~1/3 is crew
-                    {
-                        // Crew
-                        auto const & crewRoles = mNpcDatabase.GetHumanSubKindIdsByRole()[static_cast<size_t>(NpcHumanRoleType::Crew)];
-                        size_t iSubKind = GameRandomEngine::GetInstance().Choose(crewRoles.size());
-                        subKind = crewRoles[iSubKind];
-                    }
-                    else
-                    {
-                        // Passengers
-                        auto const & passengerRoles = mNpcDatabase.GetHumanSubKindIdsByRole()[static_cast<size_t>(NpcHumanRoleType::Passenger)];
-                        size_t iSubKind = GameRandomEngine::GetInstance().Choose(passengerRoles.size());
-                        subKind = passengerRoles[iSubKind];
-                    }
-                }
-
-                break;
-            }
-        }
+        NpcSubKindIdType const subKind = ChooseSubKind(kind, shipId);
 
         //
         // Find triangle - if none, we'll go free
@@ -1506,8 +1528,8 @@ std::tuple<std::optional<NpcId>, NpcCreationFailureReasonType> Npcs::AddNpcGroup
                 placementOutcome = BeginPlaceNewFurnitureNpc(
                     subKind,
                     position,
-                    currentSimulationTime,
-                    false);
+                    false,
+                    currentSimulationTime);
 
                 break;
             }
@@ -1523,8 +1545,8 @@ std::tuple<std::optional<NpcId>, NpcCreationFailureReasonType> Npcs::AddNpcGroup
                 placementOutcome = BeginPlaceNewHumanNpc(
                     subKind,
                     npcPosition + vec2f(0.0, height), // Head
-                    currentSimulationTime,
-                    false);
+                    false,
+                    currentSimulationTime);
 
                 break;
             }
@@ -2573,6 +2595,55 @@ NpcId Npcs::GetNewNpcId()
     NpcId const newNpcId = static_cast<NpcId>(mStateBuffer.size());
     mStateBuffer.emplace_back(std::nullopt);
     return newNpcId;
+}
+
+NpcSubKindIdType Npcs::ChooseSubKind(
+    NpcKindType kind,
+    std::optional<ShipId> shipId) const
+{
+    switch (kind)
+    {
+        case NpcKindType::Furniture:
+        {
+            // Furniture
+            auto const & furnitureRoles = mNpcDatabase.GetFurnitureSubKindIdsByRole()[static_cast<size_t>(NpcFurnitureRoleType::Furniture)];
+            size_t iSubKind = GameRandomEngine::GetInstance().Choose(furnitureRoles.size());
+            return furnitureRoles[iSubKind];
+        }
+
+        case NpcKindType::Human:
+        {
+            // Check whether ship already has a captain
+            if (shipId.has_value() && mShips[*shipId]->HumanNpcCaptainCount == 0)
+            {
+                // Choose a captain
+                auto const & captainRoles = mNpcDatabase.GetHumanSubKindIdsByRole()[static_cast<size_t>(NpcHumanRoleType::Captain)];
+                size_t iSubKind = GameRandomEngine::GetInstance().Choose(captainRoles.size());
+                return captainRoles[iSubKind];
+            }
+            else
+            {
+                // Choose a role first
+                if (GameRandomEngine::GetInstance().GenerateUniformBoolean(0.3f)) // ~1/3 is crew
+                {
+                    // Crew
+                    auto const & crewRoles = mNpcDatabase.GetHumanSubKindIdsByRole()[static_cast<size_t>(NpcHumanRoleType::Crew)];
+                    size_t iSubKind = GameRandomEngine::GetInstance().Choose(crewRoles.size());
+                    return crewRoles[iSubKind];
+                }
+                else
+                {
+                    // Passengers
+                    auto const & passengerRoles = mNpcDatabase.GetHumanSubKindIdsByRole()[static_cast<size_t>(NpcHumanRoleType::Passenger)];
+                    size_t iSubKind = GameRandomEngine::GetInstance().Choose(passengerRoles.size());
+                    return passengerRoles[iSubKind];
+                }
+            }
+        }
+    }
+
+    assert(false);
+    return 0;
 }
 
 bool Npcs::CommonNpcRemoval(NpcId npcId)

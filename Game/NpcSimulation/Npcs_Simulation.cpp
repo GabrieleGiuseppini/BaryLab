@@ -728,14 +728,19 @@ void Npcs::UpdateNpcParticlePhysics(
             " f=", (physicalForces / particleMass) * dt * dt, ")");
     }
 
-    if (npc.CurrentRegime == StateType::RegimeType::BeingPlaced
-        && (npc.BeingPlacedState->DoMoveWholeMesh || npcParticleOrdinal == npc.BeingPlacedState->AnchorParticleOrdinal))
+
+    if (npc.CurrentRegime == StateType::RegimeType::BeingPlaced)
     {
         //
-        // Particle is being placed - nothing to do
+        // Being placed
         //
 
-        LogNpcDebug("    Being placed");
+
+        UpdateNpcParticle_BeingPlaced(
+            npc,
+            npcParticleOrdinal,
+            physicsDeltaPos,
+            mParticles);
     }
     else if (!npcParticle.ConstrainedState.has_value())
     {
@@ -745,49 +750,6 @@ void Npcs::UpdateNpcParticlePhysics(
 
         LogNpcDebug("    Free: velocity=", mParticles.GetVelocity(npcParticle.ParticleIndex), " prelimF=", mParticles.GetPreliminaryForces(npcParticle.ParticleIndex), " physicsDeltaPos=", physicsDeltaPos);
         LogNpcDebug("    StartPosition=", particleStartAbsolutePosition, " StartVelocity=", mParticles.GetVelocity(npcParticle.ParticleIndex));
-
-        // Strive to maintain spring lengths if we're being placed
-        if (npc.CurrentRegime == StateType::RegimeType::BeingPlaced
-            && npcParticleOrdinal != npc.BeingPlacedState->AnchorParticleOrdinal
-            && npc.ParticleMesh.Springs.size() > 0)
-        {
-            for (int p = 0; ; )
-            {
-                // Decide next endpoint of spring: previous, unless this is 0,
-                // in which case we go for anchor
-
-                int otherP;
-                if (npcParticleOrdinal == 0)
-                {
-                    assert(npc.BeingPlacedState->AnchorParticleOrdinal > 0);
-                    otherP = npc.BeingPlacedState->AnchorParticleOrdinal;
-                }
-                else
-                {
-                    otherP = p;
-                }
-
-                assert(otherP != npcParticleOrdinal);
-
-                // Adjust physicsDeltaPos to maintain spring length
-
-                int const s = GetSpringAmongEndpoints(npcParticleOrdinal, otherP, npc.ParticleMesh);
-                float const targetSpringLength = npc.ParticleMesh.Springs[s].RestLength;
-                vec2f const & otherPPosition = mParticles.GetPosition(npc.ParticleMesh.Particles[otherP].ParticleIndex);
-                vec2f const particleAdjustedPosition =
-                    otherPPosition
-                    + (particleStartAbsolutePosition + physicsDeltaPos - otherPPosition).normalise() * targetSpringLength;
-                physicsDeltaPos = particleAdjustedPosition - particleStartAbsolutePosition;
-
-                // Advance
-
-                p = otherP + 1;
-                if (p >= npcParticleOrdinal)
-                {
-                    break;
-                }
-            }
-        }
 
         UpdateNpcParticle_Free(
             npcParticle,
@@ -1222,14 +1184,14 @@ void Npcs::UpdateNpcParticlePhysics(
                         // Kinetic friction
                         frictionCoefficient =
                             (mParticles.GetMaterial(npcParticle.ParticleIndex).KineticFrictionCoefficient + meshMaterial.KineticFrictionCoefficient) / 2.0f
-                            * gameParameters.KineticFrictionAdjustment;
+                            * mParticles.GetKineticFrictionTotalAdjustment(npcParticle.ParticleIndex);
                     }
                     else
                     {
                         // Static friction
                         frictionCoefficient =
                             (mParticles.GetMaterial(npcParticle.ParticleIndex).StaticFrictionCoefficient + meshMaterial.StaticFrictionCoefficient) / 2.0f
-                            * gameParameters.StaticFrictionAdjustment;
+                            * mParticles.GetStaticFrictionTotalAdjustment(npcParticle.ParticleIndex);
                     }
 
                     // Calculate friction (integrated) force magnitude (along edgeDir),
@@ -2082,6 +2044,74 @@ float Npcs::CalculateParticleBuoyancyFactor(
     return buoyancyFactor;
 }
 
+void Npcs::RecalculateFrictionTotalAdjustments()
+{
+    for (auto & state : mStateBuffer)
+    {
+        if (state.has_value())
+        {
+            for (int p = 0; p < state->ParticleMesh.Particles.size(); ++p)
+            {
+                auto const particleIndex = state->ParticleMesh.Particles[p].ParticleIndex;
+
+                switch (state->Kind)
+                {
+                    case NpcKindType::Furniture:
+                    {
+                        mParticles.SetStaticFrictionTotalAdjustment(particleIndex,
+                            CalculateFrictionTotalAdjustment(
+                                mNpcDatabase.GetFurnitureParticleAttributes(state->KindSpecificState.FurnitureNpcState.SubKindId, p).FrictionSurfaceAdjustment,
+                                mCurrentNpcFrictionAdjustment,
+                                mCurrentStaticFrictionAdjustment));
+
+                        mParticles.SetKineticFrictionTotalAdjustment(particleIndex,
+                            CalculateFrictionTotalAdjustment(
+                                mNpcDatabase.GetFurnitureParticleAttributes(state->KindSpecificState.FurnitureNpcState.SubKindId, p).FrictionSurfaceAdjustment,
+                                mCurrentNpcFrictionAdjustment,
+                                mCurrentKineticFrictionAdjustment));
+
+                        break;
+                    }
+
+                    case NpcKindType::Human:
+                    {
+                        assert(p == 0 || p == 1);
+
+                        float const frictionSurfaceAdjustment = (p == 0)
+                            ? mNpcDatabase.GetHumanFeetParticleAttributes(state->KindSpecificState.FurnitureNpcState.SubKindId).FrictionSurfaceAdjustment
+                            : mNpcDatabase.GetHumanHeadParticleAttributes(state->KindSpecificState.FurnitureNpcState.SubKindId).FrictionSurfaceAdjustment;
+
+                        mParticles.SetStaticFrictionTotalAdjustment(particleIndex,
+                            CalculateFrictionTotalAdjustment(
+                                frictionSurfaceAdjustment,
+                                mCurrentNpcFrictionAdjustment,
+                                mCurrentStaticFrictionAdjustment));
+
+                        mParticles.SetKineticFrictionTotalAdjustment(particleIndex,
+                            CalculateFrictionTotalAdjustment(
+                                frictionSurfaceAdjustment,
+                                mCurrentNpcFrictionAdjustment,
+                                mCurrentKineticFrictionAdjustment));
+
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+float Npcs::CalculateFrictionTotalAdjustment(
+    float npcSurfaceFrictionAdjustment,
+    float npcAdjustment,
+    float globalAdjustment)
+{
+    return
+        npcSurfaceFrictionAdjustment
+        * npcAdjustment
+        * globalAdjustment;
+}
+
 void Npcs::CalculateSprings(
     float sizeMultiplier,
 #ifdef IN_BARYLAB
@@ -2141,6 +2171,148 @@ float Npcs::CalculateSpringLength(
 void Npcs::RecalculateGlobalDampingFactor()
 {
     mGlobalDampingFactor = 1.0f - GameParameters::NpcDamping * mCurrentGlobalDampingAdjustment;
+}
+
+void Npcs::UpdateNpcParticle_BeingPlaced(
+    StateType & npc,
+    int npcParticleOrdinal,
+    vec2f physicsDeltaPos,
+    NpcParticles & particles) const
+{
+    assert(npc.CurrentRegime == StateType::RegimeType::BeingPlaced);
+
+    LogNpcDebug("    Being placed");
+
+    if (npc.BeingPlacedState->DoMoveWholeMesh || npcParticleOrdinal == npc.BeingPlacedState->AnchorParticleOrdinal)
+    {
+        //
+        // Particle is moved independently and fixed - nothing to do
+        //
+    }
+    else
+    {
+        //
+        // Particle is moved dependently
+        //
+
+        auto const & npcParticle = npc.ParticleMesh.Particles[npcParticleOrdinal];
+        assert(!npcParticle.ConstrainedState.has_value());
+
+        vec2f const & startPosition = particles.GetPosition(npcParticle.ParticleIndex);
+
+        //
+        // Strive to maintain spring lengths (fight stretching)
+        //
+
+        if (npc.ParticleMesh.Springs.size() > 0)
+        {
+            assert(npcParticleOrdinal != npc.BeingPlacedState->AnchorParticleOrdinal);
+
+            vec2f adjustedDeltaPosSum = vec2f::zero();
+            float adjustedDeltaPosCount = 0.0f;
+
+            // Pair this particle with:
+            // a) Each particle already done,
+            // b) The anchor particle
+            for (int p = 0; p < npc.ParticleMesh.Particles.size(); ++p)
+            {
+                if (p < npcParticleOrdinal || (p > npcParticleOrdinal && p == npc.BeingPlacedState->AnchorParticleOrdinal))
+                {
+                    // Adjust physicsDeltaPos to maintain spring length after we've traveled it
+
+                    int const s = GetSpringAmongEndpoints(npcParticleOrdinal, p, npc.ParticleMesh);
+                    float const targetSpringLength = npc.ParticleMesh.Springs[s].RestLength;
+                    vec2f const & otherPPosition = mParticles.GetPosition(npc.ParticleMesh.Particles[p].ParticleIndex);
+                    vec2f const particleAdjustedPosition =
+                        otherPPosition
+                        + (startPosition + physicsDeltaPos - otherPPosition).normalise() * targetSpringLength;
+
+                    adjustedDeltaPosSum += particleAdjustedPosition - startPosition;
+                    adjustedDeltaPosCount += 1.0f;
+                }
+            }
+
+            assert(adjustedDeltaPosCount != 0.0f);
+            physicsDeltaPos = adjustedDeltaPosSum / adjustedDeltaPosCount;
+        }
+
+        //
+        // Update physics
+        //
+
+        float constexpr dt = GameParameters::SimulationStepTimeDuration<float>;
+
+        // Update position
+        particles.SetPosition(
+            npcParticle.ParticleIndex,
+            startPosition + physicsDeltaPos);
+
+        // Update velocity
+        //
+        // Note: we clamp it exactly as the anchor's is clamped
+        particles.SetVelocity(
+            npcParticle.ParticleIndex,
+            (physicsDeltaPos / dt * mGlobalDampingFactor).clamp_length_upper(GameParameters::MaxNpcToolMoveVelocityMagnitude));
+
+        //
+        // Unfold if folded quad (fight long strides)
+        //
+
+        if (npc.ParticleMesh.Particles.size() == 4)
+        {
+            //
+            // Check folds along the two diagonals - which one to use depends
+            // on the particle
+            //
+
+            std::array<std::pair<int, int>, 4> const diagonalEndpoints{ { // tail->head, in the order that makes the triangle with this particle CW
+                {1, 3},
+                {2, 0},
+                {3, 1},
+                {0, 2}
+            } };
+
+            ElementIndex const diagTailParticleIndex = npc.ParticleMesh.Particles[diagonalEndpoints[npcParticleOrdinal].first].ParticleIndex;
+            ElementIndex const diagHeadParticleIndex = npc.ParticleMesh.Particles[diagonalEndpoints[npcParticleOrdinal].second].ParticleIndex;
+
+            vec2f const & diagTailPosition = particles.GetPosition(diagTailParticleIndex);
+
+            vec2f const diagonalVector =
+                particles.GetPosition(diagHeadParticleIndex)
+                - diagTailPosition;
+
+            vec2f const particleVector =
+                particles.GetPosition(npcParticle.ParticleIndex)
+                - diagTailPosition;
+
+            if (particleVector.cross(diagonalVector) < 0.0f)
+            {
+                // This particle is on the wrong size of the diagonal
+                LogNpcDebug("BeingMoved Quad ", npc.Id, ":", npcParticleOrdinal, ": folded");
+
+                //
+                // Move particle to other side of diagonal
+                //
+                // We do so by moving particle twice along normal to diagonal
+                //
+                // Note: the cross product we have is the dot product of the
+                // particle vector with the perpendicular to the diagonal;
+                // almost what we need, with an extra |diagonal| on top of it.
+                // Since we have to calculate a length and then perform a division,
+                // for clarity we keep the formulation of P - 2*diag_n
+                //
+
+                vec2f const dNorm = diagonalVector.to_perpendicular().normalise_approx();
+                float const particleVectorAlongDiagonalNormal = particleVector.dot(dNorm);
+                assert(particleVectorAlongDiagonalNormal > 0.0f); // Because we know cross < 0
+                vec2f const newPos =
+                    particles.GetPosition(npcParticle.ParticleIndex)
+                    - dNorm * 2.0f * particleVectorAlongDiagonalNormal;
+
+                particles.SetPosition(npcParticle.ParticleIndex, newPos);
+            }
+        }
+    }
 }
 
 void Npcs::UpdateNpcParticle_Free(
@@ -3364,7 +3536,7 @@ void Npcs::BounceConstrainedNpcParticle(
         float const materialFrictionCoefficient = (particles.GetMaterial(npcParticle.ParticleIndex).KineticFrictionCoefficient + meshMaterial.KineticFrictionCoefficient) / 2.0f;
         vec2f const tangentialResponse =
             tangentialVelocity
-            * std::max(0.0f, 1.0f - materialFrictionCoefficient * gameParameters.KineticFrictionAdjustment);
+            * std::max(0.0f, 1.0f - materialFrictionCoefficient * particles.GetKineticFrictionTotalAdjustment(npcParticle.ParticleIndex));
 
         // Calculate whole response (which, given that we've been working in *apparent* space (we've calc'd the collision response to *trajectory* which is apparent displacement)),
         // is a relative velocity (relative to mesh)
@@ -3514,7 +3686,7 @@ void Npcs::MaintainOverLand(
             // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
             vec2f const tangentialResponse =
                 tangentialVelocity
-                * std::max(0.0f, 1.0f - mParticles.GetMaterial(p).KineticFrictionCoefficient * gameParameters.KineticFrictionAdjustment); // For lazyness
+                * std::max(0.0f, 1.0f - mParticles.GetMaterial(p).KineticFrictionCoefficient * mParticles.GetKineticFrictionTotalAdjustment(p)); // For lazyness
 
             //
             // Impart final position and velocity

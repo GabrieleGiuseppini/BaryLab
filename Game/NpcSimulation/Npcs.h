@@ -806,6 +806,9 @@ public:
 		, mCurrentHumanNpcWalkingSpeedAdjustment(1.0f)
 		, mCurrentSpringReductionFractionAdjustment(1.0f)
 		, mCurrentSpringDampingCoefficientAdjustment(1.0f)
+		, mCurrentStaticFrictionAdjustment(1.0f)
+		, mCurrentKineticFrictionAdjustment(1.0f)
+		, mCurrentNpcFrictionAdjustment(1.0f)
 	{
 		RecalculateGlobalDampingFactor();
 	}
@@ -849,16 +852,16 @@ public:
 	NpcKindType GetNpcKind(NpcId id);
 
 	std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> BeginPlaceNewFurnitureNpc(
-		NpcSubKindIdType subKind,
+		std::optional<NpcSubKindIdType> subKind,
 		vec2f const & worldCoordinates,
-		float currentSimulationTime,
-		bool doMoveWholeMesh);
+		bool doMoveWholeMesh,
+		float currentSimulationTime);
 
 	std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> BeginPlaceNewHumanNpc(
-		NpcSubKindIdType subKind,
+		std::optional<NpcSubKindIdType> subKind,
 		vec2f const & worldCoordinates,
-		float currentSimulationTime,
-		bool doMoveWholeMesh);
+		bool doMoveWholeMesh,
+		float currentSimulationTime);
 
 	std::optional<PickedNpc> ProbeNpcAt(
 		vec2f const & position,
@@ -1075,6 +1078,10 @@ private:
 
 	NpcId GetNewNpcId();
 
+	NpcSubKindIdType ChooseSubKind(
+		NpcKindType kind,
+		std::optional<ShipId> shipId) const;
+
 	bool CommonNpcRemoval(NpcId npcId);
 
 	size_t CalculateTotalNpcCount() const;
@@ -1233,6 +1240,13 @@ private:
 #endif
 		);
 
+	void RecalculateFrictionTotalAdjustments();
+
+	static float CalculateFrictionTotalAdjustment(
+		float npcSurfaceFrictionAdjustment,
+		float npcAdjustment,
+		float globalAdjustment);
+
 	static void CalculateSprings(
 		float sizeMultiplier,
 #ifdef IN_BARYLAB
@@ -1248,6 +1262,12 @@ private:
 		float sizeMultiplier);
 
 	void RecalculateGlobalDampingFactor();
+
+	void UpdateNpcParticle_BeingPlaced(
+		StateType & npc,
+		int npcParticleOrdinal,
+		vec2f physicsDeltaPos,
+		NpcParticles & particles) const;
 
 	void UpdateNpcParticle_Free(
 		StateType::NpcParticleStateType & particle,
@@ -1829,6 +1849,9 @@ private:
 	float mCurrentHumanNpcWalkingSpeedAdjustment;
 	float mCurrentSpringReductionFractionAdjustment;
 	float mCurrentSpringDampingCoefficientAdjustment;
+	float mCurrentStaticFrictionAdjustment;
+	float mCurrentKineticFrictionAdjustment;
+	float mCurrentNpcFrictionAdjustment;
 
 #ifdef IN_BARYLAB
 

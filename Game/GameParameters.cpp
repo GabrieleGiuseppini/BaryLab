@@ -22,6 +22,7 @@ GameParameters::GameParameters()
 	// NPC
 	, NpcSpringReductionFractionAdjustment(1.0f)
 	, NpcSpringDampingCoefficientAdjustment(1.0f)
+	, NpcFrictionAdjustment(1.0f)
 	, NpcSizeMultiplier(1.0f)
 	, HumanNpcEquilibriumTorqueStiffnessCoefficient(0.0035f)
 	, HumanNpcEquilibriumTorqueDampingCoefficient(0.0012f)

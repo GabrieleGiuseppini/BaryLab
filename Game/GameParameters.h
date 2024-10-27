@@ -144,6 +144,10 @@ struct GameParameters
     static float constexpr MinNpcSpringDampingCoefficientAdjustment = 0.0f;
     static float constexpr MaxNpcSpringDampingCoefficientAdjustment = 2.0f;
 
+    float NpcFrictionAdjustment; // Both frictions; for fun
+    static float constexpr MinNpcFrictionAdjustment = 0.0f;
+    static float constexpr MaxNpcFrictionAdjustment = 4.0f;
+
     float NpcWindReceptivityAdjustment = 1.0f;
 
     float NpcSizeMultiplier;
@@ -166,6 +170,8 @@ struct GameParameters
     static float constexpr MaxHumanNpcWalkingSpeedAdjustment = 2.5f;
 
     static float constexpr MaxHumanNpcTotalWalkingSpeedAdjustment = 3.5f; // Absolute cap
+
+    static float constexpr MaxNpcToolMoveVelocityMagnitude = 10.0f; // We cap velocity gained with move tool to prevent crazy spinning
 
     static float constexpr MaxHumanNpcWalkSinSlope = 0.87f; // Max sin of slope we're willing to climb up: ___*\___<W---  (60.5 degrees)
 

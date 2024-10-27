@@ -31,6 +31,7 @@ public:
         float BuoyancyVolumeFill;
         float SpringReductionFraction;
         float SpringDampingCoefficient;
+        float FrictionSurfaceAdjustment; // To account fo diminished surface of structures in contact with floor
     };
 
     struct HumanTextureGeometryType
