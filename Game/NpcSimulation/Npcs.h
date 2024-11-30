@@ -1459,13 +1459,47 @@ private:
 	static inline NavigateVertexOutcome NavigateVertex(
 		StateType const & npc,
 		int npcParticleOrdinal,
-		std::optional<TriangleAndEdge> const & walkedEdge,
+		std::optional<TriangleAndEdge> const & edgeBeingWalked,
 		int vertexOrdinal,
 		vec2f const & trajectory,
 		vec2f const & trajectoryEndAbsolutePosition,
 		bcoords3f trajectoryEndBarycentricCoords,
 		Ship const & homeShip,
 		NpcParticles const & particles);
+
+	struct ProbeWalkResult
+	{
+		struct AbsoluteTriangleBCoordsAndEdge
+		{
+			AbsoluteTriangleBCoords TriangleBCoords;
+			int EdgeOrdinal;
+
+			AbsoluteTriangleBCoordsAndEdge() = default;
+
+			AbsoluteTriangleBCoordsAndEdge(
+				AbsoluteTriangleBCoords const & triangleBCoords,
+				int edgeOrdinal)
+				: TriangleBCoords(triangleBCoords)
+				, EdgeOrdinal(edgeOrdinal)
+			{}
+		};
+
+		FixedSizeVector<AbsoluteTriangleBCoordsAndEdge, GameParameters::MaxSpringsPerPoint> FloorCandidatesEasySlope;
+		FixedSizeVector<AbsoluteTriangleBCoordsAndEdge, GameParameters::MaxSpringsPerPoint> FloorCandidatesHardSlope;
+		std::optional<AbsoluteTriangleBCoordsAndEdge> FirstBounceableFloor;
+		std::optional<AbsoluteTriangleBCoords> FirstTriangleInterior;
+	};
+
+	static inline ProbeWalkResult ProbeWalkAhead(
+		StateType const & npc,
+		int npcParticleOrdinal,
+		std::optional<TriangleAndEdge> const & edgeBeingWalked,
+		int vertexOrdinal,
+		vec2f const & trajectoryEndAbsolutePosition,
+		bcoords3f trajectoryEndBarycentricCoords,
+		Ship const & homeShip,
+		NpcParticles const & particles,
+		bool isForProbingOnly);
 
 	void BounceConstrainedNpcParticle(
 		StateType & npc,
