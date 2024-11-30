@@ -43,7 +43,10 @@
 #endif
 
 #ifdef BARYLAB_LOG_DEBUG
-#define LogNpcDebug(...) LogDebug(__VA_ARGS__);
+// TODOTEST
+//#define LogNpcDebug(...) LogDebug(__VA_ARGS__);
+#define LogNpcDebug(...)
+#define LogNpcDebug2(...) LogDebug(__VA_ARGS__);
 #else
 #define LogNpcDebug(...)
 #endif
@@ -361,11 +364,21 @@ private:
 						float CurrentFlipDecision; // [0.0f, 1.0f]
 						float TargetFlipDecision; // [0.0f, 1.0f]
 
+						struct LastHalfTriangleEdgeType
+						{
+							ElementIndex TriangleElementIndex;
+							int EdgeOrdinal;
+							float EdgeBCoord;
+							size_t NumberOfTimesHalfEdgeHasBeenCrossed;
+						};
+						std::optional<LastHalfTriangleEdgeType> LastHalfTriangleEdge;
+
 						void Reset()
 						{
 							CurrentWalkMagnitude = 0.0f;
 							CurrentFlipDecision = 0.0f;
 							TargetFlipDecision = 0.0f;
+							LastHalfTriangleEdge.reset();
 						}
 					} Constrained_Walking;
 
@@ -451,6 +464,9 @@ private:
 							ProgressToLeaving = 0.0f;
 						}
 					} ConstrainedOrFree_Smashed;
+
+					BehaviorStateType()
+					{}
 
 				} CurrentBehaviorState;
 
@@ -1493,6 +1509,7 @@ private:
 	static inline ProbeWalkResult ProbeWalkAhead(
 		StateType const & npc,
 		int npcParticleOrdinal,
+//		AbsoluteTriangleBCoords currentBCoords,
 		std::optional<TriangleAndEdge> const & edgeBeingWalked,
 		int vertexOrdinal,
 		vec2f const & trajectoryEndAbsolutePosition,
@@ -1500,6 +1517,8 @@ private:
 		Ship const & homeShip,
 		NpcParticles const & particles,
 		bool isForProbingOnly);
+
+	bool CanWalkInDirection();
 
 	void BounceConstrainedNpcParticle(
 		StateType & npc,
@@ -1797,6 +1816,11 @@ private:
 		}
 
 		return false;
+	}
+
+	static bool IsInLastHalfOfEdge(float edgeBCoord, float faceDirectionX)
+	{
+		return (edgeBCoord - 0.5f) * faceDirectionX > 0.0f;
 	}
 
 	static vec2f CalculateSpringVector(ElementIndex primaryParticleIndex, ElementIndex secondaryParticleIndex, NpcParticles const & particles)

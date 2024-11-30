@@ -3174,9 +3174,12 @@ Npcs::ProbeWalkResult Npcs::ProbeWalkAhead(
         assert(iIter < GameParameters::MaxSpringsPerPoint); // Detect and debug-break on infinite loops
 
         // Pre-conditions: we are at this vertex
-        assert(currentAbsoluteBCoords.BCoords[vertexOrdinal] == 1.0f);
-        assert(currentAbsoluteBCoords.BCoords[nextVertexOrdinal] == 0.0f);
-        assert(currentAbsoluteBCoords.BCoords[prevVertexOrdinal] == 0.0f);
+        if (!isForProbingOnly)
+        {
+            assert(currentAbsoluteBCoords.BCoords[vertexOrdinal] == 1.0f);
+            assert(currentAbsoluteBCoords.BCoords[nextVertexOrdinal] == 0.0f);
+            assert(currentAbsoluteBCoords.BCoords[prevVertexOrdinal] == 0.0f);
+        }
 
         LogNpcDebug("      Triangle=", currentAbsoluteBCoords.TriangleElementIndex, " Vertex=", vertexOrdinal, " BCoords=", currentAbsoluteBCoords.BCoords,
             " TrajectoryEndBarycentricCoords=", trajectoryEndBarycentricCoords);

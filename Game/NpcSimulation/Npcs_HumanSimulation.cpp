@@ -957,9 +957,81 @@ void Npcs::UpdateHuman(
 			{
 				assert(humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_Walking);
 
+				auto & walkingState = humanState.CurrentBehaviorState.Constrained_Walking;
+
 				if (areFeetOnFloor) // Note: no need to silence walk as we don't apply walk displacement in inertial (i.e. not-on-edge) case
 				{
+					//
+					// Good to continue walking!
+					//
+
+					// Forward-looking: since it might be expensive, we only do it when we cross the
+					// currently-walked triangle edge into its last half
+
+					assert(primaryParticleState.ConstrainedState.has_value());
+					auto const & primaryParticleConstrainedState = *primaryParticleState.ConstrainedState;
+					int const walkedEdgeOrdinal = primaryParticleConstrainedState.CurrentVirtualFloor->EdgeOrdinal;
+
+					if (primaryParticleConstrainedState.CurrentVirtualFloor.has_value()
+						&& primaryParticleConstrainedState.CurrentVirtualFloor->TriangleElementIndex == primaryParticleConstrainedState.CurrentBCoords.TriangleElementIndex) // For safety
+					{
+						if (!walkingState.LastHalfTriangleEdge.has_value()
+							|| primaryParticleConstrainedState.CurrentVirtualFloor->TriangleElementIndex != walkingState.LastHalfTriangleEdge->TriangleElementIndex
+							|| walkedEdgeOrdinal != walkingState.LastHalfTriangleEdge->EdgeOrdinal)
+						{
+							// We have changed edge
+							walkingState.LastHalfTriangleEdge = {
+								primaryParticleConstrainedState.CurrentVirtualFloor->TriangleElementIndex,
+								walkedEdgeOrdinal,
+								primaryParticleConstrainedState.CurrentBCoords.BCoords[walkedEdgeOrdinal],
+								0 };
+						}
+						else
+						{
+							// We were last in this triangle and on this edge
+
+							// Check whether we have crossed the last half
+							bool const hasCrossed =
+								!IsInLastHalfOfEdge(walkingState.LastHalfTriangleEdge->EdgeBCoord, npc.KindSpecificState.HumanNpcState.CurrentFaceDirectionX)
+								&& IsInLastHalfOfEdge(primaryParticleConstrainedState.CurrentBCoords.BCoords[walkedEdgeOrdinal], npc.KindSpecificState.HumanNpcState.CurrentFaceDirectionX);
+
+							// Update state
+							walkingState.LastHalfTriangleEdge->EdgeBCoord = primaryParticleConstrainedState.CurrentBCoords.BCoords[walkedEdgeOrdinal];
+
+							if (hasCrossed)
+							{
+								//
+								// Just crossed
+								//
+
+								LogNpcDebug2("Crossed half-edge");
+
+								// Check if we've crossed too many times
+								if (walkingState.LastHalfTriangleEdge->NumberOfTimesHalfEdgeHasBeenCrossed == 3)
+								{
+									LogNpcDebug2("Crossed half-edge too many times")
+									// TODOHERE: transition and leave
+								}
+
+								//
+								// Plan ahead
+								//
+
+								// TODOHERE
+
+								//
+								// Update number of times we've crossed
+								//
+
+								++walkingState.LastHalfTriangleEdge->NumberOfTimesHalfEdgeHasBeenCrossed;
+							}
+						}
+					}
+
+					//
 					// Impart walk displacement & run walking state machine
+					//
+
 					RunWalkingHumanStateMachine(
 						humanState,
 						primaryParticleState,
