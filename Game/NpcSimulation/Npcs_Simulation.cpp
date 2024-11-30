@@ -3,7 +3,7 @@
  * Created:				2023-07-23
  * Copyright:			Gabriele Giuseppini  (https://github.com/GabrieleGiuseppini)
  ***************************************************************************************/
-#include "Physics.h"
+#include "../Physics.h"
 
 #include <GameCore/Conversions.h>
 #include <GameCore/GameMath.h>
@@ -11,50 +11,15 @@
 #include <array>
 #include <limits>
 
+#ifdef _MSC_VER
 #pragma warning(disable : 4324) // std::optional of StateType gets padded because of alignment requirements
+#endif
 
 namespace Physics {
 
-void Npcs::InternalEndMoveNpc(
-    NpcId id,
-    float currentSimulationTime,
-    NpcInitializationOptions options)
-{
-    assert(mStateBuffer[id].has_value());
-
-    auto & npc = *mStateBuffer[id];
-
-    assert(npc.CurrentRegime == StateType::RegimeType::BeingPlaced);
-
-    ResetNpcStateToWorld(
-        npc,
-        currentSimulationTime,
-        options);
-
-    OnMayBeNpcRegimeChanged(
-        StateType::RegimeType::BeingPlaced,
-        npc);
-
-    npc.BeingPlacedState.reset();
-
-#ifdef IN_BARYLAB
-    // Select NPC's primary particle
-    SelectParticle(npc.ParticleMesh.Particles[0].ParticleIndex);
-#endif
-}
-
-void Npcs::InternalCompleteNewNpc(
-    NpcId id,
-    float currentSimulationTime,
-    NpcInitializationOptions options)
-{
-    InternalEndMoveNpc(id, currentSimulationTime, options);
-}
-
 void Npcs::ResetNpcStateToWorld(
     StateType & npc,
-    float currentSimulationTime,
-    NpcInitializationOptions options)
+    float currentSimulationTime)
 {
     //
     // Find topmost triangle - among all ships - which contains this NPC
@@ -78,8 +43,7 @@ void Npcs::ResetNpcStateToWorld(
             npc,
             currentSimulationTime,
             mShips[topmostTriangle->GetShipId()]->HomeShip,
-            topmostTriangle->GetLocalObjectId(),
-            options);
+            topmostTriangle->GetLocalObjectId());
     }
     else
     {
@@ -97,8 +61,7 @@ void Npcs::ResetNpcStateToWorld(
             npc,
             currentSimulationTime,
             mShips[GetTopmostShipId()]->HomeShip,
-            std::nullopt,
-            options);
+            std::nullopt);
     }
 }
 
@@ -106,8 +69,7 @@ void Npcs::ResetNpcStateToWorld(
     StateType & npc,
     float currentSimulationTime,
     Ship const & homeShip,
-    std::optional<ElementIndex> primaryParticleTriangleIndex,
-    NpcInitializationOptions options)
+    std::optional<ElementIndex> primaryParticleTriangleIndex)
 {
     // Plane ID, connected component ID
 
@@ -166,25 +128,6 @@ void Npcs::ResetNpcStateToWorld(
                     homeShip,
                     std::nullopt,
                     npc.CurrentConnectedComponentId); // Constrain this secondary's triangle to NPC's connected component ID
-            }
-        }
-    }
-
-    if ((options & NpcInitializationOptions::GainMeshVelocity) != NpcInitializationOptions::None)
-    {
-        // Give all particles the velocity of the primary's mesh
-
-        if (npc.ParticleMesh.Particles[0].ConstrainedState.has_value())
-        {
-            vec2f const primaryMeshVelocity = homeShip.GetPoints().GetVelocity(
-                homeShip.GetTriangles().GetPointAIndex(
-                    npc.ParticleMesh.Particles[0].ConstrainedState->CurrentBCoords.TriangleElementIndex));
-
-            for (size_t p = 1; p < npc.ParticleMesh.Particles.size(); ++p)
-            {
-                mParticles.SetVelocity(
-                    npc.ParticleMesh.Particles[p].ParticleIndex,
-                    primaryMeshVelocity);
             }
         }
     }
@@ -426,9 +369,9 @@ void Npcs::UpdateNpcs(
                 // Waterness, Water Velocity, Combustion
 
                 bool atLeastOneNpcParticleOnFire = false;
-                bool atLeastOneNpcParticleInFreeWater = false;
+                bool atLeastOneNpcParticleInWater = false;
 
-                for (auto p = 0; p < npcState->ParticleMesh.Particles.size(); ++p)
+                for (size_t p = 0; p < npcState->ParticleMesh.Particles.size(); ++p)
                 {
                     auto const & particle = npcState->ParticleMesh.Particles[p];
 
@@ -465,7 +408,11 @@ void Npcs::UpdateNpcs(
                         vec2f const meshWaterVelocity = totalWaterVelocity / (std::max(waterablePointCount, 1.0f));
                         mParticles.SetMeshWaterVelocity(particle.ParticleIndex, meshWaterVelocity);
 
-                        if (meshWaterness < 0.4f) // Otherwise too much water for fire
+                        if (meshWaterness > 0.4f)
+                        {
+                            atLeastOneNpcParticleInWater = true;
+                        }
+                        else // Otherwise too much water for fire
                         {
                             atLeastOneNpcParticleOnFire = atLeastOneNpcParticleOnFire || isAtLeastOneMeshPointOnFire;
                         }
@@ -475,14 +422,14 @@ void Npcs::UpdateNpcs(
                         // Free - check if underwater (using AnyWaterness as proxy)
                         if (mParticles.GetAnyWaterness(particle.ParticleIndex) > 0.4f)
                         {
-                            atLeastOneNpcParticleInFreeWater = true;
+                            atLeastOneNpcParticleInWater = true;
                         }
                     }
                 } // For all NPC particles
 
                 // Update NPC's fire progress
 
-                if (atLeastOneNpcParticleInFreeWater)
+                if (atLeastOneNpcParticleInWater)
                 {
                     // Smother immediately
                     npcState->CombustionProgress += (-1.0f - npcState->CombustionProgress) * 0.1f;
@@ -561,7 +508,7 @@ void Npcs::UpdateNpcs(
 
             // Check validity of constrained triangles, and calculate preliminary forces
 
-            for (auto p = 0; p < npcState->ParticleMesh.Particles.size(); ++p)
+            for (size_t p = 0; p < npcState->ParticleMesh.Particles.size(); ++p)
             {
                 auto const & particleConstrainedState = npcState->ParticleMesh.Particles[p].ConstrainedState;
                 if (particleConstrainedState.has_value())
@@ -572,7 +519,7 @@ void Npcs::UpdateNpcs(
                     if (homeShip.GetTriangles().IsDeleted(particleConstrainedState->CurrentBCoords.TriangleElementIndex)
                         || IsTriangleFolded(particleConstrainedState->CurrentBCoords.TriangleElementIndex, homeShip))
                     {
-                        TransitionParticleToFreeState(*npcState, p, homeShip);
+                        TransitionParticleToFreeState(*npcState, static_cast<int>(p), homeShip);
                     }
                 }
                 else if (p > 0)
@@ -599,7 +546,7 @@ void Npcs::UpdateNpcs(
 
                 CalculateNpcParticlePreliminaryForces(
                     *npcState,
-                    p,
+                    static_cast<int>(p),
                     globalWindForce,
                     gameParameters);
             }
@@ -610,7 +557,7 @@ void Npcs::UpdateNpcs(
 
             // Update physical state for all particles and maintain world bounds
 
-            for (auto p = 0; p < npcState->ParticleMesh.Particles.size(); ++p)
+            for (size_t p = 0; p < npcState->ParticleMesh.Particles.size(); ++p)
             {
                 UpdateNpcParticlePhysics(
                     *npcState,
@@ -621,7 +568,7 @@ void Npcs::UpdateNpcs(
 
                 MaintainInWorldBounds(
                     *npcState,
-                    p,
+                    static_cast<int>(p),
                     homeShip,
                     gameParameters);
 
@@ -630,7 +577,7 @@ void Npcs::UpdateNpcs(
                     // Only maintain over land if _all_ particles are free
                     MaintainOverLand(
                         *npcState,
-                        p,
+                        static_cast<int>(p),
                         homeShip,
                         gameParameters);
                 }
@@ -669,6 +616,30 @@ void Npcs::UpdateNpcs(
                 *npcState,
                 currentSimulationTime,
                 homeShip);
+
+            // Light
+
+            for (size_t p = 0; p < npcState->ParticleMesh.Particles.size(); ++p)
+            {
+                float light;
+
+                // Only lighten constrained particles
+                if (npcState->ParticleMesh.Particles[p].ConstrainedState.has_value())
+                {
+                    auto const & triangleIndices = homeShip.GetTriangles().GetPointIndices(npcState->ParticleMesh.Particles[p].ConstrainedState->CurrentBCoords.TriangleElementIndex);
+                    auto const & bcoords = npcState->ParticleMesh.Particles[p].ConstrainedState->CurrentBCoords.BCoords;
+                    light =
+                        homeShip.GetPoints().GetLight(triangleIndices[0]) * bcoords[0]
+                        + homeShip.GetPoints().GetLight(triangleIndices[1]) * bcoords[1]
+                        + homeShip.GetPoints().GetLight(triangleIndices[2]) * bcoords[2];
+                }
+                else
+                {
+                    light = 0.0f;
+                }
+
+                mParticles.SetLight(npcState->ParticleMesh.Particles[p].ParticleIndex, light);
+            }
         }
     }
 }
@@ -724,7 +695,7 @@ void Npcs::UpdateNpcParticlePhysics(
 
         physicsDeltaPos = mParticles.GetVelocity(npcParticle.ParticleIndex) * dt + (physicalForces / particleMass) * dt * dt;
 
-        LogNpcDebug("    physicsDeltaPos=", physicsDeltaPos, " ( v=", mParticles.GetVelocity(npcParticle.ParticleIndex) * dt,
+        LogNpcDebug("    physicsDeltaPos=", physicsDeltaPos, " (v=", mParticles.GetVelocity(npcParticle.ParticleIndex) * dt,
             " f=", (physicalForces / particleMass) * dt * dt, ")");
     }
 
@@ -2050,7 +2021,7 @@ void Npcs::RecalculateFrictionTotalAdjustments()
     {
         if (state.has_value())
         {
-            for (int p = 0; p < state->ParticleMesh.Particles.size(); ++p)
+            for (size_t p = 0; p < state->ParticleMesh.Particles.size(); ++p)
             {
                 auto const particleIndex = state->ParticleMesh.Particles[p].ParticleIndex;
 
@@ -2060,13 +2031,13 @@ void Npcs::RecalculateFrictionTotalAdjustments()
                     {
                         mParticles.SetStaticFrictionTotalAdjustment(particleIndex,
                             CalculateFrictionTotalAdjustment(
-                                mNpcDatabase.GetFurnitureParticleAttributes(state->KindSpecificState.FurnitureNpcState.SubKindId, p).FrictionSurfaceAdjustment,
+                                mNpcDatabase.GetFurnitureParticleAttributes(state->KindSpecificState.FurnitureNpcState.SubKindId, static_cast<int>(p)).FrictionSurfaceAdjustment,
                                 mCurrentNpcFrictionAdjustment,
                                 mCurrentStaticFrictionAdjustment));
 
                         mParticles.SetKineticFrictionTotalAdjustment(particleIndex,
                             CalculateFrictionTotalAdjustment(
-                                mNpcDatabase.GetFurnitureParticleAttributes(state->KindSpecificState.FurnitureNpcState.SubKindId, p).FrictionSurfaceAdjustment,
+                                mNpcDatabase.GetFurnitureParticleAttributes(state->KindSpecificState.FurnitureNpcState.SubKindId, static_cast<int>(p)).FrictionSurfaceAdjustment,
                                 mCurrentNpcFrictionAdjustment,
                                 mCurrentKineticFrictionAdjustment));
 
@@ -2186,8 +2157,14 @@ void Npcs::UpdateNpcParticle_BeingPlaced(
     if (npc.BeingPlacedState->DoMoveWholeMesh || npcParticleOrdinal == npc.BeingPlacedState->AnchorParticleOrdinal)
     {
         //
-        // Particle is moved independently and fixed - nothing to do
+        // Particle is moved independently and it's fixed
         //
+
+        // Just remove the inertial velocity we've imparted at its last move,
+        // given that we haven't used it
+        particles.SetVelocity(
+            npc.ParticleMesh.Particles[npcParticleOrdinal].ParticleIndex,
+            vec2f::zero());
     }
     else
     {
@@ -2214,13 +2191,14 @@ void Npcs::UpdateNpcParticle_BeingPlaced(
             // Pair this particle with:
             // a) Each particle already done,
             // b) The anchor particle
-            for (int p = 0; p < npc.ParticleMesh.Particles.size(); ++p)
+            for (size_t p = 0; p < npc.ParticleMesh.Particles.size(); ++p)
             {
-                if (p < npcParticleOrdinal || (p > npcParticleOrdinal && p == npc.BeingPlacedState->AnchorParticleOrdinal))
+                if (static_cast<int>(p) < npcParticleOrdinal ||
+                    (static_cast<int>(p) > npcParticleOrdinal && static_cast<int>(p) == npc.BeingPlacedState->AnchorParticleOrdinal))
                 {
                     // Adjust physicsDeltaPos to maintain spring length after we've traveled it
 
-                    int const s = GetSpringAmongEndpoints(npcParticleOrdinal, p, npc.ParticleMesh);
+                    int const s = GetSpringAmongEndpoints(npcParticleOrdinal, static_cast<int>(p), npc.ParticleMesh);
                     float const targetSpringLength = npc.ParticleMesh.Springs[s].RestLength;
                     vec2f const & otherPPosition = mParticles.GetPosition(npc.ParticleMesh.Particles[p].ParticleIndex);
                     vec2f const particleAdjustedPosition =
@@ -2764,14 +2742,6 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
 
             vec2f const trajectory = segmentTrajectoryEndAbsolutePosition - segmentTrajectoryStartAbsolutePosition;
 
-            vec2f const intersectionEdgeDir =
-                homeShip.GetTriangles().GetSubSpringVector(
-                    npcParticleConstrainedState.CurrentBCoords.TriangleElementIndex,
-                    intersectionEdgeOrdinal,
-                    homeShip.GetPoints())
-                .normalise();
-            vec2f const intersectionEdgeNormal = intersectionEdgeDir.to_perpendicular();
-
             BounceConstrainedNpcParticle(
                 npc,
                 npcParticleOrdinal,
@@ -2851,16 +2821,17 @@ float Npcs::UpdateNpcParticle_ConstrainedInertial(
             npcParticleConstrainedState.CurrentBCoords = AbsoluteTriangleBCoords(oppositeTriangleInfo.TriangleElementIndex, newBarycentricCoords);
 
             // Translate target coords to this triangle, for next iteration
-            auto const oldSegmentTrajectoryEndBarycentricCoords = segmentTrajectoryEndBarycentricCoords; // For logging
             // Note: here we introduce a lot of error - the target bary coords are not anymore
             // guaranteed to lie exactly on the (continuation of the) edge
-            segmentTrajectoryEndBarycentricCoords = homeShip.GetTriangles().ToBarycentricCoordinatesInsideEdge(
+            auto const newSegmentTrajectoryEndBarycentricCoords = homeShip.GetTriangles().ToBarycentricCoordinatesInsideEdge(
                 segmentTrajectoryEndAbsolutePosition,
                 oppositeTriangleInfo.TriangleElementIndex,
                 homeShip.GetPoints(),
                 oppositeTriangleInfo.EdgeOrdinal);
 
-            LogNpcDebug("      TrajEndB-Coords: ", oldSegmentTrajectoryEndBarycentricCoords, " -> ", segmentTrajectoryEndBarycentricCoords);
+            LogNpcDebug("      TrajEndB-Coords: ", segmentTrajectoryEndAbsolutePosition, " -> ", newSegmentTrajectoryEndBarycentricCoords);
+
+            segmentTrajectoryEndBarycentricCoords = newSegmentTrajectoryEndBarycentricCoords;
 
             // Continue
         }

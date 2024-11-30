@@ -246,6 +246,8 @@ public:
 
     float GetTemperature(ElementIndex pointElementIndex) const;
 
+    float GetLight(ElementIndex pointElementIndex) const;
+
     bool GetIsHull(ElementIndex pointElementIndex) const;
 
     bool IsBurning(ElementIndex pointElementIndex) const;

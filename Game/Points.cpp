@@ -76,6 +76,11 @@ float Points::GetTemperature(ElementIndex /*pointElementIndex*/) const
     return GameParameters::Temperature0;
 }
 
+float Points::GetLight(ElementIndex /*pointElementIndex*/) const
+{
+    return 0.0f;
+}
+
 bool Points::GetIsHull(ElementIndex /*pointElementIndex*/) const
 {
     return false;

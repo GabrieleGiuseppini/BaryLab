@@ -148,8 +148,8 @@ RenderContext::RenderContext(
     glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup2));
     glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup2), 4, GL_FLOAT, GL_FALSE, sizeof(NpcAttributesVertex), (void *)(0));
     glEnableVertexAttribArray(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup3));
-    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup3), 2, GL_FLOAT, GL_FALSE, sizeof(NpcAttributesVertex), (void *)(4 * sizeof(float)));
-    static_assert(sizeof(NpcAttributesVertex) == (4 + 2) * sizeof(float));
+    glVertexAttribPointer(static_cast<GLuint>(ShaderManager::VertexAttributeType::NpcQuadAttributeGroup3), 4, GL_FLOAT, GL_FALSE, sizeof(NpcAttributesVertex), (void *)(4 * sizeof(float)));
+    static_assert(sizeof(NpcAttributesVertex) == (5 + 2 + 1) * sizeof(float));
 
     glBindVertexArray(0);
 

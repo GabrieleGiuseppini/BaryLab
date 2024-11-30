@@ -974,7 +974,8 @@ void LabController::Reset(
     mWorld = std::make_unique<Physics::World>(
         mNpcDatabase,
         mGameEventHandler,
-        mOceanDepth);
+        mOceanDepth,
+        mGameParameters);
 
     mWorld->AddShip(std::move(ship));
 

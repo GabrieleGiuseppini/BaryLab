@@ -5,12 +5,13 @@
 ***************************************************************************************/
 #pragma once
 
-#include "GameEventDispatcher.h"
-#include "GameParameters.h"
-#include "NpcDatabase.h"
-#include "Physics.h"
-#include "RenderContext.h"
-#include "RenderTypes.h"
+#include "../GameEventDispatcher.h"
+#include "../GameParameters.h"
+#include "../NpcDatabase.h"
+#include "../Physics.h"
+#include "../RenderContext.h"
+#include "../RenderTypes.h"
+#include "../VisibleWorld.h"
 
 #include <GameCore/BarycentricCoords.h>
 #include <GameCore/ElementIndexRangeIterator.h>
@@ -25,6 +26,7 @@
 #include <GameCore/SysSpecifics.h>
 #include <GameCore/Vectors.h>
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -466,6 +468,7 @@ private:
 				// Panic levels
 				float OnFirePanicLevel; // [0.0f ... +1.0f], auto-decayed
 				float BombProximityPanicLevel; // [0.0f ... +1.0f], auto-decayed
+				float IncomingWaterProximityPanicLevel; // [0.0f ... +1.0f], auto-decayed
 				float MiscPanicLevel; // [0.0f ... +1.0f], auto-decayed; includes triangle break
 				float ResultantPanicLevel; // [0.0f ... +INF)
 
@@ -521,6 +524,7 @@ private:
 					, CurrentFaceDirectionX(0.0f)
 					, OnFirePanicLevel(0.0f)
 					, BombProximityPanicLevel(0.0f)
+					, IncomingWaterProximityPanicLevel(0.0f)
 					, MiscPanicLevel(0.0f)
 					, ResultantPanicLevel(0.0f)
 					// Animation
@@ -688,6 +692,10 @@ private:
 		// The render color for this NPC.
 		vec3f const RenderColor;
 
+		// The highlighting state for this NPC.
+		// Not sticky: reset after rendering.
+		bool mutable IsHighlightedForRendering;
+
 		// The current ship that this NPC belongs to.
 		// NPCs always belong to a ship, and can change ships during the
 		// course of their lives.
@@ -737,6 +745,7 @@ private:
 			: Id(id)
 			, Kind(kind)
 			, RenderColor(renderColor)
+			, IsHighlightedForRendering(false)
 			, CurrentShipId(initialShipId)
 			, CurrentPlaneId(initialPlaneId)
 			, CurrentConnectedComponentId(currentConnectedComponentId)
@@ -782,19 +791,20 @@ public:
 	Npcs(
 		Physics::World & parentWorld,
 		NpcDatabase const & npcDatabase,
-		std::shared_ptr<GameEventDispatcher> gameEventHandler)
+		std::shared_ptr<GameEventDispatcher> gameEventHandler,
+		GameParameters const & gameParameters)
 		: mParentWorld(parentWorld)
 		, mNpcDatabase(npcDatabase)
 		, mGameEventHandler(std::move(gameEventHandler))
+		, mMaxNpcs(gameParameters.MaxNpcs)
 		// Container
 		, mStateBuffer()
 		, mShips()
-		, mParticles(GameParameters::MaxNpcs * GameParameters::MaxParticlesPerNpc)
+		, mParticles(static_cast<ElementCount>(mMaxNpcs * GameParameters::MaxParticlesPerNpc))
 		// State
 		, mCurrentSimulationSequenceNumber()
 		, mCurrentlySelectedNpc()
 		, mCurrentlySelectedNpcWallClockTimestamp()
-		, mCurrentlyHighlightedNpc()
 		, mGeneralizedPanicLevel(0.0f)
 		// Stats
 		, mFreeRegimeHumanNpcCount(0)
@@ -868,17 +878,29 @@ public:
 		float radius,
 		GameParameters const & gameParameters) const;
 
+	std::vector<NpcId> ProbeNpcsInRect(
+		vec2f const & corner1,
+		vec2f const & corner2) const;
+
 	void BeginMoveNpc(
 		NpcId id,
 		int particleOrdinal,
 		float currentSimulationTime,
 		bool doMoveWholeMesh);
 
+	void BeginMoveNpcs(
+		std::vector<NpcId> const & ids,
+		float currentSimulationTime);
+
 	void MoveNpcTo(
 		NpcId id,
 		vec2f const & position,
 		vec2f const & offset,
 		bool doMoveWholeMesh);
+
+	void MoveNpcsBy(
+		std::vector<NpcId> const & ids,
+		vec2f const & stride);
 
 	void EndMoveNpc(
 		NpcId id,
@@ -890,13 +912,23 @@ public:
 
 	void RemoveNpc(NpcId id);
 
+	void RemoveNpcsInRect(
+		vec2f const & corner1,
+		vec2f const & corner2);
+
 	void AbortNewNpc(NpcId id);
 
 	std::tuple<std::optional<NpcId>, NpcCreationFailureReasonType> AddNpcGroup(
 		NpcKindType kind,
-		float currentSimulationTime);
+		VisibleWorld const & visibleWorld,
+		float currentSimulationTime,
+		GameParameters const & gameParameters);
 
 	void TurnaroundNpc(NpcId id);
+
+	void TurnaroundNpcsInRect(
+		vec2f const & corner1,
+		vec2f const & corner2);
 
 	std::optional<NpcId> GetCurrentlySelectedNpc() const;
 
@@ -906,9 +938,13 @@ public:
 
 	void SelectNpc(std::optional<NpcId> id);
 
-	void HighlightNpc(std::optional<NpcId> id);
+	void HighlightNpcs(std::vector<NpcId> const & ids);
 
-	void PublishCount();
+	void HighlightNpcsInRect(
+		vec2f const & corner1,
+		vec2f const & corner2);
+
+	void Announce();
 
 public:
 
@@ -1076,6 +1112,40 @@ public:
 
 private:
 
+	void VisitNpcsInQuad(
+		vec2f const & corner1,
+		vec2f const & corner2,
+		std::function<void(NpcId)> action) const;
+
+	void InternalBeginMoveNpc(
+		NpcId id,
+		int particleOrdinal,
+		float currentSimulationTime,
+		bool doMoveWholeMesh);
+
+	void InternalMoveNpcBy(
+		NpcId id,
+		vec2f const & deltaAnchorPosition,
+		bool doMoveWholeMesh);
+
+	bool InternalRemoveNpc(NpcId id);
+
+	void InternalEndMoveNpc(
+		NpcId id,
+		float currentSimulationTime);
+
+	void InternalCompleteNewNpc(
+		NpcId id,
+		float currentSimulationTime);
+
+	void InternalTurnaroundNpc(NpcId id);
+
+	void InternalHighlightNpc(NpcId id);
+
+	void PublishCount();
+
+	void PublishSelection();
+
 	NpcId GetNewNpcId();
 
 	NpcSubKindIdType ChooseSubKind(
@@ -1107,13 +1177,13 @@ private:
 		assert(particleMesh.Particles.size() >= 2);
 		ElementIndex p1 = particleMesh.Particles[particleEndpoint1].ParticleIndex;
 		ElementIndex p2 = particleMesh.Particles[particleEndpoint2].ParticleIndex;
-		for (int s = 0; s < particleMesh.Springs.size(); ++s)
+		for (size_t s = 0; s < particleMesh.Springs.size(); ++s)
 		{
 			auto const & spring = particleMesh.Springs[s];
 			if ((spring.EndpointAIndex == p1 && spring.EndpointBIndex == p2)
 				|| (spring.EndpointBIndex == p1 && spring.EndpointAIndex == p2))
 			{
-				return s;
+				return static_cast<int>(s);
 			}
 		}
 
@@ -1145,33 +1215,15 @@ private:
 	// Simulation
 	//
 
-	enum class NpcInitializationOptions
-	{
-		None = 0,
-		GainMeshVelocity = 1
-	};
-
-	void InternalEndMoveNpc(
-		NpcId id,
-		float currentSimulationTime,
-		NpcInitializationOptions options);
-
-	void InternalCompleteNewNpc(
-		NpcId id,
-		float currentSimulationTime,
-		NpcInitializationOptions options);
-
 	void ResetNpcStateToWorld(
 		StateType & npc,
-		float currentSimulationTime,
-		NpcInitializationOptions options);
+		float currentSimulationTime);
 
 	void ResetNpcStateToWorld(
 		StateType & npc,
 		float currentSimulationTime,
 		Ship const & homeShip,
-		std::optional<ElementIndex> primaryParticleTriangleIndex,
-		NpcInitializationOptions options);
+		std::optional<ElementIndex> primaryParticleTriangleIndex);
 
 	void TransitionParticleToConstrainedState(
 		StateType & npc,
@@ -1673,7 +1725,7 @@ private:
 		StateType const & npc,
 		Ship const & homeShip)
 	{
-		for (auto p = 0; p < npc.ParticleMesh.Particles.size(); ++p)
+		for (size_t p = 0; p < npc.ParticleMesh.Particles.size(); ++p)
 		{
 			auto const & particle = npc.ParticleMesh.Particles[p];
 			if (particle.ConstrainedState.has_value())
@@ -1695,7 +1747,7 @@ private:
 		StateType const & npc,
 		Ship const & homeShip)
 	{
-		for (auto p = 0; p < npc.ParticleMesh.Particles.size(); ++p)
+		for (size_t p = 0; p < npc.ParticleMesh.Particles.size(); ++p)
 		{
 			auto const & particle = npc.ParticleMesh.Particles[p];
 			if (particle.ConstrainedState.has_value())
@@ -1794,6 +1846,7 @@ private:
 	World & mParentWorld;
 	NpcDatabase const & mNpcDatabase;
 	std::shared_ptr<GameEventDispatcher> mGameEventHandler;
+	size_t const mMaxNpcs;
 
 	//
 	// Container
@@ -1804,12 +1857,18 @@ private:
 	//	3. Reaching an NPC by its ID
 	//
 
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4324) // std::optional of StateType gets padded because of alignment requirements
+#endif
+
 	// The actual container of NPC states, indexed by NPC ID.
 	// Indices are stable; elements are null'ed when removed.
 	std::vector<std::optional<StateType>> mStateBuffer;
+
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
 
 	// All the ships - together with their NPCs - indexed by Ship ID.
 	// Indices are stable; elements are null'ed when removed.
@@ -1826,7 +1885,6 @@ private:
 
 	std::optional<NpcId> mCurrentlySelectedNpc;
 	GameWallClock::time_point mCurrentlySelectedNpcWallClockTimestamp;
-	std::optional<NpcId> mCurrentlyHighlightedNpc;
 
 	float mGeneralizedPanicLevel; // [0.0f ... +1.0f], manually decayed
 
@@ -1876,7 +1934,5 @@ private:
 
 #endif
 };
-
-template <> struct is_flag<Npcs::NpcInitializationOptions> : std::true_type {};
 
 }

@@ -27,6 +27,7 @@ set  (GAME_SOURCES
 	ShipFactoryTypes.h
 	ShipFloorplanizer.cpp
 	ShipFloorplanizer.h
+	VisibleWorld.h
 )
 
 set  (PHYSICS_SOURCES

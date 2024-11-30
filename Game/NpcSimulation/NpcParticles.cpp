@@ -3,7 +3,7 @@
 * Created:              2020-05-15
 * Copyright:            Gabriele Giuseppini  (https://github.com/GabrieleGiuseppini)
 ***************************************************************************************/
-#include "Physics.h"
+#include "../Physics.h"
 
 #include <GameCore/GameException.h>
 #include <GameCore/GameRandomEngine.h>
@@ -41,6 +41,7 @@ ElementIndex NpcParticles::Add(
     mMeshWaterVelocityBuffer[p] = vec2f::zero();
     mAnyWaternessBuffer[p] = 0.0f;
     mRandomNormalizedUniformFloatBuffer[p] = GameRandomEngine::GetInstance().GenerateNormalizedUniformReal();
+    mLightBuffer[p] = 0.0f;
 
     mRenderColorBuffer[p] = color;
 
