@@ -1509,8 +1509,8 @@ private:
 	static inline ProbeWalkResult ProbeWalkAhead(
 		StateType const & npc,
 		int npcParticleOrdinal,
-//		AbsoluteTriangleBCoords currentBCoords,
-		std::optional<TriangleAndEdge> const & edgeBeingWalked,
+		AbsoluteTriangleBCoords currentBCoords,
+		TriangleAndEdge const & edgeBeingWalked, // Might not match current bcoords'; used for floor nature probing
 		int vertexOrdinal,
 		vec2f const & trajectoryEndAbsolutePosition,
 		bcoords3f trajectoryEndBarycentricCoords,
@@ -1518,7 +1518,10 @@ private:
 		NpcParticles const & particles,
 		bool isForProbingOnly);
 
-	bool CanWalkInDirection();
+	bool CanWalkInDirection(
+		StateType const & npc,
+		TriangleAndEdge const & edgeBeingWalked,
+		float walkDirectionX);
 
 	void BounceConstrainedNpcParticle(
 		StateType & npc,

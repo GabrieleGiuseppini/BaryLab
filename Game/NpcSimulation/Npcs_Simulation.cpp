@@ -2873,7 +2873,8 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
         auto const probeResult = ProbeWalkAhead(
             npc,
             npcParticleOrdinal,
-            edgeBeingWalked,
+            npcParticle.ConstrainedState->CurrentBCoords,
+            *edgeBeingWalked,
             vertexOrdinal,
             trajectoryEndAbsolutePosition,
             trajectoryEndBarycentricCoords,
@@ -3100,7 +3101,8 @@ inline Npcs::NavigateVertexOutcome Npcs::NavigateVertex(
 Npcs::ProbeWalkResult Npcs::ProbeWalkAhead(
     StateType const & npc,
     int npcParticleOrdinal,
-    std::optional<TriangleAndEdge> const & edgeBeingWalked,
+    AbsoluteTriangleBCoords currentBCoords,
+    TriangleAndEdge const & edgeBeingWalked, // Might not match current bcoords'; used for floor nature probing
     int vertexOrdinal,
     vec2f const & trajectoryEndAbsolutePosition,
     bcoords3f trajectoryEndBarycentricCoords,
@@ -3134,11 +3136,7 @@ Npcs::ProbeWalkResult Npcs::ProbeWalkAhead(
 
     ProbeWalkResult result;
 
-    auto const & npcParticle = npc.ParticleMesh.Particles[npcParticleOrdinal];
-    assert(npcParticle.ConstrainedState.has_value());
-    AbsoluteTriangleBCoords currentAbsoluteBCoords = npcParticle.ConstrainedState->CurrentBCoords;
-
-    vec2f const vertexAbsolutePosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointIndices(currentAbsoluteBCoords.TriangleElementIndex)[vertexOrdinal]);
+    vec2f const vertexAbsolutePosition = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointIndices(currentBCoords.TriangleElementIndex)[vertexOrdinal]);
 
     // The two vertices around the vertex we are on - seen in clockwise order
     int nextVertexOrdinal = (vertexOrdinal + 1) % 3;
@@ -3162,7 +3160,10 @@ Npcs::ProbeWalkResult Npcs::ProbeWalkAhead(
         : RotationDirectionType::Clockwise;
 
     // Remember floor geometry of starting edge
-    NpcFloorGeometryType const initialFloorGeometry = homeShip.GetTriangles().GetSubSpringNpcFloorGeometry(edgeBeingWalked->TriangleElementIndex, edgeBeingWalked->EdgeOrdinal);
+    NpcFloorGeometryType const initialFloorGeometry = homeShip.GetTriangles().GetSubSpringNpcFloorGeometry(edgeBeingWalked.TriangleElementIndex, edgeBeingWalked.EdgeOrdinal);
+
+    // Remember initial triangle
+    ElementIndex const initialTriangleElementIndex = currentBCoords.TriangleElementIndex;
 
     for (int iIter = 0; ; ++iIter)
     {
@@ -3174,14 +3175,11 @@ Npcs::ProbeWalkResult Npcs::ProbeWalkAhead(
         assert(iIter < GameParameters::MaxSpringsPerPoint); // Detect and debug-break on infinite loops
 
         // Pre-conditions: we are at this vertex
-        if (!isForProbingOnly)
-        {
-            assert(currentAbsoluteBCoords.BCoords[vertexOrdinal] == 1.0f);
-            assert(currentAbsoluteBCoords.BCoords[nextVertexOrdinal] == 0.0f);
-            assert(currentAbsoluteBCoords.BCoords[prevVertexOrdinal] == 0.0f);
-        }
+        assert(currentBCoords.BCoords[vertexOrdinal] == 1.0f);
+        assert(currentBCoords.BCoords[nextVertexOrdinal] == 0.0f);
+        assert(currentBCoords.BCoords[prevVertexOrdinal] == 0.0f);
 
-        LogNpcDebug("      Triangle=", currentAbsoluteBCoords.TriangleElementIndex, " Vertex=", vertexOrdinal, " BCoords=", currentAbsoluteBCoords.BCoords,
+        LogNpcDebug("      Triangle=", currentBCoords.TriangleElementIndex, " Vertex=", vertexOrdinal, " BCoords=", currentBCoords.BCoords,
             " TrajectoryEndBarycentricCoords=", trajectoryEndBarycentricCoords);
 
         //
@@ -3196,7 +3194,7 @@ Npcs::ProbeWalkResult Npcs::ProbeWalkAhead(
             LogNpcDebug("      Trajectory extends inside triangle, remembering it");
 
             // Remember these absolute BCoords as we'll go there if we don't have any candidates nor we bounce on a floor
-            result.FirstTriangleInterior = currentAbsoluteBCoords;
+            result.FirstTriangleInterior = currentBCoords;
 
             // Continue, so that we may find candidates at a lower slope
         }
@@ -3215,8 +3213,8 @@ Npcs::ProbeWalkResult Npcs::ProbeWalkAhead(
         // Check whether we've gone too far around
         //
 
-        auto const & nextVertexPos = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointIndices(currentAbsoluteBCoords.TriangleElementIndex)[nextVertexOrdinal]);
-        auto const & prevVertexPos = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointIndices(currentAbsoluteBCoords.TriangleElementIndex)[prevVertexOrdinal]);
+        auto const & nextVertexPos = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointIndices(currentBCoords.TriangleElementIndex)[nextVertexOrdinal]);
+        auto const & prevVertexPos = homeShip.GetPoints().GetPosition(homeShip.GetTriangles().GetPointIndices(currentBCoords.TriangleElementIndex)[prevVertexOrdinal]);
         if (prevVertexPos.x <= vertexAbsolutePosition.x && nextVertexPos.x > vertexAbsolutePosition.x)
         {
             LogNpcDebug("      Gone too far - may stop search here");
@@ -3227,13 +3225,13 @@ Npcs::ProbeWalkResult Npcs::ProbeWalkAhead(
         // Check whether this new edge is floor
         //
 
-        if (IsEdgeFloorToParticle(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal, npc, npcParticleOrdinal, particles, homeShip))
+        if (IsEdgeFloorToParticle(currentBCoords.TriangleElementIndex, crossedEdgeOrdinal, npc, npcParticleOrdinal, particles, homeShip))
         {
             //
             // Encountered floor
             //
 
-            auto const crossedEdgeFloorGeometry = homeShip.GetTriangles().GetSubSpringNpcFloorGeometry(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
+            auto const crossedEdgeFloorGeometry = homeShip.GetTriangles().GetSubSpringNpcFloorGeometry(currentBCoords.TriangleElementIndex, crossedEdgeOrdinal);
 
             LogNpcDebug("        Crossed edge is floor (geometry:", int(crossedEdgeFloorGeometry), ")");
 
@@ -3248,7 +3246,7 @@ Npcs::ProbeWalkResult Npcs::ProbeWalkAhead(
             //
 
             vec2f const crossedEdgeDir = homeShip.GetTriangles().GetSubSpringVector(
-                currentAbsoluteBCoords.TriangleElementIndex,
+                currentBCoords.TriangleElementIndex,
                 crossedEdgeOrdinal,
                 homeShip.GetPoints()).normalise();
 
@@ -3270,13 +3268,13 @@ Npcs::ProbeWalkResult Npcs::ProbeWalkAhead(
 
                 if (std::abs(crossedEdgeDir.y) < 0.98f) // Magic slope
                 {
-                    result.FloorCandidatesEasySlope.emplace_back(currentAbsoluteBCoords, crossedEdgeOrdinal);
+                    result.FloorCandidatesEasySlope.emplace_back(currentBCoords, crossedEdgeOrdinal);
 
                     LogNpcDebug("          Added to easy candidates: new count=", result.FloorCandidatesEasySlope.size());
                 }
                 else
                 {
-                    result.FloorCandidatesHardSlope.emplace_back(currentAbsoluteBCoords, crossedEdgeOrdinal);
+                    result.FloorCandidatesHardSlope.emplace_back(currentBCoords, crossedEdgeOrdinal);
 
                     LogNpcDebug("          Added to hard candidates: new count=", result.FloorCandidatesHardSlope.size());
                 }
@@ -3339,7 +3337,7 @@ Npcs::ProbeWalkResult Npcs::ProbeWalkAhead(
                     if (doRememberBounceableFloor)
                     {
                         LogNpcDebug("            Remembering bounceable floor");
-                        result.FirstBounceableFloor = { currentAbsoluteBCoords, crossedEdgeOrdinal };
+                        result.FirstBounceableFloor = { currentBCoords, crossedEdgeOrdinal };
                     }
                 }
             }
@@ -3369,7 +3367,7 @@ Npcs::ProbeWalkResult Npcs::ProbeWalkAhead(
         //
 
         // Find opposite triangle
-        auto const & oppositeTriangleInfo = homeShip.GetTriangles().GetOppositeTriangle(currentAbsoluteBCoords.TriangleElementIndex, crossedEdgeOrdinal);
+        auto const & oppositeTriangleInfo = homeShip.GetTriangles().GetOppositeTriangle(currentBCoords.TriangleElementIndex, crossedEdgeOrdinal);
         if (oppositeTriangleInfo.TriangleElementIndex == NoneElementIndex || homeShip.GetTriangles().IsDeleted(oppositeTriangleInfo.TriangleElementIndex))
         {
             //
@@ -3402,7 +3400,7 @@ Npcs::ProbeWalkResult Npcs::ProbeWalkAhead(
         LogNpcDebug("      Opposite triangle found: ", oppositeTriangleInfo.TriangleElementIndex);
 
         // See whether we've gone around
-        if (oppositeTriangleInfo.TriangleElementIndex == npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex)
+        if (oppositeTriangleInfo.TriangleElementIndex == initialTriangleElementIndex)
         {
             // Time to stop
 
@@ -3423,15 +3421,15 @@ Npcs::ProbeWalkResult Npcs::ProbeWalkAhead(
         // Calculate new current barycentric coords (wrt opposite triangle - note that we haven't moved)
         bcoords3f newBarycentricCoords; // In new triangle
         newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 2) % 3] = 0.0f;
-        newBarycentricCoords[oppositeTriangleInfo.EdgeOrdinal] = currentAbsoluteBCoords.BCoords[(crossedEdgeOrdinal + 1) % 3];
-        newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 1) % 3] = currentAbsoluteBCoords.BCoords[crossedEdgeOrdinal];
+        newBarycentricCoords[oppositeTriangleInfo.EdgeOrdinal] = currentBCoords.BCoords[(crossedEdgeOrdinal + 1) % 3];
+        newBarycentricCoords[(oppositeTriangleInfo.EdgeOrdinal + 1) % 3] = currentBCoords.BCoords[crossedEdgeOrdinal];
 
-        LogNpcDebug("        B-Coords: ", currentAbsoluteBCoords.BCoords, " -> ", newBarycentricCoords);
+        LogNpcDebug("        B-Coords: ", currentBCoords.BCoords, " -> ", newBarycentricCoords);
 
         assert(newBarycentricCoords.is_on_edge_or_internal());
 
         // Move to triangle and b-coords
-        currentAbsoluteBCoords = AbsoluteTriangleBCoords(oppositeTriangleInfo.TriangleElementIndex, newBarycentricCoords);
+        currentBCoords = AbsoluteTriangleBCoords(oppositeTriangleInfo.TriangleElementIndex, newBarycentricCoords);
 
         // New vertex: we know that coord of vertex opposite of crossed edge (i.e. vertex with ordinal crossed_edge+2) is 0.0
         if (newBarycentricCoords[oppositeTriangleInfo.EdgeOrdinal] == 0.0f)
@@ -3467,6 +3465,61 @@ Npcs::ProbeWalkResult Npcs::ProbeWalkAhead(
     }
 
     return result;
+}
+
+bool Npcs::CanWalkInDirection(
+    StateType const & npc,
+    TriangleAndEdge const & edgeBeingWalked,
+    float walkDirectionX)
+{
+    auto const & homeShip = mShips[npc.CurrentShipId]->HomeShip;
+
+    // Build b-coords as if we were at vertex at the end of the edge
+
+    assert(walkDirectionX != 0.0f);
+    int const vertexOrdinal = (walkDirectionX > 0.0f)
+        ? edgeBeingWalked.EdgeOrdinal
+        : (edgeBeingWalked.EdgeOrdinal + 1) % 3;
+
+    bcoords3f bcoords = bcoords3f::zero();
+    bcoords[vertexOrdinal] = 1.0f;
+
+    // Build fake trajectory: from this vertex along another edge
+    auto const & tpointIndices = homeShip.GetTriangles().GetPointIndices(edgeBeingWalked.TriangleElementIndex);
+    vec2f trajectoryEndAbsolutePosition;
+    if (walkDirectionX > 0.0f)
+    {
+        trajectoryEndAbsolutePosition =
+            homeShip.GetPoints().GetPosition(tpointIndices[edgeBeingWalked.EdgeOrdinal])
+            + homeShip.GetPoints().GetPosition(tpointIndices[edgeBeingWalked.EdgeOrdinal])
+            - homeShip.GetPoints().GetPosition(tpointIndices[(edgeBeingWalked.EdgeOrdinal + 1) % 3]);
+    }
+    else
+    {
+        trajectoryEndAbsolutePosition =
+            homeShip.GetPoints().GetPosition(tpointIndices[(edgeBeingWalked.EdgeOrdinal + 1) % 3])
+            + homeShip.GetPoints().GetPosition(tpointIndices[(edgeBeingWalked.EdgeOrdinal + 1) % 3])
+            - homeShip.GetPoints().GetPosition(tpointIndices[edgeBeingWalked.EdgeOrdinal]);
+    }
+
+    bcoords3f const trajectoryEndBarycentricCoords = homeShip.GetTriangles().ToBarycentricCoordinates(
+        trajectoryEndAbsolutePosition,
+        edgeBeingWalked.TriangleElementIndex,
+        homeShip.GetPoints());
+
+    auto const probeResult = ProbeWalkAhead(
+        npc,
+        npc.ParticleMesh.Particles[0].ParticleIndex,
+        AbsoluteTriangleBCoords(edgeBeingWalked.TriangleElementIndex, bcoords),
+        edgeBeingWalked,
+        vertexOrdinal,
+        trajectoryEndAbsolutePosition,
+        trajectoryEndBarycentricCoords,
+        homeShip,
+        mParticles,
+        true); // Only for probing!
+
+    return !probeResult.FloorCandidatesEasySlope.empty() || !probeResult.FloorCandidatesHardSlope.empty();
 }
 
 void Npcs::BounceConstrainedNpcParticle(

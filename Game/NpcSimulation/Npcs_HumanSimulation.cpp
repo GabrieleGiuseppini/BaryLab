@@ -991,9 +991,10 @@ void Npcs::UpdateHuman(
 							// We were last in this triangle and on this edge
 
 							// Check whether we have crossed the last half
+							float const faceDirectionX = npc.KindSpecificState.HumanNpcState.CurrentFaceDirectionX;
 							bool const hasCrossed =
-								!IsInLastHalfOfEdge(walkingState.LastHalfTriangleEdge->EdgeBCoord, npc.KindSpecificState.HumanNpcState.CurrentFaceDirectionX)
-								&& IsInLastHalfOfEdge(primaryParticleConstrainedState.CurrentBCoords.BCoords[walkedEdgeOrdinal], npc.KindSpecificState.HumanNpcState.CurrentFaceDirectionX);
+								!IsInLastHalfOfEdge(walkingState.LastHalfTriangleEdge->EdgeBCoord, faceDirectionX)
+								&& IsInLastHalfOfEdge(primaryParticleConstrainedState.CurrentBCoords.BCoords[walkedEdgeOrdinal], faceDirectionX);
 
 							// Update state
 							walkingState.LastHalfTriangleEdge->EdgeBCoord = primaryParticleConstrainedState.CurrentBCoords.BCoords[walkedEdgeOrdinal];
@@ -1007,7 +1008,7 @@ void Npcs::UpdateHuman(
 								LogNpcDebug2("Crossed half-edge");
 
 								// Check if we've crossed too many times
-								if (walkingState.LastHalfTriangleEdge->NumberOfTimesHalfEdgeHasBeenCrossed == 3)
+								if (walkingState.LastHalfTriangleEdge->NumberOfTimesHalfEdgeHasBeenCrossed >= 4)
 								{
 									LogNpcDebug2("Crossed half-edge too many times")
 									// TODOHERE: transition and leave
@@ -1017,7 +1018,21 @@ void Npcs::UpdateHuman(
 								// Plan ahead
 								//
 
-								// TODOHERE
+								if (!CanWalkInDirection(npc, *primaryParticleConstrainedState.CurrentVirtualFloor, faceDirectionX))
+								{
+									LogNpcDebug2("Cannot continue walking along face direction");
+
+									//
+									// Flip
+									//
+									// We'll figure out whether we're stuck also in other direction after we cross the half-triangle again
+									// enough times
+									//
+									// Also flip when under panic, that will make for funny fall-on-back
+									//
+
+									FlipHumanWalk(humanState, StrongTypedTrue<_DoImmediate>);
+								}
 
 								//
 								// Update number of times we've crossed
