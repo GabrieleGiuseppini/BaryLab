@@ -2490,6 +2490,12 @@ void Npcs::Publish() const
                     break;
                 }
 
+                case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_WalkingUndecided:
+                {
+                    mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_WalkingUndecided");
+                    break;
+                }
+
                 case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Free_Aerial:
                 {
                     mGameEventHandler->OnHumanNpcBehaviorChanged("Free_Aerial");
@@ -4478,6 +4484,47 @@ void Npcs::UpdateNpcAnimation(
                 break;
             }
 
+            case HumanNpcStateType::BehaviorType::Constrained_WalkingUndecided:
+            {
+                float constexpr PhaseDurationFraction = 0.2f;
+
+                //
+                // Arms:
+                //     fraction of duration : arms rising up
+                //     fraction of duration : arms falling down
+                //     remaining : nothing
+                //
+
+                float constexpr MaxArmAngle = Pi<float> / 2.0f * 0.75f;
+
+                float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
+
+                float armAngle;
+                if (elapsed < WalkingUndecidedDuration * PhaseDurationFraction)
+                {
+                    armAngle = MaxArmAngle * elapsed / (WalkingUndecidedDuration * PhaseDurationFraction);
+                    convergenceRate = 0.15f;
+                }
+                else
+                {
+                    armAngle = 0.0f;
+                    convergenceRate = 0.09f;
+                }
+
+                targetAngles.RightArm = armAngle;
+                targetAngles.LeftArm = -armAngle;
+
+                //
+                // Legs:
+                //     closed
+                //
+
+                targetAngles.RightLeg = 0.1f;
+                targetAngles.LeftLeg = -0.1f;
+
+                break;
+            }
+
             case HumanNpcStateType::BehaviorType::Constrained_Electrified:
             {
                 // Random dance with silly fast movements
@@ -5003,6 +5050,7 @@ void Npcs::UpdateNpcAnimation(
 
             case HumanNpcStateType::BehaviorType::BeingPlaced:
             case HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
+            case HumanNpcStateType::BehaviorType::Constrained_WalkingUndecided:
             case HumanNpcStateType::BehaviorType::Constrained_Falling:
             case HumanNpcStateType::BehaviorType::Constrained_KnockedOut:
             case HumanNpcStateType::BehaviorType::Constrained_Aerial:

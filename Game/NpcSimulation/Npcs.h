@@ -255,6 +255,7 @@ private:
 					Constrained_Rising, // Tries to stand up (appliying torque)
 					Constrained_Equilibrium, // Stands up; continues to adjust alignment with torque
 					Constrained_Walking, // Walks; continues to adjust alignment with torque
+					Constrained_WalkingUndecided, // Small pause while walking
 
 					Constrained_InWater, // Does nothing (like Constrained_Aerial), but waits to swim
 					Constrained_Swimming_Style1, // Swims
@@ -369,7 +370,7 @@ private:
 							ElementIndex TriangleElementIndex;
 							int EdgeOrdinal;
 							float EdgeBCoord;
-							size_t NumberOfTimesHalfEdgeHasBeenCrossed;
+							size_t NumberOfTimesHasFlipped;
 						};
 						std::optional<LastHalfTriangleEdgeType> LastHalfTriangleEdge;
 
@@ -381,6 +382,13 @@ private:
 							LastHalfTriangleEdge.reset();
 						}
 					} Constrained_Walking;
+
+					struct Constrained_WalkingUndecidedType
+					{
+						void Reset()
+						{
+						}
+					} Constrained_WalkingUndecided;
 
 					struct Constrained_InWaterType
 					{
@@ -624,6 +632,12 @@ private:
 						case BehaviorType::Constrained_Walking:
 						{
 							CurrentBehaviorState.Constrained_Walking.Reset();
+							break;
+						}
+
+						case BehaviorType::Constrained_WalkingUndecided:
+						{
+							CurrentBehaviorState.Constrained_WalkingUndecided.Reset();
 							break;
 						}
 
@@ -1901,6 +1915,14 @@ private:
 			* (1.0f + std::min(humanState.ResultantPanicLevel, 1.0f) * 3.0f),
 			GameParameters::MaxHumanNpcTotalWalkingSpeedAdjustment); // Absolute cap
 	}
+
+private:
+
+	//
+	// Constants
+	//
+
+	static float constexpr WalkingUndecidedDuration = 3.0f;
 
 private:
 
