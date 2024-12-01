@@ -771,23 +771,46 @@ void Npcs::UpdateHuman(
 
 			if (doTransitionToWalking)
 			{
-				// Transition to walking
+				// See if we can choose a direction
+				auto const direction = DecideWalkingDirection(npc, primaryParticleState, homeShip);
+				if (!direction.has_value())
+				{
+					// Transition to undecided
 
-				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Walking, currentSimulationTime);
+					humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_WalkingUndecided, currentSimulationTime);
 
-				// Face: 0/rnd
-				// TODOHERE: choose based on viability
-				humanState.CurrentFaceOrientation = 0.0f;
-				humanState.CurrentFaceDirectionX = GameRandomEngine::GetInstance().GenerateUniformBoolean(0.5f) ? +1.0f : -1.0f;
+					// Face: 1.0/0.0
+					humanState.CurrentFaceOrientation = 1.0f;
+					humanState.CurrentFaceDirectionX = 0.0f;
 
-				// Keep torque
+					// Keep torque
 
 #ifdef BARYLAB_PROBING
-				if (npc.Id == mCurrentlySelectedNpc)
-				{
-					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Walking");
-				}
+					if (npc.Id == mCurrentlySelectedNpc)
+					{
+						mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_WalkingUndecided");
+					}
 #endif
+				}
+				else
+				{
+					// Transition to walking
+
+					humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Walking, currentSimulationTime);
+
+					// Face: 0/chosen
+					humanState.CurrentFaceOrientation = 0.0f;
+					humanState.CurrentFaceDirectionX = *direction;
+
+					// Keep torque
+
+#ifdef BARYLAB_PROBING
+					if (npc.Id == mCurrentlySelectedNpc)
+					{
+						mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Walking");
+					}
+#endif
+				}
 
 				break;
 			}
@@ -1032,15 +1055,15 @@ void Npcs::UpdateHuman(
 								// Just crossed
 								//
 
-								LogNpcDebug2("Crossed half-edge");
+								LogNpcDebug("Crossed half-edge");
 
 								//
 								// Plan ahead
 								//
 
-								if (!CanWalkInDirection(npc, *primaryParticleConstrainedState.CurrentVirtualFloor, faceDirectionX))
+								if (!CanWalkInDirection(npc, *primaryParticleConstrainedState.CurrentVirtualFloor, faceDirectionX, homeShip))
 								{
-									LogNpcDebug2("Cannot continue walking along face direction");
+									LogNpcDebug("Cannot continue walking along face direction");
 
 									//
 									// Flip
@@ -1054,7 +1077,7 @@ void Npcs::UpdateHuman(
 									// Check if we've flipped too many times
 									if (walkingState.LastHalfTriangleEdge->NumberOfTimesHasFlipped >= 2)
 									{
-										LogNpcDebug2("Crossed half-edge too many times - transitioning to WalkingUndecided")
+										LogNpcDebug("Crossed half-edge too many times - transitioning to WalkingUndecided")
 
 										// Transition to undecided
 
@@ -1849,6 +1872,41 @@ void Npcs::OnHumanImpact(
 			break;
 		}
 	}
+}
+
+std::optional<float> Npcs::DecideWalkingDirection(
+	StateType const & npc,
+	StateType::NpcParticleStateType const & primaryParticleState,
+	Ship const & homeShip)
+{
+	FixedSizeVector<float, 2> candidates;
+
+	assert(primaryParticleState.ConstrainedState.has_value());
+	if (!primaryParticleState.ConstrainedState->CurrentVirtualFloor.has_value())
+	{
+		// Not much we can do, just choose randomly
+		candidates.emplace_back(1.0f);
+		candidates.emplace_back(-1.0f);
+	}
+	else
+	{
+		if (CanWalkInDirection(npc, *primaryParticleState.ConstrainedState->CurrentVirtualFloor, 1.0f, homeShip))
+		{
+			candidates.emplace_back(1.0f);
+		}
+
+		if (CanWalkInDirection(npc, *primaryParticleState.ConstrainedState->CurrentVirtualFloor, -1.0f, homeShip))
+		{
+			candidates.emplace_back(-1.0f);
+		}
+	}
+
+	if (candidates.empty())
+	{
+		return std::nullopt;
+	}
+
+	return candidates[GameRandomEngine::GetInstance().Choose(candidates.size())];
 }
 
 void Npcs::FlipHumanWalk(

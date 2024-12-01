@@ -1226,8 +1226,8 @@ void Npcs::UpdateNpcParticlePhysics(
                     // to prevent walking on floors that are too steep
                     //
                     // Note: walkDir.y is sin(slope angle between horiz and dir)
-                    float constexpr NeighborhoodWidth = 1.0f - GameParameters::MaxHumanNpcWalkSinSlope;
-                    float constexpr ResistanceSinSlopeStart = GameParameters::MaxHumanNpcWalkSinSlope - NeighborhoodWidth / 2.0f;
+                    float constexpr NeighborhoodWidth = 1.0f - GameParameters::MaxHumanNpcWalkSinSlopeUp;
+                    float constexpr ResistanceSinSlopeStart = GameParameters::MaxHumanNpcWalkSinSlopeUp - NeighborhoodWidth / 2.0f;
                     if (walkDir.y >= ResistanceSinSlopeStart) // walkDir.y is component along vertical, pointing up
                     {
                         float const y2 = (walkDir.y - ResistanceSinSlopeStart) / NeighborhoodWidth;
@@ -3238,7 +3238,7 @@ Npcs::ProbeWalkResult Npcs::ProbeWalkAhead(
             //
             // Check whether it's a viable floor, i.e. whether its direction is:
             //    - x: in direction of movement (including close to 0, i.e. almost vertical)
-            //    - y: lower than MaxHumanNpcWalkSinSlope
+            //    - y: within MaxHumanNpcWalkSinSlopeUp/Down
             //
             // Notes:
             //  - Here we check viability wrt *actual* (resultant physical) movement, rather than *intended* (walkdir) movement
@@ -3254,9 +3254,9 @@ Npcs::ProbeWalkResult Npcs::ProbeWalkAhead(
                 crossedEdgeDir.x < 0.0f
                 && (
                     (orientation == RotationDirectionType::CounterClockwise)
-                    ? crossedEdgeDir.y <= GameParameters::MaxHumanNpcWalkSinSlope
-                    : -crossedEdgeDir.y <= GameParameters::MaxHumanNpcWalkSinSlope
-                    );
+                    ? (GameParameters::MinHumanNpcWalkSinSlopeDown <= crossedEdgeDir.y && crossedEdgeDir.y <= GameParameters::MaxHumanNpcWalkSinSlopeUp)
+                    : (GameParameters::MinHumanNpcWalkSinSlopeDown <= -crossedEdgeDir.y && -crossedEdgeDir.y <= GameParameters::MaxHumanNpcWalkSinSlopeUp)
+                );
 
             LogNpcDebug("          Edge is ", isViable ? "viable" : "non-viable", " (edgeDir=", crossedEdgeDir, ")");
 
@@ -3470,10 +3470,9 @@ Npcs::ProbeWalkResult Npcs::ProbeWalkAhead(
 bool Npcs::CanWalkInDirection(
     StateType const & npc,
     TriangleAndEdge const & edgeBeingWalked,
-    float walkDirectionX)
+    float walkDirectionX,
+    Ship const & homeShip)
 {
-    auto const & homeShip = mShips[npc.CurrentShipId]->HomeShip;
-
     // Build b-coords as if we were at vertex at the end of the edge
 
     assert(walkDirectionX != 0.0f);
@@ -3509,7 +3508,7 @@ bool Npcs::CanWalkInDirection(
 
     auto const probeResult = ProbeWalkAhead(
         npc,
-        npc.ParticleMesh.Particles[0].ParticleIndex,
+        0,
         AbsoluteTriangleBCoords(edgeBeingWalked.TriangleElementIndex, bcoords),
         edgeBeingWalked,
         vertexOrdinal,

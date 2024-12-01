@@ -43,10 +43,7 @@
 #endif
 
 #ifdef BARYLAB_LOG_DEBUG
-// TODOTEST
-//#define LogNpcDebug(...) LogDebug(__VA_ARGS__);
-#define LogNpcDebug(...)
-#define LogNpcDebug2(...) LogDebug(__VA_ARGS__);
+#define LogNpcDebug(...) LogDebug(__VA_ARGS__);
 #else
 #define LogNpcDebug(...)
 #endif
@@ -1535,7 +1532,8 @@ private:
 	bool CanWalkInDirection(
 		StateType const & npc,
 		TriangleAndEdge const & edgeBeingWalked,
-		float walkDirectionX);
+		float walkDirectionX,
+		Ship const & homeShip);
 
 	void BounceConstrainedNpcParticle(
 		StateType & npc,
@@ -1887,6 +1885,11 @@ private:
 		vec2f const & normalResponse,
 		vec2f const & bounceEdgeNormal,
 		float currentSimulationTime) const;
+
+	std::optional<float> DecideWalkingDirection(
+		StateType const & npc,
+		StateType::NpcParticleStateType const & primaryParticleState,
+		Ship const & homeShip);
 
 	using DoImmediate = StrongTypedBool<struct _DoImmediate>;
 
