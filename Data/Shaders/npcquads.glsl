@@ -7,20 +7,24 @@
 
 // Inputs
 in vec2 inNpcQuadAttributeGroup1; // Position
-in vec4 inNpcQuadAttributeGroup2; // PlaneId, OverlayColor
-in vec4 inNpcQuadAttributeGroup3; // Alpha, VertexSpacePosition, Light
+in vec4 inNpcQuadAttributeGroup2; // PlaneId, Alpha, HighlightAlpha, RemovalProgress
+in vec3 inNpcQuadAttributeGroup3; // VertexSpacePosition, Light
 
 // Outputs        
 out vec2 vertexSpacePosition;
-out vec3 vertexOverlayColor;
+out float vertexAlpha;
+out float vertexHighlightAlpha;
+out float vertexRemovalProgress;
 
 // Params
 uniform mat4 paramOrthoMatrix;
 
 void main()
 {
-    vertexSpacePosition = inNpcQuadAttributeGroup3.yz;
-    vertexOverlayColor = inNpcQuadAttributeGroup2.yzw;
+    vertexSpacePosition = inNpcQuadAttributeGroup3.xy;
+    vertexAlpha = inNpcQuadAttributeGroup2.y;
+    vertexHighlightAlpha = inNpcQuadAttributeGroup2.z;
+    vertexRemovalProgress = inNpcQuadAttributeGroup2.w;
 
     gl_Position = paramOrthoMatrix * vec4(inNpcQuadAttributeGroup1.xy, -1.0, 1.0);
 }
@@ -33,7 +37,9 @@ void main()
 
 // Inputs from previous shader        
 in vec2 vertexSpacePosition; // [(-1.0, -1.0), (1.0, 1.0)]
-in vec3 vertexOverlayColor;
+in float vertexAlpha;
+in float vertexHighlightAlpha;
+in float vertexRemovalProgress;
 
 void main()
 {
@@ -63,9 +69,11 @@ void main()
     // (Target > 0.5) * (1 – (1-2*(Target-0.5)) * (1-Blend)) +
     // (Target <= 0.5) * lerp(Target, Blend, alphaMagic)
 
+    vec3 overlayColor = vec3(1.0, 0.21, 0.08);
+
     vec3 IsTargetLarge = step(vec3(0.5), c.rgb);
-    vec3 TargetHigh = 1. - (1. - (c.rgb - .5) * 2.) * (1. - vertexOverlayColor.rgb);
-    vec3 TargetLow = mix(c.rgb, vertexOverlayColor.rgb, 0.6);
+    vec3 TargetHigh = 1. - (1. - (c.rgb - .5) * 2.) * (1. - overlayColor.rgb);
+    vec3 TargetLow = mix(c.rgb, overlayColor.rgb, 0.6);
 
     vec3 ovCol =
         IsTargetLarge * TargetHigh
@@ -74,7 +82,9 @@ void main()
     c.rgb = mix(
         c.rgb,
         ovCol,
-        step(0.0001, vertexOverlayColor.r + vertexOverlayColor.g + vertexOverlayColor.b) * c.a);
+        vertexHighlightAlpha * c.a);
+
+    c.a *= vertexAlpha;
 
     gl_FragColor = c;
 } 

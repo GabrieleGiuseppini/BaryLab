@@ -924,7 +924,7 @@ void LabController::RemoveNpc(NpcId id)
 {
     assert(!!mWorld);
 
-    mWorld->GetNpcs().RemoveNpc(id);
+    mWorld->GetNpcs().RemoveNpc(id, mCurrentSimulationTime);
 
     if (id == mWorld->GetNpcs().GetCurrentlySelectedNpc())
     {

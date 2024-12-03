@@ -135,6 +135,7 @@ void Npcs::ResetNpcStateToWorld(
     // Regime
 
     npc.CurrentRegime = CalculateRegime(npc);
+    // Caller will check regime change
 
     // Kind specific
 
@@ -316,6 +317,8 @@ void Npcs::UpdateNpcs(
     LogNpcDebug("----------------------------------");
     LogNpcDebug("----------------------------------");
 
+    assert(mDeferredRemovalNpcs.empty());
+
     //
     // 1. Reset buffers
     //
@@ -351,7 +354,8 @@ void Npcs::UpdateNpcs(
 
     for (auto & npcState : mStateBuffer)
     {
-        if (npcState.has_value())
+        if (npcState.has_value()
+            && npcState->CurrentRegime != StateType::RegimeType::BeingRemoved) // Do not do physics on BeingRemoved NPCs
         {
             assert(mShips[npcState->CurrentShipId].has_value());
             auto & homeShip = mShips[npcState->CurrentShipId]->HomeShip;
@@ -599,23 +603,42 @@ void Npcs::UpdateNpcs(
             assert(mShips[npcState->CurrentShipId].has_value());
             auto & homeShip = mShips[npcState->CurrentShipId]->HomeShip;
 
-            // Behavior
+            // Behavior and animation
 
-            if (npcState->Kind == NpcKindType::Human)
+            switch (npcState->Kind)
             {
-                UpdateHuman(
-                    *npcState,
-                    currentSimulationTime,
-                    homeShip,
-                    gameParameters);
+                case NpcKindType::Furniture:
+                {
+                    UpdateFurniture(
+                        *npcState,
+                        currentSimulationTime,
+                        homeShip,
+                        gameParameters);
+
+                    UpdateFurnitureNpcAnimation(
+                        *npcState,
+                        currentSimulationTime,
+                        homeShip);
+
+                    break;
+                }
+
+                case NpcKindType::Human:
+                {
+                    UpdateHuman(
+                        *npcState,
+                        currentSimulationTime,
+                        homeShip,
+                        gameParameters);
+
+                    UpdateHumanNpcAnimation(
+                        *npcState,
+                        currentSimulationTime,
+                        homeShip);
+
+                    break;
+                }
             }
-
-            // Animation
-
-            UpdateNpcAnimation(
-                *npcState,
-                currentSimulationTime,
-                homeShip);
 
             // Light
 
@@ -640,6 +663,33 @@ void Npcs::UpdateNpcs(
 
                 mParticles.SetLight(npcState->ParticleMesh.Particles[p].ParticleIndex, light);
             }
+        }
+    }
+
+    //
+    // 11. Deferred NPC removal
+    //
+
+    LogNpcDebug("----------------------------------");
+
+    if (!mDeferredRemovalNpcs.empty())
+    {
+        bool humanStatsUpdated = false;
+
+        for (auto const npcId : mDeferredRemovalNpcs)
+        {
+            assert(mStateBuffer[npcId].has_value());
+            assert(mStateBuffer[npcId]->CurrentRegime == StateType::RegimeType::BeingRemoved);
+
+            bool _humanStatsUpdated = InternalDeleteNpc(npcId);
+            humanStatsUpdated |= _humanStatsUpdated;
+        }
+
+        mDeferredRemovalNpcs.clear();
+
+        if (humanStatsUpdated)
+        {
+            PublishHumanNpcStats();
         }
     }
 }

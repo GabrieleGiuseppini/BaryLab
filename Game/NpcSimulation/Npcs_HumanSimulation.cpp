@@ -40,6 +40,46 @@ Npcs::StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType Npcs::Ca
 	}
 }
 
+void Npcs::UpdateFurniture(
+	StateType & npc,
+	float currentSimulationTime,
+	Ship & /*homeShip*/ ,
+	GameParameters const & /*gameParameters*/)
+{
+	assert(npc.Kind == NpcKindType::Furniture);
+	auto & furnitureState = npc.KindSpecificState.FurnitureNpcState;
+	using FurnitureNpcStateType = StateType::KindSpecificStateType::FurnitureNpcStateType;
+
+	//
+	// Process furniture
+	//
+
+	LogNpcDebug("CurrentBehavior: ", int(furnitureState.CurrentBehavior));
+
+	switch (furnitureState.CurrentBehavior)
+	{
+		case FurnitureNpcStateType::BehaviorType::Default:
+		{
+			// Nop
+			break;
+		}
+
+		case FurnitureNpcStateType::BehaviorType::BeingRemoved:
+		{
+			// See if we're done
+			float const elapsed = currentSimulationTime - furnitureState.CurrentStateTransitionSimulationTimestamp;
+			if (elapsed >= FurnitureRemovalDuration)
+			{
+				// Deferred removal
+				assert(std::find(mDeferredRemovalNpcs.cbegin(), mDeferredRemovalNpcs.cend(), npc.Id) == mDeferredRemovalNpcs.cend());
+				mDeferredRemovalNpcs.emplace_back(npc.Id);
+			}
+
+			break;
+		}
+	}
+}
+
 void Npcs::UpdateHuman(
 	StateType & npc,
 	float currentSimulationTime,
@@ -1661,6 +1701,30 @@ void Npcs::UpdateHuman(
 				}
 
 				break;
+			}
+
+			break;
+		}
+
+		case HumanNpcStateType::BehaviorType::BeingRemoved:
+		{
+			// See if we're done
+			float const elapsed = currentSimulationTime - humanState.CurrentStateTransitionSimulationTimestamp;
+			if (elapsed >= HumanRemovalDuration)
+			{
+				// Deferred removal
+				assert(std::find(mDeferredRemovalNpcs.cbegin(), mDeferredRemovalNpcs.cend(), npc.Id) == mDeferredRemovalNpcs.cend());
+				mDeferredRemovalNpcs.emplace_back(npc.Id);
+			}
+			else
+			{
+				// Make upright
+
+				// TODOHERE
+
+				// Rotate
+
+				// TODOHERE
 			}
 
 			break;
