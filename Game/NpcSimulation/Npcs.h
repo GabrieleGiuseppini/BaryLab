@@ -560,7 +560,7 @@ private:
 						float NextRotationSimulationTimestamp;
 						void Reset(float currentSimulationTime)
 						{
-							NextRotationSimulationTimestamp = currentSimulationTime + HumanRemovalDuration / 9.0f;
+							NextRotationSimulationTimestamp = currentSimulationTime + HumanRemovalDelay * 1.5f;
 						}
 					} BeingRemoved;
 
@@ -2054,6 +2054,8 @@ private:
 
 	static float constexpr FurnitureRemovalDuration = 1.0f;
 	static float constexpr HumanRemovalDuration = 4.0f;
+	static float constexpr HumanRemovalDelay = 0.7f;
+	static_assert(HumanRemovalDelay < HumanRemovalDuration);
 
 private:
 

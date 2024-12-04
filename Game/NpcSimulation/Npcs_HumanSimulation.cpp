@@ -1718,14 +1718,21 @@ void Npcs::UpdateHuman(
 			}
 			else
 			{
+				float afterDelayElapsed = std::max(elapsed - HumanRemovalDelay, 0.0f);
+				float constexpr AfterDelayDuration = HumanRemovalDuration - HumanRemovalDelay;
+
 				// Make upright
 
 				auto & headPosition = mParticles.GetPosition(secondaryParticleState.ParticleIndex);
 				auto & feetPosition = mParticles.GetPosition(primaryParticleState.ParticleIndex);
-				vec2f const humanVector = headPosition - feetPosition;
-				float const actualAngleCW = humanVector.angleCw(vec2f(0.0f, 1.0f));
-				float const deltaAngleCW = - actualAngleCW * 0.025f;
-				headPosition = feetPosition + humanVector.rotate(deltaAngleCW);
+
+				if (afterDelayElapsed > 0.0f)
+				{
+					vec2f const humanVector = headPosition - feetPosition;
+					float const actualAngleCW = humanVector.angleCw(vec2f(0.0f, 1.0f));
+					float const deltaAngleCW = -actualAngleCW * 0.015f;
+					headPosition = feetPosition + humanVector.rotate(deltaAngleCW);
+				}
 
 				// Traslate up
 
@@ -1762,7 +1769,7 @@ void Npcs::UpdateHuman(
 					// Calculate next rotation timestamp
 					humanState.CurrentBehaviorState.BeingRemoved.NextRotationSimulationTimestamp =
 						currentSimulationTime
-						+ (HumanRemovalDuration / 9.0f) / (1.0f + elapsed * 4.0f);
+						+ HumanRemovalDelay / (1.0f + elapsed * 4.0f);
 				}
 			}
 

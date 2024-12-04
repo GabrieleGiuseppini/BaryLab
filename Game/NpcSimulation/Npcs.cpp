@@ -5041,47 +5041,54 @@ void Npcs::UpdateHumanNpcAnimation(
         case HumanNpcStateType::BehaviorType::BeingRemoved:
         {
             float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
-
-            //
-            // Arms and legs
-            //
-            // Based on time elapsed, as we want to move immediate due to orientation dependency
-            //
-
-            if (humanNpcState.CurrentFaceDirectionX == 0.0f)
+            if (elapsed >= HumanRemovalDelay)
             {
-                targetAngles.RightArm = 0.0f;
-                targetAngles.LeftArm = 0.0f;
-                targetAngles.RightLeg = 0.0f;
-                targetAngles.LeftLeg = 0.0f;
+                float const actualElapsed = elapsed - HumanRemovalDelay;
+                float constexpr ActualRemovalDuration = HumanRemovalDuration - HumanRemovalDelay;
+
+                //
+                // Arms and legs
+                //
+                // Based on time elapsed, as we want to move immediate due to orientation dependency
+                //
+
+                if (humanNpcState.CurrentFaceDirectionX == 0.0f)
+                {
+                    targetAngles.RightArm = 0.0f;
+                    targetAngles.LeftArm = 0.0f;
+                    targetAngles.RightLeg = 0.0f;
+                    targetAngles.LeftLeg = 0.0f;
+
+                    // TODOHERE: arms' lengths
+                }
+                else
+                {
+                    float constexpr LimbsDurationFraction = 0.5f;
+                    float const targetDepth = std::min(elapsed / (ActualRemovalDuration * LimbsDurationFraction), 1.0f);
+
+                    float constexpr EndArmAngle = Pi<float> *3.0f / 7.0f;
+                    targetAngles.RightArm = EndArmAngle * targetDepth;
+                    targetAngles.LeftArm = -EndArmAngle * targetDepth;
+
+                    targetAngles.RightLeg = 0.0f;
+                    targetAngles.LeftLeg = 0.0f;
+                }
+
+                convergenceRate = 1.0f;
+
+
+                //
+                // Alpha and RemovalProgress
+                //
+
+                // Alpha: from AlphaStart until End
+                float constexpr AlphaStartFraction = 0.9f;
+                animationState.Alpha = 1.0f - Clamp((elapsed - ActualRemovalDuration * AlphaStartFraction) / (ActualRemovalDuration * (1.0f - AlphaStartFraction)), 0.0f, 1.0f);
+
+                // Removal: from RemovalStart until End
+                float constexpr RemovalStartFraction = 0.2f;
+                animationState.RemovalProgress = Clamp((elapsed - ActualRemovalDuration * RemovalStartFraction) / (ActualRemovalDuration * (1.0f - RemovalStartFraction)), 0.0f, 1.0f);
             }
-            else
-            {
-                float constexpr LimbsDurationFraction = 0.5f;
-                float const targetDepth = std::min(elapsed / (HumanRemovalDuration * LimbsDurationFraction), 1.0f);
-
-                float constexpr EndArmAngle = Pi<float> * 3.0f / 7.0f;
-                targetAngles.RightArm = EndArmAngle * targetDepth;
-                targetAngles.LeftArm = -EndArmAngle * targetDepth;
-
-                targetAngles.RightLeg = 0.0f;
-                targetAngles.LeftLeg = 0.0f;
-            }
-
-            convergenceRate = 1.0f;
-
-
-            //
-            // Alpha and RemovalProgress
-            //
-
-            // Alpha: from AlphaStart until End
-            float constexpr AlphaStartFraction = 0.9f;
-            animationState.Alpha = 1.0f - Clamp((elapsed - HumanRemovalDuration * AlphaStartFraction) / (HumanRemovalDuration * (1.0f - AlphaStartFraction)), 0.0f, 1.0f);
-
-            // Removal: from RemovalStart until End
-            float constexpr RemovalStartFraction = 0.2f;
-            animationState.RemovalProgress = Clamp((elapsed - HumanRemovalDuration * RemovalStartFraction) / (HumanRemovalDuration * (1.0f - RemovalStartFraction)), 0.0f, 1.0f);
 
             break;
         }
