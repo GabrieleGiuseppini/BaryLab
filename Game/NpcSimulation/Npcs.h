@@ -315,6 +315,8 @@ private:
 
 			struct HumanNpcStateType final
 			{
+				struct AnimationStateType; // FW-declaration
+
 				NpcSubKindIdType const SubKindId;
 				NpcHumanRoleType const Role;
 				float const WidthMultipier; // Randomization
@@ -558,9 +560,11 @@ private:
 					struct BeingRemovedStateType
 					{
 						float NextRotationSimulationTimestamp;
-						void Reset(float currentSimulationTime)
+						LimbVector WorkingLimbAngles; // We cheat here - this is the working set, AnimationState's the "immediate" set
+						void Reset(AnimationStateType const & animationState, float currentSimulationTime)
 						{
-							NextRotationSimulationTimestamp = currentSimulationTime + HumanRemovalDelay * 1.5f;
+							NextRotationSimulationTimestamp = currentSimulationTime + HumanRemovalDelay * 1.2f;
+							WorkingLimbAngles = animationState.LimbAngles;
 						}
 					} BeingRemoved;
 
@@ -771,7 +775,7 @@ private:
 
 						case BehaviorType::BeingRemoved:
 						{
-							CurrentBehaviorState.BeingRemoved.Reset(currentSimulationTime);
+							CurrentBehaviorState.BeingRemoved.Reset(AnimationState, currentSimulationTime);
 							break;
 						}
 					}
@@ -2053,8 +2057,8 @@ private:
 	static float constexpr WalkingUndecidedDuration = 3.0f;
 
 	static float constexpr FurnitureRemovalDuration = 1.0f;
-	static float constexpr HumanRemovalDuration = 4.0f;
-	static float constexpr HumanRemovalDelay = 0.7f;
+	static float constexpr HumanRemovalDuration = 3.5f;
+	static float constexpr HumanRemovalDelay = 0.5f;
 	static_assert(HumanRemovalDelay < HumanRemovalDuration);
 
 private:

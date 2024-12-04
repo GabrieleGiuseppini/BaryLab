@@ -1730,7 +1730,7 @@ void Npcs::UpdateHuman(
 				{
 					vec2f const humanVector = headPosition - feetPosition;
 					float const actualAngleCW = humanVector.angleCw(vec2f(0.0f, 1.0f));
-					float const deltaAngleCW = -actualAngleCW * 0.015f;
+					float const deltaAngleCW = -actualAngleCW * 0.018f;
 					headPosition = feetPosition + humanVector.rotate(deltaAngleCW);
 				}
 
