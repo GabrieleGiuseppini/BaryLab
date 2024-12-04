@@ -2630,7 +2630,7 @@ void Npcs::InternalBeginMoveNpc(
 
     // Change regime
     npc.CurrentRegime = StateType::RegimeType::BeingPlaced;
-    OnMayBeNpcRegimeChanged(oldRegime, npc);
+    // Do not check regime change
 
     if (npc.Kind == NpcKindType::Human)
     {
@@ -5040,24 +5040,40 @@ void Npcs::UpdateHumanNpcAnimation(
 
         case HumanNpcStateType::BehaviorType::BeingRemoved:
         {
+            float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
+
             //
             // Arms and legs
             //
+            // Based on time elapsed, as we want to move immediate due to orientation dependency
+            //
 
-            targetAngles.RightArm = Pi<float> * 3.0f / 8.0f;
-            targetAngles.LeftArm = -targetAngles.RightArm;
+            if (humanNpcState.CurrentFaceDirectionX == 0.0f)
+            {
+                targetAngles.RightArm = 0.0f;
+                targetAngles.LeftArm = 0.0f;
+                targetAngles.RightLeg = 0.0f;
+                targetAngles.LeftLeg = 0.0f;
+            }
+            else
+            {
+                float constexpr LimbsDurationFraction = 0.5f;
+                float const targetDepth = std::min(elapsed / (HumanRemovalDuration * LimbsDurationFraction), 1.0f);
 
-            targetAngles.RightLeg = 0.0f;
-            targetAngles.LeftLeg = 0.0f;
+                float constexpr EndArmAngle = Pi<float> * 3.0f / 7.0f;
+                targetAngles.RightArm = EndArmAngle * targetDepth;
+                targetAngles.LeftArm = -EndArmAngle * targetDepth;
 
-            convergenceRate = 0.025f;
+                targetAngles.RightLeg = 0.0f;
+                targetAngles.LeftLeg = 0.0f;
+            }
+
+            convergenceRate = 1.0f;
 
 
             //
             // Alpha and RemovalProgress
             //
-
-            float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
 
             // Alpha: from AlphaStart until End
             float constexpr AlphaStartFraction = 0.9f;

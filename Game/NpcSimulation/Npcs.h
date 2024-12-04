@@ -557,8 +557,10 @@ private:
 
 					struct BeingRemovedStateType
 					{
-						void Reset()
+						float NextRotationSimulationTimestamp;
+						void Reset(float currentSimulationTime)
 						{
+							NextRotationSimulationTimestamp = currentSimulationTime + HumanRemovalDuration / 9.0f;
 						}
 					} BeingRemoved;
 
@@ -769,7 +771,7 @@ private:
 
 						case BehaviorType::BeingRemoved:
 						{
-							CurrentBehaviorState.BeingRemoved.Reset();
+							CurrentBehaviorState.BeingRemoved.Reset(currentSimulationTime);
 							break;
 						}
 					}

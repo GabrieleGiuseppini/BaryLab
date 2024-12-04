@@ -1720,11 +1720,50 @@ void Npcs::UpdateHuman(
 			{
 				// Make upright
 
-				// TODOHERE
+				auto & headPosition = mParticles.GetPosition(secondaryParticleState.ParticleIndex);
+				auto & feetPosition = mParticles.GetPosition(primaryParticleState.ParticleIndex);
+				vec2f const humanVector = headPosition - feetPosition;
+				float const actualAngleCW = humanVector.angleCw(vec2f(0.0f, 1.0f));
+				float const deltaAngleCW = - actualAngleCW * 0.025f;
+				headPosition = feetPosition + humanVector.rotate(deltaAngleCW);
+
+				// Traslate up
+
+				vec2f const upTraslation = vec2f(0.0f, GameParameters::SimulationStepTimeDuration<float> / HumanRemovalDuration);
+				headPosition += upTraslation;
+				feetPosition += upTraslation;
 
 				// Rotate
 
-				// TODOHERE
+				if (currentSimulationTime > humanState.CurrentBehaviorState.BeingRemoved.NextRotationSimulationTimestamp)
+				{
+					if (humanState.CurrentFaceOrientation == 1.0f)
+					{
+						humanState.CurrentFaceDirectionX = -1.0f;
+						humanState.CurrentFaceOrientation = 0.0f;
+					}
+					else if (humanState.CurrentFaceDirectionX == -1.0f)
+					{
+						humanState.CurrentFaceDirectionX = 0.0f;
+						humanState.CurrentFaceOrientation = -1.0f;
+					}
+					else if (humanState.CurrentFaceOrientation == -1.0f)
+					{
+						humanState.CurrentFaceDirectionX = 1.0f;
+						humanState.CurrentFaceOrientation = 0.0f;
+					}
+					else
+					{
+						assert(humanState.CurrentFaceDirectionX == 1.0f);
+						humanState.CurrentFaceDirectionX = 0.0f;
+						humanState.CurrentFaceOrientation = 1.0f;
+					}
+
+					// Calculate next rotation timestamp
+					humanState.CurrentBehaviorState.BeingRemoved.NextRotationSimulationTimestamp =
+						currentSimulationTime
+						+ (HumanRemovalDuration / 9.0f) / (1.0f + elapsed * 4.0f);
+				}
 			}
 
 			break;

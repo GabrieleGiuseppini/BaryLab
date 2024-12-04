@@ -607,5 +607,4 @@ void ProbeToolbar::OnHumanNpcCountsUpdated(
 {
     mHumanNpcInsideShipCountTextCtrl->SetValue(std::to_string(insideShipCount));
     mHumanNpcOutsideShipCountTextCtrl->SetValue(std::to_string(outsideShipCount));
-
 }
