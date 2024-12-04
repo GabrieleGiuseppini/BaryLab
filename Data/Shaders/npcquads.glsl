@@ -69,11 +69,10 @@ void main()
     float p = vertexRemovalProgress * vertexRemovalProgress;    
     // Luminosity
     float lum = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
-    //lum += fwidth(lum) * 10.;
     float lDepth = (lum + p) * p * 1.5;
 
     c.rgb = min(
-        vec3(1.),
+        lCol,
         c.rgb + lCol * lDepth);
 
     // Apply highlight (overlay blending mode)

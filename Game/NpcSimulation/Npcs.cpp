@@ -5047,21 +5047,23 @@ void Npcs::UpdateHumanNpcAnimation(
 
         case HumanNpcStateType::BehaviorType::BeingRemoved:
         {
+            float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
+
             //
             // Arms and legs
             //
 
-            float constexpr ConvergenceRate = 0.015f;
+            float const workingConvergenceRate = 0.02f * Clamp((elapsed - 0.5f) / 0.5f, 0.0f, 1.0f);
 
             auto & workingAngles = humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles;
 
             float constexpr EndArmAngle = Pi<float> * 1.0f / 2.0f;
-            workingAngles.RightArm += (EndArmAngle - workingAngles.RightArm) * ConvergenceRate;
-            workingAngles.LeftArm += (-EndArmAngle - workingAngles.LeftArm) * ConvergenceRate;
+            workingAngles.RightArm += (EndArmAngle - workingAngles.RightArm) * workingConvergenceRate;
+            workingAngles.LeftArm += (-EndArmAngle - workingAngles.LeftArm) * workingConvergenceRate;
 
             float constexpr EndLegAngle = 0.0;
-            workingAngles.RightLeg += (EndLegAngle - workingAngles.RightLeg) * ConvergenceRate;
-            workingAngles.LeftLeg += (-EndLegAngle - workingAngles.LeftLeg) * ConvergenceRate;
+            workingAngles.RightLeg += (EndLegAngle - workingAngles.RightLeg) * workingConvergenceRate;
+            workingAngles.LeftLeg += (-EndLegAngle - workingAngles.LeftLeg) * workingConvergenceRate;
 
             if (humanNpcState.CurrentFaceOrientation == 0.0f)
             {
@@ -5077,7 +5079,6 @@ void Npcs::UpdateHumanNpcAnimation(
 
             convergenceRate = 1.0f;
 
-            float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
             if (elapsed >= HumanRemovalDelay)
             {
                 //
@@ -5091,9 +5092,9 @@ void Npcs::UpdateHumanNpcAnimation(
                 float constexpr AlphaStartFraction = 0.9f;
                 animationState.Alpha = 1.0f - Clamp((actualElapsed - ActualRemovalDuration * AlphaStartFraction) / (ActualRemovalDuration * (1.0f - AlphaStartFraction)), 0.0f, 1.0f);
 
-                // Removal: from RemovalStart until End
+                // Removal: from RemovalStart until End-e
                 float constexpr RemovalStartFraction = 0.2f;
-                animationState.RemovalProgress = Clamp((actualElapsed - ActualRemovalDuration * RemovalStartFraction) / (ActualRemovalDuration * (1.0f - RemovalStartFraction)), 0.0f, 1.0f);
+                animationState.RemovalProgress = Clamp((actualElapsed - ActualRemovalDuration * RemovalStartFraction) / (ActualRemovalDuration * (1.0f - RemovalStartFraction) * 0.9f), 0.0f, 1.0f);
             }
 
             break;
