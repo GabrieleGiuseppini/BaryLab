@@ -1769,7 +1769,7 @@ void Npcs::UpdateHuman(
 					// Calculate next rotation timestamp
 					humanState.CurrentBehaviorState.BeingRemoved.NextRotationSimulationTimestamp =
 						currentSimulationTime
-						+ HumanRemovalDelay / (1.0f + elapsed * 4.0f);
+						+ HumanRemovalDelay / (1.0f + afterDelayElapsed * 3.0f);
 				}
 			}
 

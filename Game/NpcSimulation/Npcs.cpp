@@ -2711,6 +2711,13 @@ void Npcs::InternalBeginNpcRemoval(
                 StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::BeingRemoved,
                 currentSimulationTime);
 
+#ifdef BARYLAB_PROBING
+            if (npc.Id == mCurrentlySelectedNpc)
+            {
+                mGameEventHandler->OnHumanNpcBehaviorChanged("BeingRemoved");
+            }
+#endif
+
             break;
         }
     }
@@ -5056,7 +5063,7 @@ void Npcs::UpdateHumanNpcAnimation(
             workingAngles.RightLeg += (EndLegAngle - workingAngles.RightLeg) * ConvergenceRate;
             workingAngles.LeftLeg += (-EndLegAngle - workingAngles.LeftLeg) * ConvergenceRate;
 
-            if (humanNpcState.CurrentFaceDirectionX == 0.0f)
+            if (humanNpcState.CurrentFaceOrientation == 0.0f)
             {
                 targetAngles.RightArm = 0.0f;
                 targetAngles.LeftArm = 0.0f;
@@ -5239,6 +5246,25 @@ void Npcs::UpdateHumanNpcAnimation(
             break;
         }
 
+        case HumanNpcStateType::BehaviorType::BeingRemoved:
+        {
+            //
+            // Bent arms from a side
+            //
+
+            if (humanNpcState.CurrentFaceOrientation == 0.0f)
+            {
+                auto const & workingAngles = humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles;
+
+                targetLengthMultipliers.RightArm = std::cos(workingAngles.RightArm);
+                targetLengthMultipliers.LeftArm = std::cos(workingAngles.LeftArm);
+            }
+
+            limbLengthConvergenceRate = 1.0f;
+
+            break;
+        }
+
         case HumanNpcStateType::BehaviorType::BeingPlaced:
         case HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
         case HumanNpcStateType::BehaviorType::Constrained_WalkingUndecided:
@@ -5254,7 +5280,6 @@ void Npcs::UpdateHumanNpcAnimation(
         case HumanNpcStateType::BehaviorType::Free_InWater:
         case HumanNpcStateType::BehaviorType::Free_Swimming_Style1:
         case HumanNpcStateType::BehaviorType::ConstrainedOrFree_Smashed:
-        case HumanNpcStateType::BehaviorType::BeingRemoved:
         {
             // Nop
             break;
