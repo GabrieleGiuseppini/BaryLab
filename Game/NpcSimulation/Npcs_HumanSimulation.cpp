@@ -1708,72 +1708,224 @@ void Npcs::UpdateHuman(
 
 		case HumanNpcStateType::BehaviorType::BeingRemoved:
 		{
-			// See if we're done
 			float const elapsed = currentSimulationTime - humanState.CurrentStateTransitionSimulationTimestamp;
-			if (elapsed >= HumanRemovalDuration)
+
+			//
+			// 	0.0 -> Delay1:
+			//		Behavior: traslate up, slowing down towards end
+			//		Anim : nothing (maintain all angles)
+			//	Delay1->Delay2 :
+			//		Behavior : face forward, get upright
+			//		Anim : arms->PI/4, legs->x
+			//	Delay2->End :
+			//		Behavior : rotate; end with deferred removal
+			//		Anim : arms->PI/2, legs->x, arms length : as appropriate, alpha & removal progress
+			//
+
+			////if (elapsed < HumanRemovalDelay1)
+			////{
+			////	// Traslate up
+
+			////	float depth = 1.0f - (elapsed * elapsed) / (HumanRemovalDelay1 * HumanRemovalDelay1);
+			////	vec2f const upTraslation = vec2f(0.0f, GameParameters::SimulationStepTimeDuration<float> / HumanRemovalDelay1 * depth);
+			////	mParticles.SetPosition(
+			////		primaryParticleState.ParticleIndex,
+			////		mParticles.GetPosition(primaryParticleState.ParticleIndex) + upTraslation);
+			////	mParticles.SetPosition(
+			////		secondaryParticleState.ParticleIndex,
+			////		mParticles.GetPosition(secondaryParticleState.ParticleIndex) + upTraslation);
+			////}
+			////else if (elapsed < HumanRemovalDelay2)
+			////{
+			////	// Face forward
+
+			////	humanState.CurrentFaceDirectionX = 0.0f;
+			////	humanState.CurrentFaceOrientation = 1.0f;
+
+			////	// Get upright
+
+			////	auto & headPosition = mParticles.GetPosition(secondaryParticleState.ParticleIndex);
+			////	auto const & feetPosition = mParticles.GetPosition(primaryParticleState.ParticleIndex);
+			////	vec2f const humanVector = headPosition - feetPosition;
+			////	float const actualAngleCW = humanVector.angleCw(vec2f(0.0f, 1.0f));
+			////	headPosition = feetPosition + humanVector.rotate(-actualAngleCW * 0.08f);
+			////}
+			////else if (elapsed < HumanRemovalDuration)
+			////{
+			////	// Rotate
+
+			////	// TODOHERE
+			////}
+			////else
+			////{
+			////	// We're done
+
+			////	// Deferred removal
+			////	assert(std::find(mDeferredRemovalNpcs.cbegin(), mDeferredRemovalNpcs.cend(), npc.Id) == mDeferredRemovalNpcs.cend());
+			////	mDeferredRemovalNpcs.emplace_back(npc.Id);
+			////	}
+
+			//
+			// 	0.0 -> Delay1:
+			//		Behavior: traslate up, slowing down towards end
+			//		Anim : nothing (maintain all angles)
+			//	Delay1->Delay2 :
+			//		Behavior : traslate up, slowing down towards end; face forward, get upright
+			//		Anim : arms->PI/4, legs->x
+			//	Delay2->End :
+			//		Behavior : face forward, get upright; rotate; end with deferred removal
+			//		Anim : arms->PI/2, legs->x, arms length : as appropriate, alpha & removal progress
+			//
+
+			if (elapsed < HumanRemovalDelay2)
 			{
-				// Deferred removal
-				assert(std::find(mDeferredRemovalNpcs.cbegin(), mDeferredRemovalNpcs.cend(), npc.Id) == mDeferredRemovalNpcs.cend());
-				mDeferredRemovalNpcs.emplace_back(npc.Id);
-			}
-			else
-			{
-				float afterDelayElapsed = std::max(elapsed - HumanRemovalDelay, 0.0f);
-				float constexpr AfterDelayDuration = HumanRemovalDuration - HumanRemovalDelay;
-
-				// Make upright
-
-				auto & headPosition = mParticles.GetPosition(secondaryParticleState.ParticleIndex);
-				auto & feetPosition = mParticles.GetPosition(primaryParticleState.ParticleIndex);
-
-				if (afterDelayElapsed > 0.0f)
-				{
-					vec2f const humanVector = headPosition - feetPosition;
-					float const actualAngleCW = humanVector.angleCw(vec2f(0.0f, 1.0f));
-					float const deltaAngleCW = -actualAngleCW * 0.025f;
-					headPosition = feetPosition + humanVector.rotate(deltaAngleCW);
-				}
-
 				// Traslate up
 
-				vec2f const upTraslation = vec2f(0.0f, GameParameters::SimulationStepTimeDuration<float> / HumanRemovalDuration);
-				headPosition += upTraslation;
-				feetPosition += upTraslation;
+				float depth = 1.0f - (elapsed * elapsed) / (HumanRemovalDelay2 * HumanRemovalDelay2);
+				vec2f const upTraslation = vec2f(0.0f, GameParameters::SimulationStepTimeDuration<float> / HumanRemovalDelay2 * depth);
+				mParticles.SetPosition(
+					primaryParticleState.ParticleIndex,
+					mParticles.GetPosition(primaryParticleState.ParticleIndex) + upTraslation);
+				mParticles.SetPosition(
+					secondaryParticleState.ParticleIndex,
+					mParticles.GetPosition(secondaryParticleState.ParticleIndex) + upTraslation);
+			}
 
-				// Rotate
+			if (elapsed >= HumanRemovalDelay1 && elapsed < HumanRemovalDelay2)
+			{
+				// Face forward
 
-				if (currentSimulationTime > humanState.CurrentBehaviorState.BeingRemoved.NextRotationSimulationTimestamp)
+				humanState.CurrentFaceDirectionX = 0.0f;
+				humanState.CurrentFaceOrientation = 1.0f;
+			}
+
+			//if (elapsed >= HumanRemovalDelay1)
+			{
+				if (elapsed < HumanRemovalDuration)
 				{
-					if (humanState.CurrentFaceOrientation == 1.0f)
+					// Get upright
+
+					auto & headPosition = mParticles.GetPosition(secondaryParticleState.ParticleIndex);
+					auto const & feetPosition = mParticles.GetPosition(primaryParticleState.ParticleIndex);
+					vec2f const humanVector = headPosition - feetPosition;
+					float const actualAngleCW = humanVector.angleCw(vec2f(0.0f, 1.0f));
+					headPosition = feetPosition + humanVector.rotate(-actualAngleCW * 0.042f);
+
+					// Rotate
+
+					if (elapsed > humanState.CurrentBehaviorState.BeingRemoved.NextRotationSimulationTimestamp)
 					{
-						humanState.CurrentFaceDirectionX = -1.0f;
-						humanState.CurrentFaceOrientation = 0.0f;
-					}
-					else if (humanState.CurrentFaceDirectionX == -1.0f)
-					{
-						humanState.CurrentFaceDirectionX = 0.0f;
-						humanState.CurrentFaceOrientation = -1.0f;
-					}
-					else if (humanState.CurrentFaceOrientation == -1.0f)
-					{
-						humanState.CurrentFaceDirectionX = 1.0f;
-						humanState.CurrentFaceOrientation = 0.0f;
-					}
-					else
-					{
-						assert(humanState.CurrentFaceDirectionX == 1.0f);
-						humanState.CurrentFaceDirectionX = 0.0f;
-						humanState.CurrentFaceOrientation = 1.0f;
+						if (humanState.CurrentFaceOrientation == 1.0f)
+						{
+							humanState.CurrentFaceDirectionX = -1.0f;
+							humanState.CurrentFaceOrientation = 0.0f;
+						}
+						else if (humanState.CurrentFaceDirectionX == -1.0f)
+						{
+							humanState.CurrentFaceDirectionX = 0.0f;
+							humanState.CurrentFaceOrientation = -1.0f;
+						}
+						else if (humanState.CurrentFaceOrientation == -1.0f)
+						{
+							humanState.CurrentFaceDirectionX = 1.0f;
+							humanState.CurrentFaceOrientation = 0.0f;
+						}
+						else
+						{
+							assert(humanState.CurrentFaceDirectionX == 1.0f);
+							humanState.CurrentFaceDirectionX = 0.0f;
+							humanState.CurrentFaceOrientation = 1.0f;
+						}
+
+						// Calculate next rotation timestamp
+						float const progress = Clamp((elapsed - HumanRemovalDelay2) / (HumanRemovalDuration * 0.9f - HumanRemovalDelay2), 0.0f, 1.0f);
+						humanState.CurrentBehaviorState.BeingRemoved.NextRotationSimulationTimestamp +=
+							+ (1.0f - std::sqrtf(progress)) * 0.4f;
 					}
 
-					// Calculate next rotation timestamp
-					humanState.CurrentBehaviorState.BeingRemoved.NextRotationSimulationTimestamp =
-						currentSimulationTime
-						+ HumanRemovalDelay / (1.0f + afterDelayElapsed * 3.0f);
+				}
+				else
+				{
+					// We're done
+
+					// Deferred removal
+					assert(std::find(mDeferredRemovalNpcs.cbegin(), mDeferredRemovalNpcs.cend(), npc.Id) == mDeferredRemovalNpcs.cend());
+					mDeferredRemovalNpcs.emplace_back(npc.Id);
 				}
 			}
 
+
 			break;
+
+
+			////// TODOOLD
+			////// See if we're done
+			////float const elapsed = currentSimulationTime - humanState.CurrentStateTransitionSimulationTimestamp;
+			////if (elapsed >= HumanRemovalDuration)
+			////{
+			////	// Deferred removal
+			////	assert(std::find(mDeferredRemovalNpcs.cbegin(), mDeferredRemovalNpcs.cend(), npc.Id) == mDeferredRemovalNpcs.cend());
+			////	mDeferredRemovalNpcs.emplace_back(npc.Id);
+
+			////	break;
+			////}
+			////{
+			////	float afterDelayElapsed = std::max(elapsed - HumanRemovalDelay, 0.0f);
+			////	float constexpr AfterDelayDuration = HumanRemovalDuration - HumanRemovalDelay;
+
+			////	// Make upright
+
+			////	auto & headPosition = mParticles.GetPosition(secondaryParticleState.ParticleIndex);
+			////	auto & feetPosition = mParticles.GetPosition(primaryParticleState.ParticleIndex);
+
+			////	if (afterDelayElapsed > 0.0f)
+			////	{
+			////		vec2f const humanVector = headPosition - feetPosition;
+			////		float const actualAngleCW = humanVector.angleCw(vec2f(0.0f, 1.0f));
+			////		float const deltaAngleCW = -actualAngleCW * 0.025f;
+			////		headPosition = feetPosition + humanVector.rotate(deltaAngleCW);
+			////	}
+
+			////	// Traslate up
+
+			////	vec2f const upTraslation = vec2f(0.0f, GameParameters::SimulationStepTimeDuration<float> / HumanRemovalDuration);
+			////	headPosition += upTraslation;
+			////	feetPosition += upTraslation;
+
+			////	// Rotate
+
+			////	if (currentSimulationTime > humanState.CurrentBehaviorState.BeingRemoved.NextRotationSimulationTimestamp)
+			////	{
+			////		if (humanState.CurrentFaceOrientation == 1.0f)
+			////		{
+			////			humanState.CurrentFaceDirectionX = -1.0f;
+			////			humanState.CurrentFaceOrientation = 0.0f;
+			////		}
+			////		else if (humanState.CurrentFaceDirectionX == -1.0f)
+			////		{
+			////			humanState.CurrentFaceDirectionX = 0.0f;
+			////			humanState.CurrentFaceOrientation = -1.0f;
+			////		}
+			////		else if (humanState.CurrentFaceOrientation == -1.0f)
+			////		{
+			////			humanState.CurrentFaceDirectionX = 1.0f;
+			////			humanState.CurrentFaceOrientation = 0.0f;
+			////		}
+			////		else
+			////		{
+			////			assert(humanState.CurrentFaceDirectionX == 1.0f);
+			////			humanState.CurrentFaceDirectionX = 0.0f;
+			////			humanState.CurrentFaceOrientation = 1.0f;
+			////		}
+
+			////		// Calculate next rotation timestamp
+			////		humanState.CurrentBehaviorState.BeingRemoved.NextRotationSimulationTimestamp =
+			////			currentSimulationTime
+			////			+ HumanRemovalDelay / (1.0f + afterDelayElapsed * 3.0f);
+			////	}
+			////}
+
+			////break;
 		}
 	}
 

@@ -559,11 +559,11 @@ private:
 
 					struct BeingRemovedStateType
 					{
-						float NextRotationSimulationTimestamp;
+						float NextRotationSimulationTimestamp; // wrt elapsed
 						LimbVector WorkingLimbAngles; // We cheat here - this is the working set, AnimationState's the "immediate" set
-						void Reset(AnimationStateType const & animationState, float currentSimulationTime)
+						void Reset(AnimationStateType const & animationState)
 						{
-							NextRotationSimulationTimestamp = currentSimulationTime + HumanRemovalDelay * 1.2f;
+							NextRotationSimulationTimestamp = HumanRemovalDelay2;
 							WorkingLimbAngles = animationState.LimbAngles;
 						}
 					} BeingRemoved;
@@ -775,7 +775,7 @@ private:
 
 						case BehaviorType::BeingRemoved:
 						{
-							CurrentBehaviorState.BeingRemoved.Reset(AnimationState, currentSimulationTime);
+							CurrentBehaviorState.BeingRemoved.Reset(AnimationState);
 							break;
 						}
 					}
@@ -2057,9 +2057,11 @@ private:
 	static float constexpr WalkingUndecidedDuration = 3.0f;
 
 	static float constexpr FurnitureRemovalDuration = 1.0f;
-	static float constexpr HumanRemovalDuration = 3.5f;
-	static float constexpr HumanRemovalDelay = 0.5f;
-	static_assert(HumanRemovalDelay < HumanRemovalDuration);
+	static float constexpr HumanRemovalDuration = 6.0f;
+	static float constexpr HumanRemovalDelay1 = 0.5f;
+	static float constexpr HumanRemovalDelay2 = 1.5f; // From beginning
+	static float constexpr HumanRemovalDelay3 = 3.25f; // From beginning
+	static_assert(HumanRemovalDelay2 < HumanRemovalDuration);
 
 private:
 
