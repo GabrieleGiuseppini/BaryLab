@@ -1840,7 +1840,7 @@ void Npcs::UpdateHuman(
 						// Calculate next rotation timestamp
 						float const progress = Clamp((elapsed - HumanRemovalDelay2) / (HumanRemovalDuration * 0.9f - HumanRemovalDelay2), 0.0f, 1.0f);
 						humanState.CurrentBehaviorState.BeingRemoved.NextRotationSimulationTimestamp +=
-							+ (1.0f - std::sqrtf(progress)) * 0.4f;
+							+ (1.0f - std::sqrtf(progress)) * 0.35f;
 					}
 
 				}
