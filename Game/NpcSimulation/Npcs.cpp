@@ -5074,15 +5074,15 @@ void Npcs::UpdateHumanNpcAnimation(
                 {
                     humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles = animationState.LimbAngles;
 
-                    // Fix signs
-                    if (humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->RightArm < 0.0f)
+                    // Fix signs so that arms and legs are on the same side - behind
+                    if (animationState.LimbAngles.RightArm > 0.0f)
                         humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->RightArm *= -1.0f;
-                    if (humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->LeftArm > 0.0f)
+                    if (animationState.LimbAngles.LeftArm > 0.0f)
                         humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->LeftArm *= -1.0f;
-                    if (humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->RightLeg < 0.0f)
+                    if (animationState.LimbAngles.RightLeg > 0.0f)
                         humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->RightLeg *= -1.0f;
-                    if (humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->LeftLeg > 0.0f)
-                        humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->LeftArm *= -1.0f;
+                    if (animationState.LimbAngles.LeftLeg > 0.0f)
+                        humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->LeftLeg *= -1.0f;
                 }
 
                 // Arms->PI/4, legs->x
