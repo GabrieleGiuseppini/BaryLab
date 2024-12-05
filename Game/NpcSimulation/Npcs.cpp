@@ -5068,12 +5068,31 @@ void Npcs::UpdateHumanNpcAnimation(
             }
             else if (elapsed < HumanRemovalDelay2)
             {
+                // Initialize working limb angles
+
+                if (!humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles.has_value())
+                {
+                    humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles = animationState.LimbAngles;
+
+                    // Fix signs
+                    if (humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->RightArm < 0.0f)
+                        humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->RightArm *= -1.0f;
+                    if (humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->LeftArm > 0.0f)
+                        humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->LeftArm *= -1.0f;
+                    if (humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->RightLeg < 0.0f)
+                        humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->RightLeg *= -1.0f;
+                    if (humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->LeftLeg > 0.0f)
+                        humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->LeftArm *= -1.0f;
+                }
+
                 // Arms->PI/4, legs->x
+
+                assert(humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles.has_value());
 
                 // TODO?
                 float const workingConvergenceRate = 0.02f * Clamp((elapsed - 0.5f) / 0.5f, 0.0f, 1.0f);
 
-                auto & workingAngles = humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles;
+                auto & workingAngles = *humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles;
 
                 float constexpr EndArmAngle = Pi<float> * 1.0f / 4.0f;
                 workingAngles.RightArm += (EndArmAngle - workingAngles.RightArm) * workingConvergenceRate;
@@ -5101,7 +5120,7 @@ void Npcs::UpdateHumanNpcAnimation(
                     // TODO?
                     float const workingConvergenceRate = 0.02f * Clamp((elapsed - 0.5f) / 0.5f, 0.0f, 1.0f);
 
-                    auto & workingAngles = humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles;
+                    auto & workingAngles = *humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles;
 
                     float constexpr EndArmAngle = Pi<float> *1.0f / 2.0f;
                     workingAngles.RightArm += (EndArmAngle - workingAngles.RightArm) * workingConvergenceRate;
@@ -5125,7 +5144,7 @@ void Npcs::UpdateHumanNpcAnimation(
                 animationState.Alpha = 1.0f - Clamp((actualElapsed - ActualRemovalDuration * AlphaStartFraction) / (ActualRemovalDuration * (1.0f - AlphaStartFraction)), 0.0f, 1.0f);
 
                 // Removal: from RemovalStart until End-e
-                animationState.RemovalProgress = Clamp((elapsed - HumanRemovalDelay3) / ((HumanRemovalDuration - HumanRemovalDelay3) * 0.9f), 0.0f, 1.0f);
+                animationState.RemovalProgress = Clamp((elapsed - HumanRemovalDelay2) / ((HumanRemovalDuration - HumanRemovalDelay2) * 0.9f), 0.0f, 1.0f);
             }
 
             convergenceRate = 1.0f;
@@ -5340,10 +5359,13 @@ void Npcs::UpdateHumanNpcAnimation(
 
             if (humanNpcState.CurrentFaceOrientation == 0.0f)
             {
-                auto const & workingAngles = humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles;
+                if (humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles.has_value())
+                {
+                    auto const & workingAngles = *humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles;
 
-                targetLengthMultipliers.RightArm = std::cos(workingAngles.RightArm);
-                targetLengthMultipliers.LeftArm = std::cos(workingAngles.LeftArm);
+                    targetLengthMultipliers.RightArm = std::cos(workingAngles.RightArm);
+                    targetLengthMultipliers.LeftArm = std::cos(workingAngles.LeftArm);
+                }
             }
 
             limbLengthConvergenceRate = 1.0f;
