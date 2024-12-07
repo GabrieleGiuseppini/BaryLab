@@ -5047,9 +5047,11 @@ void Npcs::UpdateHumanNpcAnimation(
 
         case HumanNpcStateType::BehaviorType::BeingRemoved:
         {
-            float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
-
             auto & behaviorState = humanNpcState.CurrentBehaviorState.BeingRemoved;
+
+            float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
+            float const relElapsed = elapsed - behaviorState.CurrentStateTransitionTimestamp;
+
             switch (behaviorState.CurrentState)
             {
                 case HumanNpcStateType::BehaviorStateType::BeingRemovedStateType::StateType::Init:
@@ -5059,7 +5061,6 @@ void Npcs::UpdateHumanNpcAnimation(
                 }
 
                 case HumanNpcStateType::BehaviorStateType::BeingRemovedStateType::StateType::GettingUpright:
-                case HumanNpcStateType::BehaviorStateType::BeingRemovedStateType::StateType::PreRotation:
                 {
                     if (humanNpcState.CurrentFaceOrientation == 0.0f)
                     {
@@ -5067,10 +5068,11 @@ void Npcs::UpdateHumanNpcAnimation(
 
                         // Arms, Legs: always opposite dir of viewing, but peaking in the middle
 
-                        float const relElapsed = std::min(elapsed / behaviorState.TotalUprightDuration, 1.0f);
-                        float const depth = -4.0f * relElapsed * relElapsed + 4.0f * relElapsed;
+                        float const progress = std::min(relElapsed / behaviorState.TotalUprightDuration, 1.0f);
+                        float const depth = -4.0f * progress * progress + 4.0f * progress;
 
                         float const targetArmAngle = - Pi<float> / 4.0f * humanNpcState.CurrentFaceDirectionX * depth;
+                        LogMessage("  TODOTEST: progress=", progress, " depth=", depth, " targetArmAngle=", targetArmAngle);
                         targetAngles.RightArm = targetArmAngle;
                         targetAngles.LeftArm = targetArmAngle;
 
@@ -5132,15 +5134,12 @@ void Npcs::UpdateHumanNpcAnimation(
 
                     // Alpha and RemovalProgress
 
-                    float const actualElapsed = elapsed - behaviorState.CurrentStateTransitionTimestamp;
+                    // Removal highlight: from now until Duration
+                    float constexpr RemovalDuration = 0.9f * HumanRemovalRotationDuration;
+                    animationState.RemovalProgress = Clamp(relElapsed / RemovalDuration, 0.0f, 1.0f);
 
-                    // Alpha: from AlphaStart until End
-                    float constexpr AlphaStartFraction = 0.9f;
-                    animationState.Alpha = 1.0f - Clamp((actualElapsed - HumanRemovalRotationDuration * AlphaStartFraction) / (HumanRemovalRotationDuration * (1.0f - AlphaStartFraction)), 0.0f, 1.0f);
-
-                    // Removal: from RemovalStart until End-e
-                    animationState.RemovalProgress = Clamp((actualElapsed - 0.0f) / ((HumanRemovalRotationDuration - 0.0f) * 0.9f), 0.0f, 1.0f);
-
+                    // Alpha: from Duration until end
+                    animationState.Alpha = 1.0f - Clamp((relElapsed - RemovalDuration) / (HumanRemovalRotationDuration - RemovalDuration), 0.0f, 1.0f);
 
                     break;
                 }
@@ -5400,23 +5399,23 @@ void Npcs::UpdateHumanNpcAnimation(
 
         case HumanNpcStateType::BehaviorType::BeingRemoved:
         {
-            // TODOHERE
-            //////
-            ////// Bent arms from a side
-            //////
+            //
+            // Bent arms from a side
+            //
 
-            ////if (humanNpcState.CurrentFaceOrientation == 0.0f)
-            ////{
-            ////    if (humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles.has_value())
-            ////    {
-            ////        auto const & workingAngles = *humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles;
+            if (humanNpcState.CurrentBehaviorState.BeingRemoved.CurrentState == HumanNpcStateType::BehaviorStateType::BeingRemovedStateType::StateType::Rotating)
+            {
+                if (humanNpcState.CurrentFaceOrientation == 0.0f)
+                {
+                    assert(humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbFBAngles.has_value());
+                    auto const & workingAngles = *humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbFBAngles;
 
-            ////        targetLengthMultipliers.RightArm = std::cos(workingAngles.RightArm);
-            ////        targetLengthMultipliers.LeftArm = std::cos(workingAngles.LeftArm);
-            ////    }
-            ////}
+                    targetLengthMultipliers.RightArm = std::cos(workingAngles.RightArm);
+                    targetLengthMultipliers.LeftArm = std::cos(workingAngles.LeftArm);
+                }
+            }
 
-            ////limbLengthConvergenceRate = 1.0f;
+            limbLengthConvergenceRate = 1.0f;
 
             break;
         }

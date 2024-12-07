@@ -561,7 +561,6 @@ private:
 						{
 							Init,			// Initialization
 							GettingUpright, // Levitation and getting upright
-							PreRotation,	// Little pause, for animation limbs to converge
 							Rotating		// Rotating
 						};
 
@@ -574,6 +573,8 @@ private:
 						std::optional<LimbVector> WorkingLimbFBAngles;
 						std::optional<LimbVector> WorkingLimbLRAngles;
 
+						float NextRotation; // wrt rel elapsed
+
 						void Reset()
 						{
 							CurrentState = StateType::Init;
@@ -582,16 +583,8 @@ private:
 							TotalUprightDuration = 0.0f;
 							WorkingLimbFBAngles.reset();
 							WorkingLimbLRAngles.reset();
+							NextRotation = 0.0f;
 						}
-
-						// TODOOLD
-						////float NextRotationSimulationTimestamp; // wrt elapsed
-						////std::optional<LimbVector> WorkingLimbAngles; // We cheat here - this is the working set, AnimationState's the "immediate" set
-						////void Reset()
-						////{
-						////	NextRotationSimulationTimestamp = HumanRemovalDelay2;
-						////	WorkingLimbAngles.reset();
-						////}
 					} BeingRemoved;
 
 					BehaviorStateType()
@@ -2084,8 +2077,9 @@ private:
 
 	static float constexpr FurnitureRemovalDuration = 1.0f;
 	static float constexpr HumanRemovalLevitationDuration = 1.0f;
-	static float constexpr HumanRemovalPreRotationDuration = 0.5f;
+	static float constexpr HumanRemovalPreRotationDuration = 0.5f; // After TotalUprightDuration in GettingUpright state
 	static float constexpr HumanRemovalRotationDuration = 4.5f;
+	static float constexpr HumanRemovalRotationStepBase = 0.35f;
 
 private:
 
