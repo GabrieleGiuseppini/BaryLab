@@ -5066,10 +5066,10 @@ void Npcs::UpdateHumanNpcAnimation(
                     {
                         // On a side
 
-                        // Arms, Legs: always opposite dir of viewing, but peaking in the middle
-
+                        // Arms, Legs: always opposite dir of viewing, but peaking in the ~middle (M)
                         float const progress = std::min(relElapsed / behaviorState.TotalUprightDuration, 1.0f);
-                        float const depth = -4.0f * progress * progress + 4.0f * progress;
+                        float constexpr M = 0.7f;
+                        float const depth = -(1.0f/(M*M)) * progress * progress + (2.0f/M) * progress;
 
                         float const targetArmAngle = - (Pi<float> / 4.0f * 0.7f) * humanNpcState.CurrentFaceDirectionX * depth;
                         targetAngles.RightArm = targetArmAngle;
