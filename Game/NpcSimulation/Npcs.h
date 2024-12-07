@@ -2077,9 +2077,8 @@ private:
 
 	static float constexpr FurnitureRemovalDuration = 1.0f;
 	static float constexpr HumanRemovalLevitationDuration = 1.0f;
-	static float constexpr HumanRemovalPreRotationDuration = 0.5f; // After TotalUprightDuration in GettingUpright state
-	static float constexpr HumanRemovalRotationDuration = 4.5f;
-	static float constexpr HumanRemovalRotationStepBase = 0.35f;
+	static float constexpr HumanRemovalRotationDuration = 3.0f;
+	static float constexpr HumanRemovalRotationStepBase = 0.3f;
 
 private:
 
