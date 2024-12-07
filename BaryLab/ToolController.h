@@ -24,6 +24,14 @@ public:
         wxWindow * cursorWindow,
         std::shared_ptr<LabController> labController);
 
+    ToolType GetTool() const
+    {
+        if (nullptr != mCurrentTool)
+            return mCurrentTool->GetToolType();
+        else
+            return ToolType::AddHumanNpc;
+    }
+
     void SetTool(ToolType toolType)
     {
         assert(static_cast<size_t>(toolType) < mAllTools.size());

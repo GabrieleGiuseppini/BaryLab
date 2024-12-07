@@ -386,11 +386,13 @@ void MainFrame::OnKeyDown(wxKeyEvent & event)
     {
         auto dummy = wxCommandEvent(wxEVT_NULL);
         OnRemoveNpc(dummy);
+        mControlToolbar->ReconciliateUIWithTool(mToolController->GetTool());
     }
     else if (event.GetKeyCode() == '3')
     {
         auto dummy = wxCommandEvent(wxEVT_NULL);
         OnMoveNpc(dummy);
+        mControlToolbar->ReconciliateUIWithTool(mToolController->GetTool());
     }
     else if (event.GetKeyCode() == '/')
     {
@@ -920,7 +922,7 @@ void MainFrame::FinishInitialization()
     // Create Tool Controller
     //
 
-    ToolType constexpr InitialToolType = ToolType::MoveParticle;
+    ToolType constexpr InitialToolType = ToolType::AddHumanNpc;
 
     try
     {
