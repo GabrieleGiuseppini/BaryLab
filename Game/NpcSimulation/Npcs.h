@@ -557,13 +557,42 @@ private:
 
 					struct BeingRemovedStateType
 					{
-						float NextRotationSimulationTimestamp; // wrt elapsed
-						std::optional<LimbVector> WorkingLimbAngles; // We cheat here - this is the working set, AnimationState's the "immediate" set
+						enum class StateType
+						{
+							Init,			// Initialization
+							GettingUpright, // Levitation and getting upright
+							PreRotation,	// Little pause, for animation limbs to converge
+							Rotating		// Rotating
+						};
+
+						StateType CurrentState;
+
+						float NextTransitionTimestamp; // wrt elapsed; calc'd at init and updated
+
+						float StartUprightAngle; // Calc'd at init
+						float TotalUprightDuration; // Calc'd at init
+
+						std::optional<LimbVector> WorkingLimbFBAngles;
+						std::optional<LimbVector> WorkingLimbLRAngles;
+
 						void Reset()
 						{
-							NextRotationSimulationTimestamp = HumanRemovalDelay2;
-							WorkingLimbAngles.reset();
+							CurrentState = StateType::Init;
+							NextTransitionTimestamp = 0.0f;
+							StartUprightAngle = 0.0f;
+							TotalUprightDuration = 0.0f;
+							WorkingLimbFBAngles.reset();
+							WorkingLimbLRAngles.reset();
 						}
+
+						// TODOOLD
+						////float NextRotationSimulationTimestamp; // wrt elapsed
+						////std::optional<LimbVector> WorkingLimbAngles; // We cheat here - this is the working set, AnimationState's the "immediate" set
+						////void Reset()
+						////{
+						////	NextRotationSimulationTimestamp = HumanRemovalDelay2;
+						////	WorkingLimbAngles.reset();
+						////}
 					} BeingRemoved;
 
 					BehaviorStateType()
@@ -2055,11 +2084,9 @@ private:
 	static float constexpr WalkingUndecidedDuration = 3.0f;
 
 	static float constexpr FurnitureRemovalDuration = 1.0f;
-	static float constexpr HumanRemovalDuration = 6.0f;
-	static float constexpr HumanRemovalDelay1 = 0.5f;
-	static float constexpr HumanRemovalDelay2 = 1.5f; // From beginning
-	static float constexpr HumanRemovalDelay3 = 3.25f; // From beginning
-	static_assert(HumanRemovalDelay2 < HumanRemovalDuration);
+	static float constexpr HumanRemovalLevitationDuration = 1.0f;
+	static float constexpr HumanRemovalPreRotationDuration = 0.5f;
+	static float constexpr HumanRemovalRotationDuration = 4.5f;
 
 private:
 

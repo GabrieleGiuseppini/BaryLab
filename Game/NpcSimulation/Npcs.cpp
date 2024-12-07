@@ -5049,159 +5049,208 @@ void Npcs::UpdateHumanNpcAnimation(
         {
             float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
 
-            //
-            // 	0.0 -> Delay1:
-            //		Behavior: traslate up, slowing down towards end
-            //		Anim : nothing (maintain all angles)
-            //	Delay1->Delay2 :
-            //		Behavior : face forward, get upright
-            //		Anim : arms->PI/4, legs->x
-            //	Delay2->End :
-            //		Behavior : rotate; end with deferred removal
-            //		Anim : arms->PI/2, legs->x, arms length : as appropriate, alpha & removal progress
-            //
-
-
-            if (elapsed < HumanRemovalDelay1)
+            auto & behaviorState = humanNpcState.CurrentBehaviorState.BeingRemoved;
+            switch (behaviorState.CurrentState)
             {
-                // Nothing
-            }
-            else if (elapsed < HumanRemovalDelay2)
-            {
-                // Initialize working limb angles
-
-                if (!humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles.has_value())
+                case HumanNpcStateType::BehaviorStateType::BeingRemovedStateType::StateType::Init:
                 {
-                    humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles = animationState.LimbAngles;
-
-                    // Fix signs so that arms and legs are on the same side - behind
-                    if (animationState.LimbAngles.RightArm > 0.0f)
-                        humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->RightArm *= -1.0f;
-                    if (animationState.LimbAngles.LeftArm > 0.0f)
-                        humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->LeftArm *= -1.0f;
-                    if (animationState.LimbAngles.RightLeg > 0.0f)
-                        humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->RightLeg *= -1.0f;
-                    if (animationState.LimbAngles.LeftLeg > 0.0f)
-                        humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->LeftLeg *= -1.0f;
+                    // Nop
+                    break;
                 }
 
-                // Arms->PI/4, legs->x
-
-                assert(humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles.has_value());
-
-                // TODO?
-                float const workingConvergenceRate = 0.02f * Clamp((elapsed - 0.5f) / 0.5f, 0.0f, 1.0f);
-
-                auto & workingAngles = *humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles;
-
-                float constexpr EndArmAngle = Pi<float> * 1.0f / 4.0f;
-                workingAngles.RightArm += (EndArmAngle - workingAngles.RightArm) * workingConvergenceRate;
-                workingAngles.LeftArm += (-EndArmAngle - workingAngles.LeftArm) * workingConvergenceRate;
-
-                float constexpr EndLegAngle = 0.0;
-                workingAngles.RightLeg += (EndLegAngle - workingAngles.RightLeg) * workingConvergenceRate;
-                workingAngles.LeftLeg += (-EndLegAngle - workingAngles.LeftLeg) * workingConvergenceRate;
-
-                targetAngles = workingAngles;
-            }
-            else if (elapsed < HumanRemovalDuration)
-            {
-                // Arms->PI/2, legs->x
-
-                if (humanNpcState.CurrentFaceOrientation == 0.0f)
+                case HumanNpcStateType::BehaviorStateType::BeingRemovedStateType::StateType::GettingUpright:
+                case HumanNpcStateType::BehaviorStateType::BeingRemovedStateType::StateType::PreRotation:
                 {
-                    targetAngles.RightArm = 0.0f;
-                    targetAngles.LeftArm = 0.0f;
-                    targetAngles.RightLeg = 0.0f;
-                    targetAngles.LeftLeg = 0.0f;
-                }
-                else
-                {
-                    // TODO?
-                    float const workingConvergenceRate = 0.02f * Clamp((elapsed - 0.5f) / 0.5f, 0.0f, 1.0f);
+                    if (humanNpcState.CurrentFaceOrientation == 0.0f)
+                    {
+                        // On a side
 
-                    auto & workingAngles = *humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles;
+                        // Arms, Legs: always opposite dir of viewing, but peaking in the middle
 
-                    float constexpr EndArmAngle = Pi<float> *1.0f / 2.0f;
-                    workingAngles.RightArm += (EndArmAngle - workingAngles.RightArm) * workingConvergenceRate;
-                    workingAngles.LeftArm += (-EndArmAngle - workingAngles.LeftArm) * workingConvergenceRate;
+                        float const relElapsed = std::min(elapsed / behaviorState.TotalUprightDuration, 1.0f);
+                        float const depth = -4.0f * relElapsed * relElapsed + 4.0f * relElapsed;
 
-                    float constexpr EndLegAngle = 0.0;
-                    workingAngles.RightLeg += (EndLegAngle - workingAngles.RightLeg) * workingConvergenceRate;
-                    workingAngles.LeftLeg += (-EndLegAngle - workingAngles.LeftLeg) * workingConvergenceRate;
+                        float const targetArmAngle = - Pi<float> / 4.0f * humanNpcState.CurrentFaceDirectionX * depth;
+                        targetAngles.RightArm = targetArmAngle;
+                        targetAngles.LeftArm = targetArmAngle;
 
-                    targetAngles = workingAngles;
+                        float const targetLegAngle = - Pi<float> * 1.0f / 8.0f * humanNpcState.CurrentFaceDirectionX * depth;
+                        targetAngles.RightLeg = targetLegAngle;
+                        targetAngles.LeftLeg = targetLegAngle;
+                    }
+                    else
+                    {
+                        // Front-back
+
+                        // Arms->Pi/4
+                        // Legs->0
+
+                        float const targetArmAngle = Pi<float> / 4.0f;
+                        targetAngles.RightArm = targetArmAngle;
+                        targetAngles.LeftArm = -targetArmAngle;
+
+                        float const targetLegAngle = 0.0f;
+                        targetAngles.RightLeg = targetLegAngle;
+                        targetAngles.LeftLeg = -targetLegAngle;
+                    }
+
+                    convergenceRate = 0.08f;
+
+                    break;
                 }
 
-                // Alpha and RemovalProgress
+                case HumanNpcStateType::BehaviorStateType::BeingRemovedStateType::StateType::Rotating:
+                {
+                    assert(behaviorState.WorkingLimbFBAngles.has_value());
+                    assert(behaviorState.WorkingLimbLRAngles.has_value());
 
-                // TODO: nuke
-                float const actualElapsed = elapsed - HumanRemovalDelay2;
-                float constexpr ActualRemovalDuration = HumanRemovalDuration - HumanRemovalDelay2;
+                    //
+                    // Arms:
+                    //  FB: Arms->PI/2 Legs->0
+                    //  LR: Arms->0 Legs->0
+                    //
+                    // Since we're rotating, we converge immediately, hence the use of shadow "working" angles
+                    //
 
-                // Alpha: from AlphaStart until End
-                float constexpr AlphaStartFraction = 0.9f;
-                animationState.Alpha = 1.0f - Clamp((actualElapsed - ActualRemovalDuration * AlphaStartFraction) / (ActualRemovalDuration * (1.0f - AlphaStartFraction)), 0.0f, 1.0f);
+                    float constexpr ConvergenceRate = 0.02f;
 
-                // Removal: from RemovalStart until End-e
-                animationState.RemovalProgress = Clamp((elapsed - HumanRemovalDelay2) / ((HumanRemovalDuration - HumanRemovalDelay2) * 0.9f), 0.0f, 1.0f);
+                    behaviorState.WorkingLimbFBAngles->ConvergeTo({ 0.0f, 0.0f, Pi<float> / 2.0f, -Pi<float> / 2.0f }, ConvergenceRate);
+                    behaviorState.WorkingLimbLRAngles->ConvergeTo({ 0.0f, 0.0f, 0.0f, 0.0f }, ConvergenceRate);
+
+                    if (humanNpcState.CurrentFaceOrientation == 0.0f)
+                    {
+                        // LR
+                        targetAngles = *behaviorState.WorkingLimbLRAngles;
+                    }
+                    else
+                    {
+                        // FB
+                        targetAngles = *behaviorState.WorkingLimbFBAngles;
+                    }
+
+                    convergenceRate = 1.0f;
+
+                    // Alpha and RemovalProgress
+
+                    // TODOHERE - see if can undo next transition timestamp (calc inline), so it becomes "CurrentStateTransitionTimestamp" (wrt elapsed)
+                    float const actualElapsed = elapsed - behaviorState;
+                    float constexpr ActualRemovalDuration = HumanRemovalDuration - HumanRemovalDelay2;
+
+                    // Alpha: from AlphaStart until End
+                    float constexpr AlphaStartFraction = 0.9f;
+                    animationState.Alpha = 1.0f - Clamp((actualElapsed - ActualRemovalDuration * AlphaStartFraction) / (ActualRemovalDuration * (1.0f - AlphaStartFraction)), 0.0f, 1.0f);
+
+                    // Removal: from RemovalStart until End-e
+                    animationState.RemovalProgress = Clamp((elapsed - HumanRemovalDelay2) / ((HumanRemovalDuration - HumanRemovalDelay2) * 0.9f), 0.0f, 1.0f);
+
+
+                    break;
+                }
             }
-
-            convergenceRate = 1.0f;
-
-            break;
 
             ////// TODOOLD
-
             //////
-            ////// Arms and legs
+            ////// 	0.0 -> Delay1:
+            //////		Behavior: traslate up, slowing down towards end
+            //////		Anim : nothing (maintain all angles)
+            //////	Delay1->Delay2 :
+            //////		Behavior : face forward, get upright
+            //////		Anim : arms->PI/4, legs->x
+            //////	Delay2->End :
+            //////		Behavior : rotate; end with deferred removal
+            //////		Anim : arms->PI/2, legs->x, arms length : as appropriate, alpha & removal progress
             //////
 
-            ////float const workingConvergenceRate = 0.02f * Clamp((elapsed - 0.5f) / 0.5f, 0.0f, 1.0f);
 
-            ////auto & workingAngles = humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles;
-
-            ////float constexpr EndArmAngle = Pi<float> * 1.0f / 2.0f;
-            ////workingAngles.RightArm += (EndArmAngle - workingAngles.RightArm) * workingConvergenceRate;
-            ////workingAngles.LeftArm += (-EndArmAngle - workingAngles.LeftArm) * workingConvergenceRate;
-
-            ////float constexpr EndLegAngle = 0.0;
-            ////workingAngles.RightLeg += (EndLegAngle - workingAngles.RightLeg) * workingConvergenceRate;
-            ////workingAngles.LeftLeg += (-EndLegAngle - workingAngles.LeftLeg) * workingConvergenceRate;
-
-            ////if (humanNpcState.CurrentFaceOrientation == 0.0f)
+            ////if (elapsed < HumanRemovalDelay1)
             ////{
-            ////    targetAngles.RightArm = 0.0f;
-            ////    targetAngles.LeftArm = 0.0f;
-            ////    targetAngles.RightLeg = 0.0f;
-            ////    targetAngles.LeftLeg = 0.0f;
+            ////    // Nothing
             ////}
-            ////else
+            ////else if (elapsed < HumanRemovalDelay2)
             ////{
+            ////    // Initialize working limb angles
+
+            ////    if (!humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles.has_value())
+            ////    {
+            ////        humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles = animationState.LimbAngles;
+
+            ////        // Fix signs so that arms and legs are on the same side - behind
+            ////        if (animationState.LimbAngles.RightArm > 0.0f)
+            ////            humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->RightArm *= -1.0f;
+            ////        if (animationState.LimbAngles.LeftArm > 0.0f)
+            ////            humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->LeftArm *= -1.0f;
+            ////        if (animationState.LimbAngles.RightLeg > 0.0f)
+            ////            humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->RightLeg *= -1.0f;
+            ////        if (animationState.LimbAngles.LeftLeg > 0.0f)
+            ////            humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles->LeftLeg *= -1.0f;
+            ////    }
+
+            ////    // Arms->PI/4, legs->x
+
+            ////    assert(humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles.has_value());
+
+            ////    // TODO?
+            ////    float const workingConvergenceRate = 0.02f * Clamp((elapsed - 0.5f) / 0.5f, 0.0f, 1.0f);
+
+            ////    auto & workingAngles = *humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles;
+
+            ////    float constexpr EndArmAngle = Pi<float> * 1.0f / 4.0f;
+            ////    workingAngles.RightArm += (EndArmAngle - workingAngles.RightArm) * workingConvergenceRate;
+            ////    workingAngles.LeftArm += (-EndArmAngle - workingAngles.LeftArm) * workingConvergenceRate;
+
+            ////    float constexpr EndLegAngle = 0.0;
+            ////    workingAngles.RightLeg += (EndLegAngle - workingAngles.RightLeg) * workingConvergenceRate;
+            ////    workingAngles.LeftLeg += (-EndLegAngle - workingAngles.LeftLeg) * workingConvergenceRate;
+
             ////    targetAngles = workingAngles;
             ////}
-
-            ////convergenceRate = 1.0f;
-
-            ////if (elapsed >= HumanRemovalDelay)
+            ////else if (elapsed < HumanRemovalDuration)
             ////{
-            ////    //
-            ////    // Alpha and RemovalProgress
-            ////    //
+            ////    // Arms->PI/2, legs->x
 
-            ////    float const actualElapsed = elapsed - HumanRemovalDelay;
-            ////    float constexpr ActualRemovalDuration = HumanRemovalDuration - HumanRemovalDelay;
+            ////    if (humanNpcState.CurrentFaceOrientation == 0.0f)
+            ////    {
+            ////        targetAngles.RightArm = 0.0f;
+            ////        targetAngles.LeftArm = 0.0f;
+            ////        targetAngles.RightLeg = 0.0f;
+            ////        targetAngles.LeftLeg = 0.0f;
+            ////    }
+            ////    else
+            ////    {
+            ////        // TODO?
+            ////        float const workingConvergenceRate = 0.02f * Clamp((elapsed - 0.5f) / 0.5f, 0.0f, 1.0f);
+
+            ////        auto & workingAngles = *humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles;
+
+            ////        float constexpr EndArmAngle = Pi<float> *1.0f / 2.0f;
+            ////        workingAngles.RightArm += (EndArmAngle - workingAngles.RightArm) * workingConvergenceRate;
+            ////        workingAngles.LeftArm += (-EndArmAngle - workingAngles.LeftArm) * workingConvergenceRate;
+
+            ////        float constexpr EndLegAngle = 0.0;
+            ////        workingAngles.RightLeg += (EndLegAngle - workingAngles.RightLeg) * workingConvergenceRate;
+            ////        workingAngles.LeftLeg += (-EndLegAngle - workingAngles.LeftLeg) * workingConvergenceRate;
+
+            ////        targetAngles = workingAngles;
+            ////    }
+
+            ////    // Alpha and RemovalProgress
+
+            ////    // TODO: nuke
+            ////    float const actualElapsed = elapsed - HumanRemovalDelay2;
+            ////    float constexpr ActualRemovalDuration = HumanRemovalDuration - HumanRemovalDelay2;
 
             ////    // Alpha: from AlphaStart until End
             ////    float constexpr AlphaStartFraction = 0.9f;
             ////    animationState.Alpha = 1.0f - Clamp((actualElapsed - ActualRemovalDuration * AlphaStartFraction) / (ActualRemovalDuration * (1.0f - AlphaStartFraction)), 0.0f, 1.0f);
 
             ////    // Removal: from RemovalStart until End-e
-            ////    float constexpr RemovalStartFraction = 0.2f;
-            ////    animationState.RemovalProgress = Clamp((actualElapsed - ActualRemovalDuration * RemovalStartFraction) / (ActualRemovalDuration * (1.0f - RemovalStartFraction) * 0.9f), 0.0f, 1.0f);
+            ////    animationState.RemovalProgress = Clamp((elapsed - HumanRemovalDelay2) / ((HumanRemovalDuration - HumanRemovalDelay2) * 0.9f), 0.0f, 1.0f);
             ////}
 
-            ////break;
+            ////convergenceRate = 1.0f;
+
+            break;
+
         }
     }
 
@@ -5353,22 +5402,23 @@ void Npcs::UpdateHumanNpcAnimation(
 
         case HumanNpcStateType::BehaviorType::BeingRemoved:
         {
-            //
-            // Bent arms from a side
-            //
+            // TODOHERE
+            //////
+            ////// Bent arms from a side
+            //////
 
-            if (humanNpcState.CurrentFaceOrientation == 0.0f)
-            {
-                if (humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles.has_value())
-                {
-                    auto const & workingAngles = *humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles;
+            ////if (humanNpcState.CurrentFaceOrientation == 0.0f)
+            ////{
+            ////    if (humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles.has_value())
+            ////    {
+            ////        auto const & workingAngles = *humanNpcState.CurrentBehaviorState.BeingRemoved.WorkingLimbAngles;
 
-                    targetLengthMultipliers.RightArm = std::cos(workingAngles.RightArm);
-                    targetLengthMultipliers.LeftArm = std::cos(workingAngles.LeftArm);
-                }
-            }
+            ////        targetLengthMultipliers.RightArm = std::cos(workingAngles.RightArm);
+            ////        targetLengthMultipliers.LeftArm = std::cos(workingAngles.LeftArm);
+            ////    }
+            ////}
 
-            limbLengthConvergenceRate = 1.0f;
+            ////limbLengthConvergenceRate = 1.0f;
 
             break;
         }
