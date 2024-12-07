@@ -1723,11 +1723,13 @@ void Npcs::UpdateHuman(
 
 					// Initialize angle and duration
 					behaviorState.StartUprightAngle = actualAngleCW;
-					behaviorState.TotalUprightDuration = std::fabsf(actualAngleCW) / (Pi<float> / 2.0f) * 2.0f; // 2s for PI/2
+					behaviorState.TotalUprightDuration = std::max(
+						std::fabsf(actualAngleCW) / (Pi<float> / 2.0f) * 2.0f, // 2s for PI/2
+						HumanRemovalLevitationDuration);
 
 					// Transition
 					behaviorState.CurrentState = HumanNpcStateType::BehaviorStateType::BeingRemovedStateType::StateType::GettingUpright;
-					behaviorState.NextTransitionTimestamp = std::max(behaviorState.TotalUprightDuration, HumanRemovalLevitationDuration);
+					behaviorState.CurrentStateTransitionTimestamp = elapsed;
 
 					break;
 				}
@@ -1738,10 +1740,10 @@ void Npcs::UpdateHuman(
 					// Check whether we're done
 					//
 
-					if (elapsed >= behaviorState.NextTransitionTimestamp)
+					if (elapsed >= behaviorState.CurrentStateTransitionTimestamp + behaviorState.TotalUprightDuration)
 					{
 						behaviorState.CurrentState = HumanNpcStateType::BehaviorStateType::BeingRemovedStateType::StateType::PreRotation;
-						behaviorState.NextTransitionTimestamp += HumanRemovalPreRotationDuration;
+						behaviorState.CurrentStateTransitionTimestamp = elapsed;
 						break;
 					}
 
@@ -1782,7 +1784,7 @@ void Npcs::UpdateHuman(
 					// Check whether we're done
 					//
 
-					if (elapsed >= behaviorState.NextTransitionTimestamp)
+					if (elapsed >= behaviorState.CurrentStateTransitionTimestamp + HumanRemovalPreRotationDuration)
 					{
 						//
 						// Save current limbs
@@ -1810,7 +1812,7 @@ void Npcs::UpdateHuman(
 
 						// Transition
 						behaviorState.CurrentState = HumanNpcStateType::BehaviorStateType::BeingRemovedStateType::StateType::Rotating;
-						behaviorState.NextTransitionTimestamp += HumanRemovalRotationDuration;
+						behaviorState.CurrentStateTransitionTimestamp = elapsed;
 
 						break;
 					}
@@ -1824,8 +1826,10 @@ void Npcs::UpdateHuman(
 					// Check whether we're done
 					//
 
-					if (elapsed >= behaviorState.NextTransitionTimestamp)
+					if (elapsed >= behaviorState.CurrentStateTransitionTimestamp + HumanRemovalRotationDuration)
 					{
+						// We're done!
+
 						// Deferred removal
 						assert(std::find(mDeferredRemovalNpcs.cbegin(), mDeferredRemovalNpcs.cend(), npc.Id) == mDeferredRemovalNpcs.cend());
 						mDeferredRemovalNpcs.emplace_back(npc.Id);

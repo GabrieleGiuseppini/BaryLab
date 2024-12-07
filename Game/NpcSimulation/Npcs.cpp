@@ -5132,16 +5132,14 @@ void Npcs::UpdateHumanNpcAnimation(
 
                     // Alpha and RemovalProgress
 
-                    // TODOHERE - see if can undo next transition timestamp (calc inline), so it becomes "CurrentStateTransitionTimestamp" (wrt elapsed)
-                    float const actualElapsed = elapsed - behaviorState;
-                    float constexpr ActualRemovalDuration = HumanRemovalDuration - HumanRemovalDelay2;
+                    float const actualElapsed = elapsed - behaviorState.CurrentStateTransitionTimestamp;
 
                     // Alpha: from AlphaStart until End
                     float constexpr AlphaStartFraction = 0.9f;
-                    animationState.Alpha = 1.0f - Clamp((actualElapsed - ActualRemovalDuration * AlphaStartFraction) / (ActualRemovalDuration * (1.0f - AlphaStartFraction)), 0.0f, 1.0f);
+                    animationState.Alpha = 1.0f - Clamp((actualElapsed - HumanRemovalRotationDuration * AlphaStartFraction) / (HumanRemovalRotationDuration * (1.0f - AlphaStartFraction)), 0.0f, 1.0f);
 
                     // Removal: from RemovalStart until End-e
-                    animationState.RemovalProgress = Clamp((elapsed - HumanRemovalDelay2) / ((HumanRemovalDuration - HumanRemovalDelay2) * 0.9f), 0.0f, 1.0f);
+                    animationState.RemovalProgress = Clamp((actualElapsed - 0.0f) / ((HumanRemovalRotationDuration - 0.0f) * 0.9f), 0.0f, 1.0f);
 
 
                     break;

@@ -566,8 +566,7 @@ private:
 						};
 
 						StateType CurrentState;
-
-						float NextTransitionTimestamp; // wrt elapsed; calc'd at init and updated
+						float CurrentStateTransitionTimestamp; // wrt elapsed
 
 						float StartUprightAngle; // Calc'd at init
 						float TotalUprightDuration; // Calc'd at init
@@ -578,7 +577,7 @@ private:
 						void Reset()
 						{
 							CurrentState = StateType::Init;
-							NextTransitionTimestamp = 0.0f;
+							CurrentStateTransitionTimestamp = 0.0f;
 							StartUprightAngle = 0.0f;
 							TotalUprightDuration = 0.0f;
 							WorkingLimbFBAngles.reset();
