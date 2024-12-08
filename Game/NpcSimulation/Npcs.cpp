@@ -5122,6 +5122,12 @@ void Npcs::UpdateHumanNpcAnimation(
                     {
                         // LR
                         targetAngles = *behaviorState.WorkingLimbLRAngles;
+
+                        // Note: this should be taken care by rendering...
+                        targetAngles.RightArm *= humanNpcState.CurrentFaceDirectionX;
+                        targetAngles.LeftArm *= humanNpcState.CurrentFaceDirectionX;
+                        targetAngles.RightLeg *= humanNpcState.CurrentFaceDirectionX;
+                        targetAngles.LeftLeg *= humanNpcState.CurrentFaceDirectionX;
                     }
                     else
                     {
