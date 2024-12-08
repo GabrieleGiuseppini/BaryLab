@@ -676,16 +676,18 @@ void Npcs::UpdateNpcs(
     {
         bool humanStatsUpdated = false;
 
-        for (auto const npcId : mDeferredRemovalNpcs)
+        while (!mDeferredRemovalNpcs.empty())
         {
+            auto const npcId = mDeferredRemovalNpcs[0];
+
             assert(mStateBuffer[npcId].has_value());
             assert(mStateBuffer[npcId]->CurrentRegime == StateType::RegimeType::BeingRemoved);
 
-            bool _humanStatsUpdated = InternalDeleteNpc(npcId);
+            bool _humanStatsUpdated = InternalDeleteNpc(npcId); // Will remove from deferred NPCs
             humanStatsUpdated |= _humanStatsUpdated;
         }
 
-        mDeferredRemovalNpcs.clear();
+        assert(mDeferredRemovalNpcs.empty());
 
         if (humanStatsUpdated)
         {

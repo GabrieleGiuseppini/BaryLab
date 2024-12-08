@@ -74,9 +74,12 @@ void main()
     lDepth += (1.0 - abs(vertexSpacePosition.x));
     lDepth *= removalProgressSquare;
 
-    c.rgb = min(
-        lCol,
-        c.rgb + lCol * lDepth);
+    c.rgb = mix(
+        c.rgb,
+        min(
+            lCol,
+            c.rgb + lCol),
+         lDepth);
 
     // Apply highlight (overlay blending mode)
     //
