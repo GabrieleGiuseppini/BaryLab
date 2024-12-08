@@ -2076,6 +2076,7 @@ private:
 	static float constexpr WalkingUndecidedDuration = 3.0f;
 
 	static float constexpr FurnitureRemovalDuration = 1.0f;
+	static float constexpr HumanRemovalUprightReferenceDuration = 1.5f; // Time for PI/2
 	static float constexpr HumanRemovalLevitationDuration = 1.0f;
 	static float constexpr HumanRemovalRotationDuration = 3.0f;
 	static float constexpr HumanRemovalRotationStepBase = 0.3f;
