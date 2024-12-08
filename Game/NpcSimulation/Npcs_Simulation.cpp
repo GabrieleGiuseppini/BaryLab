@@ -3568,7 +3568,21 @@ bool Npcs::CanWalkInDirection(
         mParticles,
         true); // Only for probing!
 
-    return !probeResult.FloorCandidatesEasySlope.empty() || !probeResult.FloorCandidatesHardSlope.empty();
+    if (!probeResult.FloorCandidatesEasySlope.empty() || !probeResult.FloorCandidatesHardSlope.empty())
+    {
+        // There are candidates
+        return true;
+    }
+
+    if (probeResult.FirstBounceableFloor.has_value())
+    {
+        // No candidates, but a wall in front of us: there might be candidates
+        // when arriving at that wall (e.g. walking up a stair that meets the
+        // wall at the floor), and we want to walk on the floor in this case
+        return true;
+    }
+
+    return false;
 }
 
 void Npcs::BounceConstrainedNpcParticle(
