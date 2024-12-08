@@ -5095,7 +5095,7 @@ void Npcs::UpdateHumanNpcAnimation(
                         targetAngles.LeftLeg = -targetLegAngle;
                     }
 
-                    convergenceRate = 0.8f;
+                    convergenceRate = 0.1f;
 
                     break;
                 }

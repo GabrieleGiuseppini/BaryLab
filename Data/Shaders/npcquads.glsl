@@ -65,11 +65,14 @@ void main()
         discard;
 
     // Apply removal shading
-    vec3 lCol = vec3(1.00, 0.987, 0.890);
-    float p = vertexRemovalProgress * vertexRemovalProgress;    
+    vec3 lCol = vec3(1.00, 1.00, 0.937);
+    float removalProgressSquare = vertexRemovalProgress * vertexRemovalProgress;    
     // Luminosity
     float lum = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
-    float lDepth = (lum + p) * p * 1.5;
+    float lDepth = (lum + removalProgressSquare) * 1.5;
+    // More depth at center
+    lDepth += (1.0 - abs(vertexSpacePosition.x));
+    lDepth *= removalProgressSquare;
 
     c.rgb = min(
         lCol,

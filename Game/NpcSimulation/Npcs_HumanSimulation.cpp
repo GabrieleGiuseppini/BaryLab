@@ -1726,7 +1726,8 @@ void Npcs::UpdateHuman(
 					behaviorState.StartUprightAngle = actualAngleCW;
 					behaviorState.TotalUprightDuration = std::max(
 						std::fabsf(actualAngleCW) / (Pi<float> / 2.0f) * 1.5f, // 1.5s for PI/2
-						HumanRemovalLevitationDuration);
+						HumanRemovalLevitationDuration)
+						+ npc.RandomNormalizedUniformSeed * 0.2f;
 
 					// Transition
 					behaviorState.CurrentState = HumanNpcStateType::BehaviorStateType::BeingRemovedStateType::StateType::GettingUpright;
