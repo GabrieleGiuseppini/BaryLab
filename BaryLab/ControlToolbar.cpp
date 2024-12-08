@@ -774,7 +774,7 @@ ControlToolbar::ControlToolbar(wxWindow * parent)
     this->SetSizer(vSizer);
 }
 
-void ControlToolbar::ReconcialiteUI(
+void ControlToolbar::ReconciliateUI(
     SimulationControlStateType simulationControlState,
     bool isViewGridEnabled)
 {

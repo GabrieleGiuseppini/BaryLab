@@ -1009,6 +1009,12 @@ void LabController::Reset(
         mRenderContext->SetCameraWorldPosition(objectCenter);
     }
 
+    //
+    // Publish reset
+    //
+
+    mGameEventHandler->OnBLabReset();
+
 #ifndef _DEBUG
 
     //
@@ -1036,11 +1042,5 @@ void LabController::Reset(
     LogMessage("Total time for creating NPCs: ", std::chrono::duration_cast<std::chrono::microseconds>(GameChronometer::now() - startTime).count(), "us");
 
 #endif
-
-    //
-    // Publish reset
-    //
-
-    mGameEventHandler->OnBLabReset();
 }
 

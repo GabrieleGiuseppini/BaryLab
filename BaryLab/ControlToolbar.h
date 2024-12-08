@@ -142,7 +142,7 @@ public:
 
     virtual ~ControlToolbar() = default;
 
-    void ReconcialiteUI(
+    void ReconciliateUI(
         SimulationControlStateType simulationControlState,
         bool isViewGridEnabled);
 

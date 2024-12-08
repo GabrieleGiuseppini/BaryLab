@@ -596,7 +596,7 @@ void MainFrame::OnResetMenuItemSelected(wxCommandEvent & /*event*/)
     assert(!!mLabController);
     mLabController->Reset();
 
-    mControlToolbar->ReconcialiteUI(
+    mControlToolbar->ReconciliateUI(
         mLabController->GetSimulationControlState(),
         mLabController->IsViewGridEnabled());
 }
@@ -955,7 +955,7 @@ void MainFrame::FinishInitialization()
     // Reconciliate UI
     //
 
-    mControlToolbar->ReconcialiteUI(
+    mControlToolbar->ReconciliateUI(
         mLabController->GetSimulationControlState(),
         mLabController->IsViewGridEnabled());
 }
