@@ -836,6 +836,7 @@ std::optional<PickedNpc> LabController::BeginPlaceNewFurnitureNpc(
     auto const & pickedNpc = std::get<0>(result);
     if (pickedNpc.has_value())
     {
+        // Select it (BaryLab only)
         mWorld->GetNpcs().SelectNpc(pickedNpc->Id);
     }
 
@@ -859,6 +860,7 @@ std::optional<PickedNpc> LabController::BeginPlaceNewHumanNpc(
     auto const & pickedNpc = std::get<0>(result);
     if (pickedNpc.has_value())
     {
+        // Select it (BaryLab only)
         mWorld->GetNpcs().SelectNpc(pickedNpc->Id);
     }
 
