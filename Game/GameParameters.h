@@ -111,7 +111,54 @@ struct GameParameters
 
     static float constexpr WaterThermalExpansionCoefficient = 0.000207f; // 1/K
 
-    float IgnitionTemperatureAdjustment = 1.0f;
+    float ThermalConductivityAdjustment;
+    static float constexpr MinThermalConductivityAdjustment = 0.1f;
+    static float constexpr MaxThermalConductivityAdjustment = 100.0f;
+
+    float HeatDissipationAdjustment;
+    static float constexpr MinHeatDissipationAdjustment = 0.01f;
+    static float constexpr MaxHeatDissipationAdjustment = 20.0f;
+
+    float IgnitionTemperatureAdjustment;
+    static float constexpr MinIgnitionTemperatureAdjustment = 0.1f;
+    static float constexpr MaxIgnitionTemperatureAdjustment = 1000.0f;
+
+    float MeltingTemperatureAdjustment;
+    static float constexpr MinMeltingTemperatureAdjustment = 0.1f;
+    static float constexpr MaxMeltingTemperatureAdjustment = 1000.0f;
+
+    float CombustionSpeedAdjustment;
+    static float constexpr MinCombustionSpeedAdjustment = 0.1f;
+    static float constexpr MaxCombustionSpeedAdjustment = 100.0f;
+
+    static float constexpr CombustionHeat = 100.0f * 1000.0f; // 100KJ
+
+    float CombustionHeatAdjustment;
+    static float constexpr MinCombustionHeatAdjustment = 0.1f;
+    static float constexpr MaxCombustionHeatAdjustment = 100.0f;
+
+    static float constexpr ExplosionBlastForceDuration = 0.25f; // s
+    static float constexpr ExplosionRenderDuration = 1.0f; // s, attuned with sound
+
+    float HeatBlasterHeatFlow; // KJ/sec
+    static float constexpr MinHeatBlasterHeatFlow = 200.0f;
+    static float constexpr MaxHeatBlasterHeatFlow = 100000.0f;
+
+    float HeatBlasterRadius;
+    static float constexpr MinHeatBlasterRadius = 1.0f;
+    static float constexpr MaxHeatBlasterRadius = 100.0f;
+
+    static float constexpr FireExtinguisherHeatRemoved = 100000.0f; // J
+
+    float LaserRayHeatFlow; // KJ/sec
+    static float constexpr MinLaserRayHeatFlow = 50000.0f;
+    static float constexpr MaxLaserRayHeatFlow = 2000000.0f;
+
+    static float constexpr LaserRayRadius = 0.75f;
+
+    // Water reactions
+
+    static float constexpr WaterReactionHeat = 100.0f * 1000.0f; // 100KJ/s, for exothermic reactions
 
     // Misc
 
@@ -154,7 +201,15 @@ struct GameParameters
     static float constexpr MinNpcSizeMultiplier = 0.2f;
     static float constexpr MaxNpcSizeMultiplier = 10.0f;
 
-    static float constexpr HumanNpcTemperature = 310.15f; // 37 Celsius
+    static float constexpr NpcBasePassiveBlastRadiusMultiplier = 8.0f; // Accounts for "virtual pressure space" in closed spaces :-)
+
+    float NpcPassiveBlastRadiusAdjustment;
+    static float constexpr MinNpcPassiveBlastRadiusAdjustment = 0.05f;
+    static float constexpr MaxNpcPassiveBlastRadiusAdjustment = 10.0f;
+
+    static float constexpr NpcConstrainedTemperatureTransferRate = 0.007f; // Magic; for cheap temperature transfer simulation
+    static float constexpr NpcFreeAirTemperatureTransferRate = 0.0015f; // Magic; for cheap temperature transfer simulation; slower, as we are free and in air
+    static float constexpr NpcFreeWaterTemperatureTransferRate = 0.01f; // Magic; for cheap temperature transfer simulation
 
     float HumanNpcEquilibriumTorqueStiffnessCoefficient;
     static float constexpr MinHumanNpcEquilibriumTorqueStiffnessCoefficient = 0.0f;

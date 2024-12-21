@@ -21,6 +21,8 @@ void Npcs::ResetNpcStateToWorld(
     StateType & npc,
     float currentSimulationTime)
 {
+    assert(npc.IsActive());
+
     //
     // Find topmost triangle - among all ships - which contains this NPC
     //
@@ -71,6 +73,8 @@ void Npcs::ResetNpcStateToWorld(
     Ship const & homeShip,
     std::optional<ElementIndex> primaryParticleTriangleIndex)
 {
+    assert(npc.IsActive());
+
     // Plane ID, connected component ID
 
     if (primaryParticleTriangleIndex.has_value())
@@ -169,6 +173,8 @@ void Npcs::TransitionParticleToConstrainedState(
     int npcParticleOrdinal,
     StateType::NpcParticleStateType::ConstrainedStateType constrainedState)
 {
+    assert(npc.IsActive());
+
     // Transition
     npc.ParticleMesh.Particles[npcParticleOrdinal].ConstrainedState = constrainedState;
 
@@ -185,6 +191,8 @@ void Npcs::TransitionParticleToFreeState(
     int npcParticleOrdinal,
     Ship const & homeShip)
 {
+    assert(npc.IsActive());
+
     // Transition
     npc.ParticleMesh.Particles[npcParticleOrdinal].ConstrainedState.reset();
     if (npcParticleOrdinal == 0)
@@ -308,7 +316,7 @@ Npcs::StateType::RegimeType Npcs::CalculateRegime(StateType const & npc)
         : StateType::RegimeType::Free;
 }
 
-void Npcs::UpdateNpcs(
+void Npcs::UpdateNpcPhysics(
     float currentSimulationTime,
     Storm::Parameters const & stormParameters,
     GameParameters const & gameParameters)
@@ -337,9 +345,13 @@ void Npcs::UpdateNpcs(
 
     // Calculate all physics constants needed for physics update
 
+    float const effectiveAirTemperature = gameParameters.AirTemperature + stormParameters.AirTemperatureDelta;
+
     float const effectiveAirDensity = Formulae::CalculateAirDensity(
-        gameParameters.AirTemperature + stormParameters.AirTemperatureDelta,
+        effectiveAirTemperature,
         gameParameters);
+
+    float const effectiveWaterTemperature = gameParameters.WaterTemperature; // Cheap, no thermoclyne
 
     vec2f const globalWindForce = Formulae::WindSpeedToForceDensity(
         Conversions::KmhToMs(mParentWorld.GetCurrentWindSpeed()),
@@ -347,7 +359,7 @@ void Npcs::UpdateNpcs(
 
     ////// FUTUREWORK
     ////float const effectiveWaterDensity = Formulae::CalculateWaterDensity(
-    ////    gameParameters.WaterTemperature,
+    ////    effectiveWaterTemperature,
     ////    gameParameters);
 
     // Visit all NPCs
@@ -355,7 +367,7 @@ void Npcs::UpdateNpcs(
     for (auto & npcState : mStateBuffer)
     {
         if (npcState.has_value()
-            && npcState->CurrentRegime != StateType::RegimeType::BeingRemoved) // Do not do physics on BeingRemoved NPCs
+            && npcState->IsActive())
         {
             assert(mShips[npcState->CurrentShipId].has_value());
             auto & homeShip = mShips[npcState->CurrentShipId]->HomeShip;
@@ -370,88 +382,287 @@ void Npcs::UpdateNpcs(
             unsigned int constexpr LowFrequencyUpdatePeriod = 4;
             if (mCurrentSimulationSequenceNumber.IsStepOf(npcState->Id % LowFrequencyUpdatePeriod, LowFrequencyUpdatePeriod))
             {
-                // Waterness, Water Velocity, Combustion
+                //
+                // Waterness, Water Velocity, Temperature
+                //
+                // Temperature:
+                //  - Constrained particles exchange with mesh, Free particles with air/water (and evt. interactions)
+                //
 
-                bool atLeastOneNpcParticleOnFire = false;
-                bool atLeastOneNpcParticleInWater = false;
+                bool isOneNpcParticleInBurningMesh = false; // True if NPC has at least one particle in a burning mesh
+                ElementIndex oneNpcParticleAboveIgnitionTemperature = NoneElementIndex; // If set, that particle is above its ignition temperature
+                ElementIndex oneNpcParticleExplosive = NoneElementIndex; // If set, that particle is explosive
+                bool isOneNpcParticleInWater = false; // True if NPC has at least one particle in water (using magic threshold)
+                ElementIndex oneNpcParticleAboveWaterReactionThreshold = NoneElementIndex; // If set, that (reactive) particle is ready to react
 
+                // Visit all particles
                 for (size_t p = 0; p < npcState->ParticleMesh.Particles.size(); ++p)
                 {
                     auto const & particle = npcState->ParticleMesh.Particles[p];
 
+                    float particleWaterness;
+                    float particleTemperature;
+                    bool isParticleInBurningMesh = false;
+
                     if (particle.ConstrainedState.has_value())
                     {
+                        // Constrained particle
+
+                        //
+                        // Calculate particle's mesh waterness, mesh water velocity, and temperature
+                        // from the mesh
+                        //
+
                         auto const t = particle.ConstrainedState->CurrentBCoords.TriangleElementIndex;
 
-                        float totalWaterness = 0.0f;
-                        vec2f totalWaterVelocity = vec2f::zero();
-                        float waterablePointCount = 0.0f;
-                        bool isAtLeastOneMeshPointOnFire = false;
+                        float totalMeshWaterness = 0.0f;
+                        vec2f totalMeshWaterVelocity = vec2f::zero();
+                        float meshWaterablePointCount = 0.0f;
+                        float totalMeshTemperature = 0.0f;
                         for (int v = 0; v < 3; ++v)
                         {
                             ElementIndex const pointElementIndex = homeShip.GetTriangles().GetPointIndices(t)[v];
 
-                            float const w = std::min(homeShip.GetPoints().GetWater(pointElementIndex), 1.0f);
-                            totalWaterness += w;
+                            // Water
 
-                            totalWaterVelocity += homeShip.GetPoints().GetWaterVelocity(pointElementIndex) * w;
+                            float const w = std::min(homeShip.GetPoints().GetWater(pointElementIndex), 1.0f);
+                            totalMeshWaterness += w;
+
+                            totalMeshWaterVelocity += homeShip.GetPoints().GetWaterVelocity(pointElementIndex) * w;
 
                             if (!homeShip.GetPoints().GetIsHull(pointElementIndex))
-                                waterablePointCount += 1.0f;
+                                meshWaterablePointCount += 1.0f;
 
-                            if (homeShip.GetPoints().GetTemperature(pointElementIndex) >= mParticles.GetMaterial(particle.ParticleIndex).IgnitionTemperature * gameParameters.IgnitionTemperatureAdjustment
-                                || homeShip.GetPoints().IsBurning(pointElementIndex))
+                            // Temperature
+
+                            totalMeshTemperature += homeShip.GetPoints().GetTemperature(pointElementIndex) * particle.ConstrainedState->CurrentBCoords.BCoords[v];
+
+                            // Burning mesh
+
+                            if (homeShip.GetPoints().IsBurning(pointElementIndex))
                             {
-                                isAtLeastOneMeshPointOnFire = true;
+                                isParticleInBurningMesh = true;
                             }
                         }
 
-                        float const meshWaterness = totalWaterness / (std::max(waterablePointCount, 1.0f));
-                        mParticles.SetMeshWaterness(particle.ParticleIndex, meshWaterness);
+                        //
+                        // Store particle's mesh waterness and mesh water velocity
+                        //
 
-                        vec2f const meshWaterVelocity = totalWaterVelocity / (std::max(waterablePointCount, 1.0f));
+                        float const meshWaterness = totalMeshWaterness / (std::max(meshWaterablePointCount, 1.0f));
+                        mParticles.SetMeshWaterness(particle.ParticleIndex, meshWaterness);
+                        particleWaterness = meshWaterness; // Use this for water determinations
+
+                        vec2f const meshWaterVelocity = totalMeshWaterVelocity / (std::max(meshWaterablePointCount, 1.0f));
                         mParticles.SetMeshWaterVelocity(particle.ParticleIndex, meshWaterVelocity);
 
-                        if (meshWaterness > 0.4f)
-                        {
-                            atLeastOneNpcParticleInWater = true;
-                        }
-                        else // Otherwise too much water for fire
-                        {
-                            atLeastOneNpcParticleOnFire = atLeastOneNpcParticleOnFire || isAtLeastOneMeshPointOnFire;
-                        }
+                        //
+                        // Calculate particle's mesh temperature
+                        //
+
+                        // Cheap simulation: transfer (actually, copy) mesh temperature to particle,
+                        // simulating a slow transfer
+                        float const oldTemperature = mParticles.GetTemperature(particle.ParticleIndex);
+                        particleTemperature =
+                            oldTemperature
+                            + (totalMeshTemperature - oldTemperature)
+                            * GameParameters::NpcConstrainedTemperatureTransferRate * gameParameters.HeatDissipationAdjustment;
                     }
                     else
                     {
-                        // Free - check if underwater (using AnyWaterness as proxy)
-                        if (mParticles.GetAnyWaterness(particle.ParticleIndex) > 0.4f)
-                        {
-                            atLeastOneNpcParticleInWater = true;
-                        }
+                        // Free particle
+
+                        //
+                        // Get particle waterness
+                        // Note: is stale (from previous frame), but that's ok
+                        //
+
+                        particleWaterness = mParticles.GetAnyWaterness(particle.ParticleIndex);
+
+                        //
+                        // Calculate temperature
+                        //
+                        // Cheaply: we assume fixed water temperature, and simulate a transfer with speed
+                        // depending on air/water
+                        //
+
+                        float const ambientTemperature = Mix(
+                            effectiveAirTemperature,
+                            effectiveWaterTemperature,
+                            particleWaterness);
+                        float const oldTemperature = mParticles.GetTemperature(particle.ParticleIndex);
+                        particleTemperature =
+                            oldTemperature
+                            + (ambientTemperature - oldTemperature)
+                            * (GameParameters::NpcFreeAirTemperatureTransferRate
+                                + (GameParameters::NpcFreeWaterTemperatureTransferRate - GameParameters::NpcFreeAirTemperatureTransferRate) * particleWaterness
+                              )
+                            * gameParameters.HeatDissipationAdjustment;
                     }
-                } // For all NPC particles
 
-                // Update NPC's fire progress
+                    //
+                    // Store temperature
+                    //
 
-                if (atLeastOneNpcParticleInWater)
+                    mParticles.SetTemperature(particle.ParticleIndex, particleTemperature);
+
+                    //
+                    // Sample particle properties
+                    //
+
+                    if (isParticleInBurningMesh)
+                    {
+                        isOneNpcParticleInBurningMesh = true;
+                    }
+
+                    if (particleTemperature >= mParticles.GetMaterial(particle.ParticleIndex).IgnitionTemperature * gameParameters.IgnitionTemperatureAdjustment)
+                    {
+                        oneNpcParticleAboveIgnitionTemperature = particle.ParticleIndex;
+                    }
+
+                    if (mParticles.GetMaterial(particle.ParticleIndex).CombustionType == StructuralMaterial::MaterialCombustionType::Explosion)
+                    {
+                        oneNpcParticleExplosive = particle.ParticleIndex;
+                    }
+
+                    float constexpr WaternessThresholdForInWater = 0.3f;
+                    if (particleWaterness >= WaternessThresholdForInWater)
+                    {
+                        isOneNpcParticleInWater = true;
+                    }
+
+                    if (mParticles.GetMaterial(particle.ParticleIndex).WaterReactivity > 0.0f
+                        && particleWaterness > mParticles.GetMaterial(particle.ParticleIndex).WaterReactivity)
+                    {
+                        oneNpcParticleAboveWaterReactionThreshold = particle.ParticleIndex;
+                    }
+
+                } // for (all particles)
+
+                //
+                // Combustion/Water Reaction
+                //
+                // Rules:
+                //  - If an NPC is burning and it has an explosive particle, the NPC explodes
+                //    (regardless of water)
+                //  - If a particle's temperature is above its ignition temperature and it's explosive, the NPC explodes
+                //    (regardless of water)
+                //  - If a particle's waterness is above its water reactivity threshold and it's water-reactable, the NPC reacts
+                //  - If a particle is in a burning mesh and NPC not in water, the NPC catches fire immediately
+                //      - Don't explode it yet, we wait for its temperature to reach ignition temperature
+                //  - If a particle's temperature is above its ignition temperature and NPC not in water, the NPC combustion progress
+                //    goes up; else, the NPC combustion progress goes down
+                //  - If the NPC is in water, the NPC combustion progress goes (quickly) down
+                //
+                // Notes:
+                //  - If one particle is in water, we consider the whole NPC in water for the purposes of combustion
+                //
+
+                if ((npcState->CombustionState.has_value() && oneNpcParticleExplosive != NoneElementIndex)
+                    || (oneNpcParticleAboveIgnitionTemperature != NoneElementIndex && mParticles.GetMaterial(oneNpcParticleAboveIgnitionTemperature).CombustionType == StructuralMaterial::MaterialCombustionType::Explosion))
                 {
-                    // Smother immediately
-                    npcState->CombustionProgress += (-1.0f - npcState->CombustionProgress) * 0.1f;
+                    ElementIndex const particleIndex = (npcState->CombustionState.has_value() && oneNpcParticleExplosive != NoneElementIndex)
+                        ? oneNpcParticleExplosive : oneNpcParticleAboveIgnitionTemperature;
+
+                    float const blastForce =
+                        mParticles.GetMaterial(particleIndex).ExplosiveCombustionForce
+                        * 1000.0f; // KN -> N
+
+                    float const blastForceRadius =
+                        mParticles.GetMaterial(particleIndex).ExplosiveCombustionForceRadius
+                        * 0.1f // Magic number
+                        * (gameParameters.IsUltraViolentMode ? 4.0f : 1.0f);
+
+                    float const blastHeat =
+                        mParticles.GetMaterial(particleIndex).ExplosiveCombustionHeat
+                        * gameParameters.CombustionHeatAdjustment
+                        * (gameParameters.IsUltraViolentMode ? 10.0f : 1.0f);
+
+                    float const blastHeatRadius =
+                        mParticles.GetMaterial(particleIndex).ExplosiveCombustionHeatRadius
+                        * 0.1f // Magic number
+                        * (gameParameters.IsUltraViolentMode ? 4.0f : 1.0f);
+
+                    TriggerExplosion(
+                        *npcState,
+                        particleIndex,
+                        blastForce,
+                        blastForceRadius,
+                        blastHeat,
+                        blastHeatRadius,
+                        5.0f,
+                        ExplosionType::Combustion,
+                        currentSimulationTime,
+                        gameParameters);
+                }
+                else if (oneNpcParticleAboveWaterReactionThreshold != NoneElementIndex)
+                {
+                    float const blastForce = 3000000.0f; // Magic number
+
+                    float const blastRadius =
+                        3.0f // Magic number
+                        * (gameParameters.IsUltraViolentMode ? 4.0f : 1.0f);
+
+                    float const blastHeat =
+                        GameParameters::WaterReactionHeat
+                        * (gameParameters.IsUltraViolentMode ? 10.0f : 1.0f);
+
+                    TriggerExplosion(
+                        *npcState,
+                        oneNpcParticleAboveWaterReactionThreshold,
+                        blastForce,
+                        blastRadius,
+                        blastHeat,
+                        blastRadius,
+                        5.0f,
+                        ExplosionType::Sodium,
+                        currentSimulationTime,
+                        gameParameters);
                 }
                 else
                 {
-                    if (atLeastOneNpcParticleOnFire)
+                    if (!isOneNpcParticleInWater)
                     {
-                        // Increase
-                        npcState->CombustionProgress += (1.0f - npcState->CombustionProgress) * 0.3f;
+                        //
+                        // NPC is not in water
+                        //
+
+                        if (isOneNpcParticleInBurningMesh)
+                        {
+                            // Catch fire immediately
+                            npcState->CombustionProgress = 1.0f;
+                        }
+                        else
+                        {
+                            if (oneNpcParticleAboveIgnitionTemperature != NoneElementIndex)
+                            {
+                                // Increase combustion progress
+                                npcState->CombustionProgress += (1.0f - npcState->CombustionProgress) * 0.2f;
+                            }
+                            else
+                            {
+                                // Decrease combustion progress (slowly)
+                                npcState->CombustionProgress += (-1.0f - npcState->CombustionProgress) * 0.007f;
+                            }
+                        }
                     }
                     else
                     {
-                        // Decrease
-                        npcState->CombustionProgress += (-1.0f - npcState->CombustionProgress) * 0.007f;
+                        //
+                        // NPC is in water
+                        //
+
+                        // Smother combustion progress quickly
+                        {
+                            npcState->CombustionProgress += (-1.0f - npcState->CombustionProgress) * 0.1f;
+                        }
                     }
                 }
-            }
+
+            } // if (low-freq step)
+
+            if (!npcState->IsActive())
+                continue;
 
             // High-frequency updates
 
@@ -510,6 +721,9 @@ void Npcs::UpdateNpcs(
                 }
             }
 
+            if (!npcState->IsActive())
+                continue;
+
             // Check validity of constrained triangles, and calculate preliminary forces
 
             for (size_t p = 0; p < npcState->ParticleMesh.Particles.size(); ++p)
@@ -555,20 +769,29 @@ void Npcs::UpdateNpcs(
                     gameParameters);
             }
 
+            assert(npcState->IsActive());
+
             // Spring forces for whole NPC
 
             CalculateNpcParticleSpringForces(*npcState);
 
             // Update physical state for all particles and maintain world bounds
 
+            assert(npcState->IsActive());
+
             for (size_t p = 0; p < npcState->ParticleMesh.Particles.size(); ++p)
             {
+                assert(npcState->IsActive());
+
                 UpdateNpcParticlePhysics(
                     *npcState,
                     static_cast<int>(p),
                     homeShip,
                     currentSimulationTime,
                     gameParameters);
+
+                if (!npcState->IsActive())
+                    break;
 
                 MaintainInWorldBounds(
                     *npcState,
@@ -586,15 +809,29 @@ void Npcs::UpdateNpcs(
                         gameParameters);
                 }
             }
+
+            // If being moved: now that all particles have been moved, make sure
+            // the NPC triangles are not folded
+            if (npcState->CurrentRegime == StateType::RegimeType::BeingPlaced
+                && !npcState->BeingPlacedState->DoMoveWholeMesh)
+            {
+                MaintainNpcUnfolded(
+                    *npcState,
+                    homeShip,
+                    gameParameters);
+            }
         }
     }
+}
 
-    //
-    // 9. Update behavioral state machines
-    // 10. Update animation
-    //
-
+void Npcs::UpdateNpcBehavior(
+    float currentSimulationTime,
+    GameParameters const & gameParameters)
+{
     LogNpcDebug("----------------------------------");
+    LogNpcDebug("----------------------------------");
+
+    assert(mDeferredRemovalNpcs.empty()); // Only made deferred removable by behavior updates
 
     for (auto & npcState : mStateBuffer)
     {
@@ -612,13 +849,11 @@ void Npcs::UpdateNpcs(
                     UpdateFurniture(
                         *npcState,
                         currentSimulationTime,
-                        homeShip,
                         gameParameters);
 
                     UpdateFurnitureNpcAnimation(
                         *npcState,
-                        currentSimulationTime,
-                        homeShip);
+                        currentSimulationTime);
 
                     break;
                 }
@@ -628,13 +863,11 @@ void Npcs::UpdateNpcs(
                     UpdateHuman(
                         *npcState,
                         currentSimulationTime,
-                        homeShip,
                         gameParameters);
 
                     UpdateHumanNpcAnimation(
                         *npcState,
-                        currentSimulationTime,
-                        homeShip);
+                        currentSimulationTime);
 
                     break;
                 }
@@ -665,19 +898,20 @@ void Npcs::UpdateNpcs(
             }
         }
     }
+}
 
+void Npcs::UpdateNpcsEnd()
+{
     //
-    // 11. Deferred NPC removal
+    // Deferred NPC removal
     //
-
-    LogNpcDebug("----------------------------------");
 
     if (!mDeferredRemovalNpcs.empty())
     {
         for (auto const npcId : mDeferredRemovalNpcs)
         {
             assert(mStateBuffer[npcId].has_value());
-            assert(mStateBuffer[npcId]->CurrentRegime == StateType::RegimeType::BeingRemoved);
+            assert(!mStateBuffer[npcId]->IsActive());
 
             assert(mShips[mStateBuffer[npcId]->CurrentShipId].has_value());
             auto & ship = *mShips[mStateBuffer[npcId]->CurrentShipId];
@@ -701,6 +935,12 @@ void Npcs::UpdateNpcs(
             ship.RemoveNpc(npcId);
 
             //
+            // Free particles
+            //
+
+            InternalFreeNpcParticles(*mStateBuffer[npcId]);
+
+            //
             // Reset NPC
             //
 
@@ -709,11 +949,11 @@ void Npcs::UpdateNpcs(
 
         mDeferredRemovalNpcs.clear();
     }
-}
 
-void Npcs::UpdateNpcsEnd()
-{
-    // We consume this one
+    //
+    // An NPC update step consume external forces
+    //
+
     mParticles.ResetExternalForces();
 }
 
@@ -898,7 +1138,7 @@ void Npcs::UpdateNpcParticlePhysics(
 
         std::optional<int> currentNonInertialFloorEdgeOrdinal;
 
-        for (float remainingDt = dt; ; )
+        for (float remainingDt = dt; npc.IsActive(); )
         {
             assert(remainingDt > 0.0f);
 
@@ -1817,10 +2057,17 @@ void Npcs::CalculateNpcParticlePreliminaryForces(
 
             // 5. World forces - water drag
 
+            // Differently than with the ship, with NPCs too-high linear drag forces cause growing oscillations in
+            // the mesh (even in the absence of spring damper forces!); so we clamp here to a tenth of the theoretical
+            // max that doesn't cause a V inversion (10 is determined empirically)
+            float const maxC = particleMass / GameParameters::SimulationStepTimeDuration<float>;
+            float const c = std::min(
+                GameParameters::WaterFrictionDragCoefficient * gameParameters.WaterFrictionDragAdjustment,
+                maxC / 10.0f);
+
             preliminaryForces +=
                 -mParticles.GetVelocity(npcParticle.ParticleIndex)
-                * GameParameters::WaterFrictionDragCoefficient
-                * gameParameters.WaterFrictionDragAdjustment;
+                * c;
         }
         else
         {
@@ -2266,6 +2513,7 @@ void Npcs::UpdateNpcParticle_BeingPlaced(
                     // Adjust physicsDeltaPos to maintain spring length after we've traveled it
 
                     int const s = GetSpringAmongEndpoints(npcParticleOrdinal, static_cast<int>(p), npc.ParticleMesh);
+
                     float const targetSpringLength = npc.ParticleMesh.Springs[s].RestLength;
                     vec2f const & otherPPosition = mParticles.GetPosition(npc.ParticleMesh.Particles[p].ParticleIndex);
                     vec2f const particleAdjustedPosition =
@@ -2298,65 +2546,6 @@ void Npcs::UpdateNpcParticle_BeingPlaced(
         particles.SetVelocity(
             npcParticle.ParticleIndex,
             (physicsDeltaPos / dt * mGlobalDampingFactor).clamp_length_upper(GameParameters::MaxNpcToolMoveVelocityMagnitude));
-
-        //
-        // Unfold if folded quad (fight long strides)
-        //
-
-        if (npc.ParticleMesh.Particles.size() == 4)
-        {
-            //
-            // Check folds along the two diagonals - which one to use depends
-            // on the particle
-            //
-
-            std::array<std::pair<int, int>, 4> const diagonalEndpoints{ { // tail->head, in the order that makes the triangle with this particle CW
-                {1, 3},
-                {2, 0},
-                {3, 1},
-                {0, 2}
-            } };
-
-            ElementIndex const diagTailParticleIndex = npc.ParticleMesh.Particles[diagonalEndpoints[npcParticleOrdinal].first].ParticleIndex;
-            ElementIndex const diagHeadParticleIndex = npc.ParticleMesh.Particles[diagonalEndpoints[npcParticleOrdinal].second].ParticleIndex;
-
-            vec2f const & diagTailPosition = particles.GetPosition(diagTailParticleIndex);
-
-            vec2f const diagonalVector =
-                particles.GetPosition(diagHeadParticleIndex)
-                - diagTailPosition;
-
-            vec2f const particleVector =
-                particles.GetPosition(npcParticle.ParticleIndex)
-                - diagTailPosition;
-
-            if (particleVector.cross(diagonalVector) < 0.0f)
-            {
-                // This particle is on the wrong size of the diagonal
-                LogNpcDebug("BeingMoved Quad ", npc.Id, ":", npcParticleOrdinal, ": folded");
-
-                //
-                // Move particle to other side of diagonal
-                //
-                // We do so by moving particle twice along normal to diagonal
-                //
-                // Note: the cross product we have is the dot product of the
-                // particle vector with the perpendicular to the diagonal;
-                // almost what we need, with an extra |diagonal| on top of it.
-                // Since we have to calculate a length and then perform a division,
-                // for clarity we keep the formulation of P - 2*diag_n
-                //
-
-                vec2f const dNorm = diagonalVector.to_perpendicular().normalise_approx();
-                float const particleVectorAlongDiagonalNormal = particleVector.dot(dNorm);
-                assert(particleVectorAlongDiagonalNormal > 0.0f); // Because we know cross < 0
-                vec2f const newPos =
-                    particles.GetPosition(npcParticle.ParticleIndex)
-                    - dNorm * 2.0f * particleVectorAlongDiagonalNormal;
-
-                particles.SetPosition(npcParticle.ParticleIndex, newPos);
-            }
-        }
     }
 }
 
@@ -3614,7 +3803,7 @@ void Npcs::BounceConstrainedNpcParticle(
     Ship & homeShip,
     NpcParticles & particles,
     float currentSimulationTime,
-    GameParameters const & gameParameters) const
+    GameParameters const & gameParameters)
 {
     auto & npcParticle = npc.ParticleMesh.Particles[npcParticleOrdinal];
     assert(npcParticle.ConstrainedState.has_value());
@@ -3670,75 +3859,77 @@ void Npcs::BounceConstrainedNpcParticle(
             0.0f, 1.0f);
         vec2f const normalResponse =
             -normalVelocity
-            * elasticityCoefficient;
+                * elasticityCoefficient;
 
-        // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
-        float const materialFrictionCoefficient = (particles.GetMaterial(npcParticle.ParticleIndex).KineticFrictionCoefficient + meshMaterial.KineticFrictionCoefficient) / 2.0f;
-        vec2f const tangentialResponse =
-            tangentialVelocity
-            * std::max(0.0f, 1.0f - materialFrictionCoefficient * particles.GetKineticFrictionTotalAdjustment(npcParticle.ParticleIndex));
+            // Calculate tangential response: Vt' = a*Vt (a = (1.0-friction), [0.0 - 1.0])
+            float const materialFrictionCoefficient = (particles.GetMaterial(npcParticle.ParticleIndex).KineticFrictionCoefficient + meshMaterial.KineticFrictionCoefficient) / 2.0f;
+            vec2f const tangentialResponse =
+                tangentialVelocity
+                * std::max(0.0f, 1.0f - materialFrictionCoefficient * particles.GetKineticFrictionTotalAdjustment(npcParticle.ParticleIndex));
 
-        // Calculate whole response (which, given that we've been working in *apparent* space (we've calc'd the collision response to *trajectory* which is apparent displacement)),
-        // is a relative velocity (relative to mesh)
-        vec2f const resultantRelativeVelocity = (normalResponse + tangentialResponse);
+            // Calculate whole response (which, given that we've been working in *apparent* space (we've calc'd the collision response to *trajectory* which is apparent displacement)),
+            // is a relative velocity (relative to mesh)
+            vec2f const resultantRelativeVelocity = (normalResponse + tangentialResponse);
 
-        // Do not damp velocity if we're trying to maintain equilibrium
-        vec2f const resultantAbsoluteVelocity =
-            resultantRelativeVelocity * ((npc.Kind != NpcKindType::Human || npc.KindSpecificState.HumanNpcState.EquilibriumTorque == 0.0f) ? mGlobalDampingFactor : 1.0f)
-            + meshVelocity;
+            // Do not damp velocity if we're trying to maintain equilibrium
+            vec2f const resultantAbsoluteVelocity =
+                resultantRelativeVelocity * ((npc.Kind != NpcKindType::Human || npc.KindSpecificState.HumanNpcState.EquilibriumTorque == 0.0f) ? mGlobalDampingFactor : 1.0f)
+                + meshVelocity;
 
-        LogNpcDebug("        Impact: trajectory=", trajectory, " apparentParticleVelocity=", apparentParticleVelocity, " nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantRelativeVelocity);
+            LogNpcDebug("        Impact: trajectory=", trajectory, " apparentParticleVelocity=", apparentParticleVelocity, " nr=", normalResponse, " tr=", tangentialResponse, " rr=", resultantRelativeVelocity);
 
-        //
-        // Set position and velocity
-        //
-
-        particles.SetPosition(npcParticle.ParticleIndex, bouncePosition);
-
-        particles.SetVelocity(npcParticle.ParticleIndex, resultantAbsoluteVelocity);
-        npcParticle.ConstrainedState->MeshRelativeVelocity = resultantRelativeVelocity;
-
-        //
-        // Impart force against edge - but only if hit was "substantial", so
-        // we don't end up in infinite loops bouncing against a soft mesh
-        //
-
-        if (apparentParticleVelocityAlongNormal > 2.0f) // Magic number
-        {
-            // Calculate impact force: Dp/Dt
             //
-            //  Dp = v2*m - v1*m (using _relative_ velocities)
-            //  Dt = duration of impact - and here we are conservative, taking a whole simulation dt
-            //       ...but then it's too much
-            vec2f const impartedForce =
-                (normalVelocity - normalResponse) // normalVelocity is directed outside of triangle
-                * mParticles.GetMass(npcParticle.ParticleIndex)
-                / GameParameters::SimulationStepTimeDuration<float>
-                * 0.2f; // Magic damper
+            // Set position and velocity
+            //
 
-            // Divide among two vertices
+            particles.SetPosition(npcParticle.ParticleIndex, bouncePosition);
 
-            int const edgeVertex1Ordinal = bounceEdgeOrdinal;
-            ElementIndex const edgeVertex1PointIndex = homeShip.GetTriangles().GetPointIndices(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex)[edgeVertex1Ordinal];
-            float const vertex1InterpCoeff = npcParticle.ConstrainedState->CurrentBCoords.BCoords[edgeVertex1Ordinal];
-            homeShip.GetPoints().AddStaticForce(edgeVertex1PointIndex, impartedForce * vertex1InterpCoeff);
+            particles.SetVelocity(npcParticle.ParticleIndex, resultantAbsoluteVelocity);
+            npcParticle.ConstrainedState->MeshRelativeVelocity = resultantRelativeVelocity;
 
-            int const edgeVertex2Ordinal = (bounceEdgeOrdinal + 1) % 3;
-            ElementIndex const edgeVertex2PointIndex = homeShip.GetTriangles().GetPointIndices(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex)[edgeVertex2Ordinal];
-            float const vertex2InterpCoeff = npcParticle.ConstrainedState->CurrentBCoords.BCoords[edgeVertex2Ordinal];
-            homeShip.GetPoints().AddStaticForce(edgeVertex2PointIndex, impartedForce * vertex2InterpCoeff);
-        }
+            //
+            // Impart force against edge - but only if hit was "substantial", so
+            // we don't end up in infinite loops bouncing against a soft mesh
+            //
 
-        //
-        // Publish impact
-        //
+            if (apparentParticleVelocityAlongNormal > 2.0f) // Magic number
+            {
+                // Calculate impact force: Dp/Dt
+                //
+                //  Dp = v2*m - v1*m (using _relative_ velocities)
+                //  Dt = duration of impact - and here we are conservative, taking a whole simulation dt
+                //       ...but then it's too much
+                vec2f const impartedForce =
+                    (normalVelocity - normalResponse) // normalVelocity is directed outside of triangle
+                    * mParticles.GetMass(npcParticle.ParticleIndex)
+                    / GameParameters::SimulationStepTimeDuration<float>
+                    *0.2f; // Magic damper
 
-        OnImpact(
-            npc,
-            npcParticleOrdinal,
-            normalVelocity,
-            floorEdgeNormal,
-            currentSimulationTime);
+                // Divide among two vertices
+
+                int const edgeVertex1Ordinal = bounceEdgeOrdinal;
+                ElementIndex const edgeVertex1PointIndex = homeShip.GetTriangles().GetPointIndices(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex)[edgeVertex1Ordinal];
+                float const vertex1InterpCoeff = npcParticle.ConstrainedState->CurrentBCoords.BCoords[edgeVertex1Ordinal];
+                homeShip.GetPoints().AddStaticForce(edgeVertex1PointIndex, impartedForce * vertex1InterpCoeff);
+
+                int const edgeVertex2Ordinal = (bounceEdgeOrdinal + 1) % 3;
+                ElementIndex const edgeVertex2PointIndex = homeShip.GetTriangles().GetPointIndices(npcParticle.ConstrainedState->CurrentBCoords.TriangleElementIndex)[edgeVertex2Ordinal];
+                float const vertex2InterpCoeff = npcParticle.ConstrainedState->CurrentBCoords.BCoords[edgeVertex2Ordinal];
+                homeShip.GetPoints().AddStaticForce(edgeVertex2PointIndex, impartedForce * vertex2InterpCoeff);
+            }
+
+            //
+            // Publish impact
+            //
+
+            OnImpact(
+                npc,
+                npcParticleOrdinal,
+                npcParticle.ParticleIndex,
+                normalVelocity,
+                floorEdgeNormal,
+                currentSimulationTime,
+                gameParameters);
     }
     else
     {
@@ -3758,13 +3949,18 @@ void Npcs::BounceConstrainedNpcParticle(
 void Npcs::OnImpact(
     StateType & npc,
     int npcParticleOrdinal,
+    ElementIndex npcParticleIndex,
     vec2f const & normalResponse,
     vec2f const & bounceEdgeNormal, // Pointing outside of triangle
-    float currentSimulationTime) const
+    float currentSimulationTime,
+    GameParameters const & gameParameters)
 {
     LogNpcDebug("    OnImpact(mag=", normalResponse.length(), ", bounceEdgeNormal=", bounceEdgeNormal, ")");
 
-    // Human state machine
+    //
+    // Update human state machine
+    //
+
     if (npc.Kind == NpcKindType::Human)
     {
         OnHumanImpact(
@@ -3773,6 +3969,235 @@ void Npcs::OnImpact(
             normalResponse,
             bounceEdgeNormal,
             currentSimulationTime);
+    }
+
+    //
+    // Check explosion
+    //
+
+    float const impactMagnitude = normalResponse.length();
+
+    float constexpr ImpactMagnitudeThreshold = 9.0f; // Magic number
+
+    if (mParticles.GetMaterial(npcParticleIndex).CombustionType == StructuralMaterial::MaterialCombustionType::Explosion
+        && impactMagnitude >= ImpactMagnitudeThreshold)
+    {
+        float const impactMultiplier = std::min(impactMagnitude / ImpactMagnitudeThreshold, 2.5f);
+
+        float const blastForce =
+            mParticles.GetMaterial(npcParticleIndex).ExplosiveCombustionForce
+            * 1000.0f // KN -> N
+            * impactMultiplier;
+
+        float const blastForceRadius =
+            mParticles.GetMaterial(npcParticleIndex).ExplosiveCombustionForceRadius
+            * 0.1f // Magic number
+            * impactMultiplier * impactMultiplier
+            * (gameParameters.IsUltraViolentMode ? 4.0f : 1.0f);
+
+        float const blastHeat =
+            mParticles.GetMaterial(npcParticleIndex).ExplosiveCombustionHeat
+            * gameParameters.CombustionHeatAdjustment
+            * (gameParameters.IsUltraViolentMode ? 10.0f : 1.0f);
+
+        float const blastHeatRadius =
+            mParticles.GetMaterial(npcParticleIndex).ExplosiveCombustionHeatRadius
+            * 0.1f // Magic number
+            * impactMultiplier * impactMultiplier
+            * (gameParameters.IsUltraViolentMode ? 4.0f : 1.0f);
+
+        TriggerExplosion(
+            npc,
+            npcParticleIndex,
+            blastForce,
+            blastForceRadius,
+            blastHeat,
+            blastHeatRadius,
+            3.0f,
+            ExplosionType::Combustion,
+            currentSimulationTime,
+            gameParameters);
+    }
+}
+
+void Npcs::TriggerExplosion(
+    StateType & npc,
+    ElementIndex npcParticleIndex,
+    float blastForce,
+    float blastForceRadius,
+    float blastHeat,
+    float blastHeatRadius,
+    float renderRadiusOffset,
+    ExplosionType explosionType,
+    float currentSimulationTime,
+    GameParameters const & gameParameters)
+{
+    //
+    // Start explosion
+    //
+
+    vec2f const & position = mParticles.GetPosition(npcParticleIndex);
+
+    assert(mShips[npc.CurrentShipId].has_value());
+    mShips[npc.CurrentShipId]->HomeShip.StartExplosion(
+        currentSimulationTime,
+        npc.CurrentPlaneId,
+        position,
+        blastForce,
+        blastForceRadius,
+        blastHeat,
+        blastHeatRadius,
+        renderRadiusOffset,
+        explosionType,
+        gameParameters);
+
+    //
+    // Notify
+    //
+
+    bool const isUnderwater = mParticles.GetAnyWaterness(npcParticleIndex) >= 0.5f;
+
+    switch (explosionType)
+    {
+        case ExplosionType::Combustion:
+        {
+            mGameEventHandler->OnCombustionExplosion(
+                isUnderwater,
+                1);
+
+            break;
+        }
+
+        case ExplosionType::Deflagration:
+        {
+            mGameEventHandler->OnBombExplosion(
+                GadgetType::ImpactBomb, // Arbitrarily
+                isUnderwater,
+                1);
+
+            break;
+        }
+
+        case ExplosionType::Sodium:
+        {
+            mGameEventHandler->OnWaterReactionExplosion(
+                isUnderwater,
+                1);
+
+            break;
+        }
+    }
+
+    //
+    // Transition to exploding
+    //
+
+    switch (npc.Kind)
+    {
+        case NpcKindType::Furniture:
+        {
+            npc.KindSpecificState.FurnitureNpcState.TransitionToState(
+                StateType::KindSpecificStateType::FurnitureNpcStateType::BehaviorType::BeingRemoved_Exploding,
+                currentSimulationTime);
+            break;
+        }
+
+        case NpcKindType::Human:
+        {
+            npc.KindSpecificState.HumanNpcState.TransitionToState(
+                StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::BeingRemoved_Exploding,
+                currentSimulationTime);
+            break;
+        }
+    }
+
+    //
+    // Start deferred deletion
+    //
+
+    InternalBeginDeferredDeletion(npc.Id, currentSimulationTime);
+}
+
+void Npcs::MaintainNpcUnfolded(
+    StateType & npc,
+    Ship const & homeShip,
+    GameParameters const & gameParameters)
+{
+    //
+    // Unfold if folded quad (fight long strides)
+    //
+
+    if (npc.ParticleMesh.Particles.size() == 4)
+    {
+        //
+        // Check folds along the two diagonals - which one to use depends
+        // on the particle
+        //
+
+        std::array<std::pair<int, int>, 4> const diagonalEndpoints{ { // tail->head, in the order that makes the triangle with this particle CW
+            {1, 3},
+            {2, 0},
+            {3, 1},
+            {0, 2}
+        } };
+
+        for (size_t p = 0; p < npc.ParticleMesh.Particles.size(); ++p)
+        {
+            if (!npc.BeingPlacedState.has_value() || npc.BeingPlacedState->DoMoveWholeMesh || p != npc.BeingPlacedState->AnchorParticleOrdinal)
+            {
+                ElementIndex const particleIndex = npc.ParticleMesh.Particles[p].ParticleIndex;
+                ElementIndex const diagTailParticleIndex = npc.ParticleMesh.Particles[diagonalEndpoints[p].first].ParticleIndex;
+                ElementIndex const diagHeadParticleIndex = npc.ParticleMesh.Particles[diagonalEndpoints[p].second].ParticleIndex;
+
+                vec2f const & diagTailPosition = mParticles.GetPosition(diagTailParticleIndex);
+
+                vec2f const diagonalVector =
+                    mParticles.GetPosition(diagHeadParticleIndex)
+                    - diagTailPosition;
+
+                vec2f const particleVector =
+                    mParticles.GetPosition(particleIndex)
+                    - diagTailPosition;
+
+                if (particleVector.cross(diagonalVector) < 0.0f)
+                {
+                    // This particle is on the wrong size of the diagonal
+
+                    LogNpcDebug("BeingMoved Quad ", npc.Id, ":", p, ": folded");
+
+                    //
+                    // Move particle to other side of diagonal
+                    //
+                    // We do so by moving particle twice along normal to diagonal
+                    //
+                    // Note: the cross product we have is the dot product of the
+                    // particle vector with the perpendicular to the diagonal;
+                    // almost what we need, with an extra |diagonal| on top of it.
+                    // Since we have to calculate a length and then perform a division,
+                    // for clarity we keep the formulation of P - 2*diag_n
+                    //
+
+                    vec2f const dNorm = diagonalVector.to_perpendicular().normalise_approx();
+                    float const particleVectorAlongDiagonalNormal = particleVector.dot(dNorm);
+                    assert(particleVectorAlongDiagonalNormal > 0.0f); // Because we know cross < 0
+                    vec2f const newPos =
+                        mParticles.GetPosition(particleIndex)
+                        - dNorm * 2.0f * particleVectorAlongDiagonalNormal;
+
+                    mParticles.SetPosition(particleIndex, newPos);
+
+                    //
+                    // Since this has been moved, make sure we maintain world bounds
+                    //
+
+                    MaintainInWorldBounds(
+                        npc,
+                        static_cast<int>(p),
+                        homeShip,
+                        gameParameters);
+                }
+            }
+        }
     }
 }
 

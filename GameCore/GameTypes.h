@@ -40,7 +40,7 @@ static constexpr ElementIndex NoneElementIndex = std::numeric_limits<ElementInde
  * Comparable and ordered. Start from 0.
  */
 using ShipId = std::uint32_t;
-static ShipId constexpr NoneShip = std::numeric_limits<ShipId>::max();
+static ShipId constexpr NoneShipId = std::numeric_limits<ShipId>::max();
 
 /*
  * Connected component identifiers.
@@ -813,6 +813,15 @@ union Quad final
 
 #pragma pack(pop)
 
+/*
+ * HeatBlaster action.
+ */
+enum class HeatBlasterActionType
+{
+    Heat,
+    Cool
+};
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Rendering
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -867,6 +876,8 @@ enum class NpcKindType
     Furniture,
     Human
 };
+
+std::string NpcKindTypeToStr(NpcKindType npcKind);
 
 /*
  * Second level of NPC type hierarchy; domain is open
@@ -975,4 +986,26 @@ enum class NpcRenderModeType
     Texture,
     QuadWithRoles,
     QuadFlat
+};
+
+/*
+ * Types of gadgets.
+ */
+enum class GadgetType
+{
+    AntiMatterBomb,
+    ImpactBomb,
+    PhysicsProbe,
+    RCBomb,
+    TimerBomb
+};
+
+/*
+ * Types of explosions.
+ */
+enum class ExplosionType
+{
+    Combustion,
+    Deflagration,
+    Sodium
 };

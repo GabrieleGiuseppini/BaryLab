@@ -76,12 +76,34 @@ struct IBLabEventHandler
 
 struct IPlaceholderEventHandler
 {
+    virtual void OnBombExplosion(
+        GadgetType /*gadgetType*/,
+        bool /*isUnderwater*/,
+        unsigned int /*size*/)
+    {
+        // Default-implemented
+    }
+
+    virtual void OnWaterReactionExplosion(
+        bool /*isUnderwater*/,
+        unsigned int /*size*/)
+    {
+        // Default-implemented
+    }
+
     virtual void OnPointCombustionBegin()
     {
         // Default-implemented
     }
 
     virtual void OnPointCombustionEnd()
+    {
+        // Default-implemented
+    }
+
+    virtual void OnCombustionExplosion(
+        bool /*isUnderwater*/,
+        unsigned int /*size*/)
     {
         // Default-implemented
     }

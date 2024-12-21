@@ -14,6 +14,13 @@
 
 struct StructuralMaterial
 {
+public:
+
+    enum class MaterialCombustionType
+    {
+        Combustion,
+        Explosion
+    };
 
 public:
 
@@ -46,8 +53,11 @@ public:
     float ThermalConductivity; // W/(m*K)
     float ThermalExpansionCoefficient; // 1/K
     float SpecificHeat; // J/(Kg*K)
-    float ExplosiveCombustionRadius; // m
-    float ExplosiveCombustionStrength; // adimensional
+    MaterialCombustionType CombustionType;
+    float ExplosiveCombustionForce; // KN
+    float ExplosiveCombustionForceRadius; // m
+    float ExplosiveCombustionHeat; // KJoules/sec
+    float ExplosiveCombustionHeatRadius; // m
 
     // Misc
     float WindReceptivity;
@@ -64,6 +74,8 @@ public:
     static StructuralMaterial Create(
         MaterialColorKey const & colorKey,
         picojson::object const & structuralMaterialJson);
+
+    static MaterialCombustionType StrToMaterialCombustionType(std::string const & str);
 
     /*
      * Returns the mass of this particle, calculated assuming that the particle is a cubic meter
@@ -109,8 +121,11 @@ public:
         float thermalConductivity,
         float thermalExpansionCoefficient,
         float specificHeat,
-        float explosiveCombustionRadius,
-        float explosiveCombustionStrength,
+        MaterialCombustionType combustionType,
+        float explosiveCombustionForce,
+        float explosiveCombustionForceRadius,
+        float explosiveCombustionHeat,
+        float explosiveCombustionHeatRadius,
         // Misc
         float windReceptivity,
         float waterReactivity,
@@ -142,8 +157,11 @@ public:
         , ThermalConductivity(thermalConductivity)
         , ThermalExpansionCoefficient(thermalExpansionCoefficient)
         , SpecificHeat(specificHeat)
-        , ExplosiveCombustionRadius(explosiveCombustionRadius)
-        , ExplosiveCombustionStrength(explosiveCombustionStrength)
+        , CombustionType(combustionType)
+        , ExplosiveCombustionForce(explosiveCombustionForce)
+        , ExplosiveCombustionForceRadius(explosiveCombustionForceRadius)
+        , ExplosiveCombustionHeat(explosiveCombustionHeat)
+        , ExplosiveCombustionHeatRadius(explosiveCombustionHeatRadius)
         , WindReceptivity(windReceptivity)
         , WaterReactivity(waterReactivity)
         , IsLegacyElectrical(isLegacyElectrical)

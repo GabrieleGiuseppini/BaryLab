@@ -112,10 +112,10 @@ private:
 	{
 		enum class RegimeType
 		{
-			BeingPlaced,
-			Constrained,
-			Free,
-			BeingRemoved
+			BeingPlaced,	// Active
+			Constrained,	// Active
+			Free,			// Active
+			BeingRemoved	// Not active
 		};
 
 		struct NpcParticleStateType final
@@ -231,7 +231,8 @@ private:
 				{
 					Default, // Nothing
 
-					BeingRemoved // Removal animation
+					BeingRemoved, // Removal animation
+					BeingRemoved_Exploding // Disappearing
 				};
 
 				BehaviorType CurrentBehavior;
@@ -251,6 +252,13 @@ private:
 						{
 						}
 					} BeingRemoved;
+
+					struct BeingRemoved_ExplodingStateType
+					{
+						void Reset()
+						{
+						}
+					} BeingRemoved_Exploding;
 
 					BehaviorStateType()
 					{}
@@ -309,6 +317,12 @@ private:
 							CurrentBehaviorState.BeingRemoved.Reset();
 							break;
 						}
+
+						case BehaviorType::BeingRemoved_Exploding:
+						{
+							CurrentBehaviorState.BeingRemoved_Exploding.Reset();
+							break;
+						}
 					}
 
 					CurrentStateTransitionSimulationTimestamp = currentSimulationTime;
@@ -344,6 +358,7 @@ private:
 					Constrained_Swimming_Style2, // Swims
 
 					Constrained_Electrified, // Doing electrification dance, assuming being vertical
+					Constrained_Dancing_Repaired, // Dances
 
 					Free_Aerial, // Does nothing, stays here as long as it's moving
 					Free_KnockedOut, // Does nothing, stays here as long as it's still
@@ -355,7 +370,8 @@ private:
 
 					ConstrainedOrFree_Smashed, // Plat
 
-					BeingRemoved // Removal animation
+					BeingRemoved, // Removal animation
+					BeingRemoved_Exploding // Disappearing
 				};
 
 				BehaviorType CurrentBehavior;
@@ -501,6 +517,13 @@ private:
 						}
 					} Constrained_Electrified;
 
+					struct Constrained_Dancing_RepairedType
+					{
+						void Reset()
+						{
+						}
+					} Constrained_Dancing_Repaired;
+
 					struct Free_AerialStateType
 					{
 						float ProgressToKnockedOut;
@@ -591,6 +614,13 @@ private:
 						}
 					} BeingRemoved;
 
+					struct BeingRemoved_ExplodingStateType
+					{
+						void Reset()
+						{
+						}
+					} BeingRemoved_Exploding;
+
 					BehaviorStateType()
 					{}
 
@@ -621,6 +651,8 @@ private:
 					float Alpha;
 					float RemovalProgress;
 
+					float AnimationElapsed; // Used by animations that require variable speeds; doesn't necessarily go with simulation time
+
 					// Angles are CCW relative to vertical, regardless of where the NPC is looking towards (L/R)
 					// (when we flip we pretend immediate mirroring of limbs from the point of view of the human,
 					// so angles are independent from direction, and animation is smoother)
@@ -641,6 +673,7 @@ private:
 					AnimationStateType()
 						: Alpha(1.0f)
 						, RemovalProgress(0.0f)
+						, AnimationElapsed(0.0f)
 						, LimbAngles({ InitialLegAngle, -InitialLegAngle, InitialArmAngle, -InitialArmAngle })
 						, LimbAnglesCos({std::cosf(LimbAngles.RightLeg), std::cosf(LimbAngles.LeftLeg), std::cosf(LimbAngles.RightArm), std::cosf(LimbAngles.LeftArm)})
 						, LimbAnglesSin({ std::sinf(LimbAngles.RightLeg), std::sinf(LimbAngles.LeftLeg), std::sinf(LimbAngles.RightArm), std::sinf(LimbAngles.LeftArm) })
@@ -699,6 +732,12 @@ private:
 						case BehaviorType::Constrained_Aerial:
 						{
 							CurrentBehaviorState.Constrained_Aerial.Reset();
+							break;
+						}
+
+						case BehaviorType::Constrained_Dancing_Repaired:
+						{
+							CurrentBehaviorState.Constrained_Dancing_Repaired.Reset();
 							break;
 						}
 
@@ -801,11 +840,19 @@ private:
 							CurrentBehaviorState.BeingRemoved.Reset();
 							break;
 						}
+
+						case BehaviorType::BeingRemoved_Exploding:
+						{
+							CurrentBehaviorState.BeingRemoved_Exploding.Reset();
+							break;
+						}
 					}
 
 					CurrentStateTransitionSimulationTimestamp = currentSimulationTime;
 					TotalDistanceTraveledOnEdgeSinceStateTransition = 0.0f;
 					TotalDistanceTraveledOffEdgeSinceStateTransition = 0.0f;
+
+					AnimationState.AnimationElapsed = 0.0f;
 				}
 			} HumanNpcState;
 
@@ -916,6 +963,11 @@ private:
 			, RandomNormalizedUniformSeed(GameRandomEngine::GetInstance().GenerateUniformReal(-1.0f, 1.0f))
 			, BeingPlacedState(beingPlacedState)
 		{}
+
+		bool IsActive() const
+		{
+			return CurrentRegime != RegimeType::BeingRemoved;
+		}
 	};
 
 	//
@@ -993,8 +1045,11 @@ private:
 
 		std::vector<NpcId> BurningNpcs; // Maintained as a set
 
+		float SinkingShipPanicLevel; // [0.0f ... +1.0f], automatically decayed
+		std::optional<float> ShipReparationStartSimulationTimestamp; // When set, we're in post-reparation mode
+
 		// Stats
-		NpcStatsByKind WorkingNpcStats;
+		NpcStatsByKind ActiveNpcStats;
 		NpcStatsByKind TotalNpcStats; // Included being removed; used e.g. for rendering
 
 		void AddNpc(NpcId npcId)
@@ -1014,10 +1069,26 @@ private:
 			: HomeShip(homeShip)
 			, Npcs()
 			, BurningNpcs()
+			, SinkingShipPanicLevel(0.0)
+			, ShipReparationStartSimulationTimestamp()
 			//
-			, WorkingNpcStats()
+			, ActiveNpcStats()
 			, TotalNpcStats()
 		{}
+	};
+
+	//
+	// (Human) dance moves
+	//
+
+	struct DanceMove final
+	{
+		float FaceOrientation;
+		float FaceDirectionX;
+
+		LimbVector LimbAngles;
+		LimbVector LimbLengthMultipliers;
+		float UpperLegLengthFraction;
 	};
 
 public:
@@ -1026,36 +1097,7 @@ public:
 		Physics::World & parentWorld,
 		NpcDatabase const & npcDatabase,
 		std::shared_ptr<GameEventDispatcher> gameEventHandler,
-		GameParameters const & gameParameters)
-		: mParentWorld(parentWorld)
-		, mNpcDatabase(npcDatabase)
-		, mGameEventHandler(std::move(gameEventHandler))
-		, mMaxNpcs(gameParameters.MaxNpcs)
-		// Container
-		, mStateBuffer()
-		, mShips()
-		, mParticles(static_cast<ElementCount>(mMaxNpcs * GameParameters::MaxParticlesPerNpc))
-		// State
-		, mCurrentSimulationSequenceNumber()
-		, mCurrentlySelectedNpc()
-		, mCurrentlySelectedNpcWallClockTimestamp()
-		, mGeneralizedPanicLevel(0.0f)
-		// Stats
-		, mFreeRegimeHumanNpcCount(0)
-		, mConstrainedRegimeHumanNpcCount(0)
-		// Simulation parameters
-		, mGlobalDampingFactor(0.0f) // Will be calculated
-		, mCurrentGlobalDampingAdjustment(1.0f)
-		, mCurrentSizeMultiplier(1.0f)
-		, mCurrentHumanNpcWalkingSpeedAdjustment(1.0f)
-		, mCurrentSpringReductionFractionAdjustment(1.0f)
-		, mCurrentSpringDampingCoefficientAdjustment(1.0f)
-		, mCurrentStaticFrictionAdjustment(1.0f)
-		, mCurrentKineticFrictionAdjustment(1.0f)
-		, mCurrentNpcFrictionAdjustment(1.0f)
-	{
-		RecalculateGlobalDampingFactor();
-	}
+		GameParameters const & gameParameters);
 
 	void Update(
 		float currentSimulationTime,
@@ -1181,6 +1223,10 @@ public:
 		vec2f const & corner1,
 		vec2f const & corner2);
 
+	bool QueryNearestNpcAt(
+		vec2f const & targetPos,
+		float radius) const;
+
 	void Announce();
 
 public:
@@ -1189,14 +1235,14 @@ public:
 	// Interactions
 	//
 
-	void MoveBy(
+	void MoveShipBy(
 		ShipId shipId,
 		std::optional<ConnectedComponentId> connectedComponent,
 		vec2f const & offset,
 		vec2f const & inertialVelocity,
 		GameParameters const & gameParameters);
 
-	void RotateBy(
+	void RotateShipBy(
 		ShipId shipId,
 		std::optional<ConnectedComponentId> connectedComponent,
 		float angle,
@@ -1204,10 +1250,33 @@ public:
 		float inertialAngle,
 		GameParameters const & gameParameters);
 
-	void SmashAt(
+	bool DestroyAt(
+		ShipId shipId,
 		vec2f const & targetPos,
 		float radius,
-		float currentSimulationTime);
+		float currentSimulationTime,
+		GameParameters const & gameParameters);
+
+	bool ApplyHeatBlasterAt(
+		ShipId shipId,
+		vec2f const & targetPos,
+		HeatBlasterActionType action,
+		float radius,
+		GameParameters const & gameParameters);
+
+	bool ExtinguishFireAt(
+		ShipId shipId,
+		vec2f const & targetPos,
+		float strengthMultiplier,
+		float radius,
+		GameParameters const & gameParameters);
+
+	void ApplyLaserCannonThrough(
+		ShipId shipId,
+		vec2f const & startPos,
+		vec2f const & endPos,
+		float strength,
+		GameParameters const & gameParameters);
 
 	void DrawTo(
 		vec2f const & targetPos,
@@ -1220,8 +1289,10 @@ public:
 	void ApplyBlast(
 		ShipId shipId,
 		vec2f const & centerPosition,
-		float blastRadius,
-		float blastForce, // N
+		float blastForceMagnitude, // N
+		float blastForceRadius, // m
+		float blastHeat, // KJ/s
+		float blastHeatRadius, // m
 		GameParameters const & gameParameters);
 
 	void ApplyAntiMatterBombPreimplosion(
@@ -1245,6 +1316,14 @@ public:
 	void OnShipTriangleDestroyed(
 		ShipId shipId,
 		ElementIndex triangleElementIndex);
+
+	void OnShipStartedSinking(
+		ShipId shipId,
+		float currentSimulationTime);
+
+	void OnShipRepaired(
+		ShipId shipId,
+		float currentSimulationTime);
 
 	void SetGeneralizedPanicLevel(float panicLevel)
 	{
@@ -1349,6 +1428,34 @@ public:
 
 private:
 
+	inline void VisitNpcParticlesForInteraction(
+		ShipId shipId, // Or none
+		std::function<void(StateType &, StateType::NpcParticleStateType &)> && visitor)
+	{
+		//
+		// Visit particles:
+		//	C: If shipId: on that ship; else: of any ship
+		//	F: Of any ship
+		//
+
+		for (auto & npc : mStateBuffer)
+		{
+			if (npc.has_value()
+				&& npc->IsActive())
+			{
+				for (auto & npcParticle : npc->ParticleMesh.Particles)
+				{
+					if (!npcParticle.ConstrainedState.has_value() // Free
+						|| shipId == NoneShipId                   // No ship specified
+						|| npc->CurrentShipId == shipId)		  // Constrained belonging to this ship
+					{
+						visitor(*npc, npcParticle);
+					}
+				}
+			}
+		}
+	}
+
 	void VisitNpcsInQuad(
 		vec2f const & corner1,
 		vec2f const & corner2,
@@ -1385,6 +1492,8 @@ private:
 
 	void InternalHighlightNpc(NpcId id);
 
+	void InternalFreeNpcParticles(StateType const & npc);
+
 	void PublishCount();
 
 	void PublishSelection();
@@ -1395,7 +1504,7 @@ private:
 		NpcKindType kind,
 		std::optional<ShipId> shipId) const;
 
-	size_t CalculateWorkingNpcCount() const;
+	size_t CalculateActiveNpcCount() const;
 	size_t CalculateTotalNpcCount() const;
 
 	ShipId GetTopmostShipId() const;
@@ -1448,13 +1557,11 @@ private:
 
 	void UpdateFurnitureNpcAnimation(
 		StateType & npc,
-		float currentSimulationTime,
-		Ship const & homeShip);
+		float currentSimulationTime);
 
 	void UpdateHumanNpcAnimation(
 		StateType & npc,
-		float currentSimulationTime,
-		Ship const & homeShip);
+		float currentSimulationTime);
 
 private:
 
@@ -1494,9 +1601,13 @@ private:
 
 	static StateType::RegimeType CalculateRegime(StateType const & npc);
 
-	void UpdateNpcs(
+	void UpdateNpcPhysics(
 		float currentSimulationTime,
 		Storm::Parameters const & stormParameters,
+		GameParameters const & gameParameters);
+
+	void UpdateNpcBehavior(
+		float currentSimulationTime,
 		GameParameters const & gameParameters);
 
 	void UpdateNpcsEnd();
@@ -1767,14 +1878,33 @@ private:
 		Ship & homeShip,
 		NpcParticles & particles,
 		float currentSimulationTime,
-		GameParameters const & gameParameters) const;
+		GameParameters const & gameParameters);
 
 	void OnImpact(
 		StateType & npc,
 		int npcParticleOrdinal,
+		ElementIndex npcParticleIndex,
 		vec2f const & normalResponse,
 		vec2f const & bounceEdgeNormal,
-		float currentSimulationTime) const;
+		float currentSimulationTime,
+		GameParameters const & gameParameters);
+
+	void TriggerExplosion(
+		StateType & npc,
+		ElementIndex npcParticleIndex,
+		float blastForce,
+		float blastForceRadius,
+		float blastHeat,
+		float blastHeatRadius,
+		float renderRadiusOffset,
+		ExplosionType explosionType,
+		float currentSimulationTime,
+		GameParameters const & gameParameters);
+
+	void MaintainNpcUnfolded(
+		StateType & npc,
+		Ship const & homeShip,
+		GameParameters const & gameParameters);
 
 	inline void MaintainInWorldBounds(
 		StateType & npc,
@@ -2082,13 +2212,11 @@ private:
 	void UpdateFurniture(
 		StateType & npc,
 		float currentSimulationTime,
-		Ship & homeShip,
 		GameParameters const & gameParameters);
 
 	void UpdateHuman(
 		StateType & npc,
 		float currentSimulationTime,
-		Ship & homeShip,
 		GameParameters const & gameParameters);
 
 	inline bool CheckAndMaintainHumanEquilibrium(
@@ -2158,6 +2286,11 @@ private:
 	static float constexpr HumanRemovalLevitationDuration = 1.0f;
 	static float constexpr HumanRemovalRotationDuration = 3.0f;
 	static float constexpr HumanRemovalRotationStepBase = 0.3f;
+
+	static float constexpr NpcExplosionDuration = 0.2f; // Lifetime after an NPC exploded
+
+	static float constexpr DanceMoveDuration = 0.25f; // > 120bpm
+	static float constexpr RepairDanceDuration = 10.0f;
 
 private:
 
@@ -2244,6 +2377,14 @@ private:
 	std::optional<ParticleTrajectory> mCurrentParticleTrajectoryNotification;
 
 #endif
+
+	//
+	// Dance moves
+	//
+
+	std::vector<DanceMove> const mRepairDanceMoves;
+
+	static std::vector<DanceMove> MakeRepairDanceMoves();
 };
 
 #ifdef _MSC_VER

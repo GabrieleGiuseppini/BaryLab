@@ -18,6 +18,149 @@ namespace Physics {
 
 float constexpr ParticleSize = 0.30f; // For rendering, mostly - given that particles have zero dimensions
 
+Npcs::Npcs(
+    Physics::World & parentWorld,
+    NpcDatabase const & npcDatabase,
+    std::shared_ptr<GameEventDispatcher> gameEventHandler,
+    GameParameters const & gameParameters)
+    : mParentWorld(parentWorld)
+    , mNpcDatabase(npcDatabase)
+    , mGameEventHandler(std::move(gameEventHandler))
+    , mMaxNpcs(gameParameters.MaxNpcs)
+    // Container
+    , mStateBuffer()
+    , mShips()
+    , mParticles(static_cast<ElementCount>(mMaxNpcs * GameParameters::MaxParticlesPerNpc))
+    // State
+    , mCurrentSimulationSequenceNumber()
+    , mCurrentlySelectedNpc()
+    , mCurrentlySelectedNpcWallClockTimestamp()
+    , mGeneralizedPanicLevel(0.0f)
+    // Stats
+    , mFreeRegimeHumanNpcCount(0)
+    , mConstrainedRegimeHumanNpcCount(0)
+    // Simulation parameters
+    , mGlobalDampingFactor(0.0f) // Will be calculated
+    , mCurrentGlobalDampingAdjustment(1.0f)
+    , mCurrentSizeMultiplier(1.0f)
+    , mCurrentHumanNpcWalkingSpeedAdjustment(1.0f)
+    , mCurrentSpringReductionFractionAdjustment(1.0f)
+    , mCurrentSpringDampingCoefficientAdjustment(1.0f)
+    , mCurrentStaticFrictionAdjustment(1.0f)
+    , mCurrentKineticFrictionAdjustment(1.0f)
+    , mCurrentNpcFrictionAdjustment(1.0f)
+    // Dance moves
+    , mRepairDanceMoves(MakeRepairDanceMoves())
+{
+    RecalculateGlobalDampingFactor();
+}
+
+std::vector<Npcs::DanceMove> Npcs::MakeRepairDanceMoves()
+{
+    float constexpr TQrtPi = Pi<float> * 3.0f / 4.0f;
+    float constexpr HlfPi = Pi<float> / 2.0f;
+    float constexpr QrtPi = Pi<float> / 4.0f;
+
+    return std::vector<Npcs::DanceMove>{
+        // Frontal
+        DanceMove({
+            1.0f, 0.0f,
+            {0.2f, -0.2f, HlfPi, -HlfPi},
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            1.0f
+            }),
+        DanceMove({
+            1.0f, 0.0f,
+            {0.05f, -0.05f, Pi<float>, -Pi<float>},
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            1.0f
+            }),
+        DanceMove({
+            1.0f, 0.0f,
+            {0.05f, -0.05f, HlfPi, -HlfPi},
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            1.0f
+            }),
+        // R
+        DanceMove({
+            0.0f, 1.0f,
+            {0.00f, -0.00f, HlfPi, HlfPi},
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            1.0f
+            }),
+        DanceMove({
+            0.0f, 1.0f,
+            {QrtPi, -0.00f, TQrtPi, QrtPi},
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            0.5f
+            }),
+        DanceMove({
+            0.0f, 1.0f,
+            {0.00f, -0.00f, QrtPi, TQrtPi},
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            1.0f
+            }),
+        // Frontal
+        DanceMove({
+            1.0f, 0.0f,
+            {0.2f, -0.2f, HlfPi, -HlfPi},
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            1.0f
+            }),
+        // L
+        DanceMove({
+            0.0f, -1.0f,
+            {0.00f, -0.00f, -HlfPi, -HlfPi},
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            1.0f
+            }),
+        DanceMove({
+            0.0f, -1.0f,
+            {-QrtPi, -0.00f, -TQrtPi, -QrtPi},
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            0.5f
+            }),
+        DanceMove({
+            0.0f, -1.0f,
+            {0.00f, -0.00f, -QrtPi, -TQrtPi},
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            1.0f
+            }),
+        // Back
+        DanceMove({
+            -1.0f, 0.0f,
+            {0.2f, -0.2f, Pi<float> * 0.9f, -Pi<float> *0.9f},
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            1.0f
+            }),
+        DanceMove({
+            -1.0f, 0.0f,
+            {0.2f, -0.2f, Pi<float> * 0.9f, -Pi<float> *0.9f},
+            {1.0f, 1.0f, 1.0f, 0.2f},
+            1.0f
+            }),
+        DanceMove({
+            -1.0f, 0.0f,
+            {0.2f, -0.2f, Pi<float> *0.9f, -Pi<float> *0.9f},
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            1.0f
+            }),
+        DanceMove({
+            -1.0f, 0.0f,
+            {0.2f, -0.2f, Pi<float> *0.9f, -Pi<float> *0.9f},
+            {1.0f, 1.0f, 0.2f, 1.0f},
+            1.0f
+            }),
+        // R
+        DanceMove({
+            0.0f, 1.0f,
+            {0.00f, -0.00f, HlfPi, HlfPi},
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            1.0f
+            })
+    };
+}
+
 /*
 Main principles:
     - Global damping: when constrained, we only apply it to velocity *relative* to the mesh ("air moves with the ship")
@@ -28,6 +171,12 @@ void Npcs::Update(
     Storm::Parameters const & stormParameters,
     GameParameters const & gameParameters)
 {
+    //
+    // Check invariants
+    //
+
+    assert(CalculateTotalNpcCount() > 0 || mParticles.GetInUseParticlesCount() == 0);
+
     //
     // Update parameters
     //
@@ -84,7 +233,29 @@ void Npcs::Update(
     // Advance the current simulation sequence
     ++mCurrentSimulationSequenceNumber;
 
-    UpdateNpcs(currentSimulationTime, stormParameters, gameParameters);
+    UpdateNpcPhysics(currentSimulationTime, stormParameters, gameParameters);
+
+    UpdateNpcBehavior(currentSimulationTime, gameParameters);
+
+    //
+    // Decays
+    //
+
+    for (auto & ship : mShips)
+    {
+        if (ship.has_value())
+        {
+            // Sinking panic level
+            ship->SinkingShipPanicLevel -= ship->SinkingShipPanicLevel * 0.0008f;
+
+            // Post-repair mode
+            if (ship->ShipReparationStartSimulationTimestamp.has_value()
+                && (currentSimulationTime - *ship->ShipReparationStartSimulationTimestamp) >= RepairDanceDuration)
+            {
+                ship->ShipReparationStartSimulationTimestamp.reset();
+            }
+        }
+    }
 }
 
 void Npcs::UpdateEnd()
@@ -255,7 +426,7 @@ void Npcs::UploadFlames(
 
 bool Npcs::HasNpcs() const
 {
-    // Working NPCs only
+    // Active NPCs only
 
     return std::any_of(
         mShips.cbegin(),
@@ -264,8 +435,8 @@ bool Npcs::HasNpcs() const
         {
             if (ship.has_value())
             {
-                return ship->WorkingNpcStats.FurnitureNpcCount > 0
-                    || ship->WorkingNpcStats.HumanNpcCount > 0;
+                return ship->ActiveNpcStats.FurnitureNpcCount > 0
+                    || ship->ActiveNpcStats.HumanNpcCount > 0;
             }
             else
             {
@@ -276,16 +447,18 @@ bool Npcs::HasNpcs() const
 
 bool Npcs::HasNpc(NpcId npcId) const
 {
-    // Working NPC only
+    // Active NPC only
 
     return mStateBuffer[npcId].has_value()
-        && mStateBuffer[npcId]->CurrentRegime != StateType::RegimeType::BeingRemoved;
+        && mStateBuffer[npcId]->IsActive();
 }
 
 Geometry::AABB Npcs::GetNpcAABB(NpcId npcId) const
 {
     assert(mStateBuffer[npcId].has_value());
-    assert(mStateBuffer[npcId]->CurrentRegime != StateType::RegimeType::BeingRemoved);
+
+    // Is active
+    assert(mStateBuffer[npcId]->IsActive());
 
     Geometry::AABB aabb;
     for (auto const & particle : mStateBuffer[npcId]->ParticleMesh.Particles)
@@ -333,7 +506,7 @@ void Npcs::OnShipRemoved(ShipId shipId)
     {
         assert(mStateBuffer[npcId].has_value());
 
-        if (mStateBuffer[npcId]->CurrentRegime == StateType::RegimeType::BeingRemoved)
+        if (!mStateBuffer[npcId]->IsActive())
         {
             //
             // Remove from deferred NPCs
@@ -364,7 +537,7 @@ void Npcs::OnShipRemoved(ShipId shipId)
             // Update ship stats
             //
 
-            mShips[s]->WorkingNpcStats.Remove(*mStateBuffer[npcId]);
+            mShips[s]->ActiveNpcStats.Remove(*mStateBuffer[npcId]);
             mShips[s]->TotalNpcStats.Remove(*mStateBuffer[npcId]);
 
             if (mStateBuffer[npcId]->Kind == NpcKindType::Human)
@@ -390,7 +563,12 @@ void Npcs::OnShipRemoved(ShipId shipId)
             auto burningNpcIt = std::find(mShips[s]->BurningNpcs.begin(), mShips[s]->BurningNpcs.end(), npcId);
             if (burningNpcIt != mShips[s]->BurningNpcs.end())
             {
+                assert(mStateBuffer[npcId]->CombustionState.has_value());
+
                 mShips[s]->BurningNpcs.erase(burningNpcIt);
+
+                // Emit event
+                mGameEventHandler->OnPointCombustionEnd();
             }
 
             //
@@ -403,6 +581,12 @@ void Npcs::OnShipRemoved(ShipId shipId)
                 PublishSelection();
             }
         }
+
+        //
+        // Free particles
+        //
+
+        InternalFreeNpcParticles(*mStateBuffer[npcId]);
     }
 
     PublishCount();
@@ -443,8 +627,8 @@ void Npcs::OnShipConnectivityChanged(ShipId shipId)
         assert(mStateBuffer[npcId].has_value());
         auto & npcState = *mStateBuffer[npcId];
 
-        if (npcState.CurrentRegime != StateType::RegimeType::BeingPlaced
-            && npcState.CurrentRegime != StateType::RegimeType::BeingRemoved)
+        if (npcState.IsActive()
+            && npcState.CurrentRegime != StateType::RegimeType::BeingPlaced) // BeingPlaced is on its special plane
         {
             assert(npcState.ParticleMesh.Particles.size() > 0);
             auto const & primaryParticle = npcState.ParticleMesh.Particles[0];
@@ -784,7 +968,7 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
     // Update ship stats
     //
 
-    mShips[shipId]->WorkingNpcStats.Add(*mStateBuffer[npcId]);
+    mShips[shipId]->ActiveNpcStats.Add(*mStateBuffer[npcId]);
     mShips[shipId]->TotalNpcStats.Add(*mStateBuffer[npcId]);
     PublishCount();
 
@@ -1003,7 +1187,7 @@ std::tuple<std::optional<PickedNpc>, NpcCreationFailureReasonType> Npcs::BeginPl
     // Update ship stats
     //
 
-    mShips[shipId]->WorkingNpcStats.Add(*mStateBuffer[npcId]);
+    mShips[shipId]->ActiveNpcStats.Add(*mStateBuffer[npcId]);
     mShips[shipId]->TotalNpcStats.Add(*mStateBuffer[npcId]);
     PublishCount();
 
@@ -1052,13 +1236,13 @@ std::optional<PickedNpc> Npcs::ProbeNpcAt(
     }
 
     //
-    // Visit all NPCs and find winner, if any
+    // Visit all active NPCs and find winner, if any
     //
 
     for (auto const & npc : mStateBuffer)
     {
         if (npc.has_value()
-            && npc->CurrentRegime != StateType::RegimeType::BeingRemoved) // BeingRemoved NPCs are invisible
+            && npc->IsActive())
         {
             switch (npc->Kind)
             {
@@ -1209,9 +1393,8 @@ std::vector<NpcId> Npcs::ProbeNpcsInRect(
         corner2,
         [&](NpcId id)
         {
-            // BeingRemoved NPCs are invisible
             assert(mStateBuffer[id].has_value());
-            if (mStateBuffer[id]->CurrentRegime != StateType::RegimeType::BeingRemoved)
+            if (mStateBuffer[id]->IsActive())
             {
                 result.emplace_back(id);
             }
@@ -1311,9 +1494,8 @@ void Npcs::RemoveNpcsInRect(
         corner2,
         [&](NpcId id)
         {
-            // BeingRemoved NPCs are invisible
             assert(mStateBuffer[id].has_value());
-            if (mStateBuffer[id]->CurrentRegime != StateType::RegimeType::BeingRemoved)
+            if (mStateBuffer[id]->IsActive())
             {
                 InternalBeginNpcRemoval(id, currentSimulationTime);
             }
@@ -1328,8 +1510,8 @@ void Npcs::AbortNewNpc(NpcId id)
     assert(mShips[mStateBuffer[id]->CurrentShipId].has_value());
     auto & ship = *mShips[mStateBuffer[id]->CurrentShipId];
 
-    // Not being removed
-    assert(npc.CurrentRegime != StateType::RegimeType::BeingRemoved);
+    // Is active
+    assert(npc.IsActive());
     assert(std::find(mDeferredRemovalNpcs.cbegin(), mDeferredRemovalNpcs.cend(), id) == mDeferredRemovalNpcs.cend());
 
     // Not burning
@@ -1349,7 +1531,7 @@ void Npcs::AbortNewNpc(NpcId id)
     // Update ship stats
     //
 
-    ship.WorkingNpcStats.Remove(npc);
+    ship.ActiveNpcStats.Remove(npc);
     ship.TotalNpcStats.Remove(npc);
     PublishCount();
 
@@ -1358,6 +1540,12 @@ void Npcs::AbortNewNpc(NpcId id)
     //
 
     ship.RemoveNpc(id);
+
+    //
+    // Free particles
+    //
+
+    InternalFreeNpcParticles(npc);
 
     //
     // Reset NPC
@@ -1667,9 +1855,8 @@ void Npcs::TurnaroundNpcsInRect(
         corner2,
         [&](NpcId id)
         {
-            // BeingRemoved NPCs are invisible
             assert(mStateBuffer[id].has_value());
-            if (mStateBuffer[id]->CurrentRegime != StateType::RegimeType::BeingRemoved)
+            if (mStateBuffer[id]->IsActive())
             {
                 InternalTurnaroundNpc(id);
             }
@@ -1689,7 +1876,7 @@ void Npcs::SelectFirstNpc()
     for (auto const & npc : mStateBuffer)
     {
         if (npc.has_value()
-            && npc->CurrentRegime != StateType::RegimeType::BeingRemoved) // BeingRemoved NPCs are invisible
+            && npc->IsActive())
         {
             // Found!
             SelectNpc(npc->Id);
@@ -1722,7 +1909,7 @@ void Npcs::SelectNextNpc()
         }
 
         if (mStateBuffer[newId].has_value()
-            && mStateBuffer[newId]->CurrentRegime != StateType::RegimeType::BeingRemoved) // BeingRemoved NPCs are invisible
+            && mStateBuffer[newId]->IsActive())
         {
             // Found!
             SelectNpc(newId);
@@ -1733,7 +1920,7 @@ void Npcs::SelectNextNpc()
 
 void Npcs::SelectNpc(std::optional<NpcId> id)
 {
-    assert(!id.has_value() || (mStateBuffer[*id].has_value() && mStateBuffer[*id]->CurrentRegime != StateType::RegimeType::BeingRemoved));
+    assert(!id.has_value() || (mStateBuffer[*id].has_value() && mStateBuffer[*id]->IsActive()));
 
     mCurrentlySelectedNpc = id;
     mCurrentlySelectedNpcWallClockTimestamp = GameWallClock::GetInstance().Now();
@@ -1762,11 +1949,60 @@ void Npcs::HighlightNpcsInRect(
         [&](NpcId id)
         {
             assert(mStateBuffer[id].has_value());
-            if (mStateBuffer[id]->CurrentRegime != StateType::RegimeType::BeingRemoved) // BeingRemoved NPCs are invisible
+            if (mStateBuffer[id]->IsActive())
             {
                 InternalHighlightNpc(id);
             }
         });
+}
+
+bool Npcs::QueryNearestNpcAt(
+    vec2f const & targetPos,
+    float radius) const
+{
+    //
+    // Find NPC
+    //
+
+    float const squareRadius = radius * radius;
+
+    NpcId bestNpc = NoneNpcId;
+    float bestSquareDistance = std::numeric_limits<float>::max();
+
+    for (auto const & npc : mStateBuffer)
+    {
+        if (npc.has_value()
+            && npc->IsActive())
+        {
+            for (auto const & p : npc->ParticleMesh.Particles)
+            {
+                float squareDistance = (mParticles.GetPosition(p.ParticleIndex) - targetPos).squareLength();
+                if (squareDistance < squareRadius && squareDistance < bestSquareDistance)
+                {
+                    bestNpc = npc->Id;
+                    bestSquareDistance = squareDistance;
+                }
+            }
+        }
+    }
+
+    if (NoneElementIndex != bestNpc)
+    {
+        assert(mStateBuffer[bestNpc].has_value());
+        auto const & npc = *mStateBuffer[bestNpc];
+
+        LogMessage("NPC: ", bestNpc, " ", NpcKindTypeToStr(npc.Kind));
+        for (auto const & p : npc.ParticleMesh.Particles)
+        {
+            LogMessage("  ", p.ParticleIndex, ": P=", mParticles.GetPosition(p.ParticleIndex), " T=", mParticles.GetTemperature(p.ParticleIndex));
+        }
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 void Npcs::Announce()
@@ -1777,7 +2013,7 @@ void Npcs::Announce()
 
 /////////////////////////////////////////
 
-void Npcs::MoveBy(
+void Npcs::MoveShipBy(
     ShipId shipId,
     std::optional<ConnectedComponentId> connectedComponent,
     vec2f const & offset,
@@ -1795,7 +2031,7 @@ void Npcs::MoveBy(
     {
         assert(mStateBuffer[npcId].has_value());
 
-        if (mStateBuffer[npcId]->CurrentRegime != StateType::RegimeType::BeingRemoved)
+        if (mStateBuffer[npcId]->IsActive())
         {
             // Check if this NPC is in scope: it is iff:
             //	- We're moving all, OR
@@ -1827,7 +2063,7 @@ void Npcs::MoveBy(
     }
 }
 
-void Npcs::RotateBy(
+void Npcs::RotateShipBy(
     ShipId shipId,
     std::optional<ConnectedComponentId> connectedComponent,
     float angle,
@@ -1851,7 +2087,7 @@ void Npcs::RotateBy(
     {
         assert(mStateBuffer[npcId].has_value());
 
-        if (mStateBuffer[npcId]->CurrentRegime != StateType::RegimeType::BeingRemoved)
+        if (mStateBuffer[npcId]->IsActive())
         {
             // Check if this NPC is in scope: it is iff:
             //	- We're rotating all, OR
@@ -1886,13 +2122,18 @@ void Npcs::RotateBy(
     }
 }
 
-void Npcs::SmashAt(
+bool Npcs::DestroyAt(
+    ShipId shipId,
     vec2f const & targetPos,
     float radius,
-    float currentSimulationTime)
+    float currentSimulationTime,
+    GameParameters const & gameParameters)
 {
+    bool hasFoundNpc = false;
+
     //
-    // Transition all humans in radius which have not transitioned yet
+    // Visit all active NPCs in radius and check if should explode, and
+    // transition all humans which have not transitioned yet
     //
 
     float const squareRadius = radius * radius;
@@ -1900,45 +2141,249 @@ void Npcs::SmashAt(
     for (auto & npc : mStateBuffer)
     {
         if (npc.has_value()
-            && npc->Kind == NpcKindType::Human
-            && npc->CurrentRegime != StateType::RegimeType::BeingRemoved)
+            && npc->IsActive())
         {
             bool hasOneParticleInRadius = false;
+            ElementIndex explosiveParticleInRadius = NoneElementIndex;
             for (auto const & npcParticle : npc->ParticleMesh.Particles)
             {
-                float const pointSquareDistance = (mParticles.GetPosition(npcParticle.ParticleIndex) - targetPos).squareLength();
-                if (pointSquareDistance < squareRadius)
+                if (!npcParticle.ConstrainedState.has_value() // Free
+                    || shipId == NoneShipId                   // No ship specified
+                    || npc->CurrentShipId == shipId)		  // Constrained belonging to this ship
                 {
-                    hasOneParticleInRadius = true;
-                    break;
+                    float const pointSquareDistance = (mParticles.GetPosition(npcParticle.ParticleIndex) - targetPos).squareLength();
+                    if (pointSquareDistance < squareRadius)
+                    {
+                        hasOneParticleInRadius = true;
+                        if (mParticles.GetMaterial(npcParticle.ParticleIndex).CombustionType == StructuralMaterial::MaterialCombustionType::Explosion)
+                        {
+                            explosiveParticleInRadius = npcParticle.ParticleIndex;
+                        }
+                    }
                 }
             }
 
             if (hasOneParticleInRadius)
             {
-                auto & humanState = npc->KindSpecificState.HumanNpcState;
-                if (humanState.CurrentBehavior != StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::ConstrainedOrFree_Smashed)
+                if (explosiveParticleInRadius != NoneElementIndex)
                 {
-                    // Transition to Smashed
-                    humanState.TransitionToState(StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::ConstrainedOrFree_Smashed, currentSimulationTime);
+                    // Explode NPC
 
-                    // Turn front/back iff side-looking
-                    if (humanState.CurrentFaceOrientation == 0.0f)
-                    {
-                        humanState.CurrentFaceOrientation = GameRandomEngine::GetInstance().GenerateUniformBoolean(0.5f) ? +1.0f : -1.0f;
-                        humanState.CurrentFaceDirectionX = 0.0f;
-                    }
+                    float const blastForce =
+                        mParticles.GetMaterial(explosiveParticleInRadius).ExplosiveCombustionForce
+                        * 1000.0f; // KN->N
 
-                    // Futurework: sound
+                    float const blastForceRadius =
+                        mParticles.GetMaterial(explosiveParticleInRadius).ExplosiveCombustionForceRadius
+                        * 0.05f // Magic number
+                        * (gameParameters.IsUltraViolentMode ? 4.0f : 1.0f);
+
+                    float const blastHeat =
+                        mParticles.GetMaterial(explosiveParticleInRadius).ExplosiveCombustionHeat
+                        * gameParameters.CombustionHeatAdjustment
+                        * (gameParameters.IsUltraViolentMode ? 10.0f : 1.0f);
+
+                    float const blastHeatRadius =
+                        mParticles.GetMaterial(explosiveParticleInRadius).ExplosiveCombustionHeatRadius
+                        * 0.05f // Magic number
+                        * (gameParameters.IsUltraViolentMode ? 4.0f : 1.0f);
+
+                    TriggerExplosion(
+                        *npc,
+                        explosiveParticleInRadius,
+                        blastForce,
+                        blastForceRadius,
+                        blastHeat,
+                        blastHeatRadius,
+                        5.0f,
+                        ExplosionType::Combustion,
+                        currentSimulationTime,
+                        gameParameters);
                 }
-                else
+                else if (npc->Kind == NpcKindType::Human)
                 {
-                    // Prolong stay
-                    humanState.CurrentBehaviorState.ConstrainedOrFree_Smashed.Reset();
+                    // Smash
+
+                    auto & humanState = npc->KindSpecificState.HumanNpcState;
+                    if (humanState.CurrentBehavior != StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::ConstrainedOrFree_Smashed)
+                    {
+                        // Transition to Smashed
+                        humanState.TransitionToState(StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::ConstrainedOrFree_Smashed, currentSimulationTime);
+
+                        // Turn front/back iff side-looking
+                        if (humanState.CurrentFaceOrientation == 0.0f)
+                        {
+                            humanState.CurrentFaceOrientation = GameRandomEngine::GetInstance().GenerateUniformBoolean(0.5f) ? +1.0f : -1.0f;
+                            humanState.CurrentFaceDirectionX = 0.0f;
+                        }
+
+                        // Futurework: sound
+                    }
+                    else
+                    {
+                        // Prolong stay
+                        humanState.CurrentBehaviorState.ConstrainedOrFree_Smashed.Reset();
+                    }
                 }
             }
+
+            hasFoundNpc = true;
         }
     }
+
+    return hasFoundNpc;
+}
+
+bool Npcs::ApplyHeatBlasterAt(
+    ShipId shipId,
+    vec2f const & targetPos,
+    HeatBlasterActionType action,
+    float radius,
+    GameParameters const & gameParameters)
+{
+    // Q = q*dt
+    float const heatBlasterHeat =
+        gameParameters.HeatBlasterHeatFlow * 1000.0f // KJoule->Joule
+        * (gameParameters.IsUltraViolentMode ? 10.0f : 1.0f)
+        * GameParameters::SimulationStepTimeDuration<float>
+        * (action == HeatBlasterActionType::Cool ? -1.0f : 1.0f); // Heat vs. Cool
+
+    float const squareRadius = radius * radius;
+
+    bool atLeastOneParticleFound = false;
+
+    VisitNpcParticlesForInteraction(
+        shipId,
+        [&](StateType & npc, StateType::NpcParticleStateType & npcParticle)
+        {
+            auto const particleIndex = npcParticle.ParticleIndex;
+            float const pointSquareDistance = (mParticles.GetPosition(particleIndex) - targetPos).squareLength();
+            if (pointSquareDistance < squareRadius)
+            {
+                //
+                // Inject/remove heat at this particle
+                //
+
+                // Smooth heat out for radius
+                float const smoothing = 1.0f - SmoothStep(
+                    0.0f,
+                    radius,
+                    sqrt(pointSquareDistance));
+
+                // Calc temperature delta
+                // T = Q/HeatCapacity
+                float deltaT =
+                    heatBlasterHeat * smoothing
+                    / mParticles.GetMaterial(particleIndex).GetHeatCapacity();
+
+                // Increase/lower temperature
+                mParticles.SetTemperature(
+                    particleIndex,
+                    std::max(mParticles.GetTemperature(particleIndex) + deltaT, 0.1f)); // 3rd principle of thermodynamics
+
+                // Panic the human NPC
+                if (npc.Kind == NpcKindType::Human)
+                {
+                    npc.KindSpecificState.HumanNpcState.MiscPanicLevel = 1.0f;
+                }
+
+                // Remember we've found a particle
+                atLeastOneParticleFound = true;
+            }
+        });
+
+    return atLeastOneParticleFound;
+}
+
+bool Npcs::ExtinguishFireAt(
+    ShipId shipId,
+    vec2f const & targetPos,
+    float strengthMultiplier,
+    float radius,
+    GameParameters const & gameParameters)
+{
+    float const squareRadius = radius * radius;
+
+    float const heatRemoved =
+        GameParameters::FireExtinguisherHeatRemoved
+        * 0.3f // NPC adjustment
+        * (gameParameters.IsUltraViolentMode ? 10.0f : 1.0f)
+        * strengthMultiplier;
+
+    bool atLeastOneParticleFound = false;
+
+    VisitNpcParticlesForInteraction(
+        shipId,
+        [&](StateType & npc, StateType::NpcParticleStateType & npcParticle)
+        {
+            auto const particleIndex = npcParticle.ParticleIndex;
+            float const pointSquareDistance = (mParticles.GetPosition(particleIndex) - targetPos).squareLength();
+            if (pointSquareDistance < squareRadius)
+            {
+                // Lower temperature
+
+                float const strength = 1.0f - SmoothStep(
+                    squareRadius * 3.0f / 4.0f,
+                    squareRadius,
+                    pointSquareDistance);
+
+                mParticles.AddHeat(
+                    particleIndex,
+                    -heatRemoved * strength);
+
+                // Lower the NPC's combustion, to affect flame geometry while we wait for temperature to lower progress below 0.0
+
+                if (particleIndex == 0)
+                {
+                    npc.CombustionProgress = std::min(npc.CombustionProgress, npc.CombustionProgress * 0.9f);
+                }
+
+                // Remember we've found a particle
+                atLeastOneParticleFound = true;
+            }
+        });
+
+    return atLeastOneParticleFound;
+}
+
+void Npcs::ApplyLaserCannonThrough(
+    ShipId shipId,
+    vec2f const & startPos,
+    vec2f const & endPos,
+    float strength,
+    GameParameters const & gameParameters)
+{
+    // Q = q*dt
+    float const effectiveLaserHeat =
+        gameParameters.LaserRayHeatFlow * 1000.0f // KJoule->Joule
+        * 0.1f // NPC adjustment
+        * (gameParameters.IsUltraViolentMode ? 10.0f : 1.0f)
+        * GameParameters::SimulationStepTimeDuration<float>
+        * (1.0f + (strength - 1.0f) * 4.0f);
+
+    VisitNpcParticlesForInteraction(
+        shipId,
+        [&](StateType & npc, StateType::NpcParticleStateType & npcParticle)
+        {
+            auto const particleIndex = npcParticle.ParticleIndex;
+            float const distance = Geometry::Segment::DistanceToPoint(startPos, endPos, mParticles.GetPosition(particleIndex));
+
+            if (distance < GameParameters::LaserRayRadius)
+            {
+                //
+                // Inject/remove heat at this point
+                //
+
+                mParticles.AddHeat(particleIndex, effectiveLaserHeat);
+
+                // Panic the human NPC
+
+                if (npc.Kind == NpcKindType::Human)
+                {
+                    npc.KindSpecificState.HumanNpcState.MiscPanicLevel = 1.0f;
+                }
+            }
+        });
 }
 
 void Npcs::DrawTo(
@@ -1955,7 +2400,7 @@ void Npcs::DrawTo(
     for (auto const & npc : mStateBuffer)
     {
         if (npc.has_value()
-            && npc->CurrentRegime != StateType::RegimeType::BeingRemoved)
+            && npc->IsActive())
         {
             for (auto const & npcParticle : npc->ParticleMesh.Particles)
             {
@@ -1984,7 +2429,7 @@ void Npcs::SwirlAt(
     for (auto const & npc : mStateBuffer)
     {
         if (npc.has_value()
-            && npc->CurrentRegime != StateType::RegimeType::BeingRemoved)
+            && npc->IsActive())
         {
             for (auto const & npcParticle : npc->ParticleMesh.Particles)
             {
@@ -2002,56 +2447,76 @@ void Npcs::SwirlAt(
 void Npcs::ApplyBlast(
     ShipId shipId,
     vec2f const & centerPosition,
-    float blastRadius,
-    float blastForce, // N
-    GameParameters const & /*gameParameters*/)
+    float blastForceMagnitude, // N
+    float blastForceRadius, // m
+    float blastHeat, // KJ/s
+    float blastHeatRadius, // ms
+    GameParameters const & gameParameters)
 {
-    //
-    // Only NPCs of this ship, or free regime of any ship
-    //
-
-    float const actualBlastRadius = blastRadius * 4.0f;
-    float const squareRadius = actualBlastRadius * actualBlastRadius;
-
-    // The specified blast is for damage to the ship; here we want a lower
+    // The blast parameter is for damage to the ship; here we want a lower
     // force and a larger radius - as if only caused by air - and thus we
     // make the force ~proportional to the particle's mass so we have ~constant
     // runaway speeds
-    //
-    // Anchor points:
-    //   Human: F=35000 == 1000*mass
-    float const blastAcceleration = blastForce / 3750.0f; // This yields a blast force of 35000, i.e. an acceleration of 1000 on a human particle
 
-    for (auto const & npc : mStateBuffer)
-    {
-        if (npc.has_value()
-            && npc->CurrentRegime != StateType::RegimeType::BeingRemoved)
+    float const actualForceRadius =
+        blastForceRadius
+        * GameParameters::NpcBasePassiveBlastRadiusMultiplier
+        * gameParameters.NpcPassiveBlastRadiusAdjustment;
+
+    float const actualBlastAcceleration =
+        blastForceMagnitude
+        / 3750.0f // This yields a blast force of 35000, i.e. an acceleration of 1000 on a human particle
+        * 3.0f; // Magic number
+
+    float const squareForceRadius = actualForceRadius * actualForceRadius;
+
+    float const actualHeatRadius =
+        blastHeatRadius
+        * GameParameters::NpcBasePassiveBlastRadiusMultiplier
+        * gameParameters.NpcPassiveBlastRadiusAdjustment;
+
+    float const squareHeatRadius = actualHeatRadius * actualHeatRadius;
+
+    VisitNpcParticlesForInteraction(
+        shipId,
+        [&](StateType &, StateType::NpcParticleStateType & npcParticle)
         {
-            for (auto const & npcParticle : npc->ParticleMesh.Particles)
+            vec2f const particleRadius = mParticles.GetPosition(npcParticle.ParticleIndex) - centerPosition;
+            float const squareParticleDistance = particleRadius.squareLength();
+
+            if (squareParticleDistance < squareHeatRadius)
             {
-                if (!npcParticle.ConstrainedState.has_value()
-                    || npc->CurrentShipId == shipId)
-                {
-                    vec2f const particleRadius = mParticles.GetPosition(npcParticle.ParticleIndex) - centerPosition;
-                    float const squareParticleDistance = particleRadius.squareLength();
-                    if (squareParticleDistance < squareRadius)
-                    {
-                        float const particleRadiusLength = std::sqrt(squareParticleDistance);
+                //
+                // Inject heat
+                //
 
-                        //
-                        // Apply blast force
-                        //
+                float const adjustedHeat =
+                    blastHeat
+                    * (1.0f - squareParticleDistance / squareHeatRadius);
 
-                        float const particleBlastForce = blastAcceleration * 6.0f * std::sqrt(mParticles.GetMass(npcParticle.ParticleIndex));
-
-                        mParticles.AddExternalForce(
-                            npcParticle.ParticleIndex,
-                            particleRadius.normalise(particleRadiusLength) * particleBlastForce / (particleRadiusLength + 2.0f));
-                    }
-                }
+                mParticles.AddHeat(
+                    npcParticle.ParticleIndex,
+                    adjustedHeat);
             }
-        }
-    }
+
+            if (squareParticleDistance < squareForceRadius)
+            {
+                //
+                // Apply blast force
+                //
+
+                float const particleRadiusLength = std::sqrtf(squareParticleDistance);
+
+                float const particleBlastForce =
+                    actualBlastAcceleration * std::sqrtf(mParticles.GetMass(npcParticle.ParticleIndex))
+                    // Decrease with distance
+                    * (1.0f - particleRadiusLength / actualForceRadius);
+
+                mParticles.AddExternalForce(
+                    npcParticle.ParticleIndex,
+                    particleRadius.normalise(particleRadiusLength) * particleBlastForce);
+            }
+        });
 }
 
 void Npcs::ApplyAntiMatterBombPreimplosion(
@@ -2061,41 +2526,28 @@ void Npcs::ApplyAntiMatterBombPreimplosion(
     float radiusThickness,
     GameParameters const & gameParameters)
 {
-    //
-    // Only NPCs of this ship, or free regime of any ship
-    //
-
     float const strength =
-        5000.0f // Magic number
+        8000.0f // Magic number
         * (gameParameters.IsUltraViolentMode ? 5.0f : 1.0f);
 
-    for (auto const & npc : mStateBuffer)
-    {
-        if (npc.has_value()
-            && npc->CurrentRegime != StateType::RegimeType::BeingRemoved)
+    VisitNpcParticlesForInteraction(
+        shipId,
+        [&](StateType &, StateType::NpcParticleStateType & npcParticle)
         {
-            for (auto const & npcParticle : npc->ParticleMesh.Particles)
+            vec2f const particleRadius = mParticles.GetPosition(npcParticle.ParticleIndex) - centerPosition;
+            float const particleDistanceFromRadius = particleRadius.length() - radius;
+            float const absoluteParticleDistanceFromRadius = std::abs(particleDistanceFromRadius);
+            if (absoluteParticleDistanceFromRadius <= radiusThickness)
             {
-                if (!npcParticle.ConstrainedState.has_value()
-                    || npc->CurrentShipId == shipId)
-                {
-                    vec2f const particleRadius = mParticles.GetPosition(npcParticle.ParticleIndex) - centerPosition;
-                    float const particleDistanceFromRadius = particleRadius.length() - radius;
-                    float const absoluteParticleDistanceFromRadius = std::abs(particleDistanceFromRadius);
-                    if (absoluteParticleDistanceFromRadius <= radiusThickness)
-                    {
-                        float const forceDirection = particleDistanceFromRadius >= 0.0f ? 1.0f : -1.0f;
+                float const forceDirection = particleDistanceFromRadius >= 0.0f ? 1.0f : -1.0f;
 
-                        float const forceStrength = strength * (1.0f - absoluteParticleDistanceFromRadius / radiusThickness);
+                float const forceStrength = strength * (1.0f - absoluteParticleDistanceFromRadius / radiusThickness);
 
-                        mParticles.AddExternalForce(
-                            npcParticle.ParticleIndex,
-                            particleRadius.normalise() * forceStrength * forceDirection);
-                    }
-                }
+                mParticles.AddExternalForce(
+                    npcParticle.ParticleIndex,
+                    particleRadius.normalise() * forceStrength * forceDirection);
             }
-        }
-    }
+        });
 }
 
 void Npcs::ApplyAntiMatterBombImplosion(
@@ -2104,53 +2556,40 @@ void Npcs::ApplyAntiMatterBombImplosion(
     float sequenceProgress,
     GameParameters const & gameParameters)
 {
-    //
-    // Only NPCs of this ship, or free regime of any ship
-    //
-
     float const strength =
         (sequenceProgress * sequenceProgress)
         * gameParameters.AntiMatterBombImplosionStrength
         * 3000.0f // Magic number
         * (gameParameters.IsUltraViolentMode ? 5.0f : 1.0f);
 
-    for (auto const & npc : mStateBuffer)
-    {
-        if (npc.has_value()
-            && npc->CurrentRegime != StateType::RegimeType::BeingRemoved)
+    VisitNpcParticlesForInteraction(
+        shipId,
+        [&](StateType &, StateType::NpcParticleStateType & npcParticle)
         {
-            for (auto const & npcParticle : npc->ParticleMesh.Particles)
-            {
-                if (!npcParticle.ConstrainedState.has_value()
-                    || npc->CurrentShipId == shipId)
-                {
-                    vec2f displacement = centerPosition - mParticles.GetPosition(npcParticle.ParticleIndex);
-                    float const displacementLength = displacement.length();
-                    vec2f normalizedDisplacement = displacement.normalise(displacementLength);
+            vec2f displacement = centerPosition - mParticles.GetPosition(npcParticle.ParticleIndex);
+            float const displacementLength = displacement.length();
+            vec2f normalizedDisplacement = displacement.normalise(displacementLength);
 
-                    // Make final acceleration somewhat independent from mass
-                    float const massNormalization = mParticles.GetMass(npcParticle.ParticleIndex) / 50.0f;
+            // Make final acceleration somewhat independent from mass
+            float const massNormalization = mParticles.GetMass(npcParticle.ParticleIndex) / 50.0f;
 
-                    // Angular (constant)
-                    mParticles.AddExternalForce(
-                        npcParticle.ParticleIndex,
-                        vec2f(-normalizedDisplacement.y, normalizedDisplacement.x)
-                        * strength
-                        * massNormalization
-                        / 10.0f); // Magic number
+            // Angular (constant)
+            mParticles.AddExternalForce(
+                npcParticle.ParticleIndex,
+                vec2f(-normalizedDisplacement.y, normalizedDisplacement.x)
+                * strength
+                * massNormalization
+                / 10.0f); // Magic number
 
-                    // Radial (stronger when closer)
-                    mParticles.AddExternalForce(
-                        npcParticle.ParticleIndex,
-                        normalizedDisplacement
-                        * strength
-                        / (0.2f + 0.5f * sqrt(displacementLength))
-                        * massNormalization
-                        * 10.0f); // Magic number
-                }
-            }
-        }
-    }
+            // Radial (stronger when closer)
+            mParticles.AddExternalForce(
+                npcParticle.ParticleIndex,
+                normalizedDisplacement
+                * strength
+                / (0.2f + 0.5f * sqrt(displacementLength))
+                * massNormalization
+                * 10.0f); // Magic number
+        });
 }
 
 void Npcs::ApplyAntiMatterBombExplosion(
@@ -2158,34 +2597,21 @@ void Npcs::ApplyAntiMatterBombExplosion(
     vec2f const & centerPosition,
     GameParameters const & gameParameters)
 {
-    //
-    // Only NPCs of this ship, or free regime of any ship
-    //
-
     float const strength =
         30000.0f // Magic number
         * (gameParameters.IsUltraViolentMode ? 50.0f : 1.0f);
 
-    for (auto const & npc : mStateBuffer)
-    {
-        if (npc.has_value()
-            && npc->CurrentRegime != StateType::RegimeType::BeingRemoved)
+    VisitNpcParticlesForInteraction(
+        shipId,
+        [&](StateType &, StateType::NpcParticleStateType & npcParticle)
         {
-            for (auto const & npcParticle : npc->ParticleMesh.Particles)
-            {
-                if (!npcParticle.ConstrainedState.has_value()
-                    || npc->CurrentShipId == shipId)
-                {
-                    vec2f displacement = mParticles.GetPosition(npcParticle.ParticleIndex) - centerPosition;
-                    float forceMagnitude = strength / sqrtf(0.1f + displacement.length());
+            vec2f displacement = mParticles.GetPosition(npcParticle.ParticleIndex) - centerPosition;
+            float forceMagnitude = strength / sqrtf(0.1f + displacement.length());
 
-                    mParticles.AddExternalForce(
-                        npcParticle.ParticleIndex,
-                        displacement.normalise() * forceMagnitude);
-                }
-            }
-        }
-    }
+            mParticles.AddExternalForce(
+                npcParticle.ParticleIndex,
+                displacement.normalise() * forceMagnitude);
+        });
 }
 
 void Npcs::OnShipTriangleDestroyed(
@@ -2212,7 +2638,7 @@ void Npcs::OnShipTriangleDestroyed(
     }
 
     //
-    // Visit all NPCs on this ship and scare the close ones that are walking
+    // Visit all active NPCs on this ship and scare the close ones that are walking
     //
 
     ElementIndex trianglePointElementIndex = homeShip.GetTriangles().GetPointAIndex(triangleElementIndex); // Representative
@@ -2229,7 +2655,7 @@ void Npcs::OnShipTriangleDestroyed(
         auto & npc = *mStateBuffer[npcId];
 
         if (npc.CurrentConnectedComponentId == triangleConnectedComponentId
-            && npc.CurrentRegime != StateType::RegimeType::BeingRemoved
+            && npc.IsActive()
             && npc.Kind == NpcKindType::Human
             && npc.KindSpecificState.HumanNpcState.CurrentBehavior == StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Walking)
         {
@@ -2255,6 +2681,22 @@ void Npcs::OnShipTriangleDestroyed(
             }
         }
     }
+}
+
+void Npcs::OnShipStartedSinking(
+    ShipId shipId,
+    float /*currentSimulationTime*/)
+{
+    assert(mShips[shipId].has_value());
+    mShips[shipId]->SinkingShipPanicLevel = 1.0f;
+}
+
+void Npcs::OnShipRepaired(
+    ShipId shipId,
+    float currentSimulationTime)
+{
+    assert(mShips[shipId].has_value());
+    mShips[shipId]->ShipReparationStartSimulationTimestamp = currentSimulationTime;
 }
 
 /////////////////////////////// Barylab-specific
@@ -2585,6 +3027,12 @@ void Npcs::Publish() const
                     break;
                 }
 
+                case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Dancing_Repaired:
+                {
+                    mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Dancing_Repaired");
+                    break;
+                }
+
                 case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::Constrained_Electrified:
                 {
                     mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Electrified");
@@ -2683,6 +3131,12 @@ void Npcs::Publish() const
                     mGameEventHandler->OnHumanNpcBehaviorChanged("BeingRemoved");
                     break;
                 }
+
+                case StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType::BeingRemoved_Exploding:
+                {
+                    mGameEventHandler->OnHumanNpcBehaviorChanged("BeingRemoved_Exploding");
+                    break;
+                }
             }
         }
     }
@@ -2737,7 +3191,11 @@ void Npcs::InternalBeginMoveNpc(
     bool doMoveWholeMesh)
 {
     assert(mStateBuffer[id].has_value());
-    assert(mStateBuffer[id]->CurrentRegime != StateType::RegimeType::BeingRemoved);
+
+    // Is active
+    assert(mStateBuffer[id]->IsActive());
+
+    // Not in deferred removal
     assert(std::find(mDeferredRemovalNpcs.cbegin(), mDeferredRemovalNpcs.cend(), id) == mDeferredRemovalNpcs.cend());
 
     auto & npc = *mStateBuffer[id];
@@ -2857,13 +3315,17 @@ void Npcs::InternalBeginDeferredDeletion(
     float /*currentSimulationTime*/)
 {
     assert(mStateBuffer[id].has_value());
-    assert(mStateBuffer[id]->CurrentRegime != StateType::RegimeType::BeingRemoved);
+
+    // Is active
+    assert(mStateBuffer[id]->IsActive());
+
+    // Not in deferred removal already
     assert(std::find(mDeferredRemovalNpcs.cbegin(), mDeferredRemovalNpcs.cend(), id) == mDeferredRemovalNpcs.cend());
 
     auto & npc = *mStateBuffer[id];
 
     //
-    // Move NPC to BeingRemoved
+    // Move NPC regime to BeingRemoved
     //
 
     auto const oldRegime = npc.CurrentRegime;
@@ -2879,7 +3341,7 @@ void Npcs::InternalBeginDeferredDeletion(
     assert(mShips[npc.CurrentShipId].has_value());
     auto & ship = *(mShips[npc.CurrentShipId]);
 
-    ship.WorkingNpcStats.Remove(npc);
+    ship.ActiveNpcStats.Remove(npc);
     PublishCount();
 
     //
@@ -2889,7 +3351,12 @@ void Npcs::InternalBeginDeferredDeletion(
     auto burningNpcIt = std::find(ship.BurningNpcs.begin(), ship.BurningNpcs.end(), id);
     if (burningNpcIt != ship.BurningNpcs.end())
     {
+        assert(mStateBuffer[id]->CombustionState.has_value());
+
         ship.BurningNpcs.erase(burningNpcIt);
+
+        // Emit event
+        mGameEventHandler->OnPointCombustionEnd();
     }
 
     //
@@ -2938,7 +3405,9 @@ void Npcs::InternalCompleteNewNpc(
 void Npcs::InternalTurnaroundNpc(NpcId id)
 {
     assert(mStateBuffer[id].has_value());
-    assert(mStateBuffer[id]->CurrentRegime != StateType::RegimeType::BeingRemoved);
+
+    // Is active
+    assert(mStateBuffer[id]->IsActive());
 
     switch (mStateBuffer[id]->Kind)
     {
@@ -2977,14 +3446,24 @@ void Npcs::InternalTurnaroundNpc(NpcId id)
 void Npcs::InternalHighlightNpc(NpcId id)
 {
     assert(mStateBuffer[id].has_value());
-    assert(mStateBuffer[id]->CurrentRegime != StateType::RegimeType::BeingRemoved);
+
+    // Is active
+    assert(mStateBuffer[id]->IsActive());
 
     mStateBuffer[id]->IsHighlightedForRendering = true;
 }
 
+void Npcs::InternalFreeNpcParticles(StateType const & npc)
+{
+    for (auto const & p : npc.ParticleMesh.Particles)
+    {
+        mParticles.Remove(p.ParticleIndex);
+    }
+}
+
 void Npcs::PublishCount()
 {
-    mGameEventHandler->OnNpcCountsUpdated(CalculateWorkingNpcCount());
+    mGameEventHandler->OnNpcCountsUpdated(CalculateActiveNpcCount());
 }
 
 void Npcs::PublishSelection()
@@ -3026,7 +3505,7 @@ NpcSubKindIdType Npcs::ChooseSubKind(
         case NpcKindType::Human:
         {
             // Check whether ship already has a captain
-            if (shipId.has_value() && mShips[*shipId]->WorkingNpcStats.HumanCaptainNpcCount == 0)
+            if (shipId.has_value() && mShips[*shipId]->ActiveNpcStats.HumanCaptainNpcCount == 0)
             {
                 // Choose a captain
                 auto const & captainRoles = mNpcDatabase.GetHumanSubKindIdsByRole()[static_cast<size_t>(NpcHumanRoleType::Captain)];
@@ -3058,7 +3537,7 @@ NpcSubKindIdType Npcs::ChooseSubKind(
     return 0;
 }
 
-size_t Npcs::CalculateWorkingNpcCount() const
+size_t Npcs::CalculateActiveNpcCount() const
 {
     size_t totalCount = 0;
 
@@ -3066,8 +3545,8 @@ size_t Npcs::CalculateWorkingNpcCount() const
     {
         if (s.has_value())
         {
-            totalCount += s->WorkingNpcStats.FurnitureNpcCount;
-            totalCount += s->WorkingNpcStats.HumanNpcCount;
+            totalCount += s->ActiveNpcStats.FurnitureNpcCount;
+            totalCount += s->ActiveNpcStats.HumanNpcCount;
         }
     }
 
@@ -3215,10 +3694,11 @@ void Npcs::TransferNpcToShip(
     // Maintain stats
     //
 
-    mShips[npc.CurrentShipId]->WorkingNpcStats.Remove(npc);
+    mShips[npc.CurrentShipId]->ActiveNpcStats.Remove(npc);
     mShips[npc.CurrentShipId]->TotalNpcStats.Remove(npc);
-    mShips[newShip]->WorkingNpcStats.Add(npc);
+    mShips[newShip]->ActiveNpcStats.Add(npc);
     mShips[newShip]->TotalNpcStats.Add(npc);
+    // No need to publish as total hasn't changed
 
     //
     // Set ShipId in npc
@@ -4251,8 +4731,7 @@ void Npcs::RenderNpc(
 
 void Npcs::UpdateFurnitureNpcAnimation(
     StateType & npc,
-    float currentSimulationTime,
-    Ship const & /*homeShip*/)
+    float currentSimulationTime)
 {
     assert(npc.Kind == NpcKindType::Furniture);
 
@@ -4274,6 +4753,17 @@ void Npcs::UpdateFurnitureNpcAnimation(
             break;
         }
 
+        case FurnitureNpcStateType::BehaviorType::BeingRemoved_Exploding:
+        {
+            // Alpha
+
+            float const elapsed = currentSimulationTime - furnitureNpcState.CurrentStateTransitionSimulationTimestamp;
+
+            animationState.Alpha = 1.0f - std::min(elapsed / NpcExplosionDuration, 1.0f);
+
+            break;
+        }
+
         case FurnitureNpcStateType::BehaviorType::Default:
         {
             // Nop
@@ -4284,8 +4774,7 @@ void Npcs::UpdateFurnitureNpcAnimation(
 
 void Npcs::UpdateHumanNpcAnimation(
     StateType & npc,
-    float currentSimulationTime,
-    Ship const & homeShip)
+    float currentSimulationTime)
 {
     assert(npc.Kind == NpcKindType::Human);
 
@@ -4298,6 +4787,10 @@ void Npcs::UpdateHumanNpcAnimation(
     ElementIndex const primaryParticleIndex = npc.ParticleMesh.Particles[0].ParticleIndex;
     auto const & primaryContrainedState = npc.ParticleMesh.Particles[0].ConstrainedState;
     ElementIndex const secondaryParticleIndex = npc.ParticleMesh.Particles[1].ParticleIndex;
+
+    assert(mShips[npc.CurrentShipId].has_value());
+    auto const & ship = *mShips[npc.CurrentShipId];
+    auto const & homeShip = ship.HomeShip;
 
     //
     // Angles and thigh
@@ -4739,6 +5232,23 @@ void Npcs::UpdateHumanNpcAnimation(
             break;
         }
 
+        case HumanNpcStateType::BehaviorType::Constrained_Dancing_Repaired:
+        {
+            auto const & moves = mRepairDanceMoves;
+
+            assert(ship.ShipReparationStartSimulationTimestamp.has_value());
+            size_t const m =
+                static_cast<size_t>(std::floorf((currentSimulationTime - *ship.ShipReparationStartSimulationTimestamp) / DanceMoveDuration))
+                % moves.size();
+
+            targetAngles = moves[m].LimbAngles;
+            targetUpperLegLengthFraction = moves[m].UpperLegLengthFraction;
+
+            convergenceRate = 0.15f;
+
+            break;
+        }
+
         case HumanNpcStateType::BehaviorType::Constrained_Falling:
         {
             // Both arms in direction of face, depending on head velocity in that direction
@@ -4861,6 +5371,9 @@ void Npcs::UpdateHumanNpcAnimation(
             //
             // Arms and legs up<->down
             //
+            // Here we use an animation-specific elapsed time, which grows
+            // with a variable rate, determined by animation
+            //
 
             //
             // 1 period:
@@ -4874,7 +5387,7 @@ void Npcs::UpdateHumanNpcAnimation(
             float constexpr Period1 = 3.00f;
             float constexpr Period2 = 1.00f;
 
-            float elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
+            float elapsed = animationState.AnimationElapsed;
             // Prolong first period
             float constexpr ActualLeadInTime = 6.0f;
             if (elapsed < ActualLeadInTime)
@@ -4886,11 +5399,9 @@ void Npcs::UpdateHumanNpcAnimation(
                 elapsed = elapsed - Period1;
             }
 
-            float const panicAccelerator = 1.0f + std::min(humanNpcState.ResultantPanicLevel, 2.0f) / 2.0f * 4.0f;
-
             float const arg =
                 Period1 / 2.0f // Start some-halfway-through to avoid sudden extreme angles
-                + elapsed * 2.6f * panicAccelerator
+                + elapsed * 2.6f
                 + humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition * 0.7f;
 
             float const inPeriod = FastMod(arg, (Period1 + Period2));
@@ -4925,6 +5436,10 @@ void Npcs::UpdateHumanNpcAnimation(
             float const MaxConvergenceWait = 3.5f;
             convergenceRate = 0.01f + Clamp(elapsed, 0.0f, MaxConvergenceWait) / MaxConvergenceWait * (0.25f - 0.01f);
 
+            // Advance animation elapsed with variable speed
+            float const panicAccelerator = 1.0f + std::min(humanNpcState.ResultantPanicLevel, 2.0f) * 2.0f;
+            animationState.AnimationElapsed += GameParameters::SimulationStepTimeDuration<float> * panicAccelerator;
+
             break;
         }
 
@@ -4939,7 +5454,7 @@ void Npcs::UpdateHumanNpcAnimation(
 
             float constexpr Period = 3.00f;
 
-            float elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
+            float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
 
             float const arg =
                 elapsed * 2.3f
@@ -4997,14 +5512,16 @@ void Npcs::UpdateHumanNpcAnimation(
             //
             // Trappelen
             //
+            // Here we use an animation-specific elapsed time, which grows
+            // with a variable rate, determined by animation
+            //
 
             float constexpr Period = 2.00f;
 
-            float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
-            float const panicAccelerator = 1.0f + std::min(humanNpcState.ResultantPanicLevel, 2.0f) / 2.0f * 1.0f;
+            float const elapsed = animationState.AnimationElapsed;
 
             float const arg =
-                elapsed * 2.6f * panicAccelerator
+                elapsed * 2.6f
                 + humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition * 0.7f;
 
             float const inPeriod = FastMod(arg, Period);
@@ -5025,6 +5542,10 @@ void Npcs::UpdateHumanNpcAnimation(
             float const MaxConvergenceWait = 3.5f;
             convergenceRate = 0.01f + Clamp(elapsed, 0.0f, MaxConvergenceWait) / MaxConvergenceWait * (0.25f - 0.01f);
 
+            // Advance animation elapsed with variable speed
+            float const panicAccelerator = 1.0f + std::min(humanNpcState.ResultantPanicLevel, 2.0f) * 2.0f;
+            animationState.AnimationElapsed += GameParameters::SimulationStepTimeDuration<float> *panicAccelerator;
+
             break;
         }
 
@@ -5033,14 +5554,16 @@ void Npcs::UpdateHumanNpcAnimation(
             //
             // Trappelen
             //
+            // Here we use an animation-specific elapsed time, which grows
+            // with a variable rate, determined by animation
+            //
 
             float constexpr Period = 2.00f;
 
-            float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
-            float const panicAccelerator = 1.0f + std::min(humanNpcState.ResultantPanicLevel, 2.0f) / 2.0f * 2.0f;
+            float const elapsed = animationState.AnimationElapsed;
 
             float const arg =
-                elapsed * 2.6f * panicAccelerator
+                elapsed * 2.6f
                 + humanNpcState.TotalDistanceTraveledOffEdgeSinceStateTransition * 0.7f;
 
             float const inPeriod = FastMod(arg, Period);
@@ -5070,6 +5593,10 @@ void Npcs::UpdateHumanNpcAnimation(
             // Convergence rate depends on how long we've been in this state
             float const MaxConvergenceWait = 3.5f;
             convergenceRate = 0.01f + Clamp(elapsed, 0.0f, MaxConvergenceWait) / MaxConvergenceWait * (0.25f - 0.01f);
+
+            // Advance animation elapsed with variable speed
+            float const panicAccelerator = 1.0f + std::min(humanNpcState.ResultantPanicLevel, 2.0f) * 2.0f;
+            animationState.AnimationElapsed += GameParameters::SimulationStepTimeDuration<float> *panicAccelerator;
 
             break;
         }
@@ -5195,6 +5722,17 @@ void Npcs::UpdateHumanNpcAnimation(
 
             break;
         }
+
+        case HumanNpcStateType::BehaviorType::BeingRemoved_Exploding:
+        {
+            // Alpha
+
+            float const elapsed = currentSimulationTime - humanNpcState.CurrentStateTransitionSimulationTimestamp;
+
+            animationState.Alpha = 1.0f - std::min(elapsed / NpcExplosionDuration, 1.0f);
+
+            break;
+        }
     }
 
     // Converge
@@ -5317,6 +5855,22 @@ void Npcs::UpdateHumanNpcAnimation(
             break;
         }
 
+        case HumanNpcStateType::BehaviorType::Constrained_Dancing_Repaired:
+        {
+            auto const & moves = mRepairDanceMoves;
+
+            assert(ship.ShipReparationStartSimulationTimestamp.has_value());
+            size_t const m =
+                static_cast<size_t>(std::floorf((currentSimulationTime - *ship.ShipReparationStartSimulationTimestamp) / DanceMoveDuration))
+                % moves.size();
+
+            targetLengthMultipliers = moves[m].LimbLengthMultipliers;
+
+            limbLengthConvergenceRate = 0.15f;
+
+            break;
+        }
+
         case HumanNpcStateType::BehaviorType::Free_Swimming_Style2:
         {
             //
@@ -5382,6 +5936,7 @@ void Npcs::UpdateHumanNpcAnimation(
         case HumanNpcStateType::BehaviorType::Free_InWater:
         case HumanNpcStateType::BehaviorType::Free_Swimming_Style1:
         case HumanNpcStateType::BehaviorType::ConstrainedOrFree_Smashed:
+        case HumanNpcStateType::BehaviorType::BeingRemoved_Exploding:
         {
             // Nop
             break;

@@ -43,7 +43,6 @@ Npcs::StateType::KindSpecificStateType::HumanNpcStateType::BehaviorType Npcs::Ca
 void Npcs::UpdateFurniture(
 	StateType & npc,
 	float currentSimulationTime,
-	Ship & /*homeShip*/ ,
 	GameParameters const & /*gameParameters*/)
 {
 	assert(npc.Kind == NpcKindType::Furniture);
@@ -77,13 +76,26 @@ void Npcs::UpdateFurniture(
 
 			break;
 		}
+
+		case FurnitureNpcStateType::BehaviorType::BeingRemoved_Exploding:
+		{
+			// See if we're done
+			float const elapsed = currentSimulationTime - furnitureState.CurrentStateTransitionSimulationTimestamp;
+			if (elapsed >= NpcExplosionDuration)
+			{
+				// Deferred removal
+				assert(std::find(mDeferredRemovalNpcs.cbegin(), mDeferredRemovalNpcs.cend(), npc.Id) == mDeferredRemovalNpcs.cend());
+				mDeferredRemovalNpcs.emplace_back(npc.Id);
+			}
+
+			break;
+		}
 	}
 }
 
 void Npcs::UpdateHuman(
 	StateType & npc,
 	float currentSimulationTime,
-	Ship & homeShip,
 	GameParameters const & gameParameters)
 {
 	assert(npc.ParticleMesh.Particles.size() == 2);
@@ -93,6 +105,10 @@ void Npcs::UpdateHuman(
 	assert(npc.Kind == NpcKindType::Human);
 	auto & humanState = npc.KindSpecificState.HumanNpcState;
 	using HumanNpcStateType = StateType::KindSpecificStateType::HumanNpcStateType;
+
+	assert(mShips[npc.CurrentShipId].has_value());
+	auto & ship = *mShips[npc.CurrentShipId];
+	auto & homeShip = ship.HomeShip;
 
 	//
 	// Constants
@@ -122,6 +138,7 @@ void Npcs::UpdateHuman(
 		+ humanState.BombProximityPanicLevel
 		+ humanState.IncomingWaterProximityPanicLevel
 		+ humanState.MiscPanicLevel
+		+ mShips[npc.CurrentShipId]->SinkingShipPanicLevel
 		+ mGeneralizedPanicLevel;
 
 	// Decay
@@ -664,11 +681,30 @@ void Npcs::UpdateHuman(
 		case HumanNpcStateType::BehaviorType::Constrained_Equilibrium:
 		case HumanNpcStateType::BehaviorType::Constrained_Walking:
 		case HumanNpcStateType::BehaviorType::Constrained_WalkingUndecided:
+		case HumanNpcStateType::BehaviorType::Constrained_Dancing_Repaired:
 		{
 			if (isFree)
 			{
 				// Transition
 				TransitionHumanBehaviorToFree(npc, currentSimulationTime);
+
+				break;
+			}
+
+			if ((humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_Equilibrium
+				|| humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_Walking)
+				&& ship.ShipReparationStartSimulationTimestamp.has_value())
+			{
+				// Transition to dancing-repaired
+
+				humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Dancing_Repaired, currentSimulationTime);
+
+#ifdef BARYLAB_PROBING
+				if (npc.Id == mCurrentlySelectedNpc)
+				{
+					mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Dancing_Repaired");
+				}
+#endif
 
 				break;
 			}
@@ -1039,6 +1075,7 @@ void Npcs::UpdateHuman(
 						mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Equilibrium");
 					}
 #endif
+					break;
 				}
 			}
 			else if (humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_Equilibrium)
@@ -1169,11 +1206,36 @@ void Npcs::UpdateHuman(
 					publishStateQuantity = std::make_tuple("EquilibriumTermination", std::to_string(humanState.CurrentEquilibriumSoftTerminationDecision));
 #endif
 			}
+			else if (humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_WalkingUndecided)
+			{
+				// Nop
+			}
 			else
 			{
-				assert(humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_WalkingUndecided);
+				assert(humanState.CurrentBehavior == HumanNpcStateType::BehaviorType::Constrained_Dancing_Repaired);
 
-				// Nop
+				// Check if we're done
+				if (!ship.ShipReparationStartSimulationTimestamp.has_value())
+				{
+					// Transition to equilibrium
+
+					humanState.TransitionToState(HumanNpcStateType::BehaviorType::Constrained_Equilibrium, currentSimulationTime);
+
+#ifdef BARYLAB_PROBING
+					if (npc.Id == mCurrentlySelectedNpc)
+					{
+						mGameEventHandler->OnHumanNpcBehaviorChanged("Constrained_Equilibrium");
+					}
+#endif
+					break;
+				}
+
+				// Match current move's orientation & direction
+				size_t const m =
+					static_cast<size_t>(std::floorf((currentSimulationTime - *ship.ShipReparationStartSimulationTimestamp) / DanceMoveDuration))
+					% mRepairDanceMoves.size();
+				humanState.CurrentFaceOrientation = mRepairDanceMoves[m].FaceOrientation;
+				humanState.CurrentFaceDirectionX = mRepairDanceMoves[m].FaceDirectionX;
 			}
 
 			break;
@@ -1650,7 +1712,7 @@ void Npcs::UpdateHuman(
 				homeShip.SpawnAirBubble(
 					mParticles.GetPosition(secondaryParticleState.ParticleIndex),
 					GameParameters::NpcAirBubbleFinalScale,
-					GameParameters::HumanNpcTemperature,
+					mParticles.GetTemperature(secondaryParticleState.ParticleIndex), // Head temperature
 					currentSimulationTime,
 					npc.CurrentPlaneId,
 					gameParameters);
@@ -1871,6 +1933,20 @@ void Npcs::UpdateHuman(
 
 					break;
 				}
+			}
+
+			break;
+		}
+
+		case HumanNpcStateType::BehaviorType::BeingRemoved_Exploding:
+		{
+			// See if we're done
+			float const elapsed = currentSimulationTime - humanState.CurrentStateTransitionSimulationTimestamp;
+			if (elapsed >= NpcExplosionDuration)
+			{
+				// Deferred removal
+				assert(std::find(mDeferredRemovalNpcs.cbegin(), mDeferredRemovalNpcs.cend(), npc.Id) == mDeferredRemovalNpcs.cend());
+				mDeferredRemovalNpcs.emplace_back(npc.Id);
 			}
 
 			break;

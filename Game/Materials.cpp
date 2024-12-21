@@ -47,8 +47,11 @@ StructuralMaterial StructuralMaterial::Create(
         float const thermalConductivity = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "thermal_conductivity", 50.0f);
         float const thermalExpansionCoefficient = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "thermal_expansion_coefficient", 0.0);
         float const specificHeat = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "specific_heat", 100.0f);
-        float const explosiveCombustionRadius = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "explosive_combustion_radius", 0.0);
-        float const explosiveCombustionStrength = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "explosive_combustion_strength", 1.0);
+        MaterialCombustionType const combustionType = StrToMaterialCombustionType(Utils::GetMandatoryJsonMember<std::string>(structuralMaterialJson, "combustion_type"));
+        float const explosiveCombustionForce = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "explosive_combustion_force", 1.0);
+        float const explosiveCombustionForceRadius = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "explosive_combustion_force_radius", 0.0);
+        float const explosiveCombustionHeat = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "explosive_combustion_heat", 0.0);
+        float const explosiveCombustionHeatRadius = Utils::GetOptionalJsonMember<float>(structuralMaterialJson, "explosive_combustion_heat_radius", explosiveCombustionForceRadius);
 
         // Misc
 
@@ -94,8 +97,11 @@ StructuralMaterial StructuralMaterial::Create(
             thermalConductivity,
             thermalExpansionCoefficient,
             specificHeat,
-            explosiveCombustionRadius,
-            explosiveCombustionStrength,
+            combustionType,
+            explosiveCombustionForce,
+            explosiveCombustionForceRadius,
+            explosiveCombustionHeat,
+            explosiveCombustionHeatRadius,
             // Misc
             windReceptivity,
             waterReactivity,
@@ -109,4 +115,14 @@ StructuralMaterial StructuralMaterial::Create(
     {
         throw GameException(std::string("Error parsing structural material \"") + name + "\": " + ex.what());
     }
+}
+
+StructuralMaterial::MaterialCombustionType StructuralMaterial::StrToMaterialCombustionType(std::string const & str)
+{
+    if (Utils::CaseInsensitiveEquals(str, "Combustion"))
+        return MaterialCombustionType::Combustion;
+    else if (Utils::CaseInsensitiveEquals(str, "Explosion"))
+        return MaterialCombustionType::Explosion;
+    else
+        throw GameException("Unrecognized MaterialCombustionType \"" + str + "\"");
 }

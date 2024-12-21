@@ -82,6 +82,20 @@ public:
     {
     }
 
+    void StartExplosion(
+        float /*currentSimulationTime*/,
+        PlaneId /*planeId*/,
+        vec2f const & /*centerPosition*/,
+        float /*blastForce*/,
+        float /*blastForceRadius*/,
+        float /*blastHeat*/,
+        float /*blastHeatRadius*/,
+        float /*renderRadiusOffset*/,
+        ExplosionType /*explosionType*/,
+        GameParameters const & /*gameParameters*/)
+    {
+    }
+
 public:
 
     bool QueryPointAt(vec2f const & worldCoordinates) const

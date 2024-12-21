@@ -44,6 +44,7 @@ public:
         , mVelocityBuffer(maxParticleCount, vec2f::zero())
         , mPreliminaryForcesBuffer(maxParticleCount, vec2f::zero())
         , mExternalForcesBuffer(maxParticleCount, vec2f::zero())
+        , mTemperatureBuffer(maxParticleCount, 0.0f)
         , mMeshWaternessBuffer(maxParticleCount, 0.0f)
         , mMeshWaterVelocityBuffer(maxParticleCount, vec2f::zero())
         , mAnyWaternessBuffer(maxParticleCount, 0.0f)
@@ -54,17 +55,22 @@ public:
         //////////////////////////////////
         // Container
         //////////////////////////////////
-        , mParticleInUseCount(0)
+        , mParticlesInUseCount(0)
         , mFreeParticleSearchStartIndex(0)
     {
     }
 
     NpcParticles(NpcParticles && other) = default;
 
+    ElementCount GetInUseParticlesCount() const
+    {
+        return mParticlesInUseCount;
+    }
+
     ElementCount GetRemainingParticlesCount() const
     {
-        assert(mParticleInUseCount <= mMaxParticleCount);
-        return mMaxParticleCount - mParticleInUseCount;
+        assert(mParticlesInUseCount <= mMaxParticleCount);
+        return mMaxParticleCount - mParticlesInUseCount;
     }
 
     ElementIndex Add(
@@ -247,6 +253,29 @@ public:
         mExternalForcesBuffer.fill(vec2f::zero());
     }
 
+    float GetTemperature(ElementIndex particleElementIndex) const noexcept
+    {
+        return mTemperatureBuffer[particleElementIndex];
+    }
+
+    void SetTemperature(
+        ElementIndex particleElementIndex,
+        float value) noexcept
+    {
+        mTemperatureBuffer[particleElementIndex] = value;
+    }
+
+    void AddHeat(
+        ElementIndex particleElementIndex,
+        float heat) // J
+    {
+        assert(GetMaterial(particleElementIndex).GetHeatCapacity() > 0.0f);
+
+        mTemperatureBuffer[particleElementIndex] +=
+            heat
+            / GetMaterial(particleElementIndex).GetHeatCapacity();
+    }
+
     // [0.0, ~1.0]
     float const GetMeshWaterness(ElementIndex particleElementIndex) const noexcept
     {
@@ -352,6 +381,8 @@ private:
     Buffer<vec2f> mPreliminaryForcesBuffer;
     Buffer<vec2f> mExternalForcesBuffer;
 
+    Buffer<float> mTemperatureBuffer;
+
     Buffer<float> mMeshWaternessBuffer; // Mesh water at triangle (when constrained); // [0.0, ~1.0]
     Buffer<vec2f> mMeshWaterVelocityBuffer; // (when constrained)
     Buffer<float> mAnyWaternessBuffer; // Mesh water at triangle (when constrained), depth (when free); [0.0, 1.0]
@@ -371,7 +402,7 @@ private:
     //////////////////////////////////////////////////////////
 
     // Convenience counter
-    ElementCount mParticleInUseCount;
+    ElementCount mParticlesInUseCount;
 
     // The index at which to start searching for free particles
     // (just an optimization over restarting from zero each time)

@@ -19,11 +19,24 @@ GameParameters::GameParameters()
 	, OceanFloorElasticityCoefficient(0.5f)
 	, MoveToolInertia(3.0f)
 	, IsUltraViolentMode(false)
+	// Heat and combustion
+	, AirTemperature(298.15f) // 25C
+	, WaterTemperature(288.15f) // 15C
+	, ThermalConductivityAdjustment(1.0f)
+	, HeatDissipationAdjustment(1.0f)
+	, IgnitionTemperatureAdjustment(1.0f)
+	, MeltingTemperatureAdjustment(1.0f)
+	, CombustionSpeedAdjustment(1.0f)
+	, CombustionHeatAdjustment(1.0f)
+	, HeatBlasterHeatFlow(2000.0f) // 900KJ: 80kg of iron (~=1 particle) get dT=1500 in 60 seconds
+	, HeatBlasterRadius(8.0f)
+	, LaserRayHeatFlow(327680.0f)
 	// NPC
 	, NpcSpringReductionFractionAdjustment(1.0f)
 	, NpcSpringDampingCoefficientAdjustment(1.0f)
 	, NpcFrictionAdjustment(1.0f)
 	, NpcSizeMultiplier(1.0f)
+	, NpcPassiveBlastRadiusAdjustment(1.0f)
 	, HumanNpcEquilibriumTorqueStiffnessCoefficient(0.0035f)
 	, HumanNpcEquilibriumTorqueDampingCoefficient(0.0012f)
 	, HumanNpcWalkingSpeedAdjustment(1.0f)
